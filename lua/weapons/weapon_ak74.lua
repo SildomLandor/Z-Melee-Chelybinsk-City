@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "AK-74"
+SWEP.PrintName = "АК-74"
 SWEP.Author = "Izhevsk Machine-Building Plant"
-SWEP.Instructions = "Automatic rifle chambered in 5.45x39 mm\n\nRate of fire 700 rounds per minute"
+SWEP.Instructions = "Автоматическая винтовка под патрон 5,45х39 мм\\n\\nСкорость стрельбы 700 выстрелов в минуту."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -99,13 +99,17 @@ if CLIENT then
 	}
 end
 
+SWEP.settedGroups = false
 function SWEP:ThinkAdd()
 	if CLIENT and self:GetWM() and not isbool(self:GetWM()) and isstring(self.FakeBodyGroups) then
 		if self:HasAttachment("grip", "grip_akdong") then
 			self:GetWM():SetBodyGroups("02900080302")
+			self.settedGroups = true
 		else
 			self:GetWM():SetBodyGroups(self.FakeBodyGroups)
+			self.settedGroups = true
 		end
+		--self:GetWM():SetBodyGroups(self.FakeBodyGroups)
 	end
 end
 

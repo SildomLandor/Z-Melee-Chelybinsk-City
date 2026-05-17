@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "PB-4 Osa"
+SWEP.PrintName = "ПБ-4 Оса"
 SWEP.Author = "Research Institute of Applied Chemistry"
-SWEP.Instructions = "Lightweight, compact, break-action non-lethal handgun. It is designed for self-defense and close-range applications, commonly used by civilians and law enforcement. The pistol has a four-shot capacity and is compatible with various ammunition types. Chambered in 18x45mm"
+SWEP.Instructions = "Легкий, компактный нелетальный пистолет с переломным затвором. Он предназначен для самообороны и применения на близком расстоянии, обычно используется гражданскими лицами и правоохранительными органами. Пистолет рассчитан на четыре выстрела и совместим с различными типами боеприпасов. Под патрон 18x45 мм."
 SWEP.Category = "Weapons - Pistols"
 SWEP.ViewModel = ""
 

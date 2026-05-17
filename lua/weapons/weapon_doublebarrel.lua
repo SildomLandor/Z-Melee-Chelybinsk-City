@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_doublebarrel_short"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "IZh-43" -- сам ты дабл баррел
+SWEP.PrintName = "ИЖ-43" -- сам ты дабл баррел
 SWEP.Author = "Izhevsk Mechanical Plant"
-SWEP.Instructions = "IZh-43 is a side by side smoothbore shotgun chambered in 12/70"
+SWEP.Instructions = "ИЖ-43 — гладкоствольное ружье бок о бок под патрон 12/70."
 SWEP.Category = "Weapons - Shotguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

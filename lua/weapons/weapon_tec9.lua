@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "TEC-9"
+SWEP.PrintName = "ТЭЦ-9"
 SWEP.Author = "Intratec"
-SWEP.Instructions = "Semi-automatic pistol chambered in 9x19 mm"
+SWEP.Instructions = "Полуавтоматический пистолет под патрон 9х19 мм."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

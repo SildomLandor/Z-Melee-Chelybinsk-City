@@ -45,7 +45,7 @@ function hg.AddAttachment(ply,wep,att)
 		local restrictAtt = hg.attachments[placement][att].restrictatt
 		
 		for i,att in pairs(wep.attachments) do
-			if not att or not istable(att) or table.IsEmpty(att) or att[1] == "empty" then continue end
+			if not att or not istable(att) or next(att) == nil or att[1] == "empty" then continue end
 			if restrictAtt then
 				if hg.attachments[i][att[1]][1] == restrictAtt then
 					ply:ChatPrint("There is no space for this attachment.")
@@ -61,9 +61,9 @@ function hg.AddAttachment(ply,wep,att)
 	end
 
 	if not placement then return end
-	if not (table.IsEmpty(wep.attachments[placement]) or wep.attachments[placement][1] == "empty") then
-		ply:ChatPrint("There is no space for this attachment.")
-		return
+	if next(wep.attachments[placement]) and wep.attachments[placement][1] ~= "empty" then
+	    ply:ChatPrint("There is no space for this attachment.")
+	    return
 	end
 	
 	--if not wep.availableAttachments[placement] then return end
@@ -123,8 +123,8 @@ function hg.AddAttachmentForce(ply,wep,att)
 	if not wep.attachments[placement].noblock then
 		local restrictAtt = hg.attachments[placement][att].restrictatt
 		
-		for i,att in pairs(wep.attachments) do
-			if not att or not istable(att) or table.IsEmpty(att) or att[1] == "empty" then continue end
+		for i, att in pairs(wep.attachments) do
+		    if not att or not istable(att) or next(att) == nil or att[1] == "empty" then continue end
 		end
 	end
 
@@ -177,7 +177,7 @@ net.Receive("ZB_AttachRemove", function(len, ply)
 
 	if not placement then return end
 	if wep.attachments[placement][1] != att then return end
-	if table.IsEmpty(wep.attachments[placement]) or wep.attachments[placement][1] == "empty" then return end
+	if not next(wep.attachments[placement]) or wep.attachments[placement][1] == "empty" then return end
 	if wep.availableAttachments[placement].cannotremove then return end
 	ply.inventory.Attachments[#ply.inventory.Attachments + 1] = att
 	local i

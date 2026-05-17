@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Buck 120 General"
-SWEP.Instructions = "Large hunting knife, has a blood drain, which allows you to make stabs with strong bleeding. Used in the movie Scream as the killer's primary weapon.\n\nLMB to attack.\nR + LMB to change attack mode.\nRMB to block."
+SWEP.PrintName = "BAK 120 Нож"
+SWEP.Instructions = "Большой охотничий нож, имеет кровоотвод, что позволяет наносить удары с сильным кровотечением. Используется в фильме «Крик» в качестве основного оружия убийцы.\\n\\nЛКМ для атаки.\\nR + ЛКМ, чтобы изменить режим атаки.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -21,8 +21,8 @@ SWEP.SuicideTime = 0.5
 SWEP.CanSuicide = true
 SWEP.SuicidePunchAng = Angle(-5, -15, 0)
 
-SWEP.BleedMultiplier = 1.5
-SWEP.PainMultiplier = 1.8
+SWEP.BleedMultiplier = 1.3
+SWEP.PainMultiplier = 1.5
 
 SWEP.DamagePrimary = 20
 SWEP.DamageSecondary = 10
@@ -58,6 +58,10 @@ SWEP.ImmobilizationMul = 0.45
 SWEP.StaminaMul = 0.5
 SWEP.HadBackBonus = true
 
+SWEP.BlockTier = 2
+SWEP.MeleeMaterial = "metal"
+SWEP.BlockImpactSound = "physics/metal/metal_solid_impact_bullet1.wav"
+
 SWEP.attack_ang = Angle(0,0,0)
 function SWEP:Initialize()
     self.attackanim = 0
@@ -73,9 +77,9 @@ function SWEP:Initialize()
     self:InitAdd()
 end
 
-SWEP.AttackTime = 0.2
-SWEP.AnimTime1 = 0.7
-SWEP.WaitTime1 = 0.35
+SWEP.AttackTime = 0.3
+SWEP.AnimTime1 = 1
+SWEP.WaitTime1 = 0.55
 
 SWEP.AnimTime2 = 0.7
 SWEP.WaitTime2 = 0.4

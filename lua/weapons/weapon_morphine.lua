@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Morphine"
-SWEP.Instructions = "A very strong medicine used primarily to lower the pressure and/or as an anesthetic. Morphine dose must be strictly observed, as it can lead to opiate overdose. Contains the maximum daily dose. RMB to inject into someone else."
+SWEP.PrintName = "Морфий"
+SWEP.Instructions = "Очень сильнодействующее лекарство, используемое в первую очередь для снижения давления и/или в качестве анестетика. Дозу морфина необходимо строго соблюдать, так как это может привести к передозировке опиатов. Содержит максимальную суточную дозу. ПКМ, чтобы ввести кого-нибудь другого."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1

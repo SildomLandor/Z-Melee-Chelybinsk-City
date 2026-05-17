@@ -185,21 +185,54 @@ function SWEP:Think()
 		end
 	end--]]
 end
+
+function SWEP:DoBandageUse(attackType, target, fromMinigame)
+	if CLIENT then return false end
+
+	local owner = self:GetOwner()
+	if not IsValid(owner) then return false end
+
+	local ent
+
+	if attackType == 2 then
+		if IsValid(self:GetNWEntity("fakeGun")) then return false end
+
+		ent = target
+		if not IsValid(ent) then
+			local tr = hg.eyeTrace(owner)
+			ent = tr and tr.Entity or nil
+		end
+
+		if not IsValid(ent) then return false end
+		if hg.GetCurrentCharacter(ent) == hg.GetCurrentCharacter(owner) then return false end
+
+		self.healbuddy = ent
+	else
+		ent = owner
+		self.healbuddy = ent
+
+		if fromMinigame and hg_healanims:GetBool() then
+			self:SetHolding(100)
+		end
+	end
+
+	local done = self:Heal(self.healbuddy, self.mode)
+
+	if done and self.PostHeal then
+		self:PostHeal(self.healbuddy, self.mode)
+	end
+
+	if self.net_cooldown2 < CurTime() then
+		self:SetNetVar("modeValues", self.modeValues)
+	end
+
+	return done
+end
+
 SWEP.net_cooldown2 = 0
 function SWEP:PrimaryAttack()
-	if SERVER then--and not self.modeValuesdef[self.mode][2] then
-
-		self.healbuddy = self:GetOwner()
-		local done = self:Heal(self.healbuddy, self.mode)
-		
-		if(done and self.PostHeal)then
-			self:PostHeal(self.healbuddy, self.mode)
-		end
-
-		if self.net_cooldown2 < CurTime() then
-			self:SetNetVar("modeValues",self.modeValues)
-			--self.net_cooldown2 = CurTime() + 0.1
-		end
+	if SERVER then
+		self:DoBandageUse(1, self:GetOwner(), false)
 	end
 end
 
@@ -346,22 +379,10 @@ function SWEP:SetInfo(info)
 end
 
 function SWEP:SecondaryAttack()
-	--self:SetHolding(math.min(self:GetHolding() + 9, 100))
 	if SERVER then
-		if IsValid(self:GetNWEntity("fakeGun")) then return end
-		local ent = hg.eyeTrace(self:GetOwner()).Entity
-		self.healbuddy = ent
-		if !IsValid(self.healbuddy) then return end
-		if hg.GetCurrentCharacter(self.healbuddy) == hg.GetCurrentCharacter(self:GetOwner()) then return end
-		local done = self:Heal(self.healbuddy, self.mode)
-		if(done and self.PostHeal)then
-			self:PostHeal(self.healbuddy, self.mode)
-		end		
-
-		if self.net_cooldown2 < CurTime() then
-			self:SetNetVar("modeValues",self.modeValues)
-			--self.net_cooldown2 = CurTime() + 0.1 * game.GetTimeScale()
-		end
+		local tr = hg.eyeTrace(self:GetOwner())
+		local ent = tr and tr.Entity or nil
+		self:DoBandageUse(2, ent, false)
 	end
 end
 

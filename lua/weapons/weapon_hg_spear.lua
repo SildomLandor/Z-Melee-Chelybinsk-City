@@ -1,7 +1,7 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Spear"
-SWEP.Instructions = "A spear is an effective weapon to attack at a distance.\n\nLMB to attack.\nRMB to block.\nRMB + LMB to throw."
+SWEP.PrintName = "Копье"
+SWEP.Instructions = "Копье — эффективное оружие для атаки на расстоянии.\\n\\nЛКМ для атаки.\\nПКМ для блокировки.\\nПКМ + ЛКМ для броска."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -113,7 +113,7 @@ if SERVER then
         ent.returndamage = 30
         ent.returnblood = 100
         ent.PenetrationSize = 15
-        ent.penetration = 10
+        ent.Penetration = 40
 
         local phys = ent:GetPhysicsObject()
 
@@ -160,7 +160,6 @@ if SERVER then
             ply:ViewPunch(Angle(-2,4,0))
             timer.Simple(0.2,function()
                 if not IsValid(ply) then return end
-                ply:EmitSound("physics/metal/weapon_impact_soft1.wav")
                 ply:ViewPunch(Angle(-3,-4,-2))
             end)
             timer.Simple(0.4,function()

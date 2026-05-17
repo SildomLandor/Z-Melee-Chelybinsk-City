@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Heavy Dragoon Pistol"
+SWEP.PrintName = "Тяжелый драгунский пистолет"
 SWEP.Author = "N/A"
-SWEP.Instructions = "This is a muzzle-loaded flintlock pistol that appeared as self-defense weapon and as a military arm in the early 16th century, using black powder and 20mm caliber."
+SWEP.Instructions = "Это кремневый пистолет с дульным замком, который появился как оружие самообороны и как военное оружие в начале 16 века, используя черный порох и калибр 20 мм."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 1
 SWEP.SlotPos = 10
@@ -36,7 +36,7 @@ SWEP.Primary.Automatic = false
 SWEP.Primary.Ammo = "20mm"
 SWEP.Primary.Cone = 0
 SWEP.Primary.Damage = 65
-SWEP.Primary.Sound = {"snds_jack_gmod/ez_weapons/caplock_handgun.wav", 75, 60, 70}
+SWEP.Primary.Sound = {"weapons/awoi/musket_3_fire.wav", 75, 60, 70}
 SWEP.SupressedSound = {"weapons/awoi/musket_3_fire.wav", 65, 90, 100}
 SWEP.Primary.SoundEmpty = {"zcitysnd/sound/weapons/m1911/handling/m1911_empty.wav", 75, 95, 100, CHAN_WEAPON, 2}
 SWEP.Primary.Force = 80
@@ -68,7 +68,7 @@ SWEP.availableAttachments = {}
 
 SWEP.ShockMultiplier = 2
 
-SWEP.DistSound = "snds_jack_gmod/ez_weapons/rifle_far.wav"
+SWEP.DistSound = "toz_shotgun/toz_dist.wav"--SWEP.DistSound = "weapons/awoi/musket_1_fire.wav"
 SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
 SWEP.holsteredPos = Vector(5, 7, -4)
 SWEP.holsteredAng = Angle(-150, -10, 180)

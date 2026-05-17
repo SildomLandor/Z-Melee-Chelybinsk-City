@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "M16A2"
+SWEP.PrintName = "М16А2"
 SWEP.Author = "Colt’s Manufacturing Company"
-SWEP.Instructions = "The M16 rifle is a family of assault rifles adapted from the ArmaLite AR-15 rifle for the United States military. Chambered in 5.56x45 mm"
+SWEP.Instructions = "Винтовка M16 — семейство штурмовых винтовок, адаптированных на основе винтовки ArmaLite AR-15 для вооруженных сил США. Под патрон 5,56х45 мм."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

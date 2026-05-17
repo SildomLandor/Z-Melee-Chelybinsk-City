@@ -1,8 +1,8 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_tpik_base"
-SWEP.PrintName = "SLAM"
+SWEP.PrintName = "С.Л.Э.М"
 SWEP.Category = "Weapons - Explosive"
-SWEP.Instructions = "Selectable Lightweight Attack Munition or (M2/M3/M4 SLAM) is a small United States multi-purpose landmine produced by ATK Precision Fuze Company. It has a passive infrared sensor, and a magnetic influence sensor which allow it to be used as a demolition munition, off-route mine, or full-width belly attack mine."
+SWEP.Instructions = "Selectable Lightweight Attack Munition или (M2/M3/M4 SLAM) — небольшая многоцелевая мина, производимая в США компанией ATK Precision Fuze Company. Он оснащен пассивным инфракрасным датчиком и датчиком магнитного воздействия, которые позволяют использовать его в качестве подрывного боеприпаса, мины вне маршрута или полноразмерной мины для поражения днища."
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.Primary.ClipSize = -1

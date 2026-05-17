@@ -72,29 +72,47 @@ local text_color = "<color=180,180,180>"
 function SWEP:PrintWeaponInfo( x, y, alpha )
     if ( self.DrawWeaponInfoBox == false ) then return end
 
-    if ( self.InfoMarkup == nil ) then
+    local margin = 12
+    local scrW, scrH = ScrW(), ScrH()
+    local markupW = math.min( 250, math.max( 160, scrW * 0.18 ) )
+    local boxW = markupW + 10
+
+    if ( self.InfoMarkup == nil ) or ( self._infoMarkupW ~= markupW ) then
+        self._infoMarkupW = markupW
         local str = "<font=HomigradFontSmall>"
         if self.Author != "" then
-			str = str .. title_color .. "Manufacturer:</color>\t" .. text_color .. self.Author .. "</color>\n"
+			str = str .. title_color .. "Производитель:</color>\t" .. text_color .. self.Author .. "</color>\n"
 		end
         if self.Instructions != "" then
-			str = str .. title_color .. "Information:</color>\n" .. text_color .. self.Instructions .. "</color>\n"
+			str = str .. title_color .. "Информация:</color>\n" .. text_color .. self.Instructions .. "</color>\n"
 		end
         str = str .. "</font>"
 
-        self.InfoMarkup = markup.Parse( str, 250 )
+        self.InfoMarkup = markup.Parse( str, markupW )
     end
 
-    x = ScrW()*0.85   
-    y = ScrH()*0.055
+    local contentH = self.InfoMarkup:GetHeight()
+    local boxH = contentH + 18
 
-    --surface.SetDrawColor( 0, 0, 0, alpha-25 )
-    --surface.SetTexture( self.SpeechBubbleLid )
---
-    --surface.DrawTexturedRect( 0, 0 - 64 - 6, 128, 64 )
-    draw.RoundedBox( 1, x - 5, y - 6, 260, self.InfoMarkup:GetHeight() + 18, Color( 0, 0, 0, alpha-15 ) )
+    local textX = scrW * 0.85
+    local textY = scrH * 0.055
 
-    self.InfoMarkup:Draw( x + 5, y + 5, nil, nil, alpha )
+    local boxX = math.min( textX - 5, scrW - boxW - margin )
+    boxX = math.max( boxX, margin )
+    local boxY = math.Clamp( textY - 6, margin, scrH - boxH - margin )
+
+    draw.RoundedBox( 16, boxX, boxY, boxW, boxH, Color( 0, 0, 0, alpha - 15 ) )
+
+    local drawX, drawY = boxX + 10, boxY + 11
+    local maxH = scrH - margin - drawY
+
+    if contentH > maxH then
+        render.SetScissorRect( boxX, boxY, boxX + boxW, scrH - margin, true )
+        self.InfoMarkup:Draw( drawX, drawY, nil, nil, alpha )
+        render.SetScissorRect( 0, 0, 0, 0, false )
+    else
+        self.InfoMarkup:Draw( drawX, drawY, nil, nil, alpha )
+    end
 
 end
 --[[---------------------------------------------------------

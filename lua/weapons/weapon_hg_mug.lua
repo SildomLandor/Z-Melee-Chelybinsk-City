@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Mug"
-SWEP.Instructions = "A small mug typically used to hold liquids.\n\nLMB to attack.\nRMB to block.\nRMB + LMB to throw."
+SWEP.PrintName = "Кружка"
+SWEP.Instructions = "Маленькая кружка, обычно используемая для хранения жидкостей.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать.\\nПКМ + ЛКМ, чтобы бросить."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false

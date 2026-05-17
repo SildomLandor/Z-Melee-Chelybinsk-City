@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Tourniquet"
-SWEP.Instructions = "An esmarch tourniquet designed to stop large (arterial) bleedings. Can also be used to stop light bleedings, although it makes the limb ineffective."
+SWEP.PrintName = "Жгут"
+SWEP.Instructions = "Жгут Эсмарха, предназначенный для остановки крупных (артериальных) кровотечений. Также может использоваться для остановки легких кровотечений, хотя и делает конечность неэффективной."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1

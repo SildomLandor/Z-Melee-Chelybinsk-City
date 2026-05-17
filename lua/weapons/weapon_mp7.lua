@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "HK MP7"
+SWEP.PrintName = "Гонконг MP7"
 SWEP.Author = "Heckler & Koch"
-SWEP.Instructions = "Submachine gun chambered in 4.6x30 mm\n\nRate of fire 950 rounds per minute"
+SWEP.Instructions = "Пистолет-пулемет под патрон 4,6х30 мм\\n\\nСкорость стрельбы 950 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

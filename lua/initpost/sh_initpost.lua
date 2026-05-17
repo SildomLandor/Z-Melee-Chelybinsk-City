@@ -325,18 +325,37 @@ if CLIENT then
 	hook.Add("OnEntityCreated", "doorInstructions", function(ent)
 		if SDOIsDoor(ent) then
 			if CLIENT then
-				local use = input.LookupBinding("+use") or "BIND YOUR +USE KEY PLEASE. WRITE \"bind e +use\" IN CONSOLE FOR THE LOVE OF GOD"
-				local walk = input.LookupBinding("+walk") or "BIND YOUR +WALK KEY PLEASE. WRITE \"bind alt +walk\" IN CONSOLE FOR THE LOVE OF GOD"
-				local speed = input.LookupBinding("+speed") or "BIND YOUR +SPEED KEY PLEASE. WRITE \"bind shift +speed\" IN CONSOLE FOR THE LOVE OF GOD"
+				local useKey = input.LookupBinding("+use")
+				local walkKey = input.LookupBinding("+walk")
+				local speedKey = input.LookupBinding("+speed")
+				
+				local useText = useKey and string.upper(useKey) or "КЛАВИША +USE НЕ НАЗНАЧЕНА"
+				local walkText = walkKey and string.upper(walkKey) or "КЛАВИША +WALK НЕ НАЗНАЧЕНА"
+				local speedText = speedKey and string.upper(speedKey) or "КЛАВИША +SPEED НЕ НАЗНАЧЕНА"
+				if not useKey then
+					useText = useText .. " (напишите bind e +use в консоли)"
+				end
+				if not walkKey then
+					walkText = walkText .. " (напишите bind alt +walk в консоли)"
+				end
+				if not speedKey then
+					speedText = speedText .. " (напишите bind shift +speed в консоли)"
+				end
 				
 				ent.HowToUseInstructions = 
-				"<font=ZCity_Tiny>"..string.upper( use ).." open normally</font>\n"..
-				"<font=ZCity_Tiny>"..string.upper( walk ).." + ".. string.upper( use ) .." open slower</font>\n"..
-				"<font=ZCity_Tiny>"..string.upper( speed ).." + ".. string.upper( use ) .." open faster</font>\n"
-
-				ent.HudHintMarkup = markup.Parse("<font=ZCity_Tiny>".. "Door" .."</font>\n<font=ZCity_SuperTiny><colour=125,125,125>".. ent.HowToUseInstructions .."</colour></font>", 450)
+					"<font=ZCity_Tiny>" .. useText .. " — обычное открытие</font>\n" ..
+					"<font=ZCity_Tiny>" .. walkText .. " + " .. useText .. " — медленное открытие</font>\n" ..
+					"<font=ZCity_Tiny>" .. speedText .. " + " .. useText .. " — быстрое открытие</font>\n"
+				
+				ent.HudHintMarkup = markup.Parse(
+					"<font=ZCity_Tiny>Дверь</font>\n" ..
+					"<font=ZCity_SuperTiny><colour=125,125,125>" .. ent.HowToUseInstructions .. "</colour></font>",
+					450
+				)
+				
 				ent.AdditionalInfoFunc = function()
-					return lply:KeyDown(IN_WALK) and "Open door for "..math.Round(100 - math.min(math.abs(lply:EyeAngles().p) / 60, 1) * 100).."%" or ""--lply:GetNWInt("door_open_amt", 0)
+					local percent = math.Round(100 - math.min(math.abs(lply:EyeAngles().p) / 60, 1) * 100)
+					return "Открыть дверь на " .. percent .. "%"
 				end
 			end
 		end

@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "KRISS Vector"
+SWEP.PrintName = "КРИСС Вектор"
 SWEP.Author = "Transformational Defense Industries, Inc"
-SWEP.Instructions = "Submachine gun chambered in .45 ACP\n\nRate of fire 1500 rounds per minute"
+SWEP.Instructions = "Пистолет-пулемет под патрон .45 ACP\\n\\nСкорость стрельбы 1500 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_glock17"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Glock 18C"
+SWEP.PrintName = "Глок 18С"
 SWEP.Author = "Glock GmbH"
-SWEP.Instructions = "Glock is a brand of polymer-framed, short recoil-operated, striker-fired, locked-breech semi-automatic pistols designed and produced by Austrian manufacturer Glock Ges.m.b.H. Thats version of Glock is 18 chambered in 9x19 ammo, has full-auto mode."
+SWEP.Instructions = "Glock — марка полуавтоматических пистолетов с полимерной рамкой, короткой отдачей, ударником и затвором, разработанных и производимых австрийским производителем Glock Ges.m.b.H. Эта версия Glock имеет 18 патронов под патрон 9x19 и имеет полностью автоматический режим."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

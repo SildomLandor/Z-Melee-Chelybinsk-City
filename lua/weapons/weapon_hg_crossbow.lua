@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Homemade Crossbow"
+SWEP.PrintName = "Самодельный арбалет"
 SWEP.Author = "Unknown"
-SWEP.Instructions = "A rather weighty homemade crossbow that shoots red-hot armature.\nHas very high damage"
+SWEP.Instructions = "Довольно увесистый самодельный арбалет, стреляющий раскаленной арматурой.\\nОбладает очень высоким уроном."
 SWEP.Category = "Weapons - Other"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -135,70 +135,50 @@ SWEP.weight = 3
 SWEP.RestPosition = Vector(21, -1, 2)
 
 function SWEP:Shoot(override)
-	if not self:CanPrimaryAttack() then return false end
-	if not self:CanUse() then return false end
-	if self:Clip1() == 0 then return end
-	local primary = self.Primary
-	if not self.drawBullet then
-		self.LastPrimaryDryFire = CurTime()
-		self:PrimaryShootEmpty()
-		primary.Automatic = false
-		return false
-	end
-	local owner = self:GetOwner()
-	if primary.Next > CurTime() then return false end
-	if (primary.NextFire or 0) > CurTime() then return false end
-	primary.Next = CurTime() + primary.Wait
-	self:SetLastShootTime(CurTime())
-	primary.Automatic = weapons.Get(self:GetClass()).Primary.Automatic
-	
-	local tr,pos,ang = self:GetTrace(true)
-	local owner = self:GetOwner()
-	
-	if SERVER then
-		local dist, point = util.DistanceToLine(pos, pos - ang:Forward() * 50, owner:EyePos())
+    if not self:CanPrimaryAttack() then return false end
+    if not self:CanUse() then return false end
+    if self:Clip1() == 0 then return end
+    local primary = self.Primary
+    if not self.drawBullet then
+        self.LastPrimaryDryFire = CurTime()
+        self:PrimaryShootEmpty()
+        primary.Automatic = false
+        return false
+    end
+    local owner = self:GetOwner()
+    if primary.Next > CurTime() then return false end
+    if (primary.NextFire or 0) > CurTime() then return false end
+    primary.Next = CurTime() + primary.Wait
+    self:SetLastShootTime(CurTime())
 
-		--if(GetGlobalBool("PhysBullets_ReplaceDefault", false))then
-		local bullet = {}
-			-- bullet.Num = 1
-		bullet.Pos = point
-		bullet.Dir = ang:Forward()
-		bullet.Speed = 310
-			-- bullet.Force = ammotype.Force or primary.Force
-		bullet.Damage = 500
-		bullet.Force = 80
-			-- bullet.Size = 0.5
-			-- bullet.Spread = ammotype.Spread or self.Primary.Spread or 0
-		bullet.AmmoType = "Armature"
-		bullet.Attacker = owner.suiciding and Entity(0) or owner
-		bullet.IgnoreEntity = not owner.suiciding and (owner.InVehicle and owner:InVehicle() and owner:GetVehicle() or hg.GetCurrentCharacter(owner)) or nil
-			-- bullet.Callback = bulletHit
-			-- bullet.TracerName = self.Tracer or "nil"
-			-- bullet.Speed = ammotype.Speed
-			-- bullet.Distance = ammotype.Distance or 56756
-		bullet.Penetration = 10
+    local wepData = weapons.Get(self:GetClass())
+    if wepData then
+        primary.Automatic = wepData.Primary.Automatic
+    end
 
-		hg.PhysBullet.CreateBullet(bullet)
-			-- self:FireBullets(bullet)
-		--else
-		--	local projectile = ents.Create("crossbow_projectile")
-		--	projectile:SetPos(point)
-		--	projectile:SetAngles(ang)
-		--	projectile:Spawn()
-		--	projectile.Penetration = -(-self.Penetration)
---
-		--	local phys = projectile:GetPhysicsObject()
-		--	if IsValid(phys) then
-		--		phys:SetVelocity(self:GetOwner():GetVelocity() + ang:Forward() * 9000)
-		--	end
-		--end
-	end
+    local tr,pos,ang = self:GetTrace(true)
+    local owner = self:GetOwner()
+    
+    if SERVER then
+        local dist, point = util.DistanceToLine(pos, pos - ang:Forward() * 50, owner:EyePos())
+        local bullet = {}
+        bullet.Pos = point
+        bullet.Dir = ang:Forward()
+        bullet.Speed = 310
+        bullet.Damage = 500
+        bullet.Force = 80
+        bullet.AmmoType = "Armature"
+        bullet.Attacker = owner.suiciding and Entity(0) or owner
+        bullet.IgnoreEntity = not owner.suiciding and (owner.InVehicle and owner:InVehicle() and owner:GetVehicle() or hg.GetCurrentCharacter(owner)) or nil
+        bullet.Penetration = 10
+        hg.PhysBullet.CreateBullet(bullet)
+    end
 
-	self:EmitShoot()
-	self:PrimarySpread()
-	self:TakePrimaryAmmo(1)
-	self:GetWM():SetSkin(0)
-	self:PlayAnim("fire",1,false,nil,false,false,true)
+    self:EmitShoot()
+    self:PrimarySpread()
+    self:TakePrimaryAmmo(1)
+    self:GetWM():SetSkin(0)
+    self:PlayAnim("fire",1,false,nil,false,false,true)
 end
 SWEP.dort = true
 

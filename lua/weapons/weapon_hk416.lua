@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "HK416"
+SWEP.PrintName = "НК416"
 SWEP.Author = "Heckler & Koch"
-SWEP.Instructions = "Automatic rifle chambered in 5.56x45 mm\n\nRate of fire 850 rounds per minute"
+SWEP.Instructions = "Автоматическая винтовка под патрон 5,56х45 мм\\n\\nСкорость стрельбы 850 выстрелов в минуту."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

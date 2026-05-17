@@ -1,7 +1,7 @@
 SWEP.Base = "weapon_ptrd"
 SWEP.Spawnable = true
 SWEP.AdminOnly = true
-SWEP.PrintName = "PTRD-41 Fun Auto"
+SWEP.PrintName = "ПТРД-41 Fun Auto"
 SWEP.Category = "Weapons - Sniper Rifles"
 
 SWEP.WepSelectIcon2 = Material("vgui/wep_jack_hmcd_ptrd")
@@ -11,7 +11,6 @@ SWEP.Primary.Wait = 0.15
 SWEP.Primary.ClipSize = 1000
 SWEP.Primary.DefaultClip = 1000
 SWEP.Primary.Automatic = true
-SWEP.AutomaticDraw = true
 
 function SWEP:PrimaryShootPost()
 	if CLIENT then return end

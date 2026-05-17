@@ -2,9 +2,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Benelli M4 Super 90"
+SWEP.PrintName = "Бенелли М4 Супер 90"
 SWEP.Author = "Benelli Armi S.p.A."
-SWEP.Instructions = "Semi-automatic shotgun chambered in 12/70"
+SWEP.Instructions = "Полуавтоматическое ружье под патрон 12/70."
 SWEP.Category = "Weapons - Shotguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

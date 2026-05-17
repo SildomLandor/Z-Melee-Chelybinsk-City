@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Bloodbag"
-SWEP.Instructions = "A plastic bag containing neccesary instruments to acknowledge blood and transfuse it. Can be used to help with large blood loss."
+SWEP.PrintName = "Пакет с кровью"
+SWEP.Instructions = "Пластиковый пакет с необходимыми инструментами для приема крови и ее переливания. Может использоваться при большой кровопотере."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1
@@ -40,10 +40,9 @@ function SWEP:InitializeAdd()
 	}
 
 	if SERVER then
-		if math.random(2) == 1 then
+		self.bloodtype = "o-"
+		if math.random(10) == 1 then
 			self.modeValues[1] = 1
-			//local val,index = table.Random(hg.organism.bloodtypes)
-			self.bloodtype = "o-"
 		end
 	end
 end
@@ -55,8 +54,8 @@ SWEP.modeValuesdef = {
 SWEP.showstats = true
 
 SWEP.modeNames2 = {
-	[1] = "take blood",
-	[2] = "give blood"
+	[1] = "Взять кровь",
+	[2] = "Влить кровь"
 }
 
 function SWEP:GetInfo()
@@ -139,17 +138,18 @@ if SERVER then
 		if self:GetNetVar("mode",2) == 2 then
 			if self.modeValues[1] != 1 then
 				if owner:KeyDown(IN_ATTACK) or owner:KeyDown(IN_ATTACK2) then
-					local ent = owner:KeyDown(IN_ATTACK) and owner or hg.eyeTrace(self:GetOwner()).Entity
+					local takingSelf = owner:KeyDown(IN_ATTACK)
+					local ent = takingSelf and owner or hg.eyeTrace(self:GetOwner()).Entity
 					if not ent.organism then return end
 					local ent = hg.GetCurrentCharacter(ent)
 					if ent:GetVelocity():LengthSqr() < 25 and ent.organism.blood > 2000 and (not self.bloodtype or ent.organism.bloodtype == self.bloodtype) then
 						local old = -(-self.modeValues[1])
 						self.modeValues[1] = math.min(self.modeValues[1] + FrameTime() * (math.max(ent.organism.pulse / 70,0.3)) * 0.5,1)
 						self.bloodtype = ent.organism.bloodtype
-
-						if ent.organism.furryinfected then
-							self.furryinfected = true
+						if takingSelf and ent.organism.lungsR and ent.organism.lungsL and (ent.organism.lungsR[2] == 1 or ent.organism.lungsL[2] == 1) then
+							ent.organism.needle = 1
 						end
+
 						
 						if self.poisoned2 then
 							ent.organism.poison4 = CurTime()
@@ -189,9 +189,6 @@ if SERVER then
 							ent.organism.hemotransfusionshock = ent.organism.hemotransfusionshock + math.min(FrameTime() * 0.5,self.modeValues[1])
 						end
 
-						if (self.bloodtype == "c-" or self.furryinfected) and ent.PlayerClassName != "furry" and (ent.organism.blood - old) > 0 then
-							ent.organism.furryinfected = true
-						end
 
 						self.modeValues[1] = math.max(self.modeValues[1] - (ent.organism.blood - old) / (good_type and 500 or 200),0)
 						if self.sndcd < CurTime() and old ~= ent.organism.blood  then
@@ -245,7 +242,7 @@ else
 		local mode = self:GetNetVar("mode",2) - 1
 		if mode == 0 then mode = 2 end
 		local modeStr = self.modeNames2[mode]
-		self.modeNames[1] = self:GetNetVar("modeValues", {})[1] == 0 and modeStr .. " | Recipent: " .. ent.organism.bloodtype or modeStr .. " | in: "..self:GetNetVar("type","o-").." | recipent: "..ent.organism.bloodtype
+		self.modeNames[1] = self:GetNetVar("modeValues", {})[1] == 0 and modeStr .. " | Получатель: " .. ent.organism.bloodtype or modeStr .. " | В: "..self:GetNetVar("type","o-").." | Получатель: "..ent.organism.bloodtype
 	end
 
 	function SWEP:AfterDrawModel(wm,nodraw)

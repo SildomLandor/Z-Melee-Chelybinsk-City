@@ -15,9 +15,17 @@ function SWEP:ClearAttachments()
 	}
 
 	if SERVER then
-		if self.attachments and table.IsEmpty(self.attachments.barrel) then self.attachments.barrel = self.availableAttachments.barrel and self.availableAttachments.barrel["empty"] or {} end
-		if self.attachments and table.IsEmpty(self.attachments.sight) then self.attachments.sight = self.availableAttachments.sight and self.availableAttachments.sight["empty"] or {} end
-		if self.attachments and table.IsEmpty(self.attachments.mount) then self.attachments.mount = self.availableAttachments.mount and self.availableAttachments.mount["empty"] or {} end
+	    if self.attachments then
+	        if next(self.attachments.barrel) == nil then
+	            self.attachments.barrel = self.availableAttachments.barrel and self.availableAttachments.barrel["empty"] or {}
+	        end
+	        if next(self.attachments.sight) == nil then
+	            self.attachments.sight = self.availableAttachments.sight and self.availableAttachments.sight["empty"] or {}
+	        end
+	        if next(self.attachments.mount) == nil then
+	            self.attachments.mount = self.availableAttachments.mount and self.availableAttachments.mount["empty"] or {}
+	        end
+	    end
 	end
 
 	if self.StartAtt then
@@ -54,10 +62,16 @@ function hg.ClearAttachments(wep)
 		magwell = {},
 	}
 
-	if SERVER then
-		if tbl.attachments and table.IsEmpty(tbl.attachments.barrel) then tbl.attachments.barrel = self.availableAttachments.barrel and self.availableAttachments.barrel["empty"] or {} end
-		if tbl.attachments and table.IsEmpty(tbl.attachments.sight) then tbl.attachments.sight = self.availableAttachments.sight and self.availableAttachments.sight["empty"] or {} end
-		if tbl.attachments and table.IsEmpty(tbl.attachments.mount) then tbl.attachments.mount = self.availableAttachments.mount and self.availableAttachments.mount["empty"] or {} end
+	if SERVER and tbl.attachments then
+	    if next(tbl.attachments.barrel) == nil then
+	        tbl.attachments.barrel = self.availableAttachments.barrel and self.availableAttachments.barrel["empty"] or {}
+	    end
+	    if next(tbl.attachments.sight) == nil then
+	        tbl.attachments.sight = self.availableAttachments.sight and self.availableAttachments.sight["empty"] or {}
+	    end
+	    if next(tbl.attachments.mount) == nil then
+	        tbl.attachments.mount = self.availableAttachments.mount and self.availableAttachments.mount["empty"] or {}
+	    end
 	end
 
 	if self.StartAtt then
@@ -92,17 +106,26 @@ function hg.SetAttachment(tbl,att,wep)
 end
 
 function SWEP:HasAttachment(whereabouts, attachment)
-	if whereabouts == "sight" and attachment == "optic" and self.scopedef then return true, false end
-	if not self.attachments then return false end
-	local has = self.attachments[whereabouts]
-	if not has or table.IsEmpty(has) then return false end
-	if attachment then
-		has = string.find(has[1], attachment) and true
-	else
-		has = has[1] ~= "empty"
-	end
-	
-	return has and self.attachments[whereabouts], has and hg.attachments[whereabouts][self.attachments[whereabouts][1]]
+    if whereabouts == "sight" and attachment == "optic" and self.scopedef then 
+        return true, false 
+    end
+    if not self.attachments then 
+        return false 
+    end
+    
+    local slot = self.attachments[whereabouts]
+    if not slot or next(slot) == nil then 
+        return false 
+    end
+    
+    local has
+    if attachment then
+        has = string.find(slot[1], attachment) and true
+    else
+        has = slot[1] ~= "empty"
+    end
+    
+    return has and slot, has and hg.attachments[whereabouts][slot[1]]
 end
 
 function SWEP:GetAttachmentModel(whereabouts, attachment)
@@ -139,7 +162,22 @@ local hg_attachment_draw_distance = ConVarExists("hg_attachment_draw_distance") 
 
 function SWEP:DrawAttachments()
 	local owner = self:GetOwner()
-	self.attacments = self:GetNetVar("attachments",{})
+	local netAttachments = self:GetNetVar("attachments")
+	if netAttachments and netAttachments ~= self.attachments then
+		if self.modelAtt then
+			for atta, model in pairs(self.modelAtt) do
+				if not atta then continue end
+				if IsValid(model) then model:Remove() end
+				self.modelAtt[atta] = nil
+			end
+		end
+
+		self.attachments = netAttachments
+	end
+
+	if not self.attachments then
+		self.attachments = self:GetNetVar("attachments", {})
+	end
 	//self.Supressor = (self:HasAttachment("barrel", "supressor") and true) or self.SetSupressor
 	local magwell, magwellData = self:HasAttachment("magwell")
 	if magwellData then 
@@ -186,13 +224,13 @@ function SWEP:DrawAttachments()
 		
 		if not tblhuy and not flagRemovehuy then tblhuy = att[2] end
 		
-		if istable(tblhuy) and not table.IsEmpty(tblhuy) then
-			for index, mat in pairs(tblhuy) do
-				local submat = gun:GetSubMaterial(index)
-				--submat = #submat > 0 and submat or gun:GetMaterials()[index]
-				
-				if submat ~= (mat or "null") then gun:SetSubMaterial(index, mat or "null") end
-			end
+		if istable(tblhuy) and next(tblhuy) then
+		    for index, mat in pairs(tblhuy) do
+		        local submat = gun:GetSubMaterial(index)
+		        if submat ~= (mat or "null") then 
+		            gun:SetSubMaterial(index, mat or "null") 
+		        end
+		    end
 		end
 		--print(att[1])
 		if not self:HasAttachment(plc,att[1]) then continue end
@@ -209,13 +247,15 @@ function SWEP:DrawAttachments()
 		
 		if not IsValid(model) then continue end
 
-		if attdata[4] and not table.IsEmpty(attdata[4]) then
-			for index, mat in pairs(attdata[4]) do
-				local submat = model:GetSubMaterial(index)
-				submat = #submat > 0 and submat or model:GetMaterials()[index]
+		if attdata[4] and next(attdata[4]) then
+		    for index, mat in pairs(attdata[4]) do
+		        local submat = model:GetSubMaterial(index)
+		        submat = #submat > 0 and submat or model:GetMaterials()[index]
 
-				if submat ~= (mat or "null") then model:SetSubMaterial(index, mat or "null") end
-			end
+		        if submat ~= (mat or "null") then 
+		            model:SetSubMaterial(index, mat or "null") 
+		        end
+		    end
 		end
 
 		self:Attachment_Transform(model,pos,ang,plc,att,attdata,available)
@@ -435,18 +475,20 @@ if CLIENT then
 	local colorTransparent = Color(0,0,0,0)
 	function SWEP:DrawLaser()
 		if not self.shouldTransmit then return end
+
 		local laser = self.attachments.underbarrel
-		if not laser or table.IsEmpty(laser) and not self.laser then return end
+		if (not laser or next(laser) == nil) and not self.laser then return end
+
 		local attachmentData
-		if laser and not table.IsEmpty(laser) then
-			attachmentData = hg.attachments.underbarrel[laser[1]]
+		if laser and next(laser) then
+		    attachmentData = hg.attachments.underbarrel[laser[1]]
 		else
-			attachmentData = self.laserData
+		    attachmentData = self.laserData
 		end
 
 		if not self.modelAtt then
-			self.modelAtt = {}
-			return
+		    self.modelAtt = {}
+		    return
 		end
 		
 		local model = self.modelAtt["underbarrel"] or self:GetWeaponEntity()
@@ -693,43 +735,44 @@ if CLIENT then
     local Dynamic = 0
 	
 	local function refreshtbl()
-		local tblcpy = {}
+	    local tblcpy = {}
 
-		local inv = lply:GetNetVar("Inventory")
-		if inv == nil then return end
+	    local inv = lply:GetNetVar("Inventory")
+	    if inv == nil then return end
 
-		local tbl = inv["Attachments"]
-		local wep = lply:GetActiveWeapon()
-		local achtbl = {}
-		if IsValid(wep) and ishgweapon(wep) then
-			achtbl = lply:GetActiveWeapon():GetNetVar("attachments")
-		end
-		
-		for i, att in pairs(tbl) do
-			if !att then continue end
-			table.insert(tblcpy, {att, false})
-		end
+	    local tbl = inv["Attachments"]
+	    if not istable(tbl) then tbl = {} end
 
-		if achtbl then
-			for i, att in pairs(achtbl) do
-				if !att or !next(att) then continue end
-				table.insert(tblcpy, {att[1], true})
-			end
-		end
+	    local wep = lply:GetActiveWeapon()
+	    local achtbl = {}
+	    if IsValid(wep) and ishgweapon(wep) then
+	        achtbl = lply:GetActiveWeapon():GetNetVar("attachments")
+	    end
+	    if not istable(achtbl) then achtbl = {} end  
+	    for i, att in pairs(tbl) do
+	        if !att then continue end
+	        table.insert(tblcpy, {att, false})
+	    end
 
-		return tblcpy
+	    for i, att in pairs(achtbl) do
+	        if !att or !next(att) then continue end
+	        table.insert(tblcpy, {att[1], true})
+	    end
+
+	    return tblcpy
 	end
 
 	hg.GetAttachmentsInv = refreshtbl
 
 	hook.Add("OnNetVarSet", "attachmentPanelRefresh", function(index, key, var)
-		if key == "Inventory" or key == "attachments" and Entity(index) == lply:GetActiveWeapon() then
-			if IsValid(hg.attachmentsMenuPanel) and hg.attachmentsMenuPanel.RefreshTbl then
-				hg.attachmentsMenuPanel:RefreshTbl()
-			end
-		end
+	    local ply = LocalPlayer()
+	    if not IsValid(ply) then return end
+	    if (key == "Inventory" or key == "attachments") and Entity(index) == ply:GetActiveWeapon() then
+	        if IsValid(hg.attachmentsMenuPanel) and hg.attachmentsMenuPanel.RefreshTbl then
+	            hg.attachmentsMenuPanel:RefreshTbl()
+	        end
+	    end
 	end)
-
 	local mat = Material("homigrad/vgui/gradient_left.png")
 	local clr_blackalpha = Color(0, 0, 0, 100)
 
@@ -765,7 +808,7 @@ if CLIENT then
 		lbl:DockMargin(10,0,0,10)
 
 		lbl.Paint = function(self, w, h)
-			draw.SimpleText("LMB - Add attachment | RMB - remove attachment", "ZCity_Tiny", w * 0.5, h * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("ЛКМ - Установить | ПКМ - Снять", "ZCity_Tiny", w * 0.5, h * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		end
 
 		local scroll = vgui.Create("DScrollPanel",frame)
@@ -803,14 +846,14 @@ if CLIENT then
 			for k, v in pairs(tblcpy) do
 				if !hg.attachmentslaunguage[v[1]] then continue end
 				local but = vgui.Create("DButton")
-				but:SetText( hg.attachmentslaunguage[v[1]]..(v[2] and " - on the weapon" or "") )
+				but:SetText( hg.attachmentslaunguage[v[1]]..(v[2] and " — на оружии" or "") )
 				but:SetFont("ZCity_Tiny")
 				but:Dock( TOP )
 				but:DockMargin( 0, 0, 0, 5 )
 				but:SetSize(0, ScreenScaleH(20))
 
 				local but2 = vgui.Create("DButton", but)
-				but2:SetText( "Drop" )
+				but2:SetText( "Бросить" )
 				but2:SetFont("ZCity_SuperTiny")
 				but2:Dock( RIGHT )
 

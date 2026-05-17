@@ -1,8 +1,8 @@
 if SERVER then AddCSLuaFile() end
 
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Beta-Blocker"
-SWEP.Instructions = "Beta blockers can help in stressful situations, will reduce your panic and adrenaline. Very useful in combat at certain doses. RMB to inject into someone else."
+SWEP.PrintName = "Бета-блокатор"
+SWEP.Instructions = "Бета-блокаторы помогут в стрессовых ситуациях, снизят панику и адреналин. Очень полезен в бою в определенных дозах. ПКМ, чтобы ввести кого-нибудь другого."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1

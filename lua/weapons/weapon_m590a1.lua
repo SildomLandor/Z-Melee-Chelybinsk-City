@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_m4super"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Mossberg 590A1"
+SWEP.PrintName = "Моссберг 590А1"
 SWEP.Author = "O.F. Mossberg & Sons"
-SWEP.Instructions = "Pump-action shotgun chambered in 12/70 caliber"
+SWEP.Instructions = "Помповое ружье под патрон калибра 12/70."
 SWEP.Category = "Weapons - Shotguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -271,13 +271,13 @@ local function reloadFunc(self)
 
 	self:SetNetVar("shootgunReload",CurTime() + 1.1)
 
-	if self.MagIndex then
+	if self.MagIndex and IsValid(self:GetWM()) then
 		self:GetWM():ManipulateBoneScale(self.MagIndex, vector_full)
 	end
 	
 	self:PlayAnim(self.AnimList["insert"] or "sgreload_insert", 1, false, function() 
 		self:InsertAmmo(1) 
-		if self.MagIndex then
+		if self.MagIndex and IsValid(self:GetWM()) then
 			self:GetWM():ManipulateBoneScale(self.MagIndex, vector_origin)
 		end
 		

@@ -2,8 +2,8 @@ if SERVER then
     AddCSLuaFile()
 end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Chair leg"
-SWEP.Instructions = "Someone's savagely ripped out chair leg, quite suitable as a cold weapon. Better than nothing i guess.\n\nLMB to attack.\nRMB to block."
+SWEP.PrintName = "Ножка стула"
+SWEP.Instructions = "Чья-то варварски вырванная ножка стула, вполне пригодная в качестве холодного оружия. Думаю, лучше, чем ничего.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false

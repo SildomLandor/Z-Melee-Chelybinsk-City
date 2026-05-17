@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Saiga-12"
+SWEP.PrintName = "Сайга-12"
 SWEP.Author = "Izhevsk Machine-Building Plant"
-SWEP.Instructions = "Semi-automatic shotgun chambered in 12/70"
+SWEP.Instructions = "Полуавтоматическое ружье под патрон 12/70."
 SWEP.Category = "Weapons - Shotguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Mannitol"
-SWEP.Instructions = "Mannitol is used intravenously to reduce acutely raised intracranial pressure until more definitive treatment can be applied, e.g., after head trauma. While mannitol injection is the mainstay for treating high pressure in the skull after a bad brain injury, it is no better than hypertonic saline as a first-line treatment. In treatment-resistant cases, hypertonic saline works better. Intra-arterial infusions of mannitol can transiently open the blood-brain barrier by disrupting tight junctions."
+SWEP.PrintName = "Маннитол"
+SWEP.Instructions = "Маннитол используется внутривенно для снижения резко повышенного внутричерепного давления до тех пор, пока не будет применено более радикальное лечение, например, после травмы головы. Хотя инъекции маннита являются основой лечения высокого давления в черепе после тяжелой черепно-мозговой травмы, в качестве лечения первой линии они не лучше, чем гипертонический солевой раствор. В резистентных к лечению случаях лучше действует гипертонический солевой раствор. Внутриартериальные инъекции маннита могут временно открыть гематоэнцефалический барьер, разрушая плотные соединения."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1

@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Uzi"
+SWEP.PrintName = "Узи"
 SWEP.Author = "Israel Military Industries"
-SWEP.Instructions = "Submachine gun chambered in 9x19 mm\n\nRate of fire 600 rounds per minute"
+SWEP.Instructions = "Пистолет-пулемет под патрон 9х19 мм\\n\\nСкорость стрельбы 1000 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

@@ -1,7 +1,7 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Modified spear"
-SWEP.Instructions = "A spear is an effective weapon to attack at a distance.\n\nLMB to attack.\nRMB to block.\nRMB + LMB to throw."
+SWEP.PrintName = "Модифицированное копье"
+SWEP.Instructions = "Копье — эффективное оружие для атаки на расстоянии.\\n\\nЛКМ для атаки.\\nПКМ для блокировки.\\nПКМ + ЛКМ для броска."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -110,7 +110,7 @@ function SWEP:CustomAttack2()
     ent.returndamage = 30
     ent.returnblood = 100
     ent.PenetrationSize = 15
-    ent.penetration = 10
+    ent.Penetration = 40
 
     ent.hitworldfunc = function(ent)
         ent.wep = "weapon_hg_spear"

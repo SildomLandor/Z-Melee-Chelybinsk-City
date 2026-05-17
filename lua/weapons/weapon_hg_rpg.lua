@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = true
-SWEP.PrintName = "RPG-7"
+SWEP.PrintName = "РПГ-7"
 SWEP.Author = "Degtyarev plant"
-SWEP.Instructions = "The RPG-7 is a portable unguided shoulder-launched anti-tank rocket launcher."
+SWEP.Instructions = "РПГ-7 — переносной неуправляемый противотанковый гранатомет с плечевым пуском."
 SWEP.Category = "Weapons - Grenade Launchers"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -92,21 +92,18 @@ function SWEP:Shoot(override)
 	local tr, pos, ang = self:GetTrace(true)
 	--self:GetOwner():Kick("lol")
 	self:TakePrimaryAmmo(1)
-
-	local owner = self:GetOwner()
 	if SERVER then
 		local projectile = ents.Create("rpg_projectile")
-		projectile.owner = owner
+		projectile.owner = self:GetOwner()
 		projectile:SetPos(pos + ang:Forward() * 10 + ang:Right() * -6 + ang:Up() * 2)
 		projectile:SetAngles(ang)
-		local owncheck = IsValid(owner) and (owner:IsNPC() and owner or owner:InVehicle() and owner:GetVehicle())
-		projectile:SetOwner(IsValid(owner) and (owncheck or owner) or self)
+		projectile:SetOwner(IsValid(self:GetOwner()) and (self:GetOwner():InVehicle() and self:GetOwner():GetVehicle() or self:GetOwner()) or self)
 		projectile:Spawn()
 		projectile.Penetration = -(-self.Penetration)
 
 		local phys = projectile:GetPhysicsObject()
 		if IsValid(phys) then
-			local initialVelocity = owner:GetVelocity() + ang:Forward() * 5249
+			local initialVelocity = self:GetOwner():GetVelocity() + ang:Forward() * 5249
 			phys:SetVelocity(initialVelocity)
 			phys:EnableGravity(false)
 			timer.Simple(0.2, function()
@@ -117,17 +114,17 @@ function SWEP:Shoot(override)
 		end
 		for i,ent in pairs(ents.FindInCone(pos, -ang:Forward(), 128, 0.8)) do
 			if not ent:IsPlayer() then continue end
-			if ent == hg.GetCurrentCharacter(owner) then return end
+			if ent == hg.GetCurrentCharacter( self:GetOwner() ) then return end
 			local d = DamageInfo()
 			d:SetDamage( 4000 )
-			d:SetAttacker(owner)
+			d:SetAttacker( self:GetOwner() )
 			d:SetDamageType( DMG_BURN )
 			d:SetDamagePosition( pos - ang:Forward() * 10 )
 
 			ent:TakeDamageInfo( d )
 
 			d:SetDamage( 400 )
-			d:SetAttacker(owner)
+			d:SetAttacker( self:GetOwner() )
 			d:SetDamageType( DMG_CLUB )
 			d:SetDamagePosition( pos - ang:Forward() * 10 )
 

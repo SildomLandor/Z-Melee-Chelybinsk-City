@@ -1,48 +1,65 @@
 --
 SWEP.WorkWithFake = true
+local weaponNullQueue = {}
+local nullTimerActive = false
 
 hook.Add("PlayerSwitchWeapon", "homigrad-weapons", function(ply, oldWep, newWep)
-	local switch = hook.Run("PlayerSwitchInFake",ply,oldWep,newWep)
-	
-	if switch ~= nil then
-		return switch
-	end
-	
-	if not IsValid(ply.FakeRagdoll) then return end
-	if IsValid(ply.FakeRagdoll.weldHuy) then
-		ply.FakeRagdoll.weldHuy:Remove()
-		ply.FakeRagdoll.weldHuy = nil
-	end
+    local switch = hook.Run("PlayerSwitchInFake", ply, oldWep, newWep)
+    if switch ~= nil then
+        return switch
+    end
 
-	if IsValid(oldWep) and oldWep.RemoveFake then oldWep:RemoveFake() end
-	if IsValid(newWep) and newWep.WorkWithFake and ply.organism.canmove then
-		--newWep:CreateFake(ply.FakeRagdoll)
-		local ragdoll = ply.FakeRagdoll
-		if ragdoll:LookupBone("ValveBiped.Bip01_R_Finger21") then
-			for i = 4, 2, -1 do
-				if not ragdoll:LookupBone("ValveBiped.Bip01_R_Finger" .. tostring(i) .. "1") then continue end
-				ragdoll:ManipulateBoneAngles(ragdoll:LookupBone("ValveBiped.Bip01_R_Finger" .. tostring(i) .. "1"), Angle(0, -90, 0))
-			end
-		end
-	else
-		ply.ActiveWeapon = newWep
-		
-		if !oldWep.Holster or oldWep:Holster(newWep) then
-			timer.Simple(0,function() if not IsValid(ply) then return end ply:SetActiveWeapon(NULL) end)
-		end
+    local ragdoll = ply.FakeRagdoll
+    if not IsValid(ragdoll) then return end
 
-		local ragdoll = ply.FakeRagdoll
-		
-		if not IsValid(ragdoll) then return true end
-		
-		if ragdoll:LookupBone("ValveBiped.Bip01_R_Finger21") then
-			for i = 1, 4 do
-				if not ragdoll:LookupBone("ValveBiped.Bip01_R_Finger" .. tostring(i) .. "1") then continue end
-				ragdoll:ManipulateBoneAngles(ragdoll:LookupBone("ValveBiped.Bip01_R_Finger" .. tostring(i) .. "1"), Angle(0, 0, 0))
-			end
-		end
-		return true
-	end
+    local weld = ragdoll.weldHuy
+    if IsValid(weld) then
+        weld:Remove()
+        ragdoll.weldHuy = nil
+    end
+
+    if IsValid(oldWep) and oldWep.RemoveFake then
+        oldWep:RemoveFake()
+    end
+
+    local canUseFake = ply.organism and ply.organism.canmove and IsValid(newWep) and newWep.WorkWithFake
+    local hasFingers = ragdoll:LookupBone("ValveBiped.Bip01_R_Finger21") ~= nil
+    if hasFingers then
+        local targetAngle = canUseFake and Angle(0, -90, 0) or Angle(0, 0, 0)
+        for i = 1, 4 do
+            local boneName = "ValveBiped.Bip01_R_Finger" .. i .. "1"
+            local boneIndex = ragdoll:LookupBone(boneName)
+            if boneIndex then
+                ragdoll:ManipulateBoneAngles(boneIndex, targetAngle)
+            end
+        end
+    end
+
+    if canUseFake then
+        -- newWep:CreateFake(ragdoll)
+    else
+        ply.ActiveWeapon = newWep
+
+        if not oldWep.Holster or oldWep:Holster(newWep) then
+            weaponNullQueue[#weaponNullQueue + 1] = ply
+            if not nullTimerActive then
+                nullTimerActive = true
+                timer.Simple(0, function()
+                    for _, p in ipairs(weaponNullQueue) do
+                        if IsValid(p) then
+                            p:SetActiveWeapon(NULL)
+                        end
+                    end
+                    for i = 1, #weaponNullQueue do
+                        weaponNullQueue[i] = nil
+                    end
+                    nullTimerActive = false
+                end)
+            end
+        end
+
+        return true 
+    end
 end)
 
 hook.Add("Fake", "weapons", function(ply, ragdoll)

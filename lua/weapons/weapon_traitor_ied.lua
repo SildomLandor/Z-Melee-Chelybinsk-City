@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Improvised Explosive Device"
-SWEP.Instructions = "A handmade C4 explosive put in a small cardboard box. The detonator is an old nokia phone. Put the bomb in different objects for shrapnel or fire. LMB to place in an object, RMB to simply place the bomb. LMB to activate it after it's put."
+SWEP.PrintName = "Самодельное взрывное устройство"
+SWEP.Instructions = "Взрывчатка С4, сделанная своими руками, помещена в небольшую картонную коробку. Детонатор — старый телефон Nokia. Поместите бомбу в разные предметы на предмет осколков или пожара. ЛКМ, чтобы поместить в объект, ПКМ, чтобы просто разместить бомбу. ЛКМ, чтобы активировать его после того, как он будет поставлен."
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -204,6 +204,11 @@ local function ExplodeTheItem(self,ent)
 				net.WriteBool(ent:WaterLevel() > 0)
 				net.WriteString(self.SoundWater)
 			net.Broadcast()
+			if hg and hg.PlayExtraExplosionSound then
+				hg.PlayExtraExplosionSound(EntPos, ent:EntIndex(), 1)
+			else
+				EmitSound("explosionextra/explode_" .. math.random(1, 9) .. ".wav", EntPos, ent:EntIndex() + 800, CHAN_ITEM, 1, 145, 0, math.random(95, 105))
+			end
 
 			if self:WaterLevel() == 0 then
 				ParticleEffect("pcf_jack_groundsplode_medium",ent:GetPos(),-vector_up:Angle())
@@ -227,7 +232,38 @@ local function ExplodeTheItem(self,ent)
 
 		timer.Simple(0.2,function()
 			if not IsValid(ent) then self:Remove() return end
-			util.BlastDamage(self, IsValid(self:GetOwner()) and self:GetOwner() or self, EntPos, BlastDis / 0.01905, BlastDamage * 0.1) -- эта функция полное говно кстати. бьет сковзь любые пропы...
+			
+			local blastRadius = BlastDis / 0.01905
+			local nearRadius = 150
+			local damage = BlastDamage * 0.1
+			local attacker = IsValid(self:GetOwner()) and self:GetOwner() or self
+
+			for _, nearEnt in ipairs(ents.FindInSphere(EntPos, nearRadius)) do
+				if nearEnt:IsPlayer() then
+					local tr = util.TraceLine({
+						start = EntPos,
+						endpos = nearEnt:BodyTarget(EntPos),
+						filter = {self, nearEnt}
+					})
+					
+					if tr.HitWorld or (IsValid(tr.Entity) and tr.Entity ~= nearEnt) then
+						local dmgInfo = DamageInfo()
+						dmgInfo:SetDamage(damage / 2)
+						dmgInfo:SetAttacker(attacker)
+						dmgInfo:SetInflictor(self)
+						dmgInfo:SetDamageType(DMG_BLAST)
+						dmgInfo:SetDamagePosition(EntPos)
+						nearEnt:TakeDamageInfo(dmgInfo)
+
+						hg.LightStunPlayer(nearEnt, 5)
+						if not IsValid(nearEnt.FakeRagdoll) then
+							hg.Fake(nearEnt)
+						end
+					end
+				end
+			end
+
+			util.BlastDamage(self, attacker, EntPos, blastRadius, damage) -- эта функция полное говно кстати. бьет сковзь любые пропы...
 			
 			local dis = BlastDis / 0.01905
 			local disorientation_dis = 10 / 0.01905  
@@ -271,7 +307,7 @@ local function ExplodeTheItem(self,ent)
 				phys:ApplyForceCenter(forceadd)
 			end
 
-			--hgWreckBuildings(ent, EntPos, BlastDamage / 400, BlastDis/8, false)
+			hgWreckBuildings(ent, EntPos, BlastDamage / 400, BlastDis/8, false)
 			hgBlastDoors(ent, EntPos, BlastDamage / 400, BlastDis/8, false)
 			util.ScreenShake( EntPos, 45, 225, 2.5, 3000 )
 

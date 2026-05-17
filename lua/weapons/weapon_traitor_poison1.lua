@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Tetrodotoxin syringe"
-SWEP.Instructions = "Tetrodotoxin is a strong poison that was found by a japanese scientist in 1906. Death occurs from paralysis of the respiratory muscles. Can only be injected in the spinal nerves."
+SWEP.PrintName = "Шприц с тетродотоксином"
+SWEP.Instructions = "Тетродотоксин – сильный яд, открытый японским ученым в 1906 году. Смерть наступает от паралича дыхательных мышц. Можно вводить только в спинномозговые нервы."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false

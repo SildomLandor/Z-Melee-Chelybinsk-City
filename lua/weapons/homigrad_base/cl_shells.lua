@@ -48,10 +48,6 @@ local Types = {
 	["default"] = "dirt"
 }
 
-local ShellsSND = {
-	["12Guage"] ="zcity/shells/shell_12ga_",
-	["Shell"] = "zcity/shells/shell_39mm_"
-}
 
 hg_trails = hg_trails or {}
 local hg_shouldnt_autoremove = ConVarExists("hg_shouldnt_autoremove") and GetConVar("hg_shouldnt_autoremove") or CreateConVar("hg_shouldnt_autoremove", 0, FCVAR_REPLICATED, "Toggle weapon shell disappearing", 0, 1)
@@ -124,7 +120,6 @@ function SWEP:MakeShell(shell, pos, ang, vel)
 					fallmat = "water"
 				end
 				local Type = Types[fallmat] or "default"
-				ent:EmitSound(ShellsSND[t.s]..Type.."_"..math.random(5)..".mp3", 60, 100) 
 			end
 
             if istable(t.s) then
@@ -238,24 +233,7 @@ function hg.CreateMag( self, vel, bodygroups, bDontChangePhys )
 end
 
 function hg.addBulletHoleEffect(pos)
-	if not hg_potatopc:GetBool() then
-		if math.random(3) == 1 and #hg_trails < hg_maxsmoketrails:GetInt() then
-			local eff = CreateParticleSystemNoEntity( "smoke_trail_wild", pos )
-			table.insert(hg_trails,eff)
-			eff:StartEmission()
-			timer.Simple(3,function()
-				if IsValid(eff) then
-					eff:StopEmission()
-				end
-			end)
-			timer.Simple(5,function()
-				if IsValid(eff) then
-					eff:StopEmissionAndDestroyImmediately()
-					table.RemoveByValue(hg_trails,eff)
-				end
-			end)
-		end
-	end
+	return
 end
 
 hook.Add("PostCleanupMap","cleanupshells",function()

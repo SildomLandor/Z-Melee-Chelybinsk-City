@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_m4super"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "TOZ-106"
+SWEP.PrintName = "ТОЗ-106"
 SWEP.Author = "Tulsky Oruzheiny Zavod"
-SWEP.Instructions = "Bolt-action shotgun chambered in 20/70"
+SWEP.Instructions = "Ружье с продольно-скользящим затвором под патрон 20/70."
 SWEP.Category = "Weapons - Shotguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

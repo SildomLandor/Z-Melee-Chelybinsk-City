@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_tpik_base"
-SWEP.PrintName = "Medicine Base"
-SWEP.Instructions = "A wad of gauze bandage, can help stop light bleeding. Since the bandage is not in its packaging, there is little chance that it is sterilized. RMB to use on someone else."
+SWEP.PrintName = "Медицинская база"
+SWEP.Instructions = "Комок марлевой повязки поможет остановить легкое кровотечение. Поскольку повязка находится не в упаковке, вероятность того, что она стерилизована, мала. ПКМ, чтобы использовать его на ком-то другом."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = false
 SWEP.AdminOnly = false
@@ -685,8 +685,11 @@ if SERVER then
 				table.insert(hg.TourniquetGuys,ent)
 			end
 
-			for i,ent in ipairs(hg.TourniquetGuys) do
-				if not IsValid(ent) or not ent.tourniquets or table.IsEmpty(ent.tourniquets) then table.remove(hg.TourniquetGuys,i) end
+			for i = #hg.TourniquetGuys, 1, -1 do
+			    local ent = hg.TourniquetGuys[i]
+			    if not IsValid(ent) or not ent.tourniquets or next(ent.tourniquets) == nil then
+			        table.remove(hg.TourniquetGuys, i)
+			    end
 			end
 
 			SetNetVar("TourniquetGuys",hg.TourniquetGuys)

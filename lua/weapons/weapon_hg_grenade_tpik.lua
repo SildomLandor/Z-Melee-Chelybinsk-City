@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_tpik_base"
-SWEP.PrintName = "M67"
+SWEP.PrintName = "М67"
 SWEP.Instructions = 
 [[M67 fragmentation grenade is used by many countries around the world since 1968. It has a pyrotechnic delay of 4-5.5 seconds.
 
@@ -350,17 +350,19 @@ if CLIENT then
 	local colWhite = Color(255, 255, 255, 155)
 	local lerpthing = 0
 	function SWEP:DrawHUD()
-		if GetViewEntity() ~= lply then return end
-		if lply:InVehicle() then return end
-		if hg.GetCurrentCharacter(lply):IsRagdoll() then return end
+	    if GetViewEntity() ~= lply then return end
+	    if lply:InVehicle() then return end
+	    if hg.GetCurrentCharacter(lply):IsRagdoll() then return end
 
-		local tr = self:GetEyeTrace()
-		local toScreen = tr.HitPos:ToScreen()
+	    local tr = self:GetEyeTrace()
+	    if not tr or not tr.Hit then return end            -- guard against nil trace
+	    local toScreen = tr.HitPos:ToScreen()
 
-		lerpthing = Lerp(0.1, lerpthing, (hg.eyeTrace(lply).Hit and not lply:IsSprinting() and not self.NoTrap) and 1 or 0)
-		colWhite.a = 255 * lerpthing
-		surface.SetDrawColor(colWhite)
-		surface.DrawRect(toScreen.x-2.5, toScreen.y-2.5, 5, 5)
+	    local eyeTrace = hg.eyeTrace(lply)
+	    lerpthing = Lerp(0.1, lerpthing, (eyeTrace and eyeTrace.Hit and not lply:IsSprinting() and not self.NoTrap) and 1 or 0)
+	    colWhite.a = 255 * lerpthing
+	    surface.SetDrawColor(colWhite)
+	    surface.DrawRect(toScreen.x-2.5, toScreen.y-2.5, 5, 5)
 	end
 end
 
@@ -446,8 +448,6 @@ function SWEP:ThinkAdd()
 	end
 
 	if self.ReadyToThrow and ( ( self.IsLowThrow and not self:KeyDown(IN_ATTACK2) ) or not self.IsLowThrow and not self:KeyDown(IN_ATTACK) ) and not self.InThrowing then
-		if self.wait and self.wait > CurTime() then return end
-		self.wait = CurTime() + 1
 		self:PlayAnim(self.IsLowThrow and "attack2" or "attack")
 		self.InThrowing = true
 		self:SetShowGrenade(false)
@@ -522,7 +522,7 @@ function SWEP:CreateSpoon(entownr)
 
 		if self.SpoonSounds then
 			for k,v in ipairs(self.SpoonSounds) do
-				self:GetOwner():EmitSound(v[1], v[2], v[3], v[5])
+				self:GetOwner():EmitSound(v[1], v[2], v[3])
 
 				if v[4] then
 					local effectData = EffectData()

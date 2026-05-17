@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Battering Ram"
-SWEP.Instructions = "A powerful and heavy weapon that can crush doors. Use it to break down barricades and get through tight spaces.\n\nLMB to attack.\nRMB to block."
+SWEP.PrintName = "Таран"
+SWEP.Instructions = "Мощное и тяжелое оружие, способное разбить двери. Используйте его, чтобы разрушать баррикады и проходить через узкие места.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы блокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false

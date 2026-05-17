@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "FN P90"
+SWEP.PrintName = "Организация Объединенных Наций P90"
 SWEP.Author = "FN Herstal"
-SWEP.Instructions = "Submachine gun chambered in 5.7x28 mm\n\nRate of fire 1000 rounds per minute"
+SWEP.Instructions = "Пистолет-пулемет под патрон 5,7х28 мм\\n\\nСкорость стрельбы 1000 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -72,17 +72,18 @@ if CLIENT then
 			self:GetWM():ManipulateBoneScale(15, vector_full)
 		end,
 		[0.45] = function(self,timeMul)
-			if IsValid(self) and IsValid(self:GetOwner()) and IsValid(self:GetWM()) and self:Clip1() < 1 then
-				local ent = hg.CreateMag( self, Vector(0,10,5) )
-				for i = 0, ent:GetBoneCount() - 1 do
-					ent:ManipulateBoneScale(i, vector_origin)
-				end
-
-				ent:ManipulateBoneScale(14, vector_full)
-				ent:ManipulateBoneScale(15, vector_full)
-			end
-			self:GetWM():ManipulateBoneScale(14, vector_origin)
-			self:GetWM():ManipulateBoneScale(15, vector_origin)
+		    if IsValid(self) and IsValid(self:GetOwner()) and IsValid(self:GetWM()) and self:Clip1() < 1 then
+		        local ent = hg.CreateMag( self, Vector(0,10,5) )
+		        if IsValid(ent) then  -- ← добавить эту проверку
+		            for i = 0, ent:GetBoneCount() - 1 do
+		                ent:ManipulateBoneScale(i, vector_origin)
+		            end
+		            ent:ManipulateBoneScale(14, vector_full)
+		            ent:ManipulateBoneScale(15, vector_full)
+		        end
+		    end
+		    self:GetWM():ManipulateBoneScale(14, vector_origin)
+		    self:GetWM():ManipulateBoneScale(15, vector_origin)
 		end,
 		[0.55] = function(self,timeMul)
 

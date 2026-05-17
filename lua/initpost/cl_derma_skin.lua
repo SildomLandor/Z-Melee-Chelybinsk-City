@@ -1,8 +1,8 @@
 --\\
 hg.VGUI = hg.VGUI or {}
-hg.VGUI.MainColor = Color(150, 0 ,0)
-hg.VGUI.SecondaryColor = Color(155,0,0,240)
-hg.VGUI.BackgroundColor = Color(25,25,35,220)
+hg.VGUI.MainColor = Color(85, 85, 85)
+hg.VGUI.SecondaryColor = Color(65, 65, 65, 240)
+hg.VGUI.BackgroundColor = Color(20, 20, 20, 220)
 hg.VGUI.MainSkin = "ZCity"
 
 function hg.GetMainSkin()
@@ -16,83 +16,108 @@ end)
 
 --; Adapted from Helix
 
--- HG.DrawBlur находится в cl_pointshop.lua... простите за такое ГОВНО но это нужно чтобы оно везде грузилось нормально.
+local blur = Material("pp/blurscreen")
+local hg_potatopc
+function hg.DrawBlur(panel, amount, passes, alpha)
+	if is3d2d then return end
+	amount = amount or 5
+	hg_potatopc = hg_potatopc or hg.ConVars.potatopc
 
---local hg_coolvetica = ConVarExists("hg_coolvetica") and GetConVar("hg_coolvetica") or CreateClientConVar("hg_coolvetica", "0", true, false, "changes every text to coolvetica because its good", 0, 1)
-local hg_font = ConVarExists("hg_font") and GetConVar("hg_font") or CreateClientConVar("hg_font", "Bahnschrift", true, false, "change every text font to selected because ui customization is cool")
-local font = function() -- hg_coolvetica:GetBool() and "Coolvetica" or "Bahnschrift"
-    local usefont = "Bahnschrift"
+	if(hg_potatopc:GetBool())then
+		surface.SetDrawColor(0, 0, 0, alpha or (amount * 20))
+		surface.DrawRect(0, 0, panel:GetWide(), panel:GetTall())
+	else
+		surface.SetMaterial(blur)
+		surface.SetDrawColor(0, 0, 0, alpha or 125)
+		surface.DrawRect(0, 0, panel:GetWide(), panel:GetTall())
 
-    if hg_font:GetString() != "" then
-        usefont = hg_font:GetString()
-    end
+		local x, y = panel:LocalToScreen(0, 0)
 
-    return usefont
+		for i = -(passes or 0.2), 1, 0.2 do
+			blur:SetFloat("$blur", i * amount)
+			blur:Recompute()
+			
+			render.UpdateScreenEffectTexture()
+			surface.DrawTexturedRect(x * -1, y * -1, ScrW(), ScrH())
+		end
+	end
 end
+
 
 surface.CreateFont("ZCity_VerySuperTiny", {
 	font = font(),
 	size = ScreenScale(5),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_SuperTiny", {
 	font = font(),
 	size = ScreenScale(6),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_SuperTiny", {
 	font = font(),
 	size = 18,
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Tiny", {
 	font = font(),
 	size = ScreenScale(8),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Tiny", {
 	font = font(),
 	size = 25,
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Small", {
 	font = font(),
 	size = ScreenScale(15),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Medium", {
 	font = font(),
 	size = ScreenScale(25),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Medium", {
 	font = font(),
 	size = 55,
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Big", {
 	font = font(),
 	size = ScreenScale(35),
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Big", {
 	font = font(),
 	size = 300,
+	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Medium_Light", {
 	font = font(),
 	size = 25,
+	extended = true,
 	weight = 200
 })
 
@@ -100,12 +125,14 @@ surface.CreateFont("ZCity_Fixed_Medium_Light_Blur", {
 	font = font(),
 	size = 25,
 	weight = 200,
+	extended = true,
 	blursize = 4
 })
 
 surface.CreateFont("ZCity_Fixed_Icons_Small", {
-	font = "fontello",
+	font = font(),
 	size = 22,
+	extended = true,
 	weight = 500
 })
 --//
@@ -132,7 +159,7 @@ SKIN.Colours.Warning = Color(230, 180, 0)
 SKIN.Colours.MenuLabel = color_white
 SKIN.Colours.DarkerBackground = Color(0, 0, 0, 77)
 
-SKIN.Colours.Outline = Color(155, 0, 0, 255)
+SKIN.Colours.Outline = Color(85, 85, 85, 255)
 SKIN.Colours.Background = Color(0, 0, 0, 205)
 
 SKIN.Colours.SegmentedProgress = {}

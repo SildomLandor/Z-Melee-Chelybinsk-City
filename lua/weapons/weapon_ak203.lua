@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "AK-203"
+SWEP.PrintName = "АК-203"
 SWEP.Author = "Izhevsk Machine-Building Plant"
-SWEP.Instructions = "An extraordinarily potent instrument of power, this steel 7.62x39mm selective fire, gas-operated rifle with a rotating bolt, capable of firing in either semi-automatic or fully automatic mode, is the epitome of Soviet military might in the mid-20th century. With a cyclic rate of fire of around 600 rounds per minute and a 10-, 20-, or 30-round detachable box magazine, this AKM, designed by the renowned Mikhail Kalashnikov, stands as a symbol of the USSR’s technological progress. Its robust design and reliable performance in harsh conditions underline its reputation as a weapon that has left an indelible mark on global warfare"
+SWEP.Instructions = "Чрезвычайно мощный инструмент силы, эта стальная газовая винтовка избирательного огня калибра 7,62x39 мм с вращающимся затвором, способная вести огонь как в полуавтоматическом, так и в полностью автоматическом режиме, является воплощением советской военной мощи середины 20-го века. Этот АКМ, разработанный знаменитым Михаилом Калашниковым, с циклической скорострельностью около 600 выстрелов в минуту и ​​отъемным коробчатым магазином на 10, 20 или 30 патронов является символом технического прогресса СССР. Его прочная конструкция и надежная работа в суровых условиях подчеркивают его репутацию оружия, оставившего неизгладимый след в глобальной войне."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

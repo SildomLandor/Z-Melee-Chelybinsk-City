@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "O.S.I.P.R."
+SWEP.PrintName = "О.С.И.П.Р."
 SWEP.Author = "Universal Union"
-SWEP.Instructions = "O.S.I.P.R. (Overwatch Standard Issue Pulse Rifle) is a Dark Energy/pulse-powered assault rifle.\n\nRate of fire 600 rounds per minute"
+SWEP.Instructions = "О.С.И.П.Р. (Импульсная винтовка Overwatch Standard Issue) — штурмовая винтовка с импульсным приводом и темной энергией.\\n\\nСкорость стрельбы 600 выстрелов в минуту."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
