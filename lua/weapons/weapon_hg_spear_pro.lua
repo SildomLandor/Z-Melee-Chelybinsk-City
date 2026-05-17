@@ -1,7 +1,7 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Pro Spear"
-SWEP.Instructions = "Spear of some slug creature...\n\nLMB to attack.\nRMB to block.\nRMB + LMB to throw."
+SWEP.PrintName = "Профессиональное копье"
+SWEP.Instructions = "Копье какого-то слизняка...\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать.\\nПКМ + ЛКМ, чтобы бросить."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -102,7 +102,7 @@ if SERVER then
         ent.returndamage = 35
         ent.returnblood = 100
         ent.PenetrationSize = 25
-        ent.penetration = 10
+        ent.Penetration = 45
         ent.AeroDrag = true
 
         local phys = ent:GetPhysicsObject()

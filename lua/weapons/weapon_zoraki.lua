@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Zoraki Stalker M906"
+SWEP.PrintName = "Форсированный Сталкер М906"
 SWEP.Author = "Zoraki"
-SWEP.Instructions = "Generic subcompact non-lethal gas pistol. Chambered in 9mm P.A.K"
+SWEP.Instructions = "Универсальный малолитражный газовый пистолет несмертоносного действия. Под патрон 9 мм P.A.K."
 SWEP.Category = "Weapons - Pistols"
 SWEP.ViewModel = ""
 SWEP.WorldModel = "models/zcity/weapons/zoraki/zoraki.mdl"

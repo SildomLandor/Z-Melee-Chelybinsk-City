@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Walther P22"
+SWEP.PrintName = "Вальтер П22"
 SWEP.Author = "Walther"
-SWEP.Instructions = "Pistol chambered in .22 lr\n\nIs one of the quietest silenced guns. Slugcat."
+SWEP.Instructions = "Пистолет под патрон .22 lr\\n\\nОдин из самых тихих пистолетов с глушителем. Слизняк."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -50,24 +50,24 @@ SWEP.FakeReloadEvents = {
 		end 
 	end,
 	[0.43] = function( self ) 
-		if CLIENT and self:Clip1() < 1 then
-			local ent = hg.CreateMag( self, Vector(0,15,-15) )
-			ent:SetSubMaterial(1,"models/zcity/skins/walther_p22/classic/walther1")
-			ent:SetSubMaterial(0,"models/zcity/skins/walther_p22/classic/walther2")
-			for i = 0, ent:GetBoneCount() - 1 do
-				ent:ManipulateBoneScale(i, vector_origin)
-			end
-			ent:ManipulateBoneScale(92, vector_full)
-			ent:SetBodygroup(1,1)
+	    if CLIENT and self:Clip1() < 1 then
+	        local ent = hg.CreateMag( self, Vector(0,15,-15) )
+	        if not IsValid(ent) then return end 
+	        ent:SetSubMaterial(1,"models/zcity/skins/walther_p22/classic/walther1")
+	        ent:SetSubMaterial(0,"models/zcity/skins/walther_p22/classic/walther2")
+	        for i = 0, ent:GetBoneCount() - 1 do
+	            ent:ManipulateBoneScale(i, vector_origin)
+	        end
+	        ent:ManipulateBoneScale(92, vector_full)
+	        ent:SetBodygroup(1,1)
 
-			local phys = ent:GetPhysicsObject()
+	        local phys = ent:GetPhysicsObject()
+	        if IsValid(phys) then
+	            phys:AddAngleVelocity(Vector(650,0,0))
+	        end
 
-			if IsValid(phys) then
-				phys:AddAngleVelocity(Vector(650,0,0))
-			end
-
-			self:GetWM():ManipulateBoneScale(92, vector_origin)
-		end 
+	        self:GetWM():ManipulateBoneScale(92, vector_origin)
+	    end 
 	end,
 	[0.55] = function( self ) 
 		if CLIENT and self:Clip1() < 1 then
@@ -118,7 +118,7 @@ SWEP.Primary.Damage = 16
 SWEP.Primary.Sound = {"arccw_uc/common/fire-22-01.ogg", 70, 90, 100}
 SWEP.Primary.SoundFP = {"arccw_uc/common/fire-22-01.ogg", 70, 90, 100}
 
-SWEP.DistSound = ""
+SWEP.DistSound = "arccw_uc/common/fire-22-dist-01.ogg"
 
 SWEP.SupressedSound = {"arccw_uc/common/fire-22-sup-01.ogg", 65, 90, 100}
 SWEP.SupressedSoundFP = {"arccw_uc/common/fire-22-sup-01.ogg", 65, 90, 100}
@@ -162,7 +162,7 @@ SWEP.ZoomPos = Vector(-3, -0.0136, 2.9594)
 SWEP.RHandPos = Vector(-2, 0, 0)
 SWEP.LHandPos = false
 SWEP.SprayRand = {Angle(-0.00, -0.01, 0), Angle(-0.01, 0.01, 0)}
-SWEP.Ergonomics = 1.5
+SWEP.Ergonomics = 1
 SWEP.AnimShootMul = 2
 SWEP.AnimShootHandMul = 0.1
 SWEP.addSprayMul = 0.25

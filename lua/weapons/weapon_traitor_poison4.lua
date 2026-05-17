@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Curare vial"
-SWEP.Instructions = "Curare only becomes active when it contaminates a wound or is introduced directly to the bloodstream; it is not active when ingested orally. This poison causes weakness of the skeletal muscles and, when administered in a sufficient dose, eventual death by asphyxiation due to paralysis of the diaphragm."
+SWEP.PrintName = "Лечебные флаконы"
+SWEP.Instructions = "Кураре становится активным только тогда, когда он загрязняет рану или попадает непосредственно в кровоток; он не активен при пероральном приеме. Этот яд вызывает слабость скелетных мышц и, при введении в достаточной дозе, возможную смерть от удушья из-за паралича диафрагмы."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -256,12 +256,12 @@ function SWEP:DoPoison(ent)
 end
 
 if SERVER then
-    hook.Add("Org Clear", "RemovePoison4", function(org)
+    hook.Add("Org Clear", "RemovePoison2", function(org)
         org.poison4 = nil
 		org.poison4notificate = nil
     end)
 
-	hook.Add("Org Think", "poison4",function(owner, org, timeValue)
+	hook.Add("Org Think", "poison2",function(owner, org, timeValue)
 		if not IsValid(owner) or not owner:IsPlayer() or not owner:Alive() then return end
 		if (not org.poison4) or (not org.alive) then return end
 		

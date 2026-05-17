@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "AK-200"
+SWEP.PrintName = "АК-200"
 SWEP.Author = "Izhevsk Machine-Building Plant"
-SWEP.Instructions = "Automatic rifle chambered in 5.45x39 mm\n\nRate of fire 700 rounds per minute"
+SWEP.Instructions = "Автоматическая винтовка под патрон 5,45х39 мм\\n\\nСкорость стрельбы 700 выстрелов в минуту."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

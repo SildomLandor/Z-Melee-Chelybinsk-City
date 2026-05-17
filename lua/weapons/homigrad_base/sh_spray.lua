@@ -32,7 +32,6 @@ end
 SWEP.sprayAngles = Angle(0,0,0)
 
 SWEP.weaponSway = Angle(0,0,0)
-
 local hg_coolcamera = ConVarExists("hg_coolcamera") and GetConVar("hg_coolcamera") or CreateConVar("hg_coolcamera", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement", 0, 1)
 
 function SWEP:PrimarySpread()
@@ -94,7 +93,7 @@ function SWEP:PrimarySpread()
 			angrand2[2] = math.Clamp(angrand2[2],-1,1)
 			angrand2[3] = -angrand2[2] * 1
 			local mulhuy = GetGlobalBool("FullRealismMode",false) and 10 or 1
-			mul = mul * (self.attachments and self.attachments.grip and not table.IsEmpty(self.attachments.grip) and hg.attachments.grip[self.attachments.grip[1]].recoilReduction or 1)
+			mul = mul * (self.attachments and self.attachments.grip and next(self.attachments.grip) and hg.attachments.grip[self.attachments.grip[1]].recoilReduction or 1)
 			
 			local huyang = angrand2 * mul / 2 * mulhuy
 			huyang[3] = 0

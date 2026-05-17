@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "ČZ 75"
+SWEP.PrintName = "ЧЗ 75"
 SWEP.Author = "Česká zbrojovka Uherský Brod"
-SWEP.Instructions = "Pistol chambered in 9x19 mm"
+SWEP.Instructions = "Пистолет под патрон 9х19 мм."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

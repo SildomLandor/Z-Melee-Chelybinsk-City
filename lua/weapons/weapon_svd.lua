@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "SVD"
+SWEP.PrintName = "СВД"
 SWEP.Author = "Kalashnikov Concern Norinco"
-SWEP.Instructions = "Semi-automatic Marksman rifle chambered in 7.62x54 mm"
+SWEP.Instructions = "Полуавтоматическая винтовка Marksman под патрон 7,62х54 мм."
 SWEP.Category = "Weapons - Sniper Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

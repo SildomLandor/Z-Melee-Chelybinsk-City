@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
-SWEP.AdminOnly = true
-SWEP.PrintName = "ASH-12"
+SWEP.AdminOnly = false
+SWEP.PrintName = "АШ-12"
 SWEP.Author = "Izhmash TsKIB SOO"
-SWEP.Instructions = "The ASH-12 is a 12.7×55mm large-caliber assault rifle designed for close-quarters combat. It delivers high stopping power at around 700 rounds per minute."
+SWEP.Instructions = "АШ-12 — крупнокалиберная штурмовая винтовка калибра 12,7×55 мм, предназначенная для ведения ближнего боя. Он обеспечивает высокую останавливающую способность - около 700 выстрелов в минуту."
 SWEP.Category = "Weapons - Assault Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

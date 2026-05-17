@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Šcorpion vz. 61"
+SWEP.PrintName = "Скорпион vz. 61"
 SWEP.Author = "Česká zbrojovka"
-SWEP.Instructions = "Pistol chambered in 7.65x17 mm\n\nRate of fire 900 rounds per minute"
+SWEP.Instructions = "Пистолет под патрон 7,65х17 мм\\n\\nСкорость стрельбы 900 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

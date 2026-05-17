@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "PL-15"
-SWEP.Author = "Kalashnikov Concern"
-SWEP.Instructions = "The PL-15 is a semi-automatic pistol produced by Russian company Kalashnikov Concern. It was designed for use by law enforcement in Russia with a focus on ergonomics. Chambered in 9x19 mm."
+SWEP.PrintName = "ПЛ-15"
+SWEP.Author = "Калашников"
+SWEP.Instructions = "ПЛ-15 — полуавтоматический пистолет производства российского концерна «Калашников». Он был разработан для использования правоохранительными органами России с упором на эргономику. Под патрон 9х19 мм."
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

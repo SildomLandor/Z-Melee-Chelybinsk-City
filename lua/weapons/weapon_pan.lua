@@ -1,7 +1,7 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Pan"
-SWEP.Instructions = "A cast iron cooking pan that can pack a deadly punch. Can't protect from bullets.\n\nLMB to attack.\nRMB to block."
+SWEP.PrintName = "Кастрюля"
+SWEP.Instructions = "Чугунная сковорода, способная нанести смертельный удар. Невозможно защитить от пуль.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -20,7 +20,6 @@ SWEP.TwoHanded = false
 
 SWEP.HoldPos = Vector(-13,0,0)
 SWEP.HoldAng = Angle(0,0,0)
-SWEP.weight = 0.6
 
 SWEP.AttackTime = 0.45
 SWEP.AnimTime1 = 1.3

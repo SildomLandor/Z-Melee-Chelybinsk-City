@@ -3,8 +3,8 @@ if(SERVER)then
 end
 
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Walkie-talkie"
-SWEP.Instructions = "Use the walkie-talkie to communicate with other people in the 4km radius. Must be on the same frequency."
+SWEP.PrintName = "Рация"
+SWEP.Instructions = "Главное не забыть ее настроить. Самая настоящая рация. Сколько раз видел такие в кино — и вот она, в руках. Тяжелее, чем казалось."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -22,7 +22,7 @@ SWEP.Secondary.Automatic = false
 SWEP.Secondary.Ammo = "none"
 
 SWEP.IdleHoldType = "normal"
-SWEP.HoldType = "slam"
+SWEP.HoldType = "normal"
 SWEP.ViewModel = ""
 SWEP.WorldModel = "models/sirgibs/ragdoll/css/terror_arctic_radio.mdl"
 
@@ -43,7 +43,7 @@ SWEP.WorkWithFake = true
 SWEP.offsetVec = Vector(6, 5.5, -41)
 SWEP.offsetAng = Angle(180, 160, 180)
 
-SWEP.Frequency = 88.6
+SWEP.Frequency = 107.8
 SWEP.Frequencies = {
 	88.6,
     92.3,
@@ -173,6 +173,8 @@ if SERVER then
 
 	function SWEP:Deploy()
 		self:SetHudFrequency(self.Frequency)
+		self.isOn = self.isOn or false
+		self:SetIsOn(self.isOn)
 		self:SetInUsing(false)
 	end
 
@@ -246,13 +248,13 @@ function SWEP:DrawWorldModel2()
 		newPos, newAng = LocalToWorld(self.ScreenPosOffset, self.ScreenAngleOffset, matrix:GetTranslation(), matrix:GetAngles())
 
 		cam.Start3D2D( newPos, newAng, 0.005 )
-			local Frequency = math.Round(self:GetHudFrequency(),1) .. " MHz"
+			local Frequency = math.Round(self:GetHudFrequency(),1) .. " МГц"
 			--local IsOn = self:GetIsOn() and "On" or "Off"
 			local width, height = 264, 145
 			draw.RoundedBox(3, 0 - width / 2, 0 - height / 2, width, height, self:GetIsOn() and bg_clr or bg_off_clr)
 			if self:GetIsOn() then
 				draw.SimpleText(Frequency, "Walkie-Talkie_Fixed-Font", 0, -15, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText(self:GetOwner():IsSpeaking() and "Broadcasting" or "Reciving", "Walkie-Talkie_Fixed-SmallFont", 0, 40, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				draw.SimpleText(self:GetOwner():IsSpeaking() and "Транслирует" or "Получает", "Walkie-Talkie_Fixed-SmallFont", 0, 40, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			end
 		cam.End3D2D()
 
@@ -276,8 +278,8 @@ function SWEP:BoneSet(lookup_name, vec, ang)
 	hg.bone.Set(owner, lookup_name, vec, ang, "walkietalkie", 0.01)
 end
 
-local handAng1, handAng2 = Angle(-15, -10, 10), Angle(5, -65, -60)
-local actAng1, actAng2 = Angle(0, -40, -18), Angle(-5, -5, -70)
+local handAng3 = Angle(35, 20, -15)
+local handAng1, handAng2 = Angle(-60, -0, 0), Angle(-20, -115, -60)
 function SWEP:Step()
 	local owner = self:GetOwner()
 	local active = owner:KeyDown(IN_ATTACK) and self:GetIsOn()
@@ -291,9 +293,7 @@ function SWEP:Step()
 	if owner:OnGround() and owner:GetVelocity():LengthSqr() <= 1000 and not owner:IsTyping() and not owner:IsFlagSet(FL_ANIMDUCKING) then
 		self:BoneSet("l_upperarm", vector_origin, self:GetIsOn() and handAng1 or angle_zero)
 		self:BoneSet("l_forearm", vector_origin, self:GetIsOn() and handAng2 or angle_zero)
-
-		self:BoneSet("r_upperarm", vector_origin, active and actAng1 or angle_zero)
-		self:BoneSet("r_forearm", vector_origin, active and actAng2 or angle_zero)
+        self:BoneSet("ValveBiped.Bip01_L_Hand", vector_origin, self:GetIsOn() and handAng3 or angle_zero)
 	end
 end
 
@@ -324,8 +324,8 @@ if CLIENT then
 	function SWEP:MenuAddAdjuster(strName, tbl, howmuch)
 		tbl[#tbl + 1] = {function()
 			local tbl1 = {}
-			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", howmuch) return -1 end,"Increase"}
-			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", -howmuch) return -1 end,"Decrease"}
+			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", howmuch) return -1 end,"Увеличить"}
+			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", -howmuch) return -1 end,"Уменьшить"}
 			hg.CreateRadialMenu(tbl1)
 			return -1
 		end, strName}
@@ -352,20 +352,20 @@ function SWEP:PrimaryAttack()
 			local tbl1 = {}
 			for i = 1, #self.Frequencies do
 				local station = math.Round(self.Frequencies[i], 1)
-				tbl1[#tbl1 + 1] = { function() RunConsoleCommand("hg_walkietalkie_adjust", station - self:GetHudFrequency() ) end, "Station " .. station .. "MHz" }
+				tbl1[#tbl1 + 1] = { function() RunConsoleCommand("hg_walkietalkie_adjust", station - self:GetHudFrequency() ) end, "Станция " .. station .. "МГц" }
 				hg.CreateRadialMenu(tbl1)
 			end
 			return -1
-		end, "Public stations"}
-		self:MenuAddAdjuster("Change 010.0 MHz", tbl, 010.0)
-		self:MenuAddAdjuster("Change 001.0 MHz", tbl, 001.0)
-		self:MenuAddAdjuster("Change 000.1 MHz", tbl, 000.1)
+		end, "Публичные станции"}
+		self:MenuAddAdjuster("Изменить на 010.0 MHz", tbl, 010.0)
+		self:MenuAddAdjuster("Изменить на 001.0 MHz", tbl, 001.0)
+		self:MenuAddAdjuster("Изменить 000.1 MHz", tbl, 000.1)
 	end
 
 	tbl[#tbl + 1] = {function()
 		RunConsoleCommand("+reload")
 		timer.Simple(0,function() RunConsoleCommand("-reload") end)
-	end, self:GetIsOn() and "Turn off Walkie-Talkie" or "Turn on Walkie-Talkie"}
+	end, self:GetIsOn() and "Выключить рацию" or "Включить рацию"}
 	hg.CreateRadialMenu(tbl)
 end
 
@@ -395,12 +395,10 @@ if CLIENT then
 end
 
 function SWEP:Initialize()
-	self.isOn = true
-	self:SetIsOn(self.isOn)
 	self:SetHold(self.HoldType)
-	-- if SERVER then
-	-- 	self.isOn = false
-	-- end
+	if SERVER then
+		self.isOn = false
+	end
 end
 
 function SWEP:SecondaryAttack()

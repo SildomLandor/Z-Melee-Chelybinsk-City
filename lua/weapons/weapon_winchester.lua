@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_m4super"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Winchester 1894"
+SWEP.PrintName = "Винчестер"
 SWEP.Author = "Winchester"
-SWEP.Instructions = "The Winchester Model 1894 is one of the most famous and popular lever action rifles."
+SWEP.Instructions = "Винчестер модели 1894 года — одна из самых известных и популярных винтовок с рычажным затвором."
 SWEP.Category = "Weapons - Sniper Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

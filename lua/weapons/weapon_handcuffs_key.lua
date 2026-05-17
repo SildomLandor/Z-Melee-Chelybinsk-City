@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Handcuffs Key"
-SWEP.Instructions = "Keys for handcuffs."
+SWEP.PrintName = "Ключ от наручников"
+SWEP.Instructions = "Ключи от наручников."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -31,7 +31,7 @@ SWEP.DrawAmmo = false
 SWEP.DrawCrosshair = false
 SWEP.Slot = 3
 SWEP.SlotPos = 4
-SWEP.WorkWithFake = true
+SWEP.WorkWithFake = false
 SWEP.offsetVec = Vector(2.5, -1.2, -2.6)
 SWEP.offsetAng = Angle(-5, 60, -90)
 SWEP.ModelScale = 1

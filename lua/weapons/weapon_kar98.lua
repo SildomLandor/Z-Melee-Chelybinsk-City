@@ -2,9 +2,9 @@
 SWEP.Base = "weapon_m4super"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Karabiner 98k"
+SWEP.PrintName = "Карабин 98к"
 SWEP.Author = "Mauser"
-SWEP.Instructions = "Sniper rifle chambered in 7.62x51"
+SWEP.Instructions = "Снайперская винтовка под патрон 7,62х51."
 SWEP.Category = "Weapons - Sniper Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -13,11 +13,11 @@ SWEP.WorldModel = "models/weapons/w_snip_awp.mdl"
 SWEP.WorldModelFake = "models/weapons/tfa_ins2/c_k98.mdl"
 SWEP.FakeScale = 0.9
 
-SWEP.FakePos = Vector(-7, 3.6, 10.1)
+SWEP.FakePos = Vector(-7, 3.6, 5.1)
 SWEP.FakeAng = Angle(0, 0, 0)
 
 SWEP.FakeAttachment = "1"
-SWEP.AttachmentPos = Vector(-1.5,0,0)
+SWEP.AttachmentPos = Vector(-8.5,0,0)
 SWEP.AttachmentAng = Angle(0,0,0)
 SWEP.FakeBodyGroups = "000000000"
 SWEP.BarrelLength = 40
@@ -35,7 +35,125 @@ SWEP.FakeVPShouldUseHand = false
 SWEP.WepSelectIcon2 = Material("vgui/wep_jack_hmcd_rifle")
 SWEP.IconOverride = "vgui/wep_jack_hmcd_rifle"
 
-SWEP.LocalMuzzlePos = Vector(36.739, -0.25, 8)
+local function applySkinRulesToModel(model, rules, previousIndices)
+	if not IsValid(model) then return {} end
+	previousIndices = previousIndices or {}
+	for _, idx in ipairs(previousIndices) do
+		model:SetSubMaterial(idx, "")
+	end
+
+	local materials = model:GetMaterials() or {}
+	local applied = {}
+	local matched = {}
+	for matIndex, matName in ipairs(materials) do
+		local lowerMat = string.lower(matName or "")
+		for _, rule in ipairs(rules) do
+			if string.find(lowerMat, rule[1], 1, true) then
+				model:SetSubMaterial(matIndex - 1, rule[2])
+				applied[#applied + 1] = matIndex - 1
+				matched[matIndex - 1] = true
+				break
+			end
+		end
+	end
+
+	if istable(rules) and rules[1] and isstring(rules[1][2]) and rules[1][2] ~= "" then
+		local fallbackMat = rules[1][2]
+		for matIndex = 1, #materials do
+			local subIdx = matIndex - 1
+			if not matched[subIdx] then
+				model:SetSubMaterial(subIdx, fallbackMat)
+				applied[#applied + 1] = subIdx
+			end
+		end
+	end
+
+	return applied
+end
+
+function SWEP:ApplySkinNow()
+	local skinId = self:GetNWString("hg_skin_id", "")
+	self._lastSkinId = self._lastSkinId or ""
+	self._skinModelIndices = self._skinModelIndices or {}
+	self._baseIconPath = self._baseIconPath or self.IconOverride
+	self._baseIconMat = self._baseIconMat or self.WepSelectIcon2
+	self._lastIconSkinId = self._lastIconSkinId or ""
+	if skinId == self._lastSkinId and not self._forceSkinUpdate then return end
+	self._forceSkinUpdate = nil
+	self._lastSkinId = skinId
+
+	local rules = nil
+	local iconPath = nil
+	if skinId ~= "" and hg and hg.skins and hg.skins.GetSkinInfo then
+		local info = hg.skins.GetSkinInfo(skinId)
+		if info and istable(info.material_rules) then
+			rules = info.material_rules
+		end
+		if info and isstring(info.icon) and info.icon ~= "" then
+			iconPath = info.icon
+		end
+	end
+
+	local models = {}
+	models[#models + 1] = self:GetWeaponEntity()
+	if self.GetWM then
+		models[#models + 1] = self:GetWM()
+	end
+	if IsValid(self.worldModel) then
+		models[#models + 1] = self.worldModel
+	end
+	if IsValid(self.worldModel2) then
+		models[#models + 1] = self.worldModel2
+	end
+	if IsValid(self.NPCworldModel) then
+		models[#models + 1] = self.NPCworldModel
+	end
+
+	for _, mdl in ipairs(models) do
+		if IsValid(mdl) then
+			local entIndex = mdl:EntIndex()
+			if rules then
+				self._skinModelIndices[entIndex] = applySkinRulesToModel(mdl, rules, self._skinModelIndices[entIndex] or {})
+			else
+				local old = self._skinModelIndices[entIndex] or {}
+				for _, idx in ipairs(old) do
+					mdl:SetSubMaterial(idx, "")
+				end
+				self._skinModelIndices[entIndex] = {}
+			end
+		end
+	end
+
+	if CLIENT and (self._lastIconSkinId ~= skinId or self._forceIconUpdate) then
+		self._forceIconUpdate = nil
+		self._lastIconSkinId = skinId
+		if isstring(iconPath) and iconPath ~= "" then
+			local mat = Material(iconPath)
+			if mat and not mat:IsError() then
+				self.WepSelectIcon2 = mat
+				self.IconOverride = iconPath
+			else
+				local matPng = Material(iconPath .. ".png")
+				if matPng and not matPng:IsError() then
+					self.WepSelectIcon2 = matPng
+					self.IconOverride = iconPath .. ".png"
+				else
+					self.WepSelectIcon2 = self._baseIconMat
+					self.IconOverride = self._baseIconPath
+				end
+			end
+		else
+			self.WepSelectIcon2 = self._baseIconMat
+			self.IconOverride = self._baseIconPath
+		end
+	end
+end
+
+function SWEP:ThinkAdd()
+	self:ApplySkinNow()
+end
+
+SWEP.LocalMuzzlePos = Vector(36.739, -0.25, 4)
 SWEP.LocalMuzzleAng = Angle(0.4,-0.0,0)
 SWEP.WeaponEyeAngles = Angle(-0.7,0.1,0)
 
@@ -75,12 +193,12 @@ SWEP.AnimShootHandMul = 10
 SWEP.DeploySnd = {"homigrad/weapons/draw_hmg.mp3", 55, 100, 110}
 SWEP.HolsterSnd = {"homigrad/weapons/hmg_holster.mp3", 55, 100, 110}
 SWEP.HoldType = "rpg"
-SWEP.ZoomPos = Vector(0, -0.25, 9.4)
+SWEP.ZoomPos = Vector(0, -0.25, 4.4)
 SWEP.RHandPos = Vector(0, 0, -1)
 SWEP.LHandPos = Vector(7, 0, -2)
 SWEP.Ergonomics = 0.9
 SWEP.Penetration = 7
-SWEP.WorldPos = Vector(2.2, -0.5, 5)
+SWEP.WorldPos = Vector(0.2, -0.5, 0)
 SWEP.WorldAng = Angle(0.7, -0.1, 0)
 SWEP.UseCustomWorldModel = true
 SWEP.attPos = Vector(0.4, -0.15, 0)

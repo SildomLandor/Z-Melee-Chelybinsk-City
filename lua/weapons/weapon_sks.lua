@@ -1,9 +1,9 @@
 SWEP.Base = "weapon_m4super"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "SKS"
+SWEP.PrintName = "СКС"
 SWEP.Author = "Sergei Gavrilovich Simonov"
-SWEP.Instructions = "Semi-automatic carabine chambered in 7.62x39 mm"
+SWEP.Instructions = "Полуавтоматический карабин под патрон 7,62х39 мм."
 SWEP.Category = "Weapons - Sniper Rifles"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

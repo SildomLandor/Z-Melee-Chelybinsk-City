@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Painkillers"
-SWEP.Instructions = "Can be used to relieve pain (thanks Mr. Obvious). RMB to use on someone else."
+SWEP.PrintName = "Обезболивающие"
+SWEP.Instructions = "Может использоваться для облегчения боли (спасибо, мистер Очевидность). ПКМ, чтобы использовать его на ком-то другом."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true
 SWEP.Primary.Wait = 1

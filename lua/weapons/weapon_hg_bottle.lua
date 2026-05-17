@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Bottle"
-SWEP.Instructions = "A glass beer bottle. Will break if hit too hard.\n\nLMB to attack.\nRMB to block.\nRMB + LMB to throw."
+SWEP.PrintName = "Бутылка"
+SWEP.Instructions = "Стеклянная пивная бутылка. Разобьется, если ударить слишком сильно.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать.\\nПКМ + ЛКМ, чтобы бросить."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -111,18 +111,13 @@ function SWEP:CustomAttack2()
 end
 
 function SWEP:CreateBottle(pos)
-	local bottle = ents.Create("prop_physics")
-	bottle:SetPos(pos)
-	bottle:SetAngles(AngleRand(-90, 90))
-	bottle:SetModel("models/props_junk/glassbottle01a_chunk02a.mdl")
-	bottle:Spawn()
-	bottle:SetCollisionGroup(COLLISION_GROUP_WEAPON)
-	local phys = bottle:GetPhysicsObject()
-	if IsValid(phys) then
-		phys:AddVelocity(VectorRand(-90, 90))
-		phys:Wake()
-	end
-	SafeRemoveEntityDelayed(bottle, 15)
+	-- Заменяем создание prop_physics на клиентский эффект
+	local effect = EffectData()
+    effect:SetOrigin(pos)
+    effect:SetScale(1)
+    effect:SetMagnitude(1)
+    util.Effect("GlassImpact", effect, true, true)
+    -- Модель осколка: "models/props_junk/glassbottle01a_chunk02a.mdl"
 end
 
 function SWEP:PrimaryAttackAdd(ent,trace)

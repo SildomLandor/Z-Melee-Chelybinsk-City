@@ -1,7 +1,7 @@
 ﻿if SERVER then AddCSLuaFile() end
-SWEP.PrintName = "Shuriken"
+SWEP.PrintName = "Сюрикен"
 SWEP.Category = "ZCity Other"
-SWEP.Instructions = "Shuriken, also called throwing stars, or ninja stars, are a Japanese concealed weapon used by samurai or ninja or in martial arts as a hidden dagger to distract or misdirect."
+SWEP.Instructions = "Сюрикен, также называемый метательными звездами или звездами ниндзя, представляет собой японское скрытое оружие, используемое самураями или ниндзя или в боевых искусствах в качестве скрытого кинжала, чтобы отвлечь или сбить с толку."
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.Primary.ClipSize = -1
@@ -102,7 +102,8 @@ function SWEP:Initialize()
 		self.HoldType = "melee"
 		self:SetHold(self.HoldType)
 	end
-	
+
+	hg.weapons2[self] = true
 	self.count = 1
 end
 
@@ -147,7 +148,6 @@ end
 local veczero = Vector(0, 0, 0)
 function SWEP:PrimaryAttack()
 	if CLIENT then return end
-	if self.cooldowndeploy and self.cooldowndeploy > CurTime() then return end
 	local time = CurTime()
 	local ent = ents.Create("ent_throwable")
 
@@ -185,14 +185,6 @@ function SWEP:PrimaryAttack()
 		ply:SelectWeapon("weapon_hands_sh")
 		self:Remove()
 	end
-end
-
-function SWEP:Deploy()
-	self.BaseClass.Deploy(self)
-
-	if !IsFirstTimePredicted() then return end
-
-	self.cooldowndeploy = CurTime() + 1
 end
 
 function SWEP:SecondaryAttack()

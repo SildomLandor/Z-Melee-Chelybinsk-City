@@ -1,6 +1,6 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_hg_grenade_tpik"
-SWEP.PrintName = "RGD-5"
+SWEP.PrintName = "РГД-5"
 SWEP.Instructions = 
 [[RGD-5 is an iconic post-WWII soviet anti-personnel grenade designed in the early 1950s. It's widely exported and used even to this day. It has a pyrotechnic delay of 3.2-4.2 seconds.
 

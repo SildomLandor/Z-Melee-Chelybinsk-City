@@ -99,7 +99,7 @@ function SWEP:GetZoomPos(recoilZoomPos, view, eyePos)
 		if self:HasAttachment("sight","optic") then
 			posZoom = posZoom - recoilZoomPos * 0.25 - ang2:Forward() * (self.AdditionalPos2[1]) * 0.5 + ang2:Forward() * 1
 		else
-			local _, hitpos, dist = util.DistanceToLine(posZoom, posZoom + (self:GetOwner():GetAimVector()), eyePos)
+			local _, hitpos, dist = util.DistanceToLine(posZoom, posZoom + (self:GetOwner():EyeAngles()):Forward(), eyePos)
 			dist = dist - 1
 			posZoom = posZoom + ang2:Forward() * dist - recoilZoomPos * 0.5
 		end
@@ -143,7 +143,7 @@ hook.Add("HUDPaint","drawWeaponHUD",function()
 	end
 end)
 
-local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "changes fov to value", 75, 100)
+local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "changes fov to value", 75, 120)
 local fov = hg_fov:GetFloat()
 local fov_mode_lerp = 0
 
@@ -282,7 +282,7 @@ function SWEP:Camera(eyePos, eyeAng, view, vellen, ply)
 	--local shootLerp = self.Anim_RecoilLerp
 	--view.fov = Lerp(shootLerp,view.fov,view.fov - 5 * self.Penetration / 15)
 	local outputPos, outputAng
-	local animpos = (self.AdditionalAng or Angle(0, 0, 0))[2] / 20 + (self.AdditionalAng2 or Angle(0, 0, 0))[2] / 20 - self.AdditionalPos2[2] / 15 --:GetAnimShoot2()
+	local animpos = (self.AdditionalAng or Angle(0, 0, 0))[2] / 20 + (self.AdditionalAng2 or Angle(0, 0, 0))[2] / 20 - self.AdditionalPos2[2] / 10 --:GetAnimShoot2()
 	local eyeSpray = -(-self.EyeSpray)
 	local mult = (hg.GunPositions[ply] and hg.GunPositions[ply][1] and (hg.GunPositions[ply][1] / 4 + 1) / 2 + 1 or 1) / 2
 	
@@ -294,12 +294,13 @@ function SWEP:Camera(eyePos, eyeAng, view, vellen, ply)
 	//angZoom:Add(-angle_difference*1)
 
 	local mulhuy = (self:IsPistolHoldType() or self.PistolKinda) and 2 or (((ply.posture == 1 and not self:IsZoom()) or ply.posture == 7 or ply.posture == 8) and 2 or 0.75)
-	local shit = 0.2 * mulhuy / game.GetTimeScale()
+	local timeScale = math.max(game.GetTimeScale(), 0.001)
+	local shit = 0.2 * mulhuy / timeScale
 	local animpos3 = self:GetAnimShoot2(shit, true) / shit
-	local shit2 = (1 / self.weight) * (self.NumBullet or 3) / 3
-
+	local weight = math.max(self.weight or 1, 0.001)
+	local shit2 = (1 / weight) * (self.NumBullet or 3) / 3
 	angZoom:Add(self.prankang or angle_zero)
-	posZoom:Add(VectorRand(-0.05, 0.05) * animpos3 * shit2)
+	posZoom:Add(VectorRand(-0.1, 0.1) * animpos3 * shit2)
 
 	local fraction2 = math.ease.InCubic(self:GetAnimPos_Shoot2(self.lastShoot or 0, 1))
 	

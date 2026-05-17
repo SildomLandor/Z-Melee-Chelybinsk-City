@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "HK21"
+SWEP.PrintName = "ГК21"
 SWEP.Author = "Heckler & Koch"
-SWEP.Instructions = "Machine gun chambered in 7.62x51 mm\n\nRate of fire 900 rounds per minute. That thing is quite serious if you might ask."
+SWEP.Instructions = "Пулемет под патрон 7,62х51 мм\\n\\nСкорость стрельбы 900 выстрелов в минуту. Если вы спросите, это довольно серьезно."
 SWEP.Category = "Weapons - Machineguns"
 SWEP.Slot = 2
 SWEP.SlotPos = 10

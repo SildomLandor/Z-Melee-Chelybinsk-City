@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Desert Eagle"
+SWEP.PrintName = "Пустынный орел"
 SWEP.Author = "Magnum Research/Israel Weapon Industries"
-SWEP.Instructions = "Pistol chambered in .50 Magnum"
+SWEP.Instructions = "Пистолет под патрон .50 Magnum"
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
@@ -17,7 +17,7 @@ SWEP.AttachmentPos = Vector(0.05,-0.3,0)
 SWEP.AttachmentAng = Angle(90,0,0)
 SWEP.FakeMagDropBone = 48
 
-
+--PrintAnims(Entity(1):GetActiveWeapon():GetWM())
 SWEP.FakeVPShouldUseHand = true
 SWEP.AnimList = {
 	["idle"] = "idle",
@@ -93,33 +93,36 @@ if CLIENT then
 	local vector_full = Vector(1, 1, 1)
 
 	SWEP.FakeReloadEvents = {
-		[0.25] = function(self,timeMul)
-			if self:Clip1() < 1 then
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 1 * timeMul,nil,nil,function()
-					self:GetWM():ManipulateBoneScale(48, vector_full)
-					for i = 49, 55 do
-						self:GetWM():ManipulateBoneScale(i, vector_full)
-					end
-				end)
-			end
-		end,
-		[0.33] = function( self, timeMul ) 
-			self:GetWM():ManipulateBoneScale(48, vector_origin)
-			for i = 49, 55 do
-				self:GetWM():ManipulateBoneScale(i, vector_origin)
-			end
-			if self:Clip1() < 1 then
-				hg.CreateMag( self, Vector(0,55,0) )
-			end
-			if self:Clip1() > 0 then
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 0.4 * timeMul,nil,nil,function()
-					self:GetWM():ManipulateBoneScale(48, vector_full)
-					for i = 49, 55 do
-						self:GetWM():ManipulateBoneScale(i, vector_full)
-					end
-				end)
-			end
-		end
+	    [0.25] = function(self,timeMul)
+	        if self:Clip1() < 1 then
+	            self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 1 * timeMul,nil,nil,function()
+	                if not IsValid(self) or not IsValid(self:GetWM()) then return end
+	                self:GetWM():ManipulateBoneScale(48, vector_full)
+	                for i = 49, 55 do
+	                    self:GetWM():ManipulateBoneScale(i, vector_full)
+	                end
+	            end)
+	        end
+	    end,
+	    [0.33] = function( self, timeMul ) 
+	        if not IsValid(self:GetWM()) then return end
+	        self:GetWM():ManipulateBoneScale(48, vector_origin)
+	        for i = 49, 55 do
+	            self:GetWM():ManipulateBoneScale(i, vector_origin)
+	        end
+	        if self:Clip1() < 1 then
+	            hg.CreateMag( self, Vector(0,55,0) )
+	        end
+	        if self:Clip1() > 0 then
+	            self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 0.4 * timeMul,nil,nil,function()
+	                if not IsValid(self) or not IsValid(self:GetWM()) then return end
+	                self:GetWM():ManipulateBoneScale(48, vector_full)
+	                for i = 49, 55 do
+	                    self:GetWM():ManipulateBoneScale(i, vector_full)
+	                end
+	            end)
+	        end
+	    end
 	}
 end
 

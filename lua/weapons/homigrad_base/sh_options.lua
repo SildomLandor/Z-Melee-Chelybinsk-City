@@ -14,7 +14,7 @@ if CLIENT then
 	    local wep = ply:GetActiveWeapon()
 	    local type_ = math.Round(args[1])
 	    if wep and ishgweapon(wep) and (wep:Clip1() == 0 or wep.AllwaysChangeAmmo) and wep:CanUse() and wep.AmmoTypes and wep.AmmoTypes[type_] then
-	        ply:ChatPrint("Changed ammotype to: " .. wep.AmmoTypes[type_][1])
+	        ply:ChatPrint("Тип патронов изменён на: " .. wep.AmmoTypes[type_][1])
 	        net.Start("changeAmmoType")
 	        net.WriteEntity(wep)
 	        net.WriteInt(type_, 4)
@@ -23,15 +23,16 @@ if CLIENT then
 	end)
 
 	net.Receive("unload_ammo",function()
-		local wep = net.ReadEntity()
-		if wep.AnimList["unload"] then
-			wep:PlayAnim("unload", wep.UnloadAnimTime)
-		else
-			wep:AttachAnim()
-		end
-		if wep.Unload then
-			wep:Unload()
-		end
+	    local wep = net.ReadEntity()
+	    if not IsValid(wep) then return end
+	    if wep.AnimList and wep.AnimList["unload"] then
+	        wep:PlayAnim("unload", wep.UnloadAnimTime)
+	    else
+	        wep:AttachAnim()
+	    end
+	    if wep.Unload then
+	        wep:Unload()
+	    end
 	end)
 else
 	util.AddNetworkString("unload_ammo")
@@ -39,7 +40,7 @@ else
 
 	net.Receive("unload_ammo", function(len, ply)
 		local wep = net.ReadEntity()
-        if ply:GetNWFloat("willsuicide", 0) > 0 then return end -- you cant escape.
+        if ply:GetNWFloat("willsuicide", 0) > 0 then return end -- ты не сбежишь.
         wep.drawBullet = nil
         if wep and wep:GetOwner() == ply and ishgweapon(wep) and wep:Clip1() > 0 and wep:CanUse() then
 			ply:GiveAmmo(wep:Clip1(), wep:GetPrimaryAmmoType(), true)
@@ -68,33 +69,33 @@ else
 end
 
 hg.postures = {
-    [0] = "Regular hold",
-    [1] = "Hipfire",
-    [2] = "Left shoulder",
-    [3] = "High ready",
-    [4] = "Low ready",
-    [5] = "Point shooting",
-    [6] = "Shooting from cover",
-    [7] = {"Gangsta",isPistolOnly = true},
-    [8] = {"One-handed",isPistolOnly = true},
-	[9] = "Somalian",
+    [0] = "Обычный хват",
+    [1] = "От бедра",
+    [2] = "С левого плеча",
+    [3] = "Изготовка (высокая)",
+    [4] = "Изготовка (низкая)",
+    [5] = "Интуитивная стрельба",
+    [6] = "Стрельба из-за укрытия",
+    [7] = {"Гангста",isPistolOnly = true},
+    [8] = {"Одной рукой",isPistolOnly = true},
+	[9] = "Сомалийская",
 }
 
 if CLIENT then
 	local printed
 
 	concommand.Add("hg_change_posture", function(ply, cmd, args)
-		if not args[1] and not isnumber(args[1]) and not printed then print([[Change your gun posture:
-0 - regular hold
-1 - hipfire
-2 - left shoulder
-3 - high ready
-4 - low ready
-5 - point shooting
-6 - shooting from cover
-7 - gangsta shooting
-8 - one-handed shooting
-9 - somalian shooting
+		if not args[1] and not isnumber(args[1]) and not printed then print([[Изменить стойку оружия:
+0 - обычный хват
+1 - от бедра
+2 - с левого плеча
+3 - изготовка (высокая)
+4 - изготовка (низкая)
+5 - интуитивная стрельба
+6 - стрельба из-за укрытия
+7 - стрельба по-гангста
+8 - стрельба одной рукой
+9 - сомалийская стрельба
 ]]) printed = true end
 		local pos = math.Round(args[1] or -1)
 		net.Start("change_posture")
@@ -173,7 +174,7 @@ if CLIENT then
 
 				return 0
 			end,
-			[2] = "Attachments Menu"
+			[2] = "Меню обвесов"
 		}
 
         if !IsValid(wep) or !ishgweapon(wep) then
@@ -192,7 +193,7 @@ if CLIENT then
                     else
                         local tbl2 = {}
 
-                        for i, str in pairs(hg.postures) do -- DO. NOT. CHANGE. TO. IPAIRS. kthxbye
+                        for i, str in pairs(hg.postures) do -- НЕ МЕНЯТЬ НА IPAIRS.
 							if istable(str) then
 								if str.isPistolOnly and !wep:IsPistolHoldType() then continue end
 							end
@@ -210,19 +211,19 @@ if CLIENT then
 
                     return -1
                 end,
-                [2] = "Change Posture\nRMB - Menu"
+                [2] = "Сменить стойку\nПКМ - Меню"
             },
             [2] = {
                 [1] = function()
                     RunConsoleCommand("hg_change_posture", 0)
                 end,
-                [2] = "Reset Posture"
+                [2] = "Сбросить стойку"
             },
 			[3] = attmenu,
         }
 
         if wep.GetDrum then
-            local tbl3 = {function() RunConsoleCommand("hg_rolldrum") end, "Roll Drum"}
+            local tbl3 = {function() RunConsoleCommand("hg_rolldrum") end, "Прокрутить барабан"}
             tbl[#tbl + 1] = tbl3
         
             --if wep:Clip1() > 0 then return end
@@ -232,14 +233,14 @@ if CLIENT then
             
             local drum1 = {}
             for i = 1, #drum do
-                drum1[i] = "Slot №"..tostring(i)
+                drum1[i] = "Гнездо №"..tostring(i)
             end
         
             local tbl4 = {
                 function(mouseClick, val)
                     RunConsoleCommand("hg_insertbullet", val)
                 end,
-                "Load one bullet",
+                "Зарядить один патрон",
                 true,
                 drum1
             }
@@ -252,7 +253,7 @@ if CLIENT then
                 [1] = function()
                     RunConsoleCommand("hg_inspect")
                 end,
-                [2] = "Inspect" 
+                [2] = "Осмотреть" 
             }
         end
 
@@ -261,7 +262,7 @@ if CLIENT then
                 [1] = function()
                     RunConsoleCommand("hg_unload_ammo", 0)
                 end,
-                [2] = "Unload" 
+                [2] = "Разрядить" 
             }
         elseif (wep:Clip1() == 0 or wep.AllwaysChangeAmmo) and wep.AmmoTypes and not wep.reload then
             local ammotypes = {}
@@ -274,21 +275,21 @@ if CLIENT then
                 function(mouseClick, chosen)
                     RunConsoleCommand("hg_change_ammotype", chosen) 
                 end,
-                "Change Ammo Type",
+                "Сменить тип патронов",
                 true,
                 ammotypes
             }
         end
 
         local laser = wep.attachments and wep.attachments.underbarrel
-        if (laser and not table.IsEmpty(laser)) or wep.laser then
-			tbl[#tbl + 1] = {
+        if (laser and next(laser)) or wep.laser then
+            tbl[#tbl + 1] = {
                 [1] = function()
                     RunConsoleCommand("hmcd_togglelaser")
                 end,
-                [2] = "Toggle Laser" 
+                [2] = "Вкл/выкл лазер"
             }
-		end
+        end
 
         hg.radialOptions[#hg.radialOptions + 1] = {
             [1] = function(mouseClick)
@@ -296,7 +297,7 @@ if CLIENT then
 
                 return -1
             end,
-            [2] = "Weapon Menu"
+            [2] = "Меню оружия"
         }
     end)
 end

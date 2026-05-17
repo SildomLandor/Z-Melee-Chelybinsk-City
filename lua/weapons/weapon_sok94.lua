@@ -4,9 +4,9 @@ SWEP.Primary.Automatic = false
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 
-SWEP.PrintName = "Vepr SOK-94-03"
+SWEP.PrintName = "Вепрь СОК-94-03"
 SWEP.Author = "Vyatskiye Polyany Machine-Building Plant"
-SWEP.Instructions = "SOK-94 carbine is based on a manual Kalashnikov machine gun and is designed for commercial and amateur hunting of average and large animals. Сhambered in .366 TKM."
+SWEP.Instructions = "Карабин СОК-94 создан на базе ручного автомата Калашникова и предназначен для промысловой и любительской охоты на среднего и крупного зверя. Под патрон .366 ТКМ."
 SWEP.Category = "Weapons - Carbines"
 SWEP.ShockMultiplier = 1.5
 SWEP.Ergonomics = 0.85
@@ -42,6 +42,3 @@ SWEP.IconOverride = "entities/rpk.png" --"entities/tfa_ins2_akm_r.png"
 SWEP.Primary.ClipSize = 10
 SWEP.Primary.DefaultClip = 10
 SWEP.Primary.Ammo = ".366 TKM"
-
-SWEP.Primary.Sound = {"weapons/ak74/ak74_tp.wav", 85, 90, 100}
-SWEP.Primary.SoundFP = {"zcitysnd/sound/weapons/sks/sks_fp.wav", 85, 90, 100}

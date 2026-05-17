@@ -1,10 +1,10 @@
 -- Сообщение всем скриптхукерам, ну вы это хоть оставляйте тех кто это кодил. Уважайте чужой труд!
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_tpik1_base"
-SWEP.PrintName = "Tablet"
+SWEP.PrintName = "Таблетка"
 SWEP.Instructions = ""
 SWEP.Category = "Weapons - Other"
-SWEP.Instructions = "Just a tablet"
+SWEP.Instructions = "Просто планшет"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.Slot = 1
@@ -107,7 +107,7 @@ local CategoresAllowed = {
     ["Weapons - Machineguns"] = true,
     ["Weapons - Assault Rifles"] = true,
     --["Weapons - Grenade Launchers"] = true,
-    --["Weapons - Other"] = true,
+    ["Weapons - Other"] = true,
     ["Weapons - Melee"] = true,
     ["Weapons - Shotguns"] = true,
     ["Weapons - Sniper Rifles"] = true,

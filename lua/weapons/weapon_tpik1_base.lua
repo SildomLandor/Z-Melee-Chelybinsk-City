@@ -1,8 +1,8 @@
 -- Это база для ручной настройки тпик... афигеть да?
 -- Сообщение всем скриптхукерам, ну вы это хоть оставляйте тех кто это кодил. Уважайте чужой труд!
 if SERVER then AddCSLuaFile() end
-SWEP.PrintName = "TPIK Base 1"
-SWEP.Instructions = "Tpik Base 1"
+SWEP.PrintName = "ТПИК База 1"
+SWEP.Instructions = "Тпик База 1"
 SWEP.Category = "ZCity Anims items"
 SWEP.Instructions = ":3 если вы скриптхукнули знайте вы для нас вонючка."
 SWEP.Spawnable = false

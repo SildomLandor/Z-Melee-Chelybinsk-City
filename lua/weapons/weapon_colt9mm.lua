@@ -1,9 +1,9 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Colt 9mm SMG"
+SWEP.PrintName = "Кольт 9-мм пистолет-пулемет"
 SWEP.Author = "Colt's Manufacturing Company"
-SWEP.Instructions = "AR15 pistol chambered in 9x19 mm\n\nALT+E to change stance (+walk,+use)"
+SWEP.Instructions = "Пистолет AR15 под патрон 9x19 мм\\n\\nALT+E для смены стойки (+ходьба,+использование)"
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
