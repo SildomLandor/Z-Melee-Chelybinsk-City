@@ -365,6 +365,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 		module.random_events[2](owner, org, timeValue)
 	end
 	module.pulse[2](owner, org, timeValue)
+	module.pepper[2](owner, org, timeValue)
 
 	if org.owner.PlayerClassName == "furry" then
 		org.assimilated = 0

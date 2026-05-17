@@ -12,7 +12,7 @@ hook.Add("InitPostEntity", "PepperSpray_PatchConsciousness", function()
             consciousness = consciousness * math_Clamp((org.o2 and org.o2[1] or 100) / 20, 0.5, 1)
             consciousness = consciousness * (1 - (org.disorientation or 0) / 10)
         end
-        return math_Clamp(((consciousness - 1) * 3 + 1), 0.4, 1)
+        return math_Clamp((consciousness - 1) * 3 + 1, 0.4, 1)
     end
 end)
 
