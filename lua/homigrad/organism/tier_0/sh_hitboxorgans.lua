@@ -25,10 +25,19 @@ function hg.organism.ShootMatrix(ent, organs)
 	local sphereChunk = 0
 	local obbCenter = ent:GetPos() --да какая же хуйня это))0
 	obbCenter:Add(ent:OBBCenter())
-	for i = 0, ent:GetHitBoxCount(0) - 1 do
-		matrix = ent:GetBoneMatrix(ent:GetHitBoxBone(i, 0))
+	local hitboxEnt = ent
+	if ent:IsRagdoll() then
+		local owner = hg.RagdollOwner(ent)
+		if IsValid(owner) then
+			hitboxEnt = owner
+		end
+	end
+
+	for i = 0, hitboxEnt:GetHitBoxCount(0) - 1 do
+		local bone = hitboxEnt:GetHitBoxBone(i, 0)
+		matrix = ent:GetBoneMatrix(bone)
 		if not matrix then continue end
-		mins, maxs = ent:GetHitBoxBounds(i, 0)
+		mins, maxs = hitboxEnt:GetHitBoxBounds(i, 0)
 		pos = matrix:GetTranslation()
 		ang = matrix:GetAngles()
 		local center, disOfCenter = getTransform(pos, ang, mins, maxs, obbCenter)
