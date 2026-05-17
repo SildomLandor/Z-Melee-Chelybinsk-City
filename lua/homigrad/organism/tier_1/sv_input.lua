@@ -920,7 +920,13 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		end
 		
 		if ent:IsRagdoll() then
-			ent:GetPhysicsObjectNum(bone or 0):ApplyForceCenter(force * 1)
+			local maxForce = 5000
+			local ragForce = force * 1
+			if ragForce:Length() > maxForce then
+				ragForce:Normalize()
+				ragForce:Mul(maxForce)
+			end
+			ent:GetPhysicsObjectNum(bone or 0):ApplyForceCenter(ragForce)
 		end
 	end
 
