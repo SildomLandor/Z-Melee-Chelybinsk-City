@@ -7,6 +7,7 @@ hook.Add("Org Clear", "Main", function(org)
 	org.otrub = false
 	org.entindex = IsValid(org.owner) and org.owner:EntIndex() or hg.organism.lastindex + 1
 	module.pulse[1](org)
+	module.pepper[1](org)
 	module.blood[1](org)
 	module.pain[1](org)
 	module.stamina[1](org)
@@ -170,7 +171,7 @@ local function send_organism(org, ply)
 	sendtable.incapacitated = org.incapacitated
 	sendtable.berserkActive2 = org.berserkActive2
 	sendtable.noradrenalineActive = org.noradrenalineActive
-
+	sendtable.lastPepperHit = org.lastPepperHit
 	sendtable.superfighter = org.superfighter
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
