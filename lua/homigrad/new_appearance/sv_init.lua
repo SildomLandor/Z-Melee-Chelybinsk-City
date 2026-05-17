@@ -7,13 +7,18 @@ local APmodule = hg.Appearance
 hg.PointShop = hg.PointShop or {}
 local PSmodule = hg.PointShop
 
+local function HasItem(ply, uid)
+	if ply.PS_HasItem then return ply:PS_HasItem(uid) end
+	return false
+end
+
 local function CheckAttachments(ply,tbl)
     if !IsValid(ply) or !ply:IsPlayer() then return end
     --print(ply:PS_HasItem(uid))
     if hg.Appearance.GetAccessToAll(ply) then return tbl end
     for i = 1, #tbl.AAttachments do
         local uid = tbl.AAttachments[i]
-        if PSmodule.Items[uid] and (!ply:PS_HasItem(uid) and ply:IsPlayer()) then
+        if PSmodule.Items[uid] and (!HasItem(ply, uid) and ply:IsPlayer()) then
             tbl.AAttachments[i] = ""
             ply:ChatPrint(uid .. " - not bought, removed")
         end
@@ -35,7 +40,7 @@ local function CheckAttachments(ply,tbl)
 
         local uid = bodygroup["ID"]
         --print(bodygroup[2],uid,PSmodule.Items[uid],ply:PS_HasItem(uid))
-        if bodygroup[2] and uid and PSmodule.Items[uid] and (!ply:PS_HasItem(uid) and ply:IsPlayer()) then
+        if bodygroup[2] and uid and PSmodule.Items[uid] and (!HasItem(ply, uid) and ply:IsPlayer()) then
             tbl.ABodygroups[k] = nil
             ply:ChatPrint(v .. " - not bought, removed")
         end
@@ -154,21 +159,24 @@ function ApplyAppearance(Client,tAppearance,bRandom,bResponeIsValid,bUseCahsed)
     WearAppearance(Client,tAppearance)
 end
 
-net.Receive("Get_Appearance",function(len,client)
+net.Receive("Get_Appearance", function(len, client)
     local tAppearance = net.ReadTable()
     local bRandom = net.ReadBool()
-    if !APmodule.AppearanceValidater(tAppearance) then bRandom = true end
+    if not APmodule.AppearanceValidater(tAppearance) then 
+        bRandom = true 
+    end
 
-    ApplyAppearance(client,tAppearance, table.IsEmpty(tAppearance) and true or bRandom,true)
+    -- Update cache immediately so next respawn uses this
+    client.CachedAppearance = tAppearance
+
+    ApplyAppearance(client, tAppearance, next(tAppearance) == nil or bRandom, true)
 end)
 
-net.Receive("OnlyGet_Appearance",function(len,client)
+net.Receive("OnlyGet_Appearance", function(len, client)
     local tAppearance = net.ReadTable()
-    local bRandom = !tAppearance or table.IsEmpty(tAppearance)
-    --client:ChatPrint(bRandom)
+    local bRandom = not tAppearance or next(tAppearance) == nil
     client.CachedAppearance = bRandom and APmodule.GetRandomAppearance() or tAppearance
 end)
-
 APmodule.ApplyAppearance = ApplyAppearance
 
 -- Ragdoll apply

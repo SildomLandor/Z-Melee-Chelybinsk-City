@@ -4,7 +4,7 @@ hg.Appearance = hg.Appearance or {}
 
 hg.Appearance.SelectedAppearance = ConVarExists("hg_appearance_selected") and GetConVar("hg_appearance_selected") or CreateClientConVar("hg_appearance_selected","main",true,false,"name of selected appearance json file")
 hg.Appearance.ForcedRandom = ConVarExists("hg_appearance_force_random") and GetConVar("hg_appearance_force_random") or CreateClientConVar("hg_appearance_force_random","0",true,false,"forced appearance random",0,1)
-
+hg.Appearance.MaxRenderDist = ConVarExists("hg_appearance_max_render_dist") and GetConVar("hg_appearance_max_render_dist") or CreateClientConVar("hg_appearance_max_render_dist", "750", true, false, "Maximum distance to render accessories", 0, 5000)
 local dir = "zcity/appearances/"
 function hg.Appearance.CreateAppearanceFile(strFile_name, tblAppearance)
 	file.CreateDir(dir)
@@ -12,7 +12,7 @@ function hg.Appearance.CreateAppearanceFile(strFile_name, tblAppearance)
 end
 
 function hg.Appearance.LoadAppearanceFile(strFile_name)
-	if not file.Exists(dir .. strFile_name .. ".json", "DATA") then return false end
+	if not file.Exists(dir .. strFile_name .. ".json", "DATA") then return false, "no file [data/zcity/appearances/" .. strFile_name .. ".json]" end
 	local tblAppearance = util.JSONToTable(file.Read(dir .. strFile_name .. ".json"))
 
 	if not hg.Appearance.AppearanceValidater(tblAppearance) then return false, "file is damaged [data/zcity/appearances/" .. strFile_name .. ".json]"  end
@@ -27,35 +27,43 @@ end
 
 -- Send from client...
 net.Receive("Get_Appearance", function()
-	local forced_random = hg.Appearance.ForcedRandom:GetBool()
+    local forced_random = hg.Appearance.ForcedRandom:GetBool()
     net.Start("Get_Appearance")
-		local tbl,reason
+        local tbl, reason
 
-		if not forced_random then
-			tbl,reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
-		end
-		
+        if not forced_random then
+            tbl, reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
+        end
+
+        if tbl and tbl.AColor and not IsColor(tbl.AColor) then
+            tbl.AColor = Color(tbl.AColor.r, tbl.AColor.g, tbl.AColor.b, tbl.AColor.a or 255)
+        end
+
         net.WriteTable(tbl and tbl or {})
         net.WriteBool(not tbl)
     net.SendToServer()
 
-	if not tbl and not forced_random and reason then lply:ChatPrint("[Appearance] file load failed - " .. reason) end
+    if not tbl and not forced_random then lply:ChatPrint("[Appearance] file load failed - " .. reason) end
 end)
 
 local function OnlyGetAppearance()
-	local forced_random = hg.Appearance.ForcedRandom:GetBool()
+    local forced_random = hg.Appearance.ForcedRandom:GetBool()
     net.Start("OnlyGet_Appearance")
-		local tbl,reason
+        local tbl, reason
 
-		if not forced_random then 
-			tbl,reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
-		end
+        if not forced_random then
+            tbl, reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
+        end
+        if tbl and tbl.AColor and not IsColor(tbl.AColor) then
+            tbl.AColor = Color(tbl.AColor.r, tbl.AColor.g, tbl.AColor.b, tbl.AColor.a or 255)
+        end
 
         net.WriteTable(tbl or {})
-
     net.SendToServer()
 
-	if not tbl and not forced_random and reason then lply:ChatPrint("[Appearance] file load failed - " .. reason) end
+    if not tbl and not forced_random then 
+        LocalPlayer():ChatPrint("[Appearance] file load failed - " .. reason) 
+    end
 end
 
 net.Receive("OnlyGet_Appearance", OnlyGetAppearance)
@@ -76,13 +84,25 @@ local islply
 local hg_firstperson_death = ConVarExists("hg_firstperson_death") and GetConVar("hg_firstperson_death") or CreateClientConVar("hg_firstperson_death", "0", "first person death", true, false, 0, 1)
 
 function RenderAccessories(ply, accessories, setup)
-
 	if not IsValid(ply) or not accessories then return end
-
 	if accessories == "none" then return end
+	local viewer = LocalPlayer()
+	if ply ~= viewer then
+		local entPos = (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply):GetPos()
+		local dist = viewer:GetPos():Distance(entPos)
+		local maxDist = hg.Appearance.MaxRenderDist:GetFloat()
+		if dist > maxDist then
+			if ply.modelAccess then
+				for k, v in pairs(ply.modelAccess) do
+					if IsValid(v) then v:Remove() end
+				end
+				ply.modelAccess = {}
+			end
+			return
+		end
+	end
 
 	local wep = ply:IsPlayer() and ply:GetActiveWeapon()
-
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	ent = IsValid(ply.OldRagdoll) and ply.OldRagdoll:IsRagdoll() and ply.OldRagdoll or ent
 
@@ -201,7 +221,7 @@ function DrawAccesories(ply, ent, accessories,accessData, islply, force, setup)
 		return
 	end
 
-	if ply.organism and hg.amputatedlimbs2[accessData["bone"]] and ent.organism and ent.organism[hg.amputatedlimbs2[accessData["bone"]].."amputated"] then return end
+	if ply.organism and hg.amputatedlimbs2[accessData["bone"]] and ply.organism[hg.amputatedlimbs2[accessData["bone"]].."amputated"] then return end
 
 	if setup != false then
 		local bone = ent:LookupBone(accessData["bone"])
@@ -272,17 +292,18 @@ function DrawAppearance(ent, ply, setup)
 	local flashlightwep
 
 	if IsValid(wep) then
-		local laser = wep.attachments and wep.attachments.underbarrel
-		local attachmentData
-		if ( laser and !table.IsEmpty(laser) ) or wep.laser then
-			if laser and !table.IsEmpty(laser) then
-				attachmentData = hg.attachments.underbarrel[laser[1]]
-			else
-				attachmentData = wep.laserData
-			end
-		end
+	    local laser = wep.attachments and wep.attachments.underbarrel
+	    local attachmentData
+	    
+	    if laser and next(laser) then
+	        attachmentData = hg.attachments.underbarrel[laser[1]]
+	    elseif wep.laser then
+	        attachmentData = wep.laserData
+	    end
 
-		if attachmentData then flashlightwep = attachmentData.supportFlashlight end
+	    if attachmentData then 
+	        flashlightwep = attachmentData.supportFlashlight 
+	    end
 	end
 
 	if IsValid(ply.flmodel) then
