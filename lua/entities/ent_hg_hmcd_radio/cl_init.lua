@@ -291,7 +291,7 @@ net.Receive("RadioURLInput", function()
 		DermaNumSlider:SetSize(50,45)	
 		DermaNumSlider:SetText( "Volume slider" )
 		DermaNumSlider:SetMin( 0 )			
-		DermaNumSlider:SetMax( 200 )
+		DermaNumSlider:SetMax( 10000 )
 		DermaNumSlider:SetDecimals( 0 )
 		DermaNumSlider:SizeToContents()
 		DermaNumSlider.isedited = false
