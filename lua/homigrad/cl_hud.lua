@@ -143,6 +143,14 @@ surface.CreateFont("HomigradFontVSmall", {
 	outline = false
 })
 
+surface.CreateFont("ZCity_Veteran", {
+	font = font(),
+	size = ScreenScale(8),
+	weight = 700,
+	outline = false,
+	antialias = true
+})
+
 local w, h
 
 hook.Add("HUDPaint", "homigrad-dev", function()
@@ -178,17 +186,94 @@ function draw.CirclePart(x, y, radius, seg, parts, pos)
 	render.PopFilterMin()
 end
 
+-- Ring segment with gaps between sections
+function draw.CirclePartRing(x, y, rInner, rOuter, seg, parts, pos, gapDeg)
+	gapDeg = gapDeg or 3
+	local poly = {}
+	local totalDeg = 360 / parts
+	local startDeg = pos * totalDeg + gapDeg * 0.5
+	local endDeg   = (pos + 1) * totalDeg - gapDeg * 0.5
+	local startR = math.rad(startDeg - 90)
+	local endR   = math.rad(endDeg   - 90)
+
+	for i = 0, seg do
+		local a = startR + (endR - startR) * (i / seg)
+		poly[#poly + 1] = {
+			x = x + math.cos(a) * rOuter,
+			y = y + math.sin(a) * rOuter,
+			u = 0.5, v = 0.5
+		}
+	end
+	for i = seg, 0, -1 do
+		local a = startR + (endR - startR) * (i / seg)
+		poly[#poly + 1] = {
+			x = x + math.cos(a) * rInner,
+			y = y + math.sin(a) * rInner,
+			u = 0.5, v = 0.5
+		}
+	end
+
+	render.PushFilterMin(TEXFILTER.ANISOTROPIC)
+	surface.DrawPoly(poly)
+	render.PopFilterMin()
+end
+
+function draw.CirclePartRingOutline(x, y, rInner, rOuter, seg, parts, pos, gapDeg)
+	gapDeg = gapDeg or 3
+	local totalDeg = 360 / parts
+	local startDeg = pos * totalDeg + gapDeg * 0.5
+	local endDeg   = (pos + 1) * totalDeg - gapDeg * 0.5
+	local startR = math.rad(startDeg - 90)
+	local endR   = math.rad(endDeg   - 90)
+
+	local lastX, lastY
+	for i = 0, seg do
+		local a = startR + (endR - startR) * (i / seg)
+		local cx = x + math.cos(a) * rOuter
+		local cy = y + math.sin(a) * rOuter
+		if lastX then surface.DrawLine(lastX, lastY, cx, cy) end
+		lastX, lastY = cx, cy
+	end
+
+	local inEndX = x + math.cos(endR) * rInner
+	local inEndY = y + math.sin(endR) * rInner
+	surface.DrawLine(lastX, lastY, inEndX, inEndY)
+
+	lastX, lastY = inEndX, inEndY
+	for i = seg, 0, -1 do
+		local a = startR + (endR - startR) * (i / seg)
+		local cx = x + math.cos(a) * rInner
+		local cy = y + math.sin(a) * rInner
+		if lastX then surface.DrawLine(lastX, lastY, cx, cy) end
+		lastX, lastY = cx, cy
+	end
+
+	local outStartX = x + math.cos(startR) * rOuter
+	local outStartY = y + math.sin(startR) * rOuter
+	surface.DrawLine(lastX, lastY, outStartX, outStartY)
+end
+
 if IsValid(MENUPANELHUYHUY) then
 	MENUPANELHUYHUY:Remove()
 	MENUPANELHUYHUY = nil
 end
 
 hg.radialOptions = hg.radialOptions or {}
-local colBlack = Color(0, 0, 0, 152)
-local colOption = Color(40, 0, 55, 152)
-local colWhite = Color(255, 255, 255, 255)
-local colWhiteTransparent = Color(176, 40, 40, 100)
-local colTransparent = Color(0, 0, 0, 0)
+
+-- Delicacy Reworked style colours
+local colSegBase        = Color(8,   2,   2,   160)  
+local colSegHover       = Color(28,  6,   6,   210) 
+local colBorderBase     = Color(120, 120, 120, 80) 
+local colBorderHover    = Color(180, 180, 180, 220)
+local colTextBase       = Color(190, 160, 160, 170) 
+local colTextHover      = Color(240, 215, 215, 255) 
+local colWhiteTransparent = Color(140, 30, 30, 90)
+local colWhite          = Color(210, 185, 185, 255)
+local colTransparent    = Color(0, 0, 0, 0)
+local colOption         = Color(40, 0, 55, 152)
+
+local RAD_INNER_FRAC = 0
+
 local matHuy = Material("vgui/white")
 local vecXY = Vector(0, 0)
 local vecDown = Vector(0, 1)
@@ -217,7 +302,6 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 		end
 	end
 
-	//hook_Run("radialOptions")
 	local options1 = options_arg or hg.radialOptions
 
 	hg.radialOptions = options1
@@ -260,7 +344,6 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 			local functions = hook.GetTable()["radialOptions"]
 			
 			for i, func in SortedPairs(functions) do
-				//if i == "zmeyka_test" then continue end
 				func()
 			end
 		end
@@ -269,15 +352,15 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 	local sizePan = 0
 	local optionSelected = {}
 	menuPanel.Paint = function(self, w, h)
-		local x, y = input.GetCursorPos()
-		x = x - sizeX / 2
-		y = y - sizeY / 2
-		vecXY.x = x
-		vecXY.y = y
+		local mx, my = input.GetCursorPos()
+		local cx, cy = w / 2, h / 2
+		local dx = mx - sizeX / 2
+		local dy = my - sizeY / 2
+		vecXY.x = dx
+		vecXY.y = dy
 		local deg = (vecXY:GetNormalized() - vecDown):Angle()
-		//deg[2] = deg[2] - 180
 		deg = math.NormalizeAngle((deg[2] - 180) * 2) + 180
-		
+
 		local options = {}
 		if paining then
 			options[#options + 1] = {function() RunConsoleCommand("hg_phrase") end, ""}
@@ -285,104 +368,203 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 			options = options1
 		end
 
-		sizePan = LerpFT( menuPanel:GetAlpha() > 100 and 0.05 or 0.25,sizePan,(menuPanel:GetAlpha()/255))
-		local viewLerp = Lerp(math.ease.OutExpo(sizePan),0,1)
+		sizePan = LerpFT(menuPanel:GetAlpha() > 100 and 0.05 or 0.25, sizePan, (menuPanel:GetAlpha() / 255))
+		local viewLerp = Lerp(math.ease.OutExpo(sizePan), 0, 1)
+		local panAlpha = menuPanel:GetAlpha() / 255
+
+		local rOuter   = scrH * (options_arg ~= nil and 0.4 or 0.45) * viewLerp
+		local rInner   = scrH * RAD_INNER_FRAC * viewLerp
+		local sqrt     = math.sqrt(dx ^ 2 + dy ^ 2)
+		local partDeg  = 360 / math.max(#options, 1)
+
+		-- resolve hover before drawing (avoids early return inside loop)
+		isMouseOnRadial = sqrt <= rOuter and sqrt > 2
 		for num, option in ipairs(options) do
-			local num = num - 1
+			local idx = num - 1
+			isMouseIntersecting = isMouseOnRadial and deg > idx * partDeg and deg < (idx + 1) * partDeg
+			if isMouseIntersecting then current_option = num end
+			optionSelected[idx] = optionSelected[idx] or 0
+			optionSelected[idx] = LerpFT(0.1, optionSelected[idx], isMouseIntersecting and 1 or 0)
+		end
 
-			local r = scrH * (options_arg ~= nil and 0.4 or 0.45) * viewLerp
-			local partDeg = 360 / #options
-			local sqrt = math.sqrt(x ^ 2 + y ^ 2)
-			isMouseOnRadial = sqrt <= r and sqrt > 4
-			isMouseIntersecting = isMouseOnRadial and deg > num * partDeg and deg < (num + 1) * partDeg
-			if isMouseIntersecting then current_option = num + 1 end
-			if sqrt > 0 and current_option > 0 and num and !intersect_xyPartDeg then return end
+		-- draw segments
+		local radialFont = options_arg and "HomigradFont" or "ZCity_Veteran"
+		for num, option in ipairs(options) do
+			local idx = num - 1
+			local sel = optionSelected[idx]
 
-			optionSelected[num] = optionSelected[num] or 0
-			optionSelected[num] = LerpFT(0.1, optionSelected[num], isMouseIntersecting and 1 or 0)
+			-- custom colour support (option[6] = base, option[7] = hover)
+			local segColBase = colSegBase
+			local segColHover = colSegHover
+			if option[6] and IsColor(option[6]) then
+				segColBase = option[6]
+				if option[7] and IsColor(option[7]) then
+					segColHover = option[7]
+				else
+					segColHover = Color(
+						math.min(segColBase.r + 40, 255),
+						math.min(segColBase.g + 40, 255),
+						math.min(segColBase.b + 40, 255),
+						segColBase.a
+					)
+				end
+			end
 
-			if option[3] then --// Multibutton
+			if option[3] then
+				-- sub-variant segment (multi-ring)
+				local segA = math.floor(Lerp(sel, segColBase.a, segColHover.a) * panAlpha)
 				surface.SetMaterial(matHuy)
-				surface.SetDrawColor(isMouseIntersecting and colBlack or colBlack)
-				draw.CirclePart(w / 2, h / 2, r, 40, #options, num)
+				surface.SetDrawColor(
+					math.floor(Lerp(sel, segColBase.r, segColHover.r)),
+					math.floor(Lerp(sel, segColBase.g, segColHover.g)),
+					math.floor(Lerp(sel, segColBase.b, segColHover.b)),
+					segA
+				)
+				draw.CirclePartRing(cx, cy, rInner, rOuter, 40, #options, idx, 3)
+
 				local count = #option[4]
-				
-				local selectedPart = count - (math.floor((r - sqrt) / (r / count)))
-				
+				local selectedPart = count - (math.floor((rOuter - sqrt) / (rOuter / count)))
 				current_option_select = selectedPart
 				for i, opt in pairs(option[4]) do
 					local selected = selectedPart == i
 					surface.SetMaterial(matHuy)
-					surface.SetDrawColor((selected and isMouseIntersecting) and colWhiteTransparent or colTransparent)
-					draw.CirclePart(w / 2, h / 2, r * (i / count), 40, #options, num)
-					local a = -partDeg * num - partDeg / 2
-					a = math.rad(a) + math.pi
+					if selected and isMouseIntersecting then
+						surface.SetDrawColor(colWhiteTransparent.r, colWhiteTransparent.g, colWhiteTransparent.b, math.floor(colWhiteTransparent.a * panAlpha))
+					else
+						surface.SetDrawColor(0, 0, 0, 0)
+					end
+					local rA = rInner + (rOuter - rInner) * ((i - 1) / count)
+					local rB = rInner + (rOuter - rInner) * (i / count)
+					draw.CirclePartRing(cx, cy, rA, rB, 40, #options, idx, 3)
 
+					local midDeg = idx * (360 / #options) + (360 / #options) / 2
+					local midA = math.rad(midDeg - 90)
+					local tRad = rInner + (rOuter - rInner) * (i / count - 0.5 / count)
 					if paining then
-						math.randomseed(math.Round(CurTime() / 5 + num + i, 0))
-						opt = ""//hg.get_status_message(ply)
+						math.randomseed(math.Round(CurTime() / 5 + idx + i, 0))
+						opt = ""
 						math.randomseed(os.time())
 					end
-
-					draw.DrawText(opt, "HomigradFont", scrW / 2 + math.sin(a) * r * (i / count - 0.5 / count), scrH / 2 + math.cos(a) * r * (i / count - 0.5 / count), colWhite, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+					draw.DrawText(opt, radialFont,
+						scrW / 2 + math.cos(midA) * tRad,
+						scrH / 2 + math.sin(midA) * tRad,
+						Color(colWhite.r, colWhite.g, colWhite.b, math.floor(colWhite.a * panAlpha)),
+						TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 				end
-
 				continue
 			end
-			
-			--print(options_arg ~= nil and true or false)
+
+			-- normal segment background (expands on hover)
+			local hoverR = rOuter * (1 + 0.05 * sel)
 			surface.SetMaterial(matHuy)
-			if option[6] and IsColor(option[6]) then --// Custom color
-				if option[7] and IsColor(option[7]) then --// Custom select color
-					surface.SetDrawColor(option[7]:Lerp(option[6], 1 - optionSelected[num]))
-				else
-					surface.SetDrawColor(colWhiteTransparent:Lerp(option[6], 1 - optionSelected[num]))
-				end
-			else
-				if option[7] and IsColor(option[7]) then --// Custom select color
-					surface.SetDrawColor(option[7]:Lerp(options_arg ~= nil and colOption or colBlack, 1 - optionSelected[num]))
-				else
-					surface.SetDrawColor(colWhiteTransparent:Lerp(options_arg ~= nil and colOption or colBlack, 1 - optionSelected[num]))
-				end
+			surface.SetDrawColor(
+				math.floor(Lerp(sel, segColBase.r, segColHover.r)),
+				math.floor(Lerp(sel, segColBase.g, segColHover.g)),
+				math.floor(Lerp(sel, segColBase.b, segColHover.b)),
+				math.floor(Lerp(sel, segColBase.a, segColHover.a) * panAlpha)
+			)
+			draw.CirclePartRing(cx, cy, rInner, hoverR, 40, #options, idx, 3)
+
+			-- thin border along outer edge
+			surface.SetDrawColor(
+				math.floor(Lerp(sel, colBorderBase.r, colBorderHover.r)),
+				math.floor(Lerp(sel, colBorderBase.g, colBorderHover.g)),
+				math.floor(Lerp(sel, colBorderBase.b, colBorderHover.b)),
+				math.floor(Lerp(sel, colBorderBase.a, colBorderHover.a) * panAlpha)
+			)
+			draw.CirclePartRingOutline(cx, cy, rInner, hoverR, 40, #options, idx, 3)
+
+			-- "shine" effect when hovered
+			if sel > 0.05 then
+				surface.SetDrawColor(
+					math.floor(Lerp(sel, colBorderBase.r, colBorderHover.r)),
+					math.floor(Lerp(sel, colBorderBase.g, colBorderHover.g)),
+					math.floor(Lerp(sel, colBorderBase.b, colBorderHover.b)),
+					math.floor(Lerp(sel, 0, 80) * panAlpha)
+				)
+				draw.CirclePartRingOutline(cx, cy, rInner - 1, hoverR + 1, 40, #options, idx, 3)
+				draw.CirclePartRingOutline(cx, cy, rInner + 1, hoverR - 1, 40, #options, idx, 3)
 			end
 
-			draw.CirclePart(w / 2, h / 2, r * (1 + 0.1 * optionSelected[num]), 30, #options, num)
-			local a = -partDeg * num - partDeg / 2
-			a = math.rad(a) + math.pi
-
-			--PrintTable(option)
-			if option[5] then --// Icon
-				local a = -partDeg * num - partDeg / 2
-				a = math.rad(a) + math.pi
+			-- icon or text
+			if option[5] then
+				-- icon
+				local midDeg = idx * (360 / #options) + (360 / #options) / 2
+				local midA = math.rad(midDeg - 90)
+				local tRad = rInner + (hoverR - rInner) * 0.58
 
 				surface.SetMaterial(option[5])
 				surface.SetDrawColor(color_white)
-				local sizeW = scrW / 2.25 + math.sin(a) * r * 0.7
-				local sizeH = scrH / 2.2 + math.cos(a) * r * 0.7
-		
+				local sizeW = scrW / 2 + math.cos(midA) * tRad - scrW * 0.05
+				local sizeH = scrH / 2 + math.sin(midA) * tRad - scrW * 0.05
 				surface.DrawTexturedRect(sizeW, sizeH, scrW * 0.1, scrH * 0.1)
 			else
-				local txt = option[2] --// Text
-				if txt and !options_old then return end
+				-- text
+				local midDeg = idx * (360 / #options) + (360 / #options) / 2
+				local midA = math.rad(midDeg - 90)
+				local tRad = rInner + (hoverR - rInner) * 0.58
+
+				local txt = option[2]
 				if paining then
-					math.randomseed(math.Round(CurTime() / 5 + num, 0))
-					txt = hg.get_status_message(ply)
+					math.randomseed(math.Round(CurTime() / 5 + idx, 0))
+					txt = hg.get_status_message(lply) or ""
 					math.randomseed(os.time())
 				end
-				draw.DrawText(txt, "HomigradFont", scrW / 2 + math.sin(a) * r * 0.75, scrH / 2 + math.cos(a) * r * 0.75, colWhite, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+				local mainTxt = txt
+				local subTxt = nil
+				if txt and string.find(txt, "\n") then
+					local nl = string.find(txt, "\n")
+					mainTxt = string.sub(txt, 1, nl - 1)
+					subTxt  = string.sub(txt, nl + 1)
+				end
+
+				local tx = scrW / 2 + math.cos(midA) * tRad
+				local ty = scrH / 2 + math.sin(midA) * tRad
+
+				local flashRed = 0
+				if sel > 0 then
+					flashRed = (math.sin(CurTime() * 10) * 0.5 + 0.5) * sel
+				end
+
+				local textColR = math.floor(Lerp(flashRed, Lerp(sel, colTextBase.r, colTextHover.r), 255))
+				local textColG = math.floor(Lerp(flashRed, Lerp(sel, colTextBase.g, colTextHover.g), 0))
+				local textColB = math.floor(Lerp(flashRed, Lerp(sel, colTextBase.b, colTextHover.b), 0))
+
+				draw.DrawText(mainTxt, radialFont, tx, subTxt and ty - 12 or ty,
+					Color(
+						textColR,
+						textColG,
+						textColB,
+						math.floor(Lerp(sel, colTextBase.a, colTextHover.a) * panAlpha)
+					), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+				if subTxt then
+					draw.DrawText(subTxt, radialFont, tx, ty + 28,
+						Color(
+							textColR,
+							textColG,
+							textColB,
+							math.floor(Lerp(sel, colTextBase.a, colTextHover.a) * panAlpha * 0.7)
+						), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				end
+			end
+
+			-- player name and role, drawn once in first segment
+			if idx == 0 and not paining then
+				draw.SimpleText(lply:GetPlayerName(), "HomigradFontGigantoNormous",
+					scrW * 0.0215 * viewLerp, scrH * 0.042, colBack, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+				draw.SimpleText((lply.role and lply.role.name) or "", "HomigradFontGigantoNormous",
+					scrW * 0.0215 * viewLerp, scrH * 0.098, colBack, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+				local col = lply:GetPlayerColor():ToColor()
+				draw.SimpleText(lply:GetPlayerName(), "HomigradFontGigantoNormous",
+					scrW * 0.02 * viewLerp, scrH * 0.04, col, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+				draw.SimpleText((lply.role and lply.role.name) or "", "HomigradFontGigantoNormous",
+					scrW * 0.02 * viewLerp, scrH * 0.095,
+					lply.role and lply.role.color or incoentCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 			end
 		end
-		if !paining then
-			draw.SimpleText(lply:GetPlayerName(),"HomigradFontGigantoNormous",scrW * 0.0215* viewLerp,scrH * 0.042, colBack, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			draw.SimpleText( ( (lply.role and lply.role.name) or ""),"HomigradFontGigantoNormous" ,scrW * 0.0215 * viewLerp,scrH * 0.098, colBack, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
-			local col = lply:GetPlayerColor():ToColor()
-			draw.SimpleText(lply:GetPlayerName(),"HomigradFontGigantoNormous",scrW * 0.02 * viewLerp,scrH * 0.04, col, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			draw.SimpleText( ( (lply.role and lply.role.name) or ""),"HomigradFontGigantoNormous" ,scrW * 0.02 * viewLerp,scrH * 0.095, lply.role and lply.role.color or incoentCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			local walkBtn = input.LookupBinding("+walk") or "BIND YOUR +WALK KEY PLEASE. WRITE \"bind alt +walk\" IN CONSOLE FOR THE LOVE OF GOD"
-			draw.SimpleText(walkBtn .. " | Misc", "HomigradFont", scrW * (0.981 + (0.04 * (1-viewLerp))),scrH * 0.9615, colBack, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-			draw.SimpleText(walkBtn .. " | Misc", "HomigradFont", scrW * (0.98 + (0.04 * (1-viewLerp))),scrH * 0.96, colWhite, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
-		end
 	end
 end
 
@@ -521,12 +703,36 @@ local function dropWeapon()
 	RunConsoleCommand("drop")
 end
 
+local function suicide()
+	RunConsoleCommand("suicide")
+end
+
 hook.Add("radialOptions", "77", function()
 	local organism = lply.organism or {}
-	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" and lply:KeyDown(IN_WALK) then
-		local tbl = {dropWeapon, "Drop Weapon"}
+	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" then
+		local tbl = {dropWeapon, "Бросить Оружие"}
 		hg.radialOptions[#hg.radialOptions + 1] = tbl
 	end
+end)
+
+hook.Add("radialOptions", "88", function()
+	local organism = lply.organism or {}
+	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" then
+		local tbl = {suicide, "Смерть"}
+		hg.radialOptions[#hg.radialOptions + 1] = tbl
+	end
+end)
+
+hook.Add("radialOptions", "Afflictions", function()
+    local ply = LocalPlayer()
+    local organism = ply.organism or {}
+
+    if ply:Alive() and not organism.otrub and hg.GetCurrentCharacter(ply) == ply then
+        local tbl = {function()
+            RunConsoleCommand("mcd_admire")
+        end, "Осмотреть себя"}
+        hg.radialOptions[#hg.radialOptions + 1] = tbl
+    end
 end)
 
 local randomGestures = {
