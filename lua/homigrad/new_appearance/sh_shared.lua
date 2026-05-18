@@ -3,8 +3,6 @@ hg.PointShop = hg.PointShop or {}
 local PLUGIN = hg.PointShop
 PLUGIN.Items = PLUGIN.Items or {}
 
-<<<<<<< HEAD
-=======
 function PLUGIN:CreateItem( uid, strName, strModel, strBodyGroups, iSkin, vecPos, intPrice, bIsDPoints, tData, fCallback, fov )
     PLUGIN.Items[uid] = {
         ID = uid,
@@ -21,7 +19,6 @@ function PLUGIN:CreateItem( uid, strName, strModel, strBodyGroups, iSkin, vecPos
     }
 end
 
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 -- Validate function for custom name
 local allowed = {
    ' ',
@@ -32,7 +29,6 @@ local allowed = {
 }
 
 local function IsInvalidName(name)
-<<<<<<< HEAD
 	local trimmedName = string.Trim(name)
 	if trimmedName == "" then return true end
 	if #trimmedName < 2 then return true end
@@ -42,13 +38,12 @@ local function IsInvalidName(name)
 	for k = 1, symblos do
 		if not table.HasValue(allowed, utf8.GetChar(name, k)) then return true end
 	end
-=======
+
    local trimmedName = string.Trim(name)
    
    if trimmedName == "" then return true end
    if #trimmedName < 2 then return true end
    if utf8.len(name) > 25 then return true end
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 
    local symblos = utf8.len( name )
 
@@ -70,7 +65,7 @@ local function GenerateRandomName(iSex)
 end
 
 hg.Appearance.GenerateRandomName = GenerateRandomName
-<<<<<<< HEAD
+
 
 -- Check access to all
 local access = {}
@@ -83,8 +78,6 @@ if SERVER then
 	end)
 	SetGlobalBool("hg_appearance_access_for_all", hg_appearance_access_for_all:GetBool())
 end
-=======
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 
 -- Check access to all
 local access = {
@@ -119,7 +112,6 @@ local function AppAddModel(strName, strMdl, bFemale, tSubmaterialSlots)
     }
 end
 
-<<<<<<< HEAD
 AppAddModel("Male 01", "models/zcity/m/male_01.mdl", false, {
 	main = "models/humans/male/group01/players_sheet",
 	pants = "distac/gloves/pants",
@@ -224,7 +216,6 @@ AppAddModel("Female 06", "models/zcity/f/female_06.mdl", true, {
 	boots = "distac/gloves/cross",
 	hands = "distac/gloves/hands"
 })
-=======
 AppAddModel( "Мужчина 01", "models/zcity/m/male_01.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"}) -- сделал бы автоматом если бы слоты не отличались...
 AppAddModel( "Мужчина 02", "models/zcity/m/male_02.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"}) -- забудьте я просто шизик, сделал более удобную штуку
 AppAddModel( "Мужчина 03", "models/zcity/m/male_03.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
@@ -241,7 +232,6 @@ AppAddModel( "Женщина 03", "models/zcity/f/female_03.mdl", true, {main = 
 AppAddModel( "Женщина 04", "models/zcity/f/female_04.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
 AppAddModel( "Женщина 05", "models/zcity/f/female_07.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
 AppAddModel( "Женщина 06", "models/zcity/f/female_06.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 
 hg.Appearance.PlayerModels = PlayerModels
 
@@ -255,7 +245,6 @@ for name, tbl in pairs(hg.Appearance.PlayerModels[2]) do
     hg.Appearance.FuckYouModels[2][tbl.mdl] = tbl
 end --fuck you
 
-<<<<<<< HEAD
 -- Clothes
 hg.Appearance.Clothes = {}
 hg.Appearance.Clothes[1] = {
@@ -349,103 +338,8 @@ hg.Appearance.ClothesDesc = {
 		desc = "by Chervo93 from steam workshop\nRMB to open link",
 		link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3540506879"
 	},
-=======
-hg.Appearance.Clothes = {}
-hg.Appearance.Clothes[1] = {
-    normal = "models/humans/male/group01/normal",
-    formal = "models/humans/male/group01/formal",
-    plaid = "models/humans/male/group01/plaid",
-    striped = "models/humans/male/group01/striped",
-    young = "models/humans/male/group01/young",
-    cold = "models/humans/male/group01/cold",
-    casual = "models/humans/male/group01/casual",
-    sweater_xmas = "models/humans/male/group01/sweater",
-	worker = "models/humans/male/group01/worker",
-	adidas_colorable = "models/humans/male/group01/adidas_colorable",
-	alphaindustry_colorable = "models/humans/male/group01/alphaindustry_colorable",
-	camoflage_colorable = "models/humans/male/group01/camoflage_colorable",
-	comfy_colorable = "models/humans/male/group01/comfy_colorable",
-	farmer_colorable = "models/humans/male/group01/farmer_colorable",
-	formal_only_vest_colorable = "models/humans/male/group01/formal_only_vest_colorable",
-	formal_partly = "models/humans/male/group01/formal_partly",
-	formal_vest_colorable = "models/humans/male/group01/formal_vest_colorable",
-	formal_vest_full_colorable = "models/humans/male/group01/formal_vest_full_colorable",
-	half_strip_colorable = "models/humans/male/group01/half_strip_colorable",
-	homeless_colorable = "models/humans/male/group01/homeless_colorable",
-	mailman_colorable = "models/humans/male/group01/mailman_colorable",
-	miami_colorable = "models/humans/male/group01/miami_colorable",
-	old_sport_colorable = "models/humans/male/group01/old_sport_colorable",
-	rama_colorable = "models/humans/male/group01/rama_colorable",
-	rockmountain_shirt_colorable = "models/humans/male/group01/rockmountain_shirt_colorable",
-	sport1_colorable = "models/humans/male/group01/sport1_colorable",
-	sport4_colorable = "models/humans/male/group01/sport4_colorable",
-	warpoint_jacket_colorable = "models/humans/male/group01/warpoint_jacket_colorable",
-	winter_colorable = "models/humans/male/group01/winter_colorable",
-	wolker_colorable = "models/humans/male/group01/wolker_colorable",
-	zekee_sport_clothes_colorable = "models/humans/male/group01/zekee_sport_clothes_colorable",
-}
-
-hg.Appearance.Clothes[2] = {
-    normal = "models/humans/female/group01/normal",
-    formal = "models/humans/female/group01/formal",
-    plaid = "models/humans/female/group01/plaid",
-    striped = "models/humans/female/group01/striped",
-    young = "models/humans/female/group01/young",
-    cold = "models/humans/female/group01/cold",
-    casual = "models/humans/female/group01/casual",
-    sweater_xmas = "models/humans/female/group01/sweater",
-	adidas_colorable = "models/humans/female/group01/adidas_colorable",
-	camoflage_colorable = "models/humans/female/group01/camoflage_colorable",
-	comfy_colorable = "models/humans/female/group01/comfy_colorable",
-	formal_partly = "models/humans/female/group01/formal_partly",
-	mailwomen_colorable = "models/humans/female/group01/mailwomen_colorable",
-	official_colorable = "models/humans/female/group01/official_colorable",
-	rama_colorable = "models/humans/female/group01/rama_colorable",
-	rockmountain_shirt_colorable = "models/humans/female/group01/rockmountain_shirt_colorable",
-	sport1_colorable = "models/humans/female/group01/sport1_colorable",
-	sport4_colorable = "models/humans/female/group01/sport4_colorable",
-	warpoint_jacket_colorable = "models/humans/female/group01/warpoint_jacket_colorable",
-	wolker_colorable = "models/humans/female/group01/wolker_colorable",
-}
-
-hg.Appearance.ClothesDesc = {
-    normal = {desc = "Garry's Mod default citizen outfit"},
-    formal = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    plaid = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    striped = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    young = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    cold = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    casual = {desc = "from orignial Jack's Homicide gamemode.\nForever."},
-    sweater_xmas = {desc = "by Wontairr from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3621630161"},
-	worker = {desc = "by Chervo93 from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3540506879"},
-	adidas_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	alphaindustry_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	camoflage_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	comfy_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	farmer_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	formal_only_vest_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	formal_partly = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	formal_vest_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	formal_vest_full_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	half_strip_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	homeless_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	mailman_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	mailwomen_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	miami_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	official_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	old_sport_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	rama_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	rockmountain_shirt_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	sport1_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	sport4_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	warpoint_jacket_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	winter_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	wolker_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
-	zekee_sport_clothes_colorable = {desc = "by Griggs from steam workshop\nRMB to open link", link = "https://steamcommunity.com/sharedfiles/filedetails/?id=3701366943"},
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 }
 -- Facemaps
-<<<<<<< HEAD
 hg.Appearance.FacemapsSlots = hg.Appearance.FacemapsSlots or {}
 hg.Appearance.FacemapsModels = hg.Appearance.FacemapsModels or {}
 
@@ -460,61 +354,29 @@ end
 local female01facemap = "models/humans/female/group01/joey_facemap"
 AddFacemap(female01facemap, "Default", "", "models/zcity/f/female_01.mdl")
 AddFacemap(female01facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/joey_facemap")
-=======
-hg.Appearance.FacemapsSlots = hg.Appearance.FacemapsSlots or {
-    --["matname"] = {
-    --     ["facemapname"] = "facemap-material"
-    --     ["facemapname2"] = "facemap-material2"
-    --}
-}
-hg.Appearance.FacemapsModels = hg.Appearance.FacemapsModels or {}
-
-local function AddFacemap(matOverride, strName, matMaterial, model)
-    hg.Appearance.FacemapsSlots[matOverride] = hg.Appearance.FacemapsSlots[matOverride] or {}
-    local tbl = hg.Appearance.FacemapsSlots[matOverride]
-    tbl[strName] = matMaterial
-    if model then
-        hg.Appearance.FacemapsModels[model] = matOverride
-    end
-end
------------------------------------Female------------------------------------------------
-local female01facemap = "models/humans/female/group01/joey_facemap"
-AddFacemap(female01facemap,"Default","","models/zcity/f/female_01.mdl") -- female 01
-AddFacemap(female01facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/joey_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 6 do
     AddFacemap(female01facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joey_facemap" .. i) 
 end
 
 local female02facemap = "models/humans/female/group01/kanisha_cylmap"
-<<<<<<< HEAD
 AddFacemap(female02facemap, "Default", "", "models/zcity/f/female_02.mdl")
 AddFacemap(female02facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap")
-=======
 AddFacemap(female02facemap,"Default","","models/zcity/f/female_02.mdl") -- female 02
 AddFacemap(female02facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 6 do
     AddFacemap(female02facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap" .. i) 
 end
 
 local female03facemap = "models/humans/female/group01/kim_facemap"
-<<<<<<< HEAD
-AddFacemap(female03facemap, "Default", "", "models/zcity/f/female_03.mdl")
-AddFacemap(female03facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/kim_facemap")
-AddFacemap(female03facemap, "Face 5", "models/bloo_ltcom_zel/citizens/facemaps/kim_facemap6")
-=======
 AddFacemap(female03facemap,"Default","","models/zcity/f/female_03.mdl") -- female 03
 AddFacemap(female03facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/kim_facemap")
 AddFacemap(female03facemap,"Face " .. 5,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. 6) 
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 4 do
     AddFacemap(female03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. i) 
 end
 
 
 local female04facemap = "models/humans/female/group01/chau_facemap"
-<<<<<<< HEAD
 AddFacemap(female04facemap, "Default", "", "models/zcity/f/female_04.mdl")
 AddFacemap(female04facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/chau_facemap")
 for i = 2, 6 do
@@ -553,122 +415,52 @@ end
 local male03facemap = "models/humans/male/group01/joe_facemap"
 AddFacemap(male03facemap, "Default", "", "models/zcity/m/male_03.mdl")
 AddFacemap(male03facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/joe_facemap")
-=======
-AddFacemap(female04facemap,"Default","","models/zcity/f/female_04.mdl") -- female 04
-AddFacemap(female04facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/chau_facemap")
-for i = 2, 5 do
-    AddFacemap(female04facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/chau_facemap" .. i) 
-end
-
-local female05facemap = "models/humans/female/group01/naomi_facemap"
-AddFacemap(female05facemap,"Default","","models/zcity/f/female_07.mdl") -- female 05 -- why it's female 07... idk dude
-AddFacemap(female05facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/naomi_facemap")
-for i = 2, 6 do
-    AddFacemap(female05facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/naomi_facemap" .. i) 
-end
-
-local female06facemap = "models/humans/female/group01/lakeetra_facemap"
-AddFacemap(female06facemap,"Default","","models/zcity/f/female_06.mdl") -- female 06
-AddFacemap(female06facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/lakeetra_facemap")
-for i = 2, 5 do
-    AddFacemap(female06facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/lakeetra_facemap" .. i) 
-end
------------------------------------Male--------------------------------------------------
-local male01facemap = "models/humans/male/group01/van_facemap"
-AddFacemap(male01facemap,"Default","","models/zcity/m/male_01.mdl") -- male 01
-AddFacemap(male01facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/van_facemap")
-for i = 2, 8 do
-    AddFacemap(male01facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/van_facemap" .. i) 
-end
-
-local male02facemap = "models/humans/male/group01/ted_facemap"
-AddFacemap(male02facemap,"Default","","models/zcity/m/male_02.mdl") -- male 02
-AddFacemap(male02facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/ted_facemap")
-for i = 2, 10 do
-    AddFacemap(male02facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/ted_facemap" .. i)
-end
-
-local male03facemap = "models/humans/male/group01/joe_facemap"
-AddFacemap(male03facemap,"Default","","models/zcity/m/male_03.mdl") -- male 03
-AddFacemap(male03facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/joe_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 9 do
     AddFacemap(male03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joe_facemap" .. i)
 end
 
 local male04facemap = "models/humans/male/group01/eric_facemap"
-<<<<<<< HEAD
 AddFacemap(male04facemap, "Default", "", "models/zcity/m/male_04.mdl")
 AddFacemap(male04facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/eric_facemap")
-=======
-AddFacemap(male04facemap,"Default","","models/zcity/m/male_04.mdl") -- male 04
-AddFacemap(male04facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/eric_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 9 do
     AddFacemap(male04facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/eric_facemap" .. i)
 end
 
 local male05facemap = "models/humans/male/group01/art_facemap"
-<<<<<<< HEAD
 AddFacemap(male05facemap, "Default", "", "models/zcity/m/male_05.mdl")
 AddFacemap(male05facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/art_facemap")
-=======
-AddFacemap(male05facemap,"Default","","models/zcity/m/male_05.mdl") -- male 05
-AddFacemap(male05facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/art_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 9 do
     AddFacemap(male05facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/art_facemap" .. i)
 end
 
 local male06facemap = "models/humans/male/group01/sandro_facemap"
-<<<<<<< HEAD
 AddFacemap(male06facemap, "Default", "", "models/zcity/m/male_06.mdl")
 AddFacemap(male06facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap")
-=======
-AddFacemap(male06facemap,"Default","","models/zcity/m/male_06.mdl") -- male 06
-AddFacemap(male06facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 10 do
     AddFacemap(male06facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap" .. i)
 end
 
 local male07facemap = "models/humans/male/group01/mike_facemap"
-<<<<<<< HEAD
 AddFacemap(male07facemap, "Default", "", "models/zcity/m/male_07.mdl")
 AddFacemap(male07facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/mike_facemap")
-=======
-AddFacemap(male07facemap,"Default","","models/zcity/m/male_07.mdl") -- male 07
-AddFacemap(male07facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/mike_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 8 do
     AddFacemap(male07facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/mike_facemap" .. i)
 end
 
 local male08facemap = "models/humans/male/group01/vance_facemap"
-<<<<<<< HEAD
 AddFacemap(male08facemap, "Default", "", "models/zcity/m/male_08.mdl")
 AddFacemap(male08facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/vance_facemap")
-=======
-AddFacemap(male08facemap,"Default","","models/zcity/m/male_08.mdl") -- male 08
-AddFacemap(male08facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/vance_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 9 do
     AddFacemap(male08facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/vance_facemap" .. i)
 end
 
 local male09facemap = "models/humans/male/group01/erdim_cylmap"
-<<<<<<< HEAD
 AddFacemap(male09facemap, "Default", "", "models/zcity/m/male_09.mdl")
 AddFacemap(male09facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap")
-=======
-AddFacemap(male09facemap,"Default","","models/zcity/m/male_09.mdl") -- male 09
-AddFacemap(male09facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 for i = 2, 11 do
     AddFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
 end
 
-<<<<<<< HEAD
 -- Bodygroups
 hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
 	TORSO = { [1] = {}, [2] = {} },
@@ -680,26 +472,9 @@ hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
 	gloves2 = { [1] = {}, [2] = {} },
 }
 
-=======
-
--- Bodygroups
-
-hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
-    HANDS = {
-        [1] = {
-            ["None"] = {"hands",false},
-        },
-        [2] = {
-            ["None"] = {"hands",false},
-        },
-    }
-}
---lua_run Player(682):PS_AddItem("Standard_BodyGroups_Wool fingerless")
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 local function AppAddBodygroup(strBodyGroup, strName, strStringID, bFemale, bPointShop, bDonateOnly, fCost, psModel, psBodygroups, psSubmats, psStrNameOveride)
     local pointShopID = "Standard_BodyGroups_" .. ( psStrNameOveride or strName )
 
-<<<<<<< HEAD
 	if PLUGIN.CreateItem then
 		PLUGIN:CreateItem(pointShopID, string.NiceName(strName), psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0, 0, 0), fCost, bDonateOnly, psSubmats or {})
 	end
@@ -767,65 +542,11 @@ hg.Appearance.SkeletonAppearanceTable = {
 	AAttachments = {},
 	ABodygroups = {},
 	AFacemap = "Default"
-=======
-    hg.Appearance.Bodygroups[strBodyGroup] = hg.Appearance.Bodygroups[strBodyGroup] or {}
-    hg.Appearance.Bodygroups[strBodyGroup][bFemale and 2 or 1] = hg.Appearance.Bodygroups[strBodyGroup][bFemale and 2 or 1] or {}
-
-    hg.Appearance.Bodygroups[strBodyGroup][bFemale and 2 or 1][strName] = {strStringID,bPointShop, ID = pointShopID}
-
-    PLUGIN:CreateItem( pointShopID, string.NiceName( strName ),psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0,0,0), fCost, bDonateOnly, psSubmats or {})
-end
-
-local function AddBodygroupsFunc()
-    AppAddBodygroup("HANDS", "Gloves", "reggloves_FIN_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 0)
-    AppAddBodygroup("HANDS", "Gloves", "reggloves_FIN_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 0)
-
-    AppAddBodygroup("HANDS", "Gloves fingerless", "reggloves_outFIN_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 1)
-    AppAddBodygroup("HANDS", "Gloves fingerless", "reggloves_outFIN_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 1)
-
-    AppAddBodygroup("HANDS", "Skilet", "sceletgloves_FIN_M", false, true, true, 399, "models/zcity/gloves/degloves.mdl", 0, {[0] = "distac/gloves/sceletgloves"})
-    AppAddBodygroup("HANDS", "Skilet", "sceletgloves_FIN_F", true, true, true, 399, "models/zcity/gloves/degloves.mdl", 0, {[0] = "distac/gloves/sceletgloves"})
-
-    AppAddBodygroup("HANDS", "Skilet fingerless", "sceletgloves_outFIN_M", false, true, true, 399, "models/zcity/gloves/degloves.mdl", 1, {[0] = "distac/gloves/sceletgloves"})
-    AppAddBodygroup("HANDS", "Skilet fingerless", "sceletgloves_outFIN_F", true, true, true, 399, "models/zcity/gloves/degloves.mdl", 1, {[0] = "distac/gloves/sceletgloves"})
-
-    AppAddBodygroup("HANDS", "Winter", "wingloves_FIN_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 2, nil, "Bikers")
-    AppAddBodygroup("HANDS", "Winter", "wingloves_FIN_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 2, nil, "Bikers")
-
-    AppAddBodygroup("HANDS", "Winter fingerless", "wingloves_outFIN_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 3, nil, "Bikers fingerless")
-    AppAddBodygroup("HANDS", "Winter fingerless", "wingloves_outFIN_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 3, nil, "Bikers fingerless")
-
-    AppAddBodygroup("HANDS", "Bikers gloves", "biker_gloves_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 5)
-    AppAddBodygroup("HANDS", "Bikers gloves", "biker_gloves_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 5)
-
-    AppAddBodygroup("HANDS", "Bikers wool", "bikerwool_gloves_M", false, true, true, 399, "models/zcity/gloves/degloves.mdl", 6, nil)
-    AppAddBodygroup("HANDS", "Bikers wool", "bikerwool_gloves_F", true, true, true, 399, "models/zcity/gloves/degloves.mdl", 6, nil)
-
-    AppAddBodygroup("HANDS", "Wool fingerless", "wool_glove_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 7, nil)
-    AppAddBodygroup("HANDS", "Wool fingerless", "wool_gloves_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 7, nil)
-    
-    AppAddBodygroup("HANDS", "Mitten wool", "mittenwool_M", false, true, true, 300, "models/zcity/gloves/degloves.mdl", 8, nil)
-    AppAddBodygroup("HANDS", "Mitten wool", "mittenwool_F", true, true, true, 300, "models/zcity/gloves/degloves.mdl", 8, nil)
-end
-
-hook.Add("ZPointshopLoaded","AddBodygroups",AddBodygroupsFunc)
-
--- SkeletonTable
-hg.Appearance.SkeletonAppearanceTable = {
-    AModel = "Male 07",
-    AClothes = {main = "normal"},
-    AName = "John Z-City", -- JOHN GMOD
-    AColor = Color(180,0,0),
-    AAttachments = {},
-    ABodygroups = {},
-    AFacemap = "Default"
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 }
 -- GetRandomAppearance
 function hg.Appearance.GetRandomAppearance()
     local randomAppearance = table.Copy(hg.Appearance.SkeletonAppearanceTable)
 
-<<<<<<< HEAD
 	randomAppearance.AName = GenerateRandomName(iSex)
 	randomAppearance.AColor = ColorRand(false)
 	for i = 1, 1 do
@@ -835,43 +556,16 @@ function hg.Appearance.GetRandomAppearance()
 				k = "none"
 			end
 		end
-=======
-    local iSex = math.random(1,2)
-    local tMdl, str = table.Random(PlayerModels[iSex])
-    randomAppearance.AModel = str
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 
     _,str = table.Random(hg.Appearance.Clothes[iSex])
     randomAppearance.AClothes = {main = str,pants = str,boots = str}
 
-<<<<<<< HEAD
 	local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {})
 	randomAppearance.AFacemap = facemap
 	return randomAppearance
-=======
-    randomAppearance.AName = GenerateRandomName(iSex)
-
-    randomAppearance.AColor = ColorRand(false)
-
-    for i = 1, 1 do
-        local data,k = table.Random(hg.Accessories)
-
-        for ii, name in ipairs(randomAppearance.AAttachments) do
-            if hg.Accessories[name].placement == data.placement then k = "none" end
-        end
-
-        if data.disallowinappearance then k = "none" end
-        randomAppearance.AAttachments[i] = k
-    end
-    local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]])
-    randomAppearance.AFacemap = facemap
-
-    return randomAppearance
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 end
 -- Validator
 hg.Appearance.ValidateFunctions = {
-<<<<<<< HEAD
 	AModel = function(str)
 		if not isstring(str) then return false end
 		if not PlayerModels[1][str] and not PlayerModels[2][str] then return false end
@@ -927,81 +621,11 @@ local function AppearanceValidater(tblAppearance)
 	local bValidAAttachments = VaildFuncs.AAttachments(tblAppearance.AAttachments)
 	if bValidAModel and bValidAClothes and bValidAName and bValidAColor and bValidAAttachments then return true end
 	return false
-=======
-    AModel = function(str)
-        if !isstring(str) then return false end
-        if !PlayerModels[1][str] and !PlayerModels[2][str] then return false end
-
-        return true
-    end,
-    AClothes = function(tbl)
-        if !istable(tbl) then return false end
-        if table.Count(tbl) > 3 then return false end
-        --for k, v in ipairs(tbl) do
-        --    if !hg.Appearance.Clothes[1][v] and !hg.Appearance.Clothes[2][v] then return false end
-        --end
-
-        return true
-    end,
-    AName = function(str)
-        if !isstring(str) then return false end
-        return !IsInvalidName(str)
-    end,
-    AColor = function(clr)
-        --if !IsColor(clr) then return false end
-
-        return true
-    end,
-    AAttachments = function(tbl)
-        if !istable(tbl) then return false end
-        if table.Count(tbl) > 3 then return false, "Too many" end
-        local occupatedSlots = {}
-        --local removeReasons = ""
-        for k, v in ipairs(tbl) do
-            if !hg.Accessories[v] then
-                --removeReasons = removeReasons + v + " - invalid accsesory\n" or "\n"  tbl[k] = ""
-                continue
-            end
-            if occupatedSlots[hg.Accessories[v].placement] then
-                tbl[k] = ""
-                --removeReasons = removeReasons + v + " - removed occupeated slot accsesory\n" or "\n"
-                continue
-            end
-            if hg.Accessories[v].placement then
-                occupatedSlots[hg.Accessories[v].placement] = true
-            end
-        end
-        return true--, removeReasons
-    end,
-    ABodygroups = function(tbl)
-        if !istable(tbl) then return false end
-        if table.Count(tbl) > 3 then return false end
-
-        return true
-    end,
-    AFacemap = function(str)
-        if !isstring(str) then return false end
-    end
-}
-
-local function AppearanceValidater(tblAppearance)
-    local VaildFuncs = hg.Appearance.ValidateFunctions
-    local bValidAModel = VaildFuncs.AModel(tblAppearance.AModel)
-    local bValidAClothes = VaildFuncs.AClothes(tblAppearance.AClothes)
-    local bValidAName = VaildFuncs.AName(tblAppearance.AName)
-    local bValidAColor = VaildFuncs.AColor(tblAppearance.AColor)
-    local bValidAAttachments = VaildFuncs.AAttachments(tblAppearance.AAttachments)
-    --print(bValidAModel,bValidAClothes,bValidAName,bValidAColor,bValidAAttachments)
-    if bValidAModel and bValidAClothes and bValidAName and bValidAColor and bValidAAttachments then return true end
-
-    return false
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 end
 
 hg.Appearance.AppearanceValidater = AppearanceValidater
 
 function ThatPlyIsFemale(ply)
-<<<<<<< HEAD
 	ply.CahceModel = ply.CahceModel or ""
 	if ply.CahceModel == ply:GetModel() then return ply.bSex end
 
@@ -1015,19 +639,6 @@ function ThatPlyIsFemale(ply)
 			ply.bSex = false
 			return false
 		end
-=======
-    ply.CahceModel = ply.CahceModel or ""
-    if ply.CahceModel == ply:GetModel() then return ply.bSex end
-    local tSubModels = ply:GetSubModels()
-    if !tSubModels then return false end
-    ply.CahceModel = ply:GetModel()
-    for i = 1, #tSubModels do
-        local name = tSubModels[ i ][ "name" ]
-        if name == "models/m_anm.mdl" then
-            ply.bSex = false
-            return false
-        end
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
 
         if name == "models/f_anm.mdl" then
             ply.bSex = true
@@ -1057,8 +668,8 @@ function plymeta:GetSubMaterialSlots()
     return slots
 end
 
-<<<<<<< HEAD
 local entmeta = FindMetaTable("Entity")
+
 function entmeta:GetSubMaterialIdByName(strName)
 	local mats = self:GetMaterials()
 	local id = false
@@ -1070,20 +681,3 @@ function entmeta:GetSubMaterialIdByName(strName)
 	end
 	return id
 end
-=======
-function plymeta:GetSubMaterialIdByName(strName)
-    local mats = self:GetMaterials()
-
-    local id = false
-
-    for i = 1, #mats do
-        if mats[i] == strName then id = i-1 break end
-    end
-
-    return id
-end
-
--- function plymeta:GetFacemapSlot()
-
--- end
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
