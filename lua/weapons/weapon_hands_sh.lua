@@ -5,7 +5,7 @@ local function RagdollOwner(ent)
 end
 
 SWEP.Category = "ZCity Other"
-SWEP.Instructions ="ПКМ - блок \n В спокойной стойке: Зажать ПКМ - поднять объект, ПКМ+R - проверить пульс (когда держишь руку или голову) \n Когда держишь объект: R - взять в одну руку, E - крутить объект в вохдухе"
+SWEP.Instructions ="ПКМ - блок\\n\\nВ спокойной стойке: Зажать ПКМ - поднять объект, ПКМ+R - проверить пульс (когда держишь руку или голову)\\n\\nКогда держишь объект: R - взять в одну руку, E - крутить объект в вохдухе"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.HoldType = "normal"
@@ -2402,26 +2402,21 @@ if SERVER then
 	concommand.Add("mcd_admire", function(ply, cmd, args)
 		if not IsValid(ply) then return end
 		if (ply.mcd_admire_cooldown or 0) > CurTime() then return end
-		
 		local isAdmiring = not ply:GetNWBool("mcd_admiring", false)
 		if args[1] == "cancel" then isAdmiring = false end
 		ply:SetNWBool("mcd_admiring", isAdmiring)
-		ply.mcd_admire_cooldown = CurTime() + 1.5 -- Prevent spam
-		
+		ply.mcd_admire_cooldown = CurTime() + 1.5
 		if isAdmiring then
 			if not ply:HasWeapon("weapon_hands_sh") then
 				ply:Give("weapon_hands_sh")
 			end
 			ply:SelectWeapon("weapon_hands_sh")
-			
 			timer.Simple(0.1, function()
-				if IsValid(ply) and IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon():GetClass() == "weapon_hands_sh" then	
+				if IsValid(ply) and IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon():GetClass() == "weapon_hands_sh" then
 					local wep = ply:GetActiveWeapon()
 					wep:SetFists(true)
 					wep.admire_started = CurTime()
 					wep:DoBFSAnimation("seq_admire", 5, true, true)
-					
-					-- Ensure animation doesn't get interrupted
 					wep:SetNextPrimaryFire(CurTime() + 10)
 					wep:SetNextSecondaryFire(CurTime() + 10)
 				end
@@ -2429,11 +2424,8 @@ if SERVER then
 		else
 			if IsValid(ply) and IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon():GetClass() == "weapon_hands_sh" then
 				local wep = ply:GetActiveWeapon()
-				
 				wep:SetNextPrimaryFire(CurTime() + 1.5)
 				wep:SetNextSecondaryFire(CurTime() + 1.5)
-				
-				-- If they cancelled it, reverse the animation to put the hands away
 				wep.slowmoanim = nil
 				wep.animtime = CurTime()
 				wep:DoBFSAnimation("fists_draw", 1, false, true)
@@ -2442,8 +2434,8 @@ if SERVER then
 	end)
 
 	hook.Add("PlayerSwitchWeapon", "mcd_admire_prevent_switch", function(ply, oldWep, newWep)
-		if ply:GetNWBool("mcd_admiring", false) and IsValid(newWep) and newWep:GetClass() ~= "weapon_hands_sh" then
-			return true -- Prevent switching to anything other than hands
+		if ply:GetNWBool("mcd_admiring", false) and IsValid(newWep) and newWep:GetClass() != "weapon_hands_sh" then
+			return true
 		end
 	end)
 end
