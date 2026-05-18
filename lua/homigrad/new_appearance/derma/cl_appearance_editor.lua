@@ -104,10 +104,6 @@ local function CreateStyledScrollPanel(parent)
 	return scroll
 end
 
-<<<<<<< HEAD
-local clrIco, clrMenu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
-
-=======
 local clr_ico, clr_menu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
 local openMenus = {}
 local function RegisterOpenMenu(menu)
@@ -206,7 +202,109 @@ local function CreateStyledListMenu(title)
 
     return menu
 end
->>>>>>> 772ca68b6f1b2428d5d1f8541fd6a9a8a27b2000
+
+local clr_ico, clr_menu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
+local openMenus = {}
+
+local clr_ico, clr_menu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
+local openMenus = {}
+local function RegisterOpenMenu(menu)
+    if not IsValid(menu) then return end
+    table.insert(openMenus, menu)
+end
+local function CloseAllOpenMenus()
+    for i = #openMenus, 1, -1 do
+        local m = openMenus[i]
+        if IsValid(m) then
+            m:Remove()
+        end
+        table.remove(openMenus, i)
+    end
+end
+local function CreateStyledListMenu(title)
+    local menu = vgui.Create("DPanel")
+    menu:SetSize(ScrW() * 0.75, ScrH() * 0.75)
+    menu:Center()
+    menu:MakePopup()
+    RegisterOpenMenu(menu)
+
+    function menu:Paint(w, h)
+        surface.SetDrawColor(10, 10, 10, 230)
+        surface.DrawRect(0, 0, w, h)
+        surface.SetDrawColor(25, 25, 25, 230)
+        surface.DrawRect(0, 0, w, ScreenScale(16))
+        surface.SetDrawColor(40, 40, 40, 220)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        draw.SimpleText(string.upper(title or ""), "ZCity_Veteran", ScreenScale(4), ScreenScale(8), Color(220, 220, 220), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    local closeBtn = vgui.Create("DButton", menu)
+    closeBtn:SetSize(ScreenScale(12), ScreenScale(12))
+    closeBtn:SetPos(menu:GetWide() - ScreenScale(12), 0)
+    closeBtn:SetText("X")
+    closeBtn:SetFont("ZCity_Tiny")
+    closeBtn:SetTextColor(Color(200, 200, 200))
+    closeBtn.DoClick = function() menu:Remove() end
+    closeBtn.Paint = function(s, w, h)
+        if s:IsHovered() then
+            surface.SetDrawColor(255, 0, 0, 255)
+            surface.DrawRect(0, 0, w, h)
+            s:SetTextColor(Color(255, 255, 255))
+        else
+            s:SetTextColor(Color(200, 200, 200))
+        end
+    end
+
+    local scroll = CreateStyledScrollPanel(menu)
+    scroll:Dock(FILL)
+    scroll:DockMargin(ScreenScale(10), ScreenScale(16), ScreenScale(10), ScreenScale(10))
+    menu.ScrollPanel = scroll
+
+    function menu:AddOption(text, onClick)
+        local btn = vgui.Create("DButton", self.ScrollPanel)
+        btn:SetText(text)
+        btn:SetFont("ZCity_Veteran")
+        btn:SetTall(ScreenScale(16))
+        btn:Dock(TOP)
+        btn:DockMargin(0, 0, 0, ScreenScale(4))
+        btn:SetTextColor(Color(255, 255, 255))
+        btn.DoClick = function()
+            if onClick then onClick() end
+            surface.PlaySound("player/weapon_draw_0"..math.random(2, 5)..".wav")
+            if IsValid(menu) then menu:Remove() end
+        end
+        btn.Paint = function(s, w, h)
+            s.HoverLerp = LerpFT(0.2, s.HoverLerp or 0, s:IsHovered() and 1 or 0)
+            local slideOffset = s.HoverLerp * ScreenScale(6)
+            if s:IsHovered() then
+                surface.SetDrawColor(255, 255, 255, 255)
+                surface.DrawRect(slideOffset, 0, w, h)
+                s:SetTextColor(Color(0, 0, 0))
+            else
+                s:SetTextColor(Color(255, 255, 255))
+            end
+            s:SetTextColor(Color(0,0,0,0))
+            local textColor = s:IsHovered() and Color(0,0,0) or Color(255,255,255)
+            draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2), h/2, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            if s:IsHovered() and math.random() > 0.7 then
+                local offsetX = math.random(-2, 2)
+                local offsetY = math.random(-2, 2)
+                draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2) + offsetX, h/2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            end
+            return true
+        end
+        return btn
+    end
+
+    function menu:AddPanel(pnl)
+        pnl:SetParent(self.ScrollPanel)
+        pnl:Dock(TOP)
+        pnl:DockMargin(0, 0, 0, ScreenScale(6))
+    end
+
+    return menu
+end
+
 local function CreateStyledAccessoryMenu(parent, title)
 	local menu = vgui.Create("DPanel")
 	menu:SetSize(ScrW() * 0.8, ScrH() * 0.8)
