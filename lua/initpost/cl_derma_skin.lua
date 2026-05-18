@@ -44,85 +44,91 @@ function hg.DrawBlur(panel, amount, passes, alpha)
 end
 
 
+local defaultFont = "Bahnschrift"
+local hg_font_convar = ConVarExists("hg_font") and GetConVar("hg_font") or nil
+local function getFont()
+	return hg_font_convar and hg_font_convar:GetString() ~= "" and hg_font_convar:GetString() or defaultFont
+end
+
 surface.CreateFont("ZCity_VerySuperTiny", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(5),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_SuperTiny", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(6),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_SuperTiny", {
-	font = font(),
+	font = getFont(),
 	size = 18,
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Tiny", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(8),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Tiny", {
-	font = font(),
+	font = getFont(),
 	size = 25,
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Small", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(15),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Medium", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(25),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Medium", {
-	font = font(),
+	font = getFont(),
 	size = 55,
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Big", {
-	font = font(),
+	font = getFont(),
 	size = ScreenScale(35),
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Big", {
-	font = font(),
+	font = getFont(),
 	size = 300,
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Medium_Light", {
-	font = font(),
+	font = getFont(),
 	size = 25,
 	extended = true,
 	weight = 200
 })
 
 surface.CreateFont("ZCity_Fixed_Medium_Light_Blur", {
-	font = font(),
+	font = getFont(),
 	size = 25,
 	weight = 200,
 	extended = true,
@@ -130,7 +136,7 @@ surface.CreateFont("ZCity_Fixed_Medium_Light_Blur", {
 })
 
 surface.CreateFont("ZCity_Fixed_Icons_Small", {
-	font = font(),
+	font = getFont(),
 	size = 22,
 	extended = true,
 	weight = 500
