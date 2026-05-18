@@ -1,7 +1,7 @@
 local function DrawSunEffect()
 	local sun = util.GetSunInfo()
-	if not sun then return end
-	if not sun.obstruction == 0 or sun.obstruction == 0 or !sun.direction then return end
+	if !sun then return end
+	if !sun.obstruction == 0 or sun.obstruction == 0 or !sun.direction then return end
 	local sunpos = EyePos() + sun.direction * 1024 * 4
 	local scrpos = sunpos:ToScreen()
 	local dot = (sun.direction:Dot(EyeVector()) - 0.8) * 5
@@ -36,7 +36,7 @@ local layers = postprs.layers
 local layers_name = {}
 function postprs.LayerAdd(name, tab)
 	tab.weight = 0
-	layers_name[#layers_name+1] = name
+	layers_name[#layers_name + 1] = name
 	layers[name] = tab
 end
 
@@ -55,7 +55,6 @@ local tab = {
 	["$pp_colour_colour"] = 1
 }
 
---local potatopc = GetConVar("hg_potatopc") or CreateClientConVar("hg_potatopc", "0", true, false, "enable this if you are noob", 0, 1)
 local hook_Run = hook.Run
 hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	//if potatopc:GetInt() >= 1 then return end
@@ -64,10 +63,10 @@ hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	for _, layer in ipairs(layers_name) do
 		layer = layers[layer]
 		local weight = layer.weight
-		--for k, v in pairs(layer) do
-			--if k == "weight" then continue end
+		//for k, v in pairs(layer) do
+			//if k == "weight" then continue end
 		addtiveLayer["brightness"] = Lerp(weight, 0, layer["brightness"] or 0)
-		--end
+		//end
 	end
 
 	//DrawBloom(addtiveLayer.bloom_darken, addtiveLayer.bloom_mul, addtiveLayer.bloom_sizex, addtiveLayer.bloom_sizey, addtiveLayer.bloom_passes, addtiveLayer.bloom_colormul, addtiveLayer.bloom_colorr, addtiveLayer.bloom_colorg, addtiveLayer.bloom_colorb)
@@ -84,7 +83,6 @@ hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	hook_Run("Post Post Pre Post Processing")
 end)
 
-local postprs = hg.postprocess
 postprs.LayerAdd("main", {
 	bloom_darken = 0.64,
 	bloom_mul = 0.5,
@@ -127,24 +125,22 @@ local LayerSetWeight = postprs.LayerSetWeight
 local CurTime = CurTime
 local timecheck = CurTime()
 hook.Add("Post Processing", "Main", function()
-	//if potatopc:GetInt() >= 1 then return end
-	//if !lply:Alive() then return end
 	local ply = lply:Alive() and lply or lply:GetNWEntity("spect")
 	if !IsValid(ply) then return end
 	local waterLevel = oldWaterLevel
 	if timecheck < CurTime() then
 		local pos = hg.eye(lply)
-		
+
 		if !pos then return end
 
-		waterLevel = (ply:WaterLevel() == 3) or ((ply:WaterLevel() > 1) and bit.band(util.PointContents(pos), CONTENTS_WATER) == CONTENTS_WATER)//lply:WaterLevel()
+		waterLevel = (ply:WaterLevel() == 3) or ((ply:WaterLevel() > 1) and bit.band(util.PointContents(pos), CONTENTS_WATER) == CONTENTS_WATER)  //lply:WaterLevel()
 
 		timecheck = CurTime() + 0.1
 	end
 
 	local time = CurTime()
 
-	if oldWaterLevel ~= waterLevel and waterLevel then
+	if oldWaterLevel != waterLevel and waterLevel then
 		lastWater = time + 2
 	end
 
@@ -170,58 +166,9 @@ hook.Add("Post Processing", "Main", function()
 	DrawSunEffect()
 end)
 
-local color_red = Color( 56, 43, 0, 255)
-local haloents = {
-	["attachment_base"] = true,
-	["ammo_base"] = true,
-	["armor_base"] = true,
-	["hg_flashlight"] = true,
-	["homigrad_base"] = true,
-	["weapon_melee"] = true,
-	["weapon_bandage_sh"] = true,
-	["hg_sling"] = true,
-	["hg_brassknuckles"] = true,
-	["weapon_m4super"] = true,
-	["weapon_revolver2"] = true,
-	["weapon_hg_f1_tpik"] = true
-}
+// funny :)
 
---[[hook.Add( "PreDrawHalos", "AddPropHalos", function() -- вариант с подсветкой всего в радиусе
-	local pickuphalo = {}
-	 
-	local lpos = lply:GetPos()
-	for _, ent in ipairs(ents.FindInSphere(lpos, 256)) do
-		if IsValid(ent) and (haloents[ent.Base] or haloents[ent:GetClass()]) and not IsValid(ent:GetOwner()) then
-		table.insert(pickuphalo, ent)
-		local dist = lpos:Distance(ent:GetPos()) * 0.02
-		--print(dist)
-		color_red.r = Lerp(FrameTime()*5,color_red.r,56 / dist)
-		color_red.g = Lerp(FrameTime()*5,color_red.g,43 / dist)
-		end
-	end
-	halo.Add( pickuphalo, color_red, 1, 1, 1 )
-end )]]
-
---[[hook.Add( "PreDrawHalos", "AddPropHalos", function() -- вариант с подсвечиванием только когда смотришь
-	local pickuphalo = {}
-	 
-	local tr = hg.eyeTrace(lply,72)
-	if IsValid(tr.Entity) and haloents[tr.Entity.Base] then
-		table.insert(pickuphalo, tr.Entity)
-		local dist = lply:GetPos():Distance(tr.Entity:GetPos()) * 0.03
-		--print(dist)
-		color_red.r = Lerp(FrameTime()*2,color_red.r,56 / dist)
-		color_red.g = Lerp(FrameTime()*2,color_red.g,43 / dist)
-	else
-		color_red.r = Lerp(FrameTime()*2,color_red.r,0)
-		color_red.g = Lerp(FrameTime()*2,color_red.g,0)
-	end
-	halo.Add( pickuphalo, color_red, 1, 1, 1 )
-end )]]
-
--- funny :)
-
---that one furry game
+//that one furry game
 
 
 local painMat = Material("effects/shaders/zb_grain")
@@ -260,7 +207,7 @@ local function stopthings()
 	consciousnessLerp = 1
 
 	lply.tinnitus = 0
-	
+
 	--[[if IsValid(PainStation) then
 		PainStation:Stop()
 		PainStation = nil
@@ -327,34 +274,33 @@ local addtime = CurTime()
 local hurtoverlay = Material("zcity/neurotrauma/damageOverlay.png", "smooth")
 hook.Add("Post Post Processing", "ItHurts", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
-	
+
 	if IsValid(PainStation) then
 		PainStation:SetVolume(0)
 	end
-	
+
 	if !lply:Alive() and !IsValid(spect) then stopthings() return end
 	if !lply:Alive() and viewmode != 1 then stopthings() return end
 	local organism = lply:Alive() and lply.organism or (IsValid(spect) and spect.organism)
-	if not organism then stopthings() return end
-	if not organism.brain then stopthings() return end
+	if !organism then stopthings() return end
+	if !organism.brain then stopthings() return end
 	local org = organism
-	
+
 	if org.blindness or amtflashed >= 0.8 then
-		local blindness = ((org.blindness and math.Round(org.blindness) == 0) or amtflashed >= 0.8) and 0 or (org.blindness)
+		local blindness = ((org.blindness and math.Round(org.blindness) == 0) or amtflashed >= 0.8) and 0 or org.blindness
 		render.UpdateScreenEffectTexture()
 		render.UpdateFullScreenDepthTexture()
-		
+
 		blindMat:SetFloat("$c0_x", 5)
 		blindMat:SetFloat("$c0_y", CurTime())
 		blindMat:SetFloat("$c0_z", math.Round(blindness))
-	
 		render.SetMaterial(blindMat)
 		render.DrawScreenQuad()
 	end
 
 	if (org.consciousness < 0.7) then
 		lerpblood = LerpFT(0.01, lerpblood or 0, math.Clamp((0.7 - org.consciousness) * 5, 0, 1) * 255)
-		local lowblood = (3600 - (org.blood or 5000)) / 600
+		//local lowblood = (3600 - (org.blood or 5000)) / 600
 
 		addtime = addtime + FrameTime() / 6
 		local amt = (math.cos(addtime) + math.sin(addtime * 3) + math.sin(addtime * 2)) / 90
@@ -401,8 +347,8 @@ hook.Add("Post Post Processing", "ItHurts", function()
 
 		render.UpdateScreenEffectTexture()
 
-		heatMat:SetFloat("$c0_x", -CurTime() * 0.25)//math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
-		heatMat:SetFloat("$c0_y", 0.06 * heat)//(math.sin(CurTime()) + 1) * 2) //intensity (strict)
+		heatMat:SetFloat("$c0_x", -CurTime() * 0.25) //math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
+		heatMat:SetFloat("$c0_y", 0.06 * heat) //(math.sin(CurTime()) + 1) * 2) //intensity (strict)
 		heatMat:SetFloat("$c2_x", (math.sin(CurTime()) - 2) * heat)
 
 		render.SetMaterial(heatMat)
@@ -414,15 +360,15 @@ hook.Add("Post Post Processing", "ItHurts", function()
 	local shock = (org.shock or 0) * 1 + (1 - org.consciousness) * 40
 	shockLerp = LerpFT(0.01, shockLerp or 0, shock + (lply.suiciding and math.max(0, org.heartbeat - 90) or 0))
 	consciousnessLerp = LerpFT(org.consciousness < (consciousnessLerp or 1) and 1 or 0.01, consciousnessLerp or 1, org.consciousness)
-	-- local immobilization = org.immobilization
+	// local immobilization = org.immobilization
 	PainLerp = LerpFT(0.05, PainLerp, math.max(pain * (org.otrub and 0.2 or 1), 0))
-	assimilatedLerp = LerpFT(0.01, assimilatedLerp, (org.assimilated or 0))
+	assimilatedLerp = LerpFT(0.01, assimilatedLerp, org.assimilated or 0)
 
 	if assimilatedLerp > 0.001 then
 		render.UpdateScreenEffectTexture()
 
-		assimilationMat:SetFloat("$c0_x", -CurTime())//math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
-		assimilationMat:SetFloat("$c0_y", assimilatedLerp * 3)//(math.sin(CurTime()) + 1) * 2) //intensity (strict)
+		assimilationMat:SetFloat("$c0_x", -CurTime()) //math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
+		assimilationMat:SetFloat("$c0_y", assimilatedLerp * 3) //(math.sin(CurTime()) + 1) * 2) //intensity (strict)
 		local ctime = CurTime() * 2
 		local val = math.Clamp(3 - 1 / 3 * (math.sin(ctime * 2.8862) + math.cos(ctime * 1.115) - math.sin(ctime * 0.6215) + 3), 0, 5)
 		local val2 = math.Clamp(1 - 1 / 6 * (math.sin(ctime * 1.1862) + math.cos(ctime * 2.315) - math.sin(ctime * 0.9215) + 3), 0, 1)
@@ -456,30 +402,30 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		local consciousness = 1 - consciousnessLerp
 		render.UpdateScreenEffectTexture()
 		render.UpdateFullScreenDepthTexture()
-		
-		grainMat:SetFloat("$c0_x", CurTime()) -- time
-		grainMat:SetFloat("$c0_y", 0.5) -- gate
-		grainMat:SetFloat("$c0_z", consciousness * 3) -- Pixelize
-		grainMat:SetFloat("$c1_x", consciousness) -- lerp
-		grainMat:SetFloat("$c1_y", 10) -- vignette intensity
-		grainMat:SetFloat("$c1_z", consciousness) -- BlurIntensity
-		grainMat:SetFloat("$c2_x", 0) -- r
-		grainMat:SetFloat("$c2_y", 0) -- g
-		grainMat:SetFloat("$c2_z", 0) -- b
-		grainMat:SetFloat("$c3_x", 0) -- ImageIntensity
-	
+
+		grainMat:SetFloat("$c0_x", CurTime()) // time
+		grainMat:SetFloat("$c0_y", 0.5) // gate
+		grainMat:SetFloat("$c0_z", consciousness * 3) // Pixelize
+		grainMat:SetFloat("$c1_x", consciousness) // lerp
+		grainMat:SetFloat("$c1_y", 10) // vignette intensity
+		grainMat:SetFloat("$c1_z", consciousness) // BlurIntensity
+		grainMat:SetFloat("$c2_x", 0) // r
+		grainMat:SetFloat("$c2_y", 0) // g
+		grainMat:SetFloat("$c2_z", 0) // b
+		grainMat:SetFloat("$c3_x", 0) // ImageIntensity
+
 		render.SetMaterial(grainMat)
 		render.DrawScreenQuad()
 	end
 
 	local tempo = math.Clamp((5 - (tempLerp - 29)) * 0.5 - 5 * (org.heartbeat < 1 and 1 or 0), 0, 5)
 	tempolerp = LerpFT(0.01, tempolerp, tempo)
-	
+
 	if (tempolerp > 0) then
 		render.UpdateScreenEffectTexture()
 
 		coldMat:SetFloat("$c0_y", tempolerp)
-		
+
 		render.SetMaterial(coldMat)
 		render.DrawScreenQuad()
 	end
@@ -512,22 +458,9 @@ hook.Add("Post Post Processing", "ItHurts", function()
 			DrawMotionBlur(0.1, 1., 0.01)
 			lply:ScreenFade( SCREENFADE.IN, Color(0,0,0), 2, 0.5 )
 		end
-		
-		//if pain > 10 then
-			if IsValid(PainStation) then
-				PainStation:SetVolume(math.Clamp(math.Remap(pain, 0, 120, 0, 2), 0, 2))
-			end
-		//else
-		//	if IsValid(PainStation) then
-		//		PainStation:Stop()
-		//		PainStation = nil
-		//	end
-		//end
-	else
-		//if IsValid(PainStation) then
-		//	PainStation:Stop()
-		//	PainStation = nil
-		//end
+		if IsValid(PainStation) then
+			PainStation:SetVolume(math.Clamp(math.Remap(pain, 0, 120, 0, 2), 0, 2))
+		end
 	end
 
 	if brain > 0.01 then
@@ -537,14 +470,14 @@ hook.Add("Post Post Processing", "ItHurts", function()
 				chooser = i
 			end
 		end
-	
+
 		if !IsValid(BrainTraumaStation) or choosera != chooser or BrainTraumaStation:GetState() != GMOD_CHANNEL_PLAYING then
 			if IsValid(BrainTraumaStation) then
 				BrainTraumaStation:Stop()
 				BrainTraumaStation = nil
 			end
 
-			sound.PlayFile("sound/zcitysnd/real_sonar/brainhemorrhagestage"..chooser..".mp3", "noblock noplay", function(station, err)
+			sound.PlayFile("sound/zcitysnd/real_sonar/brainhemorrhagestage" .. chooser .. ".mp3", "noblock noplay", function(station, err)
 				if IsValid(station) then
 					station:SetVolume(0)
 					station:Play()
@@ -568,7 +501,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 	//if brain > 0.1 and not org.otrub and show_some_images_time > 0 and false then
 	if lply.tinnitus and lply.tinnitus > CurTime() and lply:Alive() then
 		if !IsValid(Tinnitus) or Tinnitus:GetState() != GMOD_CHANNEL_PLAYING  then
-			sound.PlayFile("sound/zcitysnd/real_sonar/tinnitus"..math.random(3)..".mp3", "noblock noplay", function(station, err)
+			sound.PlayFile("sound/zcitysnd/real_sonar/tinnitus" .. math.random(3) .. ".mp3", "noblock noplay", function(station, err)
 				if IsValid(station) then
 					station:SetVolume(0)
 					station:Play()
@@ -587,8 +520,8 @@ hook.Add("Post Post Processing", "ItHurts", function()
 			Tinnitus = nil
 		end
 	end
-	
-	if brain > 0.1 and not org.otrub then
+
+	if brain > 0.1 and !org.otrub then
 		if show_some_images_time > 0 then
 			brain_motionblur = true
 			DrawMotionBlur(0.1, 1., 0.1)
@@ -617,13 +550,12 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		show_image_time = 0
 		lobotomy_index = 0
 	end
-	
 
 	if O2Lerp > 1 then
 		render.UpdateScreenEffectTexture()
-		
+
 		o2 = O2Lerp
-		
+
 		noiseMat:SetFloat("$c0_y", 1 - o2 / 200) //Gate
 		noiseMat:SetFloat("$c0_z", 1) //ColorIntensity
 		noiseMat:SetFloat("$c1_x", math.Clamp(o2 / 200, 0, 2)) //Lerp
@@ -632,7 +564,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 
 		render.SetMaterial(noiseMat)
 		render.DrawScreenQuad()
-		
+
 		if o2 > 50 and !org.otrub then
 			if !IsValid(NoiseStation2) or NoiseStation2:GetState() != GMOD_CHANNEL_PLAYING then
 				sound.PlayFile("sound/zbattle/conscioustypebeat.ogg", "noblock noplay", function(station)
@@ -645,7 +577,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 					end
 				end)
 			end
-			
+
 			if IsValid(NoiseStation2) then
 				NoiseStation2:SetVolume(math.Clamp((o2 - 50) / 100 + (brain > 0.3 and (brain - 0.3) * 5 or 0), 0, 0.25))
 			end
@@ -654,7 +586,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 				NoiseStation2:SetVolume(0)
 			end
 		end
-		
+
 		if o2 > 20 and org.otrub then
 			if !IsValid(NoiseStation) or NoiseStation:GetState() != GMOD_CHANNEL_PLAYING then
 				sound.PlayFile("sound/zbattle/unconscious_type_beat.ogg", "noblock noplay", function(station)
@@ -704,27 +636,23 @@ end
 
 hook.Add("PreDrawOpaqueRenderables", "renderblindnessflash", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
-	
 	if !lply:Alive() and !IsValid(spect) then removeflash() return end
 	if !lply:Alive() and viewmode != 1 then removeflash() return end
 
 	local organism = lply:Alive() and lply.organism or (IsValid(spect) and spect.organism)
-	if not organism or isbool(organism) then return end
+	if !organism or isbool(organism) then return end
 
 	if !(organism.blindness or (amtflashed or 0) >= 0.8) then removeflash() return end
-	local blindness = ((organism.blindness and math.Round(organism.blindness) == 0) or amtflashed >= 0.8) and 0 or (organism.blindness)
+	local blindness = ((organism.blindness and math.Round(organism.blindness) == 0) or amtflashed >= 0.8) and 0 or organism.blindness
 
 	local eyesmode = math.Round(blindness)
-	
 	local view = render.GetViewSetup(true)
-	
-	if not IsValid(lply.blindflash) then
+	if !IsValid(lply.blindflash) then
 		lply.blindflash = ProjectedTexture()
 		lply.blindflash:SetTexture("effects/flashlight001")
 		lply.blindflash:SetEnableShadows(false)
 		lply.blindflash:SetConstantAttenuation(.1)
 	end
-	
 	local Ang = view.angles
 	Ang[2] = Ang[2] + (eyesmode == 2 and 90 or eyesmode == 1 and -90 or 0)
 	Ang[1] = eyesmode == 0 and Ang[1] or 0
