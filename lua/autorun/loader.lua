@@ -1,104 +1,138 @@
 hg = hg or {}
-hg.Version = "Release 1.4.1"
-hg.GitHub_ReposOwner = "uzelezz123"
-hg.GitHub_ReposName = "Z-City" -- please add your real git fork!
+hg.Version = "Beta 1"
+hg.GitHub_ReposOwner = "Rastawontfix, Sildom_Landor"
+hg.GitHub_ReposName = "Meleecity: Delicacy Reworked" 
+-- А силдом гей
+local print = print
+local SysTime = SysTime
+local string_lower = string.lower
+local string_match = string.match
+local table_sort = table.sort
+local table_remove = table.remove
+local table_insert = table.insert
 
-if SERVER then
-	resource.AddWorkshop("3657285193") -- main addon
-	resource.AddWorkshop("3657897364") -- main content addon
-	resource.AddWorkshop("3657294321") -- first content addon
-	resource.AddWorkshop("3544105055") -- second content addon
-	resource.AddWorkshop("3257937532") -- distac content
-end
--- if hg.GitHub_ReposOwner and hg.GitHub_ReposOwner != "" then
--- 	http.Fetch( "https://api.github.com/repos/" .. hg.GitHub_ReposOwner .. "/" .. hg.GitHub_ReposName .. "/commits?sha=" .. hg.GitHub_Branch .. "&per_page=1",
--- 		function( body, length, headers, code )
--- 			--PrintTable(headers)
--- 			local tbl = util.JSONToTable(body)
--- 			hg.Git_LastCommitTime = tbl[1]["committer"]["date"]
+local AddCSLuaFile = AddCSLuaFile
+local file = file
+local hook = hook
+local include = include
 
--- 		end
--- 	)
--- else
--- 	hg.GitHub_ReposOwner = "Unknown"
--- 	hg.GitHub_ReposName = "Please add your github fork"
--- 	hg.Git_CommitNumber = "Unknown"
--- end
-local sides = {
-	["sv_"] = "sv_",
-	["sh_"] = "sh_",
-	["cl_"] = "cl_",
-	["_sv"] = "sv_",
-	["_sh"] = "sh_",
-	["_cl"] = "cl_",
+local LUA_EXT = ".lua"
+local LUA_EXT_LEN = #LUA_EXT
+
+local SIDE_SV = 1
+local SIDE_CL = 2
+local SIDE_SH = 3
+
+local PREFIX_MASK = {
+    sv_ = SIDE_SV,
+    cl_ = SIDE_CL,
+    sh_ = SIDE_SH
 }
 
-local function AddFile(File, dir)
-	local fileSide = string.lower(string.Left(File, 3))
-	local fileSide2 = string.lower(string.Right(string.sub(File, 1, -5), 3))
-	local side = sides[fileSide] or sides[fileSide2]
-	if SERVER and side == "sv_" then
-		include(dir .. File)
-	elseif side == "sh_" then
-		if SERVER then AddCSLuaFile(dir .. File) end
-		include(dir .. File)
-	elseif side == "cl_" then
-		if SERVER then
-			AddCSLuaFile(dir .. File)
-		else
-			include(dir .. File)
-		end
-	else
-		if SERVER then AddCSLuaFile(dir .. File) end
-		include(dir .. File)
-	end
+local function GetFileSide(fileName)
+    local lower = string_lower(fileName)
+    local prefix = lower:sub(1, 3)
+    local mask = PREFIX_MASK[prefix]
+    if mask then return mask end
+
+    local baseLen = #fileName - LUA_EXT_LEN
+    if baseLen >= 3 then
+        local suffix = lower:sub(baseLen - 2, baseLen)
+        if suffix == "_sv" then return SIDE_SV end
+        if suffix == "_cl" then return SIDE_CL end
+        if suffix == "_sh" then return SIDE_SH end
+    end
+    return SIDE_SH
 end
 
-local function IncludeDir(dir)
-	dir = dir .. "/"
-	local files, directories = file.Find(dir .. "*", "LUA")
-	if files then
-		for k, v in ipairs(files) do
-			if string.EndsWith(v, ".lua") then AddFile(v, dir) end
-		end
-	end
+local function ProcessDirectoryOrdered(rootDir)
+    local allFiles = {}
+    local queue = { rootDir }
 
-	if directories then
-		for k, v in ipairs(directories) do
-			IncludeDir(dir .. v)
-		end
-	end
+    while #queue > 0 do
+        local currentDir = table_remove(queue, 1)
+        local files, dirs = file.Find(currentDir .. "/*", "LUA")
+
+        if files then
+            table_sort(files)
+            for i = 1, #files do
+                local fileName = files[i]
+                if fileName:sub(-LUA_EXT_LEN) == LUA_EXT then
+                    table_insert(allFiles, currentDir .. "/" .. fileName)
+                end
+            end
+        end
+
+        if dirs then
+            table_sort(dirs)
+            for i = #dirs, 1, -1 do
+                table_insert(queue, 1, currentDir .. "/" .. dirs[i])
+            end
+        end
+    end
+
+    return allFiles
+end
+
+local function LoadFilesInOrder(fileList)
+    for i = 1, #fileList do
+        local fullPath = fileList[i]
+        local fileName = string_match(fullPath, "/([^/]+)$")
+        local side = GetFileSide(fileName)
+
+        if SERVER then
+            if side == SIDE_SV then
+                include(fullPath)
+            elseif side == SIDE_SH then
+                AddCSLuaFile(fullPath)
+                include(fullPath)
+            else
+                AddCSLuaFile(fullPath)
+            end
+        else
+            if side ~= SIDE_SV then
+                include(fullPath)
+            end
+        end
+    end
 end
 
 local function Run()
-	local time = SysTime()
-	print("Loading zcity...") -- Loading homigrad :]
-	hg.loaded = false
-	if engine.ActiveGamemode() == "ixhl2rp" then return end
-	IncludeDir("homigrad")
-	hg.loaded = true
-	print("Loaded zcity, " .. tostring(math.Round(SysTime() - time, 5)) .. " seconds needed")
-	hook.Run("HomigradRun")
+    local startTime = SysTime()
+    print("Loading kzcity...")
+    hg.loaded = false
+    LoadFilesInOrder(ProcessDirectoryOrdered("homigrad"))
+    hg.loaded = true
+    print(string.format("Loaded zcity, %.5f seconds needed", SysTime() - startTime))
+    hook.Run("HomigradRun")
 end
 
-local initpost
-hook.Add("InitPostEntity", "zcity", function()
-	initpost = true
-	IncludeDir("initpost")
-	print("Loading initpost...")
+local initpostLoaded = false
+hook.Add("InitPostEntity", "zcity_opt", function()
+    if initpostLoaded then return end
+    initpostLoaded = true
+    LoadFilesInOrder(ProcessDirectoryOrdered("initpost"))
+    print("Loaded initpost")
 end)
-if initpost then Run() end
+
+--local hg_coolvetica = ConVarExists("hg_coolvetica") and GetConVar("hg_coolvetica") or CreateClientConVar("hg_coolvetica", "0", true, false, "changes every text to coolvetica because its good", 0, 1)
+local hg_font = ConVarExists("hg_font") and GetConVar("hg_font") or CreateClientConVar("hg_font", "TrixiePro-Heavy", true, false, "change every text font to selected because ui customization is cool")
+font = function() -- hg_coolvetica:GetBool() and "Coolvetica" or "Bahnschrift"
+    local usefont = "TrixiePro-Heavy"
+
+    if hg_font:GetString() != "" then
+        usefont = hg_font:GetString()
+    end
+
+    return usefont
+end
+
+
 Run()
 
-timer.Simple(5, function()
-	if not istable(ulx) then
-		for i = 1, 6 do
-			MsgC(Color(255, 0, 0), "WARNING: Server doesn't have ULX & ULib installed! Z-City will not work properly without it!\n")
-		end
-	end
-	if game.SinglePlayer() then
-		for i = 1, 3 do
-			MsgC(Color(255, 0, 0), "WARNING: Game started in singleplayer! Z-City may not work properly until you start multiplayer game!\n")
-		end
-	end
-end)
+if SERVER then
+    AddCSLuaFile("wos/dynabase/loader/loader.lua")
+end
+
+include("wos/dynabase/loader/loader.lua")
+
