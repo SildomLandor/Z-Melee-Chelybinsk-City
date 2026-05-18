@@ -124,14 +124,6 @@ local function CloseAllOpenMenus()
         table.remove(openMenus, i)
     end
 end
-
-surface.CreateFont("ZCity_Tiny", {
-    font = "Trebuchet MS",
-    size = ScreenScale(8),
-    weight = 500,
-})
-
-
 local function CreateStyledListMenu(title)
     local menu = vgui.Create("DPanel")
     menu:SetSize(ScrW() * 0.75, ScrH() * 0.75)

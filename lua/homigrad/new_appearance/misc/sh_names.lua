@@ -1,44 +1,42 @@
 hg.Appearance = hg.Appearance or {}
-
 local RandomNames = {
-    [1] = { -- MaleNames
-        "Mike",
-        "Dave",
-        "Michel",
-        "John",
-        "Fred",
-        "Michiel",
-        "Steven",
-        "Sergio",
-        "Joel",
-        "Samuel",
-        "Larry",
-        "Sean",
-        "Thomas",
-        "Jose",
-        "Bobby",
-        "Richard",
-        "David"
+    [1] = { -- Мужские имена
+        "Александр",
+        "Дмитрий",
+        "Михаил",
+        "Сергей",
+        "Владимир",
+        "Борис",
+        "Иван",
+        "Николай",
+        "Пётр",
+        "Андрей",
+        "Алексей",
+        "Виктор",
+        "Евгений",
+        "Олег",
+        "Юрий",
+        "Григорий",
+        "Аркадий"
     },
-    [2] = { -- FemaleNames
-        "Denise",
-        "Joyce",
-        "Jane",
-        "Sara",
-        "Emily",
-        "Charlotte",
-        "Cathy",
-        "Ruth",
-        "Julia",
-        "Tanya",
-        "Wanda",
-        "Elizabeth",
-        "Nicole",
-        "Stacey",
-        "Mary",
-        "Anna",
-        "Diana"
+    [2] = { -- Женские имена
+        "Екатерина",
+        "Ольга",
+        "Татьяна",
+        "Наталья",
+        "Светлана",
+        "Анна",
+        "Мария",
+        "Ирина",
+        "Елена",
+        "Людмила",
+        "Галина",
+        "Вера",
+        "Надежда",
+        "Любовь",
+        "Анастасия",
+        "Дарья",
+        "Ксения"
     }
 }
-
 hg.Appearance.RandomNames = RandomNames
