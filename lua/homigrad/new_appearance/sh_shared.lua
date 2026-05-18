@@ -4,19 +4,19 @@ local PLUGIN = hg.PointShop
 PLUGIN.Items = PLUGIN.Items or {}
 
 function PLUGIN:CreateItem( uid, strName, strModel, strBodyGroups, iSkin, vecPos, intPrice, bIsDPoints, tData, fCallback, fov )
-    PLUGIN.Items[uid] = {
-        ID = uid,
-        NAME = strName,
-        MDL = strModel or "models/dav0r/hoverball.mdl",
-        BODYGROUP = strBodyGroups or "00000",
-        SKIN = iSkin or 0,
-        VPos = vecPos or Vector(0,0,0),
-        PRICE = intPrice,
-        ISDONATE = bIsDPoints or false,
-        DATA = tData or {},
-        CALLBACK = fCallback or nil,
-        FOV = fov or 15
-    }
+	PLUGIN.Items[uid] = {
+		ID = uid,
+		NAME = strName,
+		MDL = strModel or "models/dav0r/hoverball.mdl",
+		BODYGROUP = strBodyGroups or "00000",
+		SKIN = iSkin or 0,
+		VPos = vecPos or Vector(0,0,0),
+		PRICE = intPrice,
+		ISDONATE = bIsDPoints or false,
+		DATA = tData or {},
+		CALLBACK = fCallback or nil,
+		FOV = fov or 15
+	}
 end
 
 -- Validate function for custom name
@@ -48,7 +48,7 @@ local function IsInvalidName(name)
    local symblos = utf8.len( name )
 
    for k = 1, symblos do
-       if !table.HasValue(allowed, utf8.GetChar(name,k) ) then return true end
+	   if !table.HasValue(allowed, utf8.GetChar(name,k) ) then return true end
    end
 
    return false
@@ -81,18 +81,18 @@ end
 
 -- Check access to all
 local access = {
-    --["STEAM_0:1:163575696"] = true -- distac our custom model creator
+	--["STEAM_0:1:163575696"] = true -- distac our custom model creator
 }
 local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 1, {FCVAR_REPLICATED,FCVAR_NEVER_AS_STRING,FCVAR_ARCHIVE}, "Toggle free items in appearance for everyone", 0, 1)
 if SERVER then
-    cvars.AddChangeCallback("hg_appearance_access_for_all", function(convar_name, value_old, value_new)
-        SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
-    end)
+	cvars.AddChangeCallback("hg_appearance_access_for_all", function(convar_name, value_old, value_new)
+		SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
+	end)
 
-    SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
+	SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
 end
 local function GetAccessToAll(ply)
-    return GetGlobalBool("hg_appearance_access_for_all") or (ply:IsSuperAdmin() or ply:IsAdmin() or access[ply:SteamID()])
+	return GetGlobalBool("hg_appearance_access_for_all") or (ply:IsSuperAdmin() or ply:IsAdmin() or access[ply:SteamID()])
 end
 
 hg.Appearance.GetAccessToAll = GetAccessToAll
@@ -105,11 +105,11 @@ local PlayerModels = {
 }
 
 local function AppAddModel(strName, strMdl, bFemale, tSubmaterialSlots)
-    PlayerModels[bFemale and 2 or 1][strName] = {
-        mdl = strMdl,
-        submatSlots = tSubmaterialSlots,
-        sex = bFemale
-    }
+	PlayerModels[bFemale and 2 or 1][strName] = {
+		mdl = strMdl,
+		submatSlots = tSubmaterialSlots,
+		sex = bFemale
+	}
 end
 
 AppAddModel("Male 01", "models/zcity/m/male_01.mdl", false, {
@@ -238,11 +238,11 @@ hg.Appearance.PlayerModels = PlayerModels
 hg.Appearance.FuckYouModels = {{}, {}}
 
 for name, tbl in pairs(hg.Appearance.PlayerModels[1]) do
-    hg.Appearance.FuckYouModels[1][tbl.mdl] = tbl
+	hg.Appearance.FuckYouModels[1][tbl.mdl] = tbl
 end
 
 for name, tbl in pairs(hg.Appearance.PlayerModels[2]) do
-    hg.Appearance.FuckYouModels[2][tbl.mdl] = tbl
+	hg.Appearance.FuckYouModels[2][tbl.mdl] = tbl
 end --fuck you
 
 -- Clothes
@@ -274,7 +274,7 @@ hg.Appearance.Clothes[1] = {
 	russian_army    = "models/humans/male/group01/russianarmy",
 	Hello_Kitty     = "models/humans/male/group01/hello_kitty",
 	Office_Worker   = "models/humans/male/group01/OfficeWorker",
-	Security_Officer= "models/humans/male/group01/Security_Officer",
+	Security_Officer = "models/humans/male/group01/Security_Officer",
 	Zcity_Hoodie    = "models/humans/male/group01/zcityhoodie",
 	Flecktarn       = "models/humans/male/group01/flecktarn",
 	Hawaiian_Shirt  = "models/humans/male/group01/tommy",
@@ -286,7 +286,7 @@ hg.Appearance.Clothes[1] = {
 	y2k             = "models/humans/male/group01/y2k",
 	medic1          = "models/humans/male/group01/medic1",
 	antisocial      = "models/humans/male/group01/antisocial",
-	peacefulhooligan= "models/humans/male/group01/peacefulhooligan",
+	peacefulhooligan = "models/humans/male/group01/peacefulhooligan",
 	polska          = "models/humans/male/group01/polska",
 }
 
@@ -299,7 +299,7 @@ hg.Appearance.Clothes[2] = {
 	cold            = "models/humans/female/group01/cold",
 	casual          = "models/humans/female/group01/casual",
 	sweater_xmas    = "models/humans/female/group01/sweater",
-	adidas_tracksuit= "models/humans/female/group01/adidas",
+	adidas_tracksuit = "models/humans/female/group01/adidas",
 	Tshirt1         = "models/humans/female/group01/flowers",
 	Tshirt2         = "models/humans/female/group01/skullshirt",
 	Tshirt3         = "models/humans/female/group01/skeletal",
@@ -355,7 +355,7 @@ local female01facemap = "models/humans/female/group01/joey_facemap"
 AddFacemap(female01facemap, "Default", "", "models/zcity/f/female_01.mdl")
 AddFacemap(female01facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/joey_facemap")
 for i = 2, 6 do
-    AddFacemap(female01facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joey_facemap" .. i) 
+	AddFacemap(female01facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joey_facemap" .. i)
 end
 
 local female02facemap = "models/humans/female/group01/kanisha_cylmap"
@@ -364,15 +364,15 @@ AddFacemap(female02facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/k
 AddFacemap(female02facemap,"Default","","models/zcity/f/female_02.mdl") -- female 02
 AddFacemap(female02facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap")
 for i = 2, 6 do
-    AddFacemap(female02facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap" .. i) 
+	AddFacemap(female02facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kanisha_cylmap" .. i)
 end
 
 local female03facemap = "models/humans/female/group01/kim_facemap"
 AddFacemap(female03facemap,"Default","","models/zcity/f/female_03.mdl") -- female 03
 AddFacemap(female03facemap,"Face 1","models/bloo_ltcom_zel/citizens/facemaps/kim_facemap")
-AddFacemap(female03facemap,"Face " .. 5,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. 6) 
+AddFacemap(female03facemap,"Face " .. 5,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. 6)
 for i = 2, 4 do
-    AddFacemap(female03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. i) 
+	AddFacemap(female03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/kim_facemap" .. i)
 end
 
 
@@ -416,49 +416,49 @@ local male03facemap = "models/humans/male/group01/joe_facemap"
 AddFacemap(male03facemap, "Default", "", "models/zcity/m/male_03.mdl")
 AddFacemap(male03facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/joe_facemap")
 for i = 2, 9 do
-    AddFacemap(male03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joe_facemap" .. i)
+	AddFacemap(male03facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/joe_facemap" .. i)
 end
 
 local male04facemap = "models/humans/male/group01/eric_facemap"
 AddFacemap(male04facemap, "Default", "", "models/zcity/m/male_04.mdl")
 AddFacemap(male04facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/eric_facemap")
 for i = 2, 9 do
-    AddFacemap(male04facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/eric_facemap" .. i)
+	AddFacemap(male04facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/eric_facemap" .. i)
 end
 
 local male05facemap = "models/humans/male/group01/art_facemap"
 AddFacemap(male05facemap, "Default", "", "models/zcity/m/male_05.mdl")
 AddFacemap(male05facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/art_facemap")
 for i = 2, 9 do
-    AddFacemap(male05facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/art_facemap" .. i)
+	AddFacemap(male05facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/art_facemap" .. i)
 end
 
 local male06facemap = "models/humans/male/group01/sandro_facemap"
 AddFacemap(male06facemap, "Default", "", "models/zcity/m/male_06.mdl")
 AddFacemap(male06facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap")
 for i = 2, 10 do
-    AddFacemap(male06facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap" .. i)
+	AddFacemap(male06facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/sandro_facemap" .. i)
 end
 
 local male07facemap = "models/humans/male/group01/mike_facemap"
 AddFacemap(male07facemap, "Default", "", "models/zcity/m/male_07.mdl")
 AddFacemap(male07facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/mike_facemap")
 for i = 2, 8 do
-    AddFacemap(male07facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/mike_facemap" .. i)
+	AddFacemap(male07facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/mike_facemap" .. i)
 end
 
 local male08facemap = "models/humans/male/group01/vance_facemap"
 AddFacemap(male08facemap, "Default", "", "models/zcity/m/male_08.mdl")
 AddFacemap(male08facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/vance_facemap")
 for i = 2, 9 do
-    AddFacemap(male08facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/vance_facemap" .. i)
+	AddFacemap(male08facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/vance_facemap" .. i)
 end
 
 local male09facemap = "models/humans/male/group01/erdim_cylmap"
 AddFacemap(male09facemap, "Default", "", "models/zcity/m/male_09.mdl")
 AddFacemap(male09facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap")
 for i = 2, 11 do
-    AddFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
+	AddFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
 end
 
 -- Bodygroups
@@ -473,7 +473,7 @@ hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
 }
 
 local function AppAddBodygroup(strBodyGroup, strName, strStringID, bFemale, bPointShop, bDonateOnly, fCost, psModel, psBodygroups, psSubmats, psStrNameOveride)
-    local pointShopID = "Standard_BodyGroups_" .. ( psStrNameOveride or strName )
+	local pointShopID = "Standard_BodyGroups_" .. ( psStrNameOveride or strName )
 
 	if PLUGIN.CreateItem then
 		PLUGIN:CreateItem(pointShopID, string.NiceName(strName), psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0, 0, 0), fCost, bDonateOnly, psSubmats or {})
@@ -545,10 +545,13 @@ hg.Appearance.SkeletonAppearanceTable = {
 }
 -- GetRandomAppearance
 function hg.Appearance.GetRandomAppearance()
-    local randomAppearance = table.Copy(hg.Appearance.SkeletonAppearanceTable)
+	local randomAppearance = table.Copy(hg.Appearance.SkeletonAppearanceTable)
+
+	local iSex = math.random(1, 2)
 
 	randomAppearance.AName = GenerateRandomName(iSex)
 	randomAppearance.AColor = ColorRand(false)
+
 	for i = 1, 1 do
 		local data, k = table.Random(hg.Accessories or {})
 		for ii, name in ipairs(randomAppearance.AAttachments) do
@@ -557,11 +560,14 @@ function hg.Appearance.GetRandomAppearance()
 			end
 		end
 
-    _,str = table.Random(hg.Appearance.Clothes[iSex])
-    randomAppearance.AClothes = {main = str,pants = str,boots = str}
+		local _, str = table.Random(hg.Appearance.Clothes[iSex])
+		randomAppearance.AClothes = {main = str, pants = str, boots = str}
+	end
 
+	local tMdl = table.Random(hg.Appearance.PlayerModels[iSex])
 	local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {})
 	randomAppearance.AFacemap = facemap
+
 	return randomAppearance
 end
 -- Validator
@@ -640,32 +646,32 @@ function ThatPlyIsFemale(ply)
 			return false
 		end
 
-        if name == "models/f_anm.mdl" then
-            ply.bSex = true
-            return true
-        end
-    end
+		if name == "models/f_anm.mdl" then
+			ply.bSex = true
+			return true
+		end
+	end
 
-    return false
+	return false
 end
 local plymeta = FindMetaTable("Player")
 function plymeta:GetSubMaterialSlots()
-    local tMdl = hg.Appearance.FuckYouModels[1][self:GetModel()] or hg.Appearance.FuckYouModels[2][self:GetModel()]
-    local mats = self:GetMaterials()
+	local tMdl = hg.Appearance.FuckYouModels[1][self:GetModel()] or hg.Appearance.FuckYouModels[2][self:GetModel()]
+	local mats = self:GetMaterials()
 
-    local slots = {}
+	local slots = {}
 
-    if istable(tMdl) then
-        for k, v in pairs(tMdl.submatSlots) do
-            local slot = 1
-            for i = 1, #mats do
-                if mats[i] == v then slot = i-1 break end
-            end
-            slots[#slots + 1] = slot
-        end
-    end
+	if istable(tMdl) then
+		for k, v in pairs(tMdl.submatSlots) do
+			local slot = 1
+			for i = 1, #mats do
+				if mats[i] == v then slot = i-1 break end
+			end
+			slots[#slots + 1] = slot
+		end
+	end
 
-    return slots
+	return slots
 end
 
 local entmeta = FindMetaTable("Entity")
