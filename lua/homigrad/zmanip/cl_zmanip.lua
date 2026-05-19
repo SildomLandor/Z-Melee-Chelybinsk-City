@@ -76,6 +76,14 @@ local tbl = {
 		["swimforward"] = {seq = "swimforward", playTime = 1},
 		["swimleft"] = {seq = "swimleft", playTime = 1},
 	},
+	["models/weapons/c_ofges_model.mdl"] = {
+		["ofges_help"] = {seq = "ofges_help", playTime = 2,},
+		["ofges_hello"] = {seq = "ofges_hello", playTime = 2,},
+		["ofges_regroup"] = {seq = "ofges_regroup", playTime = 2,},
+		["ofges_wait"] = {seq = "ofges_wait", playTime = 2,},
+		["ofges_omw"] = {seq = "ofges_omw", playTime = 2,},
+		["ofges_danger"] = {seq = "ofges_danger", playTime = 2,},
+	},
 	["models/zmanip/c_zmaniphandanims.mdl"] = {
 		["explosion"] = {seq = "shieldexplosion"},
 	},

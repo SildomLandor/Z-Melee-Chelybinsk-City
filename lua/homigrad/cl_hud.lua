@@ -590,7 +590,7 @@ hook.Add("Think", "hg-radial-menu", function()
 		end
 		return
 	end
-	
+
 	if (engine.ActiveGamemode() ~= "sandbox" and input.IsKeyDown(KEY_Q)) or (engine.ActiveGamemode() == "sandbox" and input.IsKeyDown(KEY_C)) then
 		if firstTime then
 			firstTime = false
@@ -628,6 +628,14 @@ hook.Add("Think", "hg-radial-menu", function()
 		end
 		firstTime5 = true
 	end
+
+	-- Auto-open inventory when self-inspection (admire) starts
+	if lply ~= nil and lply:GetNWBool("mcd_admiring", false) and not lply.__CaseInvOpenedByAdmire then
+		lply.__CaseInvOpenedByAdmire = true -- prevent repeated opens while already admiring
+		RunConsoleCommand("case_open")
+	elseif lply ~= nil and not lply:GetNWBool("mcd_admiring", false) then
+		lply.__CaseInvOpenedByAdmire = nil -- reset flag so next admire re-opens
+	end
 end)
 
 local function dropWeapon()
@@ -641,7 +649,7 @@ end
 hook.Add("radialOptions", "77", function()
 	local organism = lply.organism or {}
 	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" then
-		local tbl = {dropWeapon, "Бросить Оружие"}
+		local tbl = {dropWeapon, "Бросить оружие"}
 		hg.radialOptions[#hg.radialOptions + 1] = tbl
 	end
 end)
@@ -666,16 +674,15 @@ hook.Add("radialOptions", "Afflictions", function()
 end)
 
 local randomGestures = {
-	"wave",
-	"salute",
-	"halt",
-	"group",
-	"forward",
-	"disagree",
-	"becon",
-	{"point", function() RunConsoleCommand("hg_hand_gesture", "point") end},
-	{"fuck you", function() RunConsoleCommand("hg_hand_gesture", "fuckyou") end},
-	{"thumb_up", function() RunConsoleCommand("hg_hand_gesture", "thumb_up") end},
+	{"Привет", function() RunConsoleCommand("hg_hand_gesture", "ofges_hello") end},
+	{"Подожди", function() RunConsoleCommand("hg_hand_gesture", "ofges_wait") end},
+	{"Вперёд", function() RunConsoleCommand("hg_hand_gesture", "ofges_omw") end},
+	{"Ко мне", function() RunConsoleCommand("hg_hand_gesture", "ofges_help") end},
+	{"Осторожно", function() RunConsoleCommand("hg_hand_gesture", "ofges_danger") end},
+	{"Указать", function() RunConsoleCommand("hg_hand_gesture", "point") end},
+	{"Палец вверх", function() RunConsoleCommand("hg_hand_gesture", "thumb_up") end},
+	{"Пошёл ты", function() RunConsoleCommand("hg_hand_gesture", "fuckyou") end},
+	{"Перегруппировка", function() RunConsoleCommand("hg_hand_gesture", "ofges_regroup") end},
 }
 
 concommand.Add("hg_randomgesture",function()
@@ -714,7 +721,7 @@ hook.Add("radialOptions", "7", function()
 				end
 				CreateRadialMenu(commands)
 			end
-		end, "Do Gesture\nRMB - Menu"}
+		end, "Жест\nПКМ - Меню"}
 		hg.radialOptions[#hg.radialOptions + 1] = tbl
 	end
 end)
