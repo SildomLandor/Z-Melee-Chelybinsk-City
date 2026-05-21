@@ -17,7 +17,7 @@ local blurMat = Material("pp/blurscreen")
 local Dynamic = 0
 
 BlurBackground = hg.DrawBlur
-
+--[[
 local function PaintFrame(self,w,h)
 	BlurBackground(self)
     surface.SetDrawColor(155, 0, 0, 155)
@@ -27,14 +27,14 @@ local function PaintFrame(self,w,h)
 	surface.SetDrawColor( 255, 0, 0, 128)
     surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
 end
-
+--]]
 function EXP.Menu( ply )
     if IsValid(EXP.OpenedMenu) then
         EXP.OpenedMenu:Remove()
         EXP.OpenedMenu = nil
     end
 
-    EXP.OpenedMenu = vgui.Create( "ZFrame" )
+    EXP.OpenedMenu = vgui.Create("ZFrame")
     EXP.OpenedMenu:SetSize( ScrW()*0.2, ScrH()*0.5 )
     EXP.OpenedMenu:Center()
     EXP.OpenedMenu:MakePopup()
