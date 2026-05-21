@@ -127,6 +127,24 @@ font = function() -- hg_coolvetica:GetBool() and "Coolvetica" or "Bahnschrift"
     return usefont
 end
 
+local FONT_DEFAULT = font()
+function CreateFontFamily(base, fonts)
+    base = base or {}
+
+    for name, overrides in pairs(fonts) do
+        local opts = {
+            font      = base.font or FONT_DEFAULT,
+            size      = overrides.size,              -- size обязателен
+            weight    = overrides.weight or base.weight or 400,
+            outline   = (overrides.outline ~= nil) and overrides.outline or (base.outline ~= nil and base.outline or false),
+            antialias = (overrides.antialias ~= nil) and overrides.antialias or (base.antialias ~= nil and base.antialias or false),
+            shadow    = (overrides.shadow ~= nil) and overrides.shadow or (base.shadow ~= nil and base.shadow or false),
+            extended  = (overrides.extended ~= nil) and overrides.extended or (base.extended ~= nil and base.extended or true),
+        }
+        surface.CreateFont(name, opts)
+    end
+end
+
 
 Run()
 

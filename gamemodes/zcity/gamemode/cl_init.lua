@@ -310,59 +310,15 @@ hook.Add("Player Disconnected","retrymenu",function(data)
 	end
 end)
 
---local hg_coolvetica = ConVarExists("hg_coolvetica") and GetConVar("hg_coolvetica") or CreateClientConVar("hg_coolvetica", "0", true, false, "changes every text to coolvetica because its good", 0, 1)
-local hg_font = ConVarExists("hg_font") and GetConVar("hg_font") or CreateClientConVar("hg_font", "Bahnschrift", true, false, "Change UI text font")
-local font = function() -- hg_coolvetica:GetBool() and "Coolvetica" or "Bahnschrift"
-    local usefont = "Bahnschrift"
-
-    if hg_font:GetString() != "" then
-        usefont = hg_font:GetString()
-    end
-
-    return usefont
-end
-
-surface.CreateFont("ZB_InterfaceSmall", {
-    font = font(),
-    size = ScreenScale(6),
-    weight = 400,
-    antialias = true
+CreateFontFamily({ antialias = true }, {   -- antialias как общая настройка
+    ZB_InterfaceSmall       = { size = ScreenScale(6) },
+    ZB_InterfaceMedium      = { size = ScreenScale(10) },
+    ZB_ScrappersMedium      = { size = ScreenScale(10) },
+    ZB_InterfaceMediumLarge = { size = 35 },
+    ZB_InterfaceLarge       = { size = ScreenScale(20) },
+    ZB_InterfaceHumongous   = { size = 200 },
 })
 
-surface.CreateFont("ZB_InterfaceMedium", {
-    font = font(),
-    size = ScreenScale(10),
-    weight = 400,
-    antialias = true
-})
-
-surface.CreateFont("ZB_ScrappersMedium", {
-    font = font(),
-    size = ScreenScale(10),
-    weight = 400,
-    antialias = true
-})
-
-surface.CreateFont("ZB_InterfaceMediumLarge", {
-    font = font(),
-    size = 35,
-    weight = 400,
-    antialias = true
-})
-
-surface.CreateFont("ZB_InterfaceLarge", {
-    font = font(),
-    size = ScreenScale(20),
-    weight = 400,
-    antialias = true
-})
-
-surface.CreateFont("ZB_InterfaceHumongous", {
-    font = font(),
-    size = 200,
-    weight = 400,
-    antialias = true
-})
 
 hg.playerInfo = hg.playerInfo or {}
 

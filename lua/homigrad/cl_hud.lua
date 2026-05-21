@@ -62,79 +62,19 @@ hook.Add("HUDDrawPickupHistory", "HidePickedStuff", function()
 	return false
 end)
 
-local hg_font = ConVarExists("hg_font") and GetConVar("hg_font") or CreateClientConVar("hg_font", "Bahnschrift", true, false, "Change UI text font")
-local font = function()
-	local usefont = "Bahnschrift"
-	if hg_font:GetString() != "" then
-		usefont = hg_font:GetString()
-	end
-	return usefont
-end
-
-surface.CreateFont("HomigradFont", {
-	font = font(),
-	size = ScreenScale(10),
-	weight = 1100,
-	outline = false
-})
-
-surface.CreateFont("ScoreboardPlayer", {
-	font = font(),
-	size = ScreenScale(7),
-	weight = 1100,
-	outline = false
-})
-
-surface.CreateFont("HomigradFontBig", {
-	font = font(),
-	size = ScreenScale(12),
-	weight = 1100,
-	outline = false,
-	shadow = true
-})
-
-surface.CreateFont("HomigradFontMedium", {
-	font = font(),
-	size = ScreenScale(8),
-	weight = 1100,
-	outline = false,
-})
-
-surface.CreateFont("HomigradFontLarge", {
-	font = font(),
-	size = ScreenScale(15),
-	weight = 1100,
-	outline = false
-})
-
-surface.CreateFont("HomigradFontGigantoNormous", {
-	font = font(),
-	size = ScreenScale(25),
-	weight = 1100,
-	outline = false,
-	shadow = false
-})
-
-surface.CreateFont("HomigradFontSmall", {
-	font = font(),
-	size = 17,
-	weight = 1100,
-	outline = false
-})
-
-surface.CreateFont("HomigradFontVSmall", {
-	font = font(),
-	size = 12,
-	weight = 400,
-	outline = false
-})
-
-surface.CreateFont("ZCity_Veteran", {
-	font = font(),
-	size = ScreenScale(8),
-	weight = 700,
-	outline = false,
-	antialias = true
+CreateFontFamily({
+    weight  = 1100,
+    outline = false,
+}, {
+    HomigradFont              = { size = ScreenScale(10) },
+    ScoreboardPlayer          = { size = ScreenScale(7) },
+    HomigradFontBig           = { size = ScreenScale(12), shadow = true },
+    HomigradFontMedium        = { size = ScreenScale(8) },
+    HomigradFontLarge         = { size = ScreenScale(15) },
+    HomigradFontGigantoNormous= { size = ScreenScale(25), shadow = false },
+    HomigradFontSmall         = { size = 17 },
+    HomigradFontVSmall        = { size = 12, weight = 400 },
+    ZCity_Veteran             = { size = ScreenScale(8), weight = 700, antialias = true },
 })
 
 local w, h
