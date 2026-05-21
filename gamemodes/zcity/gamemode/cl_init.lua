@@ -989,7 +989,7 @@ function GM:ScoreboardShow()
 		karmtxt = 'Карма: ' .. karma
 		local karmCol = col.textBlood
 		surface.SetTextColor(karmCol)
-		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX * 0.5, srvY)
+		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 250, srvY)
 		surface.DrawText(karmtxt)
 
 		local totalPlayers = #player.GetAll()
