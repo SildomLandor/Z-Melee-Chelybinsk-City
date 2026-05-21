@@ -32,20 +32,19 @@ local function GetFamilyMaps(family)
 end
 
 local blacklist = {
-    ["gm_construct"] = true, ["gm_flatgrass"] = true, ["gm_altarskforest"] = true, ["gm_renostruct_v2"] = true,
-    ["gm_renostruct_v2_night"] = true, ["gm_city_of_silence"] = true, ["ttt_hogwarts"] = true,
+    ["gm_construct"] = true, ["gm_flatgrass"] = true,
 }
 
 local allowedPrefix = {
-    ["ttt"] = true, ["hmcd"] = true, ["mu"] = true, ["ze"] = false,
-    ["zs"] = true, ["tdm"] = true, ["zb"] = false, ["zbattle"] = false,
+    ["ttt"] = true, ["hmcd"] = true, ["mu"] = true, ["ze"] = true,
+    ["zs"] = true, ["tdm"] = true, ["zb"] = true, ["zbattle"] = true,
     ["gm"] = true, ["ph"] = true, ["cs"] = true, ["de"] = true
 }
 
 local prefixWeights = {
-    ["ttt"] = 18, ["hmcd"] = 19, ["mu"] = 18, ["ze"] = 0,
-    ["zs"] = 9,  ["tdm"] = 5,  ["zb"] = 0,  ["zbattle"] = 0,
-    ["gm"] = 20, ["ph"] = 11, ["cs"] = 1,  ["de"] = 1
+    ["ttt"] = 20, ["hmcd"] = 20, ["mu"] = 20, ["ze"] = 20,
+    ["zs"] = 20,  ["tdm"] = 20,  ["zb"] = 20,  ["zbattle"] = 20,
+    ["gm"] = 20, ["ph"] = 20, ["cs"] = 20,  ["de"] = 20
 }
 
 local function GetSafeServerName()
@@ -476,7 +475,7 @@ function zb.CheckRTVVotes(needPrint)
     if votes >= votesNeeded then
         if needPrint then
             for _, v in player.Iterator() do
-                v:ChatPrint("Enough votes to change the map. RTV will be on next round.")
+                v:ChatPrint("Достаточно голосов. Голосование за карту будет в конце раунда.")
             end
         end
         
@@ -496,7 +495,7 @@ local function rtv(ply, args)
     
     if rtvVotes[steamID] then
         rtvVotes[steamID] = nil
-        ply:ChatPrint("You canceled your vote for map change.")
+        ply:ChatPrint("Ты отменил голос на смену карты.")
         
         local votesNeeded = math.ceil(#player.GetAll() / 2)
         local votes = table.Count(rtvVotes)
@@ -532,8 +531,8 @@ local function rtv(ply, args)
     for _, v in player.Iterator() do
         if remaining != 0 then
             v:ChatPrint(
-                ply:Nick() .. " voted for map change. " .. 
-                remaining .. " more votes needed. Type !rtv again to cancel your vote."
+                ply:Nick() .. " Проголосовал за смену карты. " .. 
+                remaining .. " Осталось голосов."
             )
         end
     end

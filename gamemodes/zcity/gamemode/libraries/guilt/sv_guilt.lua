@@ -59,7 +59,7 @@ hook.Add( "PlayerInitialSpawn","ZB_GuiltSQL", function( ply )
 
                     timer.Simple(0, function()
                         ply:Ban(5, false)
-                        ply:Kick("Your karma is too low: " .. math.Round( karma, 0 ) .. ". Try again in 5 minutes." )
+                        ply:Kick("Твоя карма слишком низкая: " .. math.Round( karma, 0 ) .. ". Попробуй через 5 минут." )
                     end)
                 end
 			else
@@ -233,7 +233,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 		-- 	Attacker:Ban(30, true)
 		-- end
 
-        PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
+       -- PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
     end
 
     Attacker:SetNetVar("Karma", Attacker.Karma)
@@ -262,7 +262,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 			-- 	Attacker:Ban(60, true)
 			-- end
             
-            PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
+           -- PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
         end)
     end
 end)
@@ -318,12 +318,12 @@ hook.Add("Should Fake Up", "karma", function(ply)
 end)
 
 local seizuremsgs = {
-    "bllllhlhmmmbmmmmbmbmb",
-    "bbb b-bbbbbb bllmbmmbb",
-    "ddgdgg-d bbbglgggg",
-    "mmmmammmm aaghbgbblllb",
-    "hhel-bbbphphpppph",
-    "zzzzblzzzmzzzzz",
+    "бллллхлхмммббммммбмбмб",
+    "ббб б-бббббб бллмбмммб",
+    "ддгдгг-д бббглгггг",
+    "ммммаммммм аагхбгбблллллб",
+    "ххел-бббпхпппппх",
+    "зззззблзззззззззз",
 }
 hook.Add("Org Think", "Its_Karma_Bro",function(owner, org, timeValue)
     if not owner or not owner:IsPlayer() or org.otrub or not org.isPly then return end
@@ -339,7 +339,7 @@ hook.Add("Org Think", "Its_Karma_Bro",function(owner, org, timeValue)
             ply:Notify(seizuremsgs[math.random(#seizuremsgs)], 16, "seizure", 1, function()
                 if !IsValid(ply) then return end
                 
-                ply:ChatPrint("You are experiencing an epileptic seizure.")
+               -- ply:ChatPrint("У тебя эпилептический припадок.")
             end)
 
             org.start_shaking = org.start_shaking or (CurTime() + time)
@@ -441,7 +441,7 @@ end)
 
 hook.Add("Player Spawn", "GuiltKnown",function(ply)
     if ply.Karma then
-        ply:ChatPrint("Your current karma is "..tostring(math.Round(ply.Karma)).."")
+       -- ply:ChatPrint("Your current karma is "..tostring(math.Round(ply.Karma)).."")
     end
 end)
 
