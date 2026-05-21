@@ -81,6 +81,9 @@ function EXP.Menu(ply)
 
     if not IsValid(ply) then return end
 
+    -- Запрашиваем свежие данные с сервера
+    EXP.OpenMenu(ply)
+
     EXP.OpenedMenu = vgui.Create("ZFrame")
     EXP.OpenedMenu:SetSize(ScrW() * 0.2, ScrH() * 0.5)
     EXP.OpenedMenu:Center()
@@ -163,6 +166,10 @@ net.Receive("zb_xp_get", function()
     if not IsValid(ply) then return end
     ply.skill = net.ReadFloat()
     ply.exp = net.ReadInt(19)
+
+    if IsValid(EXP.OpenedMenu) and IsValid(EXP.OpenedMenu.Medal) then
+        EXP.OpenedMenu.Medal:SetPlayer(ply)
+    end
 
     if needCallback then
         if IsValid(EXP.OpenedAccount) then
