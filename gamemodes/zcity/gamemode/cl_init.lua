@@ -981,8 +981,16 @@ function GM:ScoreboardShow()
 		local tickTW = surface.GetTextSize(tickText)
 		local tickCol = tick >= 60 and col.textDim or (tick >= 30 and Color(220, 180, 60, 200) or col.textBlood)
 		surface.SetTextColor(tickCol)
-		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX * 0.5, srvY)
+		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 50, srvY)
 		surface.DrawText(tickText)
+
+		karma = 0
+		surface.SetFont("ZCity_Veteran")
+		karmtxt = 'Карма: ' .. karma
+		local karmCol = col.textBlood
+		surface.SetTextColor(karmCol)
+		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX * 0.5, srvY)
+		surface.DrawText(karmtxt)
 
 		local totalPlayers = #player.GetAll()
 		local maxPlayers = game.MaxPlayers()
