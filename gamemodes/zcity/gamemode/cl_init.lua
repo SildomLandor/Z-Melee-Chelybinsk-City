@@ -567,238 +567,498 @@ function GM:ScoreboardShow()
 		scoreBoardMenu = nil
 	end
 	Dynamic = 0
-	scoreBoardMenu = vgui.Create("ZFrame")
-	local mh2ColorFrameBG = Color(28, 27, 24, 245)
-	local mh2ColorFrameBorder = Color(96, 90, 82, 255)
-	local mh2ColorPanelBG = Color(14, 13, 11, 248)
-	local mh2ColorHeaderBG = Color(6, 6, 5, 230)
-	local mh2ColorHeaderBorder = Color(255, 255, 255, 45)
-	local mh2ColorHeaderActive = Color(165, 150, 130, 95)
-	local mh2ColorRowBG = Color(10, 9, 8, 190)
-	local mh2ColorRowAlt = Color(15, 14, 12, 165)
-	local mh2ColorRowHover = Color(255, 255, 255, 35)
-	local mh2ColorRowBorder = Color(255, 255, 255, 26)
-	local mh2ColorSplit = Color(255, 255, 255, 22)
-	local mh2ColorAccent = Color(176, 165, 145, 180)
-	local mh2ColorText = Color(236, 234, 228, 255)
-	local mh2ColorTextDim = Color(206, 201, 192, 230)
-	local mh2ColorScrollTrack = Color(12, 10, 8, 120)
-	local mh2ColorScrollGrip = Color(140, 120, 90, 220)
 
-	local sizeX,sizeY = ScrW() / 1.3 ,ScrH() / 1.2
+	local col = {
+		frameBG        = Color(10, 10, 19, 235),
+		frameBorder    = Color(90, 90, 95, 120),
+		panelBG        = Color(8, 8, 16, 245),
+		panelBorder    = Color(255, 255, 255, 25),
+		headerBG       = Color(6, 6, 14, 250),
+		headerBorder   = Color(255, 255, 255, 18),
+		headerHover    = Color(255, 255, 255, 12),
+		headerText     = Color(200, 200, 200, 180),
+		rowBG          = Color(255, 255, 255, 0),
+		rowAlt         = Color(255, 255, 255, 4),
+		rowHover       = Color(255, 255, 255, 15),
+		rowSelected    = Color(255, 255, 255, 22),
+		rowBorder      = Color(255, 255, 255, 8),
+		rowAlive       = Color(200, 200, 200, 255),
+		rowDead        = Color(160, 35, 35, 255),
+		text           = Color(200, 200, 200, 255),
+		textDim        = Color(160, 160, 165, 180),
+		textMuted      = Color(100, 100, 108, 140),
+		textBlood      = Color(180, 40, 35, 255),
+		textTitle      = Color(200, 200, 200, 255),
+		accent         = Color(200, 200, 200, 60),
+		accentDim      = Color(255, 255, 255, 15),
+		separator      = Color(255, 255, 255, 12),
+		scrollTrack    = Color(255, 255, 255, 6),
+		scrollGrip     = Color(200, 200, 200, 60),
+		scrollGripHov  = Color(200, 200, 200, 100),
+		btnBG          = Color(0, 0, 0, 0),
+		btnBorder      = Color(255, 255, 255, 25),
+		btnHover       = Color(255, 255, 255, 15),
+		btnActive      = Color(200, 200, 200, 80),
+		btnInactive    = Color(160, 35, 35, 80),
+	}
+
+	local NoiseMat = Material("vgui/noisevhs")
+	if NoiseMat:IsError() then NoiseMat = Material("vgui/white") end
+
+	local sizeX = math.floor(ScrW() * 0.74)
+	local sizeY = math.floor(ScrH() * 0.82)
 	local leaderboardOffsetY = ScreenScaleH(14)
-	local posX,posY = ScrW() / 2 - sizeX / 2,ScrH() / 2 - sizeY / 2 + leaderboardOffsetY
+	local posX = math.floor(ScrW() * 0.5 - sizeX * 0.5)
+	local posY = math.floor(ScrH() * 0.5 - sizeY * 0.5 + leaderboardOffsetY)
 
-	scoreBoardMenu:SetPos(posX,posY)
-	scoreBoardMenu:SetSize(sizeX,sizeY)
-	scoreBoardMenu:MakePopup()
-	scoreBoardMenu:SetKeyboardInputEnabled( false )
-	scoreBoardMenu:ShowCloseButton( false )
-	scoreBoardMenu:SetColorBG(mh2ColorFrameBG)
-	scoreBoardMenu:SetColorBR(mh2ColorFrameBorder)
+	local margin = ScreenScale(5)
+	local topBarH = ScreenScaleH(38)
+	local columnHeaderH = ScreenScaleH(16)
+	local sectionLabelH = ScreenScaleH(18)
+	local bottomBarH = ScreenScaleH(26)
+	local panelGap = ScreenScale(4)
 
-	local muteallbut = vgui.Create("DButton", scoreBoardMenu)
-	local muteBtnAllW = math.max(ScreenScaleH(52), math.floor(sizeX * 0.08))
-	local muteBtnSpectW = math.max(ScreenScaleH(84), math.floor(sizeX * 0.13))
-	local muteBtnH = math.max(ScreenScaleH(11), math.floor(sizeY * 0.028))
-	local muteButtonY = scoreBoardMenu:GetTall() - muteBtnH - ScreenScaleH(3)
-	muteallbut:SetPos(scoreBoardMenu:GetWide() - muteBtnAllW - muteBtnSpectW - ScreenScale(12), muteButtonY)
-	muteallbut:SetSize(muteBtnAllW, muteBtnH)
-	muteallbut:SetText("")
-	muteallbut:SetZPos(1500)
-	
-	muteallbut.Paint = function(self,w,h)
-		surface.SetDrawColor( not hg.muteall and 160 or 255, hg.muteall and 160 or 255, 160, 120)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-		draw.SimpleText("Заглушить всех", "ZB_InterfaceSmall", w * 0.5, h * 0.5, mh2ColorText, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	end
-
-	muteallbut.DoClick = function(self,w,h)
-		hg.muteall = not hg.muteall
-		
-		for i,ply in player.Iterator() do
-			if hg.muteall then
-				//ply.oldmutedspect = ply:IsMuted()
-
-				ply:SetVoiceVolumeScale(0)
-				//if IsValid(ply.soundButton) then
-					//ply.soundButton:SetImage(not ply:IsMuted() && "icon16/sound.png" || "icon16/sound_mute.png")
-				//end
-			else
-				ply:SetVoiceVolumeScale((!hg.mutespect or ply:Alive()) and (hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1) or 0)
-				//ply:SetMuted(ply.oldmuted)
-				//if IsValid(ply.soundButton) then
-					//ply.soundButton:SetImage(not ply:IsMuted() && "icon16/sound.png" || "icon16/sound_mute.png")
-				//end
-				//ply.oldmuted = nil
-			end
-		end 
-	end
-
-	local mutespectbut = vgui.Create("DButton", scoreBoardMenu)
-	mutespectbut:SetPos(scoreBoardMenu:GetWide() - muteBtnSpectW - ScreenScale(8), muteButtonY)
-	mutespectbut:SetSize(muteBtnSpectW, muteBtnH)
-	mutespectbut:SetText("")
-	mutespectbut:SetZPos(1500)
-	
-	mutespectbut.Paint = function(self,w,h)
-		surface.SetDrawColor( not hg.mutespect and 160 or 255, hg.mutespect and 160 or 255, 160, 120)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-		draw.SimpleText("Заглушить наблюдателей", "ZB_InterfaceSmall", w * 0.5, h * 0.5, mh2ColorText, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	end
-
-	mutespectbut.DoClick = function(self,w,h)
-		hg.mutespect = not hg.mutespect
-		
-		for i,ply in player.Iterator() do
-			if ply:Alive() then continue end
-
-			if hg.mutespect then
-				ply:SetVoiceVolumeScale(0)
-				//ply.oldmutedspect = ply:IsMuted()
-
-				//ply:SetMuted(true)
-				//if IsValid(ply.soundButton) then
-					//ply.soundButton:SetImage(not ply:IsMuted() && "icon16/sound.png" || "icon16/sound_mute.png")
-				//end
-			else
-				ply:SetVoiceVolumeScale(!hg.muteall and (hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1) or 0)
-				//ply:SetMuted(ply.oldmutedspect)
-				//if IsValid(ply.soundButton) then
-					//ply.soundButton:SetImage(not ply:IsMuted() && "icon16/sound.png" || "icon16/sound_mute.png")
-				//end
-				//ply.oldmutedspect = nil
-			end
-		end 
-	end
-
-	local ServerName = GetHostName() or "ZCity | Developer Server | #01"
-	local listTopY = ScreenScaleH(58)
-	local leftPanelX = 10
-	local leftPanelW = math.floor(sizeX * 0.62)
-	local panelGap = 8
+	local leftPanelX = margin
+	local leftPanelW = math.floor((sizeX - margin * 2 - panelGap) * 0.64)
 	local rightPanelX = leftPanelX + leftPanelW + panelGap
-	local rightPanelW = math.max(sizeX - rightPanelX - 10, 140)
-	local leftPanelH = sizeY - listTopY - ScreenScaleH(14)
-	local rightPanelY = listTopY + ScreenScaleH(22)
-	local rightPanelH = sizeY - rightPanelY - ScreenScaleH(14)
-	local buttonW = ScrW() / 20
-	local buttonH = ScrH() / 30
-	local tick
-	scoreBoardMenu.PaintOver = function(self,w,h)
-		surface.SetDrawColor(mh2ColorFrameBorder)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-		surface.SetFont("ZC_MM_Title")
-		local headerText = "Челябинск"
-		local headerW = surface.GetTextSize(headerText)
-		local time = CurTime()
-		local blinkChance = math.sin(time * 0.5)
-		local redBlink = 255
-		if blinkChance > 0.8 then
-			local blinkSpeed = 20
-			local pulse = (math.sin(time * blinkSpeed) + 1) / 2
-			redBlink = 255 - pulse * 200
+	local rightPanelW = sizeX - rightPanelX - margin
+
+	local listTopY = topBarH + sectionLabelH + columnHeaderH
+	local listH = sizeY - listTopY - bottomBarH - ScreenScaleH(4)
+	local rowH = ScreenScaleH(24)
+
+	scoreBoardMenu = vgui.Create("ZFrame")
+	scoreBoardMenu:SetPos(posX, posY)
+	scoreBoardMenu:SetSize(sizeX, sizeY)
+	scoreBoardMenu:MakePopup()
+	scoreBoardMenu:SetKeyboardInputEnabled(false)
+	scoreBoardMenu:ShowCloseButton(false)
+	scoreBoardMenu:SetColorBG(col.frameBG)
+	scoreBoardMenu:SetColorBR(col.frameBorder)
+	scoreBoardMenu:SetAlpha(0)
+	scoreBoardMenu:AlphaTo(255, 0.15, 0)
+
+	local lastHash = ""
+	local selectedSteamID = nil
+	local tick = 0
+	local openTime = CurTime()
+
+	local shakeX, shakeY = 0, 0
+	local targetShakeX, targetShakeY = 0, 0
+	local nextShakeSample = 0
+	local shakeStrength = 0.6
+
+	local bloodDrips = {}
+	for i = 1, math.random(6, 10) do
+		bloodDrips[i] = {
+			x = math.random(0, sizeX),
+			w = math.random(1, 2),
+			h = math.random(ScreenScaleH(10), ScreenScaleH(45)),
+			alpha = math.random(8, 30),
+			speed = math.Rand(0.15, 0.6),
+			offset = math.Rand(0, math.pi * 2),
+		}
+	end
+
+	local titleFont = "ZC_MM_Title"
+	local titleText = "Челябинск"
+	surface.SetFont(titleFont)
+	local titleW, titleH = surface.GetTextSize(titleText)
+	local titleColor = Color(140, 15, 12, 255)
+	local titleColorDark = Color(90, 8, 6, 255)
+	local titleShadowColor = Color(40, 4, 2, 200)
+
+	local titleCharPositions = {}
+	do
+		surface.SetFont(titleFont)
+		local accW = 0
+		local i = 1
+		for _, code in utf8.codes(titleText) do
+			local ch = utf8.char(code)
+			local chW = surface.GetTextSize(ch)
+			titleCharPositions[i] = {
+				x = accW,
+				w = chW,
+				cx = accW + chW * 0.5
+			}
+			accW = accW + chW
+			i = i + 1
 		end
-		surface.SetTextColor(255, redBlink, redBlink, 255)
+	end
+
+	local dripChars = {
+		{ char = 1, xfrac = 0.85, delay = 1.5 },
+		{ char = 3, xfrac = 0.5, delay = 0.8 },
+		{ char = 4, xfrac = 0.1, delay = 2.2 },
+		{ char = 5, xfrac = 0.9, delay = 0.3 },
+		{ char = 6, xfrac = 0.5, delay = 3.0 },
+		{ char = 7, xfrac = 0.15, delay = 1.1 },
+		{ char = 7, xfrac = 0.85, delay = 4.0 },
+	}
+
+	local titleDrips = {}
+	for _, src in ipairs(dripChars) do
+		local charInfo = titleCharPositions[src.char]
+		if not charInfo then continue end
+		local dripX = charInfo.x + charInfo.w * src.xfrac
+		local drip = {
+			localX = dripX,
+			width = math.Rand(1.5, 3.5),
+			maxLength = math.Rand(ScreenScaleH(20), ScreenScaleH(80)),
+			speed = math.Rand(8, 25),
+			delay = src.delay,
+			currentLength = 0,
+			started = false,
+			dropSize = math.Rand(2, 4.5),
+			dropSpeed = math.Rand(15, 40),
+			dropFallen = false,
+			dropY = 0,
+			dropAlpha = 255,
+			alpha = math.random(160, 240),
+			wobble = math.Rand(0, math.pi * 2),
+			branches = {},
+		}
+		if math.random() > 0.5 then
+			for b = 1, math.random(1, 2) do
+				table.insert(drip.branches, {
+					startFrac = math.Rand(0.2, 0.7),
+					angle = math.Rand(-0.4, 0.4),
+					length = math.Rand(ScreenScaleH(5), ScreenScaleH(20)),
+					width = math.Rand(0.8, 1.5),
+					alpha = math.random(80, 160),
+				})
+			end
+		end
+		table.insert(titleDrips, drip)
+	end
+
+	local titleBloodSpots = {}
+	for i = 1, math.random(3, 6) do
+		table.insert(titleBloodSpots, {
+			x = math.Rand(-titleW * 0.05, titleW * 1.05),
+			y = math.Rand(-titleH * 0.3, titleH * 0.3),
+			size = math.Rand(2, 6),
+			alpha = math.random(20, 60),
+		})
+	end
+
+	local titleStartTime = CurTime()
+
+	local function PaintBloodyTitle(w, h)
+		local t = CurTime()
+		local age = t - titleStartTime
+
 		DisableClipping(true)
-		surface.SetTextPos(w * 0.5 - headerW * 0.5, -ScreenScaleH(34) - leaderboardOffsetY)
-		surface.DrawText(headerText)
+
+		local baseX = w * 0.5 - titleW * 0.5 + shakeX * 1.5
+		local baseY = -ScreenScaleH(33) - leaderboardOffsetY + shakeY * 1.5
+
+		for _, drip in ipairs(titleDrips) do
+			if age < drip.delay then continue end
+			drip.started = true
+			local dripAge = age - drip.delay
+			local dripX = baseX + drip.localX + 25
+			local dripStartY = baseY + titleH - ScreenScaleH(10)
+
+			if drip.currentLength < drip.maxLength then
+				drip.currentLength = math.min(drip.currentLength + drip.speed * FrameTime(), drip.maxLength)
+			end
+
+			local len = drip.currentLength
+			if len <= 0 then continue end
+
+			local wobbleX = math.sin(t * 0.8 + drip.wobble) * 0.5
+			local segments = math.max(math.floor(len / 3), 1)
+
+			for s = 0, segments do
+				local frac = s / segments
+				local sy = dripStartY + len * frac
+				local segAlpha = drip.alpha * (1 - frac * 0.6)
+				local segWidth = drip.width * (1 - frac * 0.3)
+				local r = Lerp(frac, 140, 70)
+				local g = Lerp(frac, 15, 5)
+				local b = Lerp(frac, 12, 4)
+				surface.SetDrawColor(r, g, b, segAlpha)
+				surface.DrawRect(dripX - segWidth * 0.5 + wobbleX * frac, sy, segWidth, 3)
+			end
+
+			local bulgeW = drip.width * 1.8
+			local bulgeH = math.min(4, len * 0.3)
+			surface.SetDrawColor(140, 18, 14, drip.alpha * 0.8)
+			surface.DrawRect(dripX - bulgeW * 0.5, dripStartY - 1, bulgeW, bulgeH)
+
+
+			if drip.dropFallen then
+				drip.dropY = drip.dropY + drip.dropSpeed * FrameTime()
+				drip.dropAlpha = math.max(drip.dropAlpha - 80 * FrameTime(), 0)
+				if drip.dropAlpha > 0 then
+					local ds = drip.dropSize * 0.8
+					surface.SetDrawColor(120, 10, 8, drip.dropAlpha)
+					for dy = -ds, ds, 0.5 do
+						local radius = math.sqrt(math.max(ds * ds - dy * dy, 0)) * 0.6
+						surface.DrawRect(dripX - radius + wobbleX, drip.dropY + dy * 1.5, radius * 2, 1)
+					end
+				end
+				if drip.dropAlpha <= 0 then
+					drip.dropFallen = false
+					drip.dropAlpha = 255
+					drip.dropY = 0
+					drip.currentLength = drip.maxLength * math.Rand(0.7, 0.95)
+					drip.delay = age + math.Rand(3, 8)
+				end
+			end
+
+			for _, branch in ipairs(drip.branches) do
+				local branchStartY = dripStartY + len * branch.startFrac
+				if drip.currentLength < drip.maxLength * branch.startFrac then continue end
+				local branchLen = branch.length * math.min((drip.currentLength - drip.maxLength * branch.startFrac) / (drip.maxLength * 0.3), 1)
+				for bs = 0, math.floor(branchLen / 2) do
+					local bfrac = bs / math.max(math.floor(branchLen / 2), 1)
+					local bx = dripX + branch.angle * branchLen * bfrac + wobbleX * 0.5
+					local by = branchStartY + branchLen * bfrac
+					local ba = branch.alpha * (1 - bfrac * 0.7)
+					surface.SetDrawColor(100, 10, 8, ba)
+					surface.DrawRect(bx - branch.width * 0.5, by, branch.width, 2)
+				end
+			end
+		end
+
+		for _, spot in ipairs(titleBloodSpots) do
+			surface.SetDrawColor(120, 12, 10, spot.alpha)
+			local s = spot.size
+			for dy = -s, s, 0.8 do
+				local radius = math.sqrt(math.max(s * s - dy * dy, 0))
+				radius = radius * (0.85 + math.sin(dy * 2.5) * 0.15)
+				surface.DrawRect(baseX + spot.x - radius, baseY + titleH * 0.5 + spot.y + dy, radius * 2, 1)
+			end
+		end
+
+		surface.SetFont(titleFont)
+		surface.SetTextColor(titleShadowColor)
+		surface.SetTextPos(baseX + 3, baseY + 3)
+		surface.DrawText(titleText)
+
+		surface.SetTextColor(titleColorDark)
+		surface.SetTextPos(baseX + 1, baseY + 1)
+		surface.DrawText(titleText)
+
+		local pulse = math.sin(t * 1.5) * 0.15 + 0.85
+		surface.SetTextColor(titleColor.r * pulse, titleColor.g * pulse, titleColor.b * pulse, 255)
+		surface.SetTextPos(baseX, baseY)
+		surface.DrawText(titleText)
+
+		local glossAlpha = (math.sin(t * 0.7) * 0.3 + 0.7) * 35
+		surface.SetTextColor(255, 80, 60, glossAlpha)
+		surface.SetTextPos(baseX, baseY - 1)
+		surface.DrawText(titleText)
+
+		if math.random() > 0.97 then
+			surface.SetTextColor(180, 20, 15, math.random(20, 50))
+			surface.SetTextPos(baseX + math.random(-4, 4), baseY + math.random(-2, 2))
+			surface.DrawText(titleText)
+		end
+
+		if math.random() > 0.92 then
+			surface.SetTextColor(200, 0, 0, 15)
+			surface.SetTextPos(baseX + 2, baseY)
+			surface.DrawText(titleText)
+		end
+
 		DisableClipping(false)
-
-		surface.SetFont("ZCity_Veteran")
-		surface.SetTextColor(mh2ColorText)
-		local serverW = surface.GetTextSize(ServerName)
-		local serverTitleY = ScreenScaleH(11)
-		surface.SetTextPos(w * 0.5 - serverW * 0.5, serverTitleY)
-		surface.DrawText(ServerName)
-
-		tick = math.Round(LerpFT(0.1,tick or 0, 1 / engine.ServerFrameTime()))
-		local tickText = "Тиков в секунду: " .. tick
-		local tickW = surface.GetTextSize(tickText)
-		local tickY = ScreenScaleH(25)
-		surface.SetTextColor(mh2ColorTextDim)
-		surface.SetTextPos(w * 0.5 - tickW * 0.5, tickY)
-		surface.DrawText(tickText)
-
-		surface.SetFont( "ZB_InterfaceSmall" )
-		surface.SetTextColor(mh2ColorTextDim.r, mh2ColorTextDim.g, mh2ColorTextDim.b, 35)
-		local txt = "MELEECITY+: "..hg.Version
-		local lengthX, lengthY = surface.GetTextSize(txt)
-		surface.SetTextPos(w*0.01,h - lengthY - h*0.01)
-		surface.DrawText(txt)
-
-		surface.SetFont("ZCity_Veteran")
-		surface.SetTextColor(mh2ColorText)
-		local leftLabel = "ИСПЫТУЕМЫЕ"
-		surface.SetTextPos(leftPanelX + ScreenScale(4), listTopY - ScreenScaleH(18))
-		surface.DrawText(leftLabel)
-
-		surface.SetFont("ZCity_Veteran")
-		surface.SetTextColor(mh2ColorText)
-		local rightLabel = "НАБЛЮДАТЕЛИ"
-		local rightLW = surface.GetTextSize(rightLabel)
-		surface.SetTextPos(rightPanelX + rightPanelW - rightLW - ScreenScale(6), rightPanelY - ScreenScaleH(18))
-		surface.DrawText(rightLabel)
-		surface.SetDrawColor(mh2ColorAccent)
-		surface.DrawRect(leftPanelX, listTopY - 2, leftPanelW, 1)
-		surface.DrawRect(rightPanelX, rightPanelY - 2, rightPanelW, 1)
-	end
-	if LocalPlayer():Team() ~= TEAM_SPECTATOR then
-		local SPECTATE = vgui.Create("DButton",scoreBoardMenu)
-		SPECTATE:SetPos(rightPanelX + ScreenScale(3), rightPanelY + rightPanelH - buttonH - ScreenScaleH(4))
-		SPECTATE:SetSize(buttonW, buttonH)
-		SPECTATE:SetText("")
-		SPECTATE:SetZPos(1000)
-		
-		SPECTATE.DoClick = function()
-			net.Start("ZB_SpecMode")
-				net.WriteBool(true)
-			net.SendToServer()
-			scoreBoardMenu:Remove()
-			scoreBoardMenu = nil
-		end
-
-		SPECTATE.Paint = function(self,w,h)
-			surface.SetDrawColor(mh2ColorFrameBorder)
-			surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-			draw.SimpleText("Зайти", "ZB_InterfaceMedium", w * 0.5, h * 0.5, mh2ColorText, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		end
 	end
 
-	if LocalPlayer():Team() == TEAM_SPECTATOR then
-		local PLAYING = vgui.Create("DButton",scoreBoardMenu)
-		PLAYING:SetPos(leftPanelX + ScreenScale(3), listTopY + leftPanelH - buttonH - ScreenScaleH(4))
-		PLAYING:SetSize(buttonW, buttonH)
-		PLAYING:SetText("")
-		PLAYING:SetZPos(1000)
-		
-		PLAYING.DoClick = function()
-			net.Start("ZB_SpecMode")
-				net.WriteBool(false)
-			net.SendToServer()
-			scoreBoardMenu:Remove()
-			scoreBoardMenu = nil
+	local function FitText(font, text, maxW)
+		if not text or maxW <= 0 then return "" end
+		surface.SetFont(font)
+		if surface.GetTextSize(text) <= maxW then return text end
+		local dots = "..."
+		local dotsW = surface.GetTextSize(dots)
+		if dotsW >= maxW then return "" end
+		local lo, hi = 0, #text
+		while lo < hi do
+			local mid = math.floor((lo + hi + 1) * 0.5)
+			if surface.GetTextSize(string.sub(text, 1, mid) .. dots) <= maxW then
+				lo = mid
+			else
+				hi = mid - 1
+			end
 		end
-
-		PLAYING.Paint = function(self,w,h)
-			surface.SetDrawColor(mh2ColorFrameBorder)
-			surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-			draw.SimpleText("Зайти", "ZB_InterfaceMedium", w * 0.5, h * 0.5, mh2ColorText, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		end
+		return string.sub(text, 1, lo) .. dots
 	end
 
 	local function StyleScrollbar(sbar)
 		if not IsValid(sbar) then return end
 		sbar:SetHideButtons(true)
-		function sbar:Paint(sw, sh)
-			draw.RoundedBox(0, 0, 0, sw, sh, mh2ColorScrollTrack)
+		sbar.Paint = function(_, sw, sh)
+			surface.SetDrawColor(col.scrollTrack)
+			surface.DrawRect(0, 0, sw, sh)
 		end
-		function sbar.btnGrip:Paint(sw, sh)
-			draw.RoundedBox(0, 0, 0, sw, sh, mh2ColorScrollGrip)
+		sbar.btnGrip.Paint = function(self, sw, sh)
+			local c = self:IsHovered() and col.scrollGripHov or col.scrollGrip
+			surface.SetDrawColor(c)
+			surface.DrawRect(2, 0, sw - 4, sh)
 		end
 	end
 
+	local function PlayersHash()
+		local parts = {}
+		for _, ply in player.Iterator() do
+			parts[#parts + 1] = ply:SteamID() .. ply:Team() .. tostring(ply:Alive()) .. ply:Frags() .. ply:Ping()
+		end
+		return table.concat(parts, "|")
+	end
+
 	local disappearance = lply:GetNetVar("disappearance", nil)
+
+	scoreBoardMenu.Think = function(self)
+		local t = CurTime()
+		if t >= nextShakeSample then
+			nextShakeSample = t + 0.035
+			targetShakeX = math.Rand(-shakeStrength, shakeStrength)
+			targetShakeY = math.Rand(-shakeStrength * 0.6, shakeStrength * 0.6)
+		end
+		local lerpRate = math.Clamp(FrameTime() * 22, 0, 1)
+		shakeX = Lerp(lerpRate, shakeX, targetShakeX)
+		shakeY = Lerp(lerpRate, shakeY, targetShakeY)
+
+		if t >= (self.nextRefresh or 0) then
+			self.nextRefresh = t + 0.5
+			local newHash = PlayersHash()
+			if newHash ~= lastHash then
+				lastHash = newHash
+				self:RebuildRows()
+			end
+		end
+	end
+
+	scoreBoardMenu.PaintOver = function(self, w, h)
+		local t = CurTime()
+
+		if not NoiseMat:IsError() then
+			surface.SetMaterial(NoiseMat)
+			surface.SetDrawColor(255, 255, 255, 6)
+			local noiseOffX = math.random(0, 512)
+			local noiseOffY = math.random(0, 512)
+			surface.DrawTexturedRectUV(0, 0, w, h, noiseOffX / 512, noiseOffY / 512, noiseOffX / 512 + w / 768, noiseOffY / 512 + h / 768)
+		end
+
+		for y = 0, h, 3 do
+			surface.SetDrawColor(0, 0, 0, 12)
+			surface.DrawRect(0, y, w, 1)
+		end
+
+		for _, drip in ipairs(bloodDrips) do
+			local pulse = math.sin(t * drip.speed + drip.offset) * 0.3 + 0.7
+			local a = math.floor(drip.alpha * pulse)
+			surface.SetDrawColor(100, 15, 12, a)
+			surface.DrawRect(drip.x + shakeX, 0, drip.w, drip.h)
+		end
+
+		surface.SetDrawColor(col.frameBorder)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+
+		PaintBloodyTitle(w, h)
+
+		surface.SetDrawColor(col.separator)
+		surface.DrawRect(margin, topBarH - 1, w - margin * 2, 1)
+
+		surface.SetFont("ZCity_Veteran")
+		surface.SetTextColor(col.textTitle)
+		local srvX = margin + ScreenScale(2)
+		local srvY = ScreenScaleH(5) + shakeY * 0.5
+		surface.SetTextPos(srvX + shakeX * 0.5, srvY)
+		surface.DrawText("meleecity")
+
+		surface.SetFont("ZB_InterfaceSmall")
+		surface.SetTextColor(col.textMuted)
+		local subY = srvY + ScreenScaleH(13)
+		surface.SetTextPos(srvX + shakeX * 0.3, subY)
+		surface.DrawText(hg.Version .. " | " .. (game.GetMap() or "unknown"))
+
+		tick = math.Round(LerpFT(0.1, tick, 1 / engine.ServerFrameTime()))
+		surface.SetFont("ZCity_Veteran")
+		local tickText = tick .. " tick"
+		local tickTW = surface.GetTextSize(tickText)
+		local tickCol = tick >= 60 and col.textDim or (tick >= 30 and Color(220, 180, 60, 200) or col.textBlood)
+		surface.SetTextColor(tickCol)
+		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 50, srvY)
+		surface.DrawText(tickText)
+
+		karma = 0
+		surface.SetFont("ZCity_Veteran")
+		karmtxt = 'Карма: ' .. karma
+		local karmCol = col.textBlood
+		surface.SetTextColor(karmCol)
+		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 250, srvY)
+		surface.DrawText(karmtxt)
+
+		local totalPlayers = #player.GetAll()
+		local maxPlayers = game.MaxPlayers()
+		local countText = totalPlayers .. "/" .. maxPlayers
+		surface.SetFont("ZB_InterfaceSmall")
+		local countW = surface.GetTextSize(countText)
+		surface.SetTextColor(col.textMuted)
+		surface.SetTextPos(w - margin - countW - ScreenScale(2) + shakeX * 0.3, subY)
+		surface.DrawText(countText)
+
+		local sectionY = topBarH + ScreenScaleH(1)
+		local labelShakeX = math.sin(t * 28 + 1) * shakeStrength * 0.3
+		local labelShakeY = math.cos(t * 24 + 1) * shakeStrength * 0.25
+
+		surface.SetFont("ZCity_Veteran")
+		surface.SetTextColor(col.textTitle)
+		surface.SetTextPos(leftPanelX + ScreenScale(3) + labelShakeX, sectionY - 3 + labelShakeY)
+		surface.DrawText("ИСПЫТУЕМЫЕ")
+
+		local activeCount = 0
+		local specCount = 0
+		for _, ply in player.Iterator() do
+			if ply:Team() == TEAM_SPECTATOR then
+				specCount = specCount + 1
+			else
+				activeCount = activeCount + 1
+			end
+		end
+
+		surface.SetFont("ZCity_Veteran")
+		local ispW = surface.GetTextSize("ИСПЫТУЕМЫЕ")
+		surface.SetFont("ZB_InterfaceSmall")
+		surface.SetTextColor(col.textMuted)
+		surface.SetTextPos(leftPanelX + ScreenScale(3) + ispW + 4 + labelShakeX, sectionY + 1 + labelShakeY)
+		surface.DrawText(" [" .. activeCount .. "]")
+
+		local labelShakeX2 = math.sin(t * 28 + 3) * shakeStrength * 0.3
+		local labelShakeY2 = math.cos(t * 24 + 3) * shakeStrength * 0.25
+
+		surface.SetFont("ZCity_Veteran")
+		local specLabel = "НАБЛЮДАТЕЛИ"
+		local specLW = surface.GetTextSize(specLabel)
+		surface.SetTextColor(col.textDim)
+		surface.SetTextPos(rightPanelX + rightPanelW - specLW - ScreenScale(3) + labelShakeX2, sectionY - 3 + labelShakeY2)
+		surface.DrawText(specLabel)
+
+		surface.SetFont("ZB_InterfaceSmall")
+		surface.SetTextColor(col.textMuted)
+		surface.SetTextPos(rightPanelX + rightPanelW + 4 - ScreenScale(3) + labelShakeX2, sectionY + 1 + labelShakeY2)
+		surface.DrawText(" [" .. specCount .. "]")
+
+		local sepY = sectionY + sectionLabelH - 2
+		surface.SetDrawColor(col.accent)
+		surface.DrawRect(leftPanelX, sepY, leftPanelW, 1)
+		surface.SetDrawColor(col.accentDim)
+		surface.DrawRect(rightPanelX, sepY, rightPanelW, 1)
+
+		if math.random() > 0.985 then
+			local glitchY = math.random(0, h)
+			local glitchH = math.random(1, 3)
+			surface.SetDrawColor(255, 255, 255, math.random(5, 18))
+			surface.DrawRect(0, glitchY, w, glitchH)
+		end
+	end
+
+	local playerSort = { key = "frags", desc = true }
+	local spectatorSort = { key = "name", desc = false }
+
 	local function SortPlayers(list, sortState)
 		table.sort(list, function(a, b)
 			local av, bv
@@ -808,144 +1068,331 @@ function GM:ScoreboardShow()
 			elseif sortState.key == "ping" then
 				av = a:Ping()
 				bv = b:Ping()
+			elseif sortState.key == "xp" then
+				av = math.floor(a.exp or 0)
+				bv = math.floor(b.exp or 0)
 			else
 				av = a:Frags()
 				bv = b:Frags()
 			end
-
-			if av == bv then
-				return a:UserID() < b:UserID()
-			end
+			if av == bv then return a:UserID() < b:UserID() end
 			return sortState.desc and av > bv or av < bv
 		end)
+	end
+
+	local function CreateColumnHeader(px, py, pw, columns, sortState, onSort)
+		local header = vgui.Create("DPanel", scoreBoardMenu)
+		header:SetPos(px, py)
+		header:SetSize(pw, columnHeaderH)
+		header:SetZPos(100)
+		header.Paint = function(_, hw, hh)
+			surface.SetDrawColor(col.headerBG)
+			surface.DrawRect(0, 0, hw, hh)
+			surface.SetDrawColor(col.headerBorder)
+			surface.DrawRect(0, hh - 1, hw, 1)
+		end
+		local curX = 0
+		for idx, c in ipairs(columns) do
+			local colW = math.floor(pw * c.frac)
+			local btn = vgui.Create("DButton", header)
+			btn:SetPos(curX, 0)
+			btn:SetSize(colW, columnHeaderH)
+			btn:SetText("")
+			btn:SetCursor("hand")
+			local capturedIdx = idx
+			btn.Paint = function(self, bw, bh)
+				if self:IsHovered() then
+					surface.SetDrawColor(col.headerHover)
+					surface.DrawRect(0, 0, bw, bh)
+				end
+				local arrow = ""
+				if sortState.key == c.key then
+					arrow = sortState.desc and " ▼" or " ▲"
+				end
+				local align = c.align or TEXT_ALIGN_LEFT
+				local tx = align == TEXT_ALIGN_CENTER and bw * 0.5 or (align == TEXT_ALIGN_RIGHT and bw - 6 or 6)
+				draw.SimpleText(c.label .. arrow, "ZB_InterfaceSmall", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
+				if capturedIdx > 1 then
+					surface.SetDrawColor(col.separator)
+					surface.DrawRect(0, 3, 1, bh - 6)
+				end
+			end
+			btn.DoClick = function()
+				if sortState.key == c.key then
+					sortState.desc = not sortState.desc
+				else
+					sortState.key = c.key
+					sortState.desc = c.defaultDesc or false
+				end
+				onSort()
+			end
+			curX = curX + colW
+		end
+		return header
 	end
 
 	local function CreateListPanel(x, y, w, h)
 		local pnl = vgui.Create("DScrollPanel", scoreBoardMenu)
 		pnl:SetPos(x, y)
 		pnl:SetSize(w, h)
-		function pnl:Paint(pw, ph)
-			surface.SetDrawColor(mh2ColorPanelBG)
+		pnl.Paint = function(_, pw, ph)
+			surface.SetDrawColor(col.panelBG)
 			surface.DrawRect(0, 0, pw, ph)
-			surface.SetDrawColor(mh2ColorHeaderBorder)
-	        surface.DrawOutlinedRect(0, 0, pw, ph, 1)
+			surface.SetDrawColor(col.panelBorder)
+			surface.DrawOutlinedRect(0, 0, pw, ph, 1)
 		end
 		StyleScrollbar(pnl:GetVBar())
 		return pnl
 	end
 
-	local playerListPanel = CreateListPanel(leftPanelX, listTopY, leftPanelW, leftPanelH)
-	local spectatorListPanel = CreateListPanel(rightPanelX, rightPanelY, rightPanelW, rightPanelH)
+	local playerListPanel = CreateListPanel(leftPanelX, listTopY, leftPanelW, listH)
+	local spectatorListPanel = CreateListPanel(rightPanelX, listTopY, rightPanelW, listH)
 
-	local playerSort = { key = "name", desc = false }
-	local spectatorSort = { key = "name", desc = false }
-	local selectedSteamID
+	local playerColumns = {
+		{ key = "name",  label = "Имя",      frac = 0.50, align = TEXT_ALIGN_LEFT },
+		{ key = "frags", label = "Убийства", frac = 0.16, align = TEXT_ALIGN_CENTER, defaultDesc = true },
+		{ key = "xp",   label = "XP",       frac = 0.14, align = TEXT_ALIGN_CENTER, defaultDesc = true },
+		{ key = "ping", label = "Пинг",     frac = 0.10, align = TEXT_ALIGN_CENTER },
+	}
 
-	local function FitTextToWidth(font, text, maxWidth)
-		if maxWidth <= 0 then return "" end
-		if text == nil then return "" end
-		surface.SetFont(font)
-		if surface.GetTextSize(text) <= maxWidth then
-			return text
-		end
-		local ellipsis = "..."
-		local ellipsisW = surface.GetTextSize(ellipsis)
-		if ellipsisW >= maxWidth then
-			return ""
-		end
-		local low, high = 0, #text
-		while low < high do
-			local mid = math.floor((low + high + 1) * 0.5)
-			local candidate = string.sub(text, 1, mid) .. ellipsis
-			if surface.GetTextSize(candidate) <= maxWidth then
-				low = mid
-			else
-				high = mid - 1
-			end
-		end
-		return string.sub(text, 1, low) .. ellipsis
-	end
+	local spectatorColumns = {
+		{ key = "name", label = "Имя",  frac = 0.65, align = TEXT_ALIGN_LEFT },
+		{ key = "ping", label = "Пинг", frac = 0.20, align = TEXT_ALIGN_CENTER },
+	}
 
-	local function AddPlayerRow(parent, ply, rowIndex)
+	local function RebuildRows() end
+
+	local colHeaderY = topBarH + sectionLabelH
+	CreateColumnHeader(leftPanelX, colHeaderY, leftPanelW, playerColumns, playerSort, function() RebuildRows() end)
+	CreateColumnHeader(rightPanelX, colHeaderY, rightPanelW, spectatorColumns, spectatorSort, function() RebuildRows() end)
+
+	local function AddPlayerRow(parent, ply, rowIndex, isSpectator)
 		local row = vgui.Create("DButton", parent)
-		row:SetTall(ScreenScaleH(22))
+		row:SetTall(rowH)
 		row:Dock(TOP)
-		row:DockMargin(8, 0, 8, 3)
+		row:DockMargin(0, 0, 0, 0)
 		row:SetText("")
+		row:SetCursor("hand")
 
+		local avatarSize = rowH - 6
 		local avatar = vgui.Create("AvatarImage", row)
-		avatar:Dock(LEFT)
-		avatar:SetWide(ScreenScaleH(22))
-		avatar:DockMargin(0, 0, 8, 0)
-		avatar:SetPlayer(ply, 32)
+		avatar:SetMouseInputEnabled(false)
 
 		local soundButton = vgui.Create("DImageButton", row)
 		soundButton:Dock(RIGHT)
 		soundButton:SetWide(ScreenScale(10))
-		soundButton:DockMargin(8, 5, 6, 5)
+		soundButton:DockMargin(4, 4, 6, 4)
 		SetSoundButtonIcon(soundButton, ply)
 		soundButton.DoClick = function(self)
 			OpenPlayerSoundSettings(self, ply)
 		end
 		ply.soundButton = soundButton
 
+		local rowWaveOffset = rowIndex * 0.75
+
 		row.Paint = function(self, rw, rh)
 			if not IsValid(ply) then return end
-			local base = rowIndex % 2 == 0 and mh2ColorRowAlt or mh2ColorRowBG
-			surface.SetDrawColor(base)
-			surface.DrawRect(0, 0, rw, rh)
-			local wedge = math.min(ScreenScaleH(11), math.floor(rw * 0.12))
-			surface.SetDrawColor(255, 255, 255, 14)
-			surface.DrawPoly({
-				{x = 0, y = 0},
-				{x = wedge, y = 0},
-				{x = math.max(wedge - ScreenScaleH(7), 0), y = rh},
-				{x = 0, y = rh}
-			})
-			if self:IsHovered() or selectedSteamID == ply:SteamID() then
-				surface.SetDrawColor(mh2ColorRowHover)
+			local t = CurTime()
+			local waveX = math.sin(t * 28 + rowWaveOffset) * shakeStrength * 0.25
+			local waveY = math.cos(t * 24 + rowWaveOffset) * shakeStrength * 0.2
+
+			if rowIndex % 2 == 0 then
+				surface.SetDrawColor(col.rowAlt)
 				surface.DrawRect(0, 0, rw, rh)
 			end
-			surface.SetDrawColor(mh2ColorRowBorder)
-			surface.DrawOutlinedRect(0, 0, rw, rh, 1)
 
-			local pingValue = tostring(ply:Ping() or 0) .. "ms"
-			local xpValue = tostring(math.floor(ply.exp or 0)) .. " XP"
-			local statsText = pingValue .. "  " .. xpValue
-			local nameX = ScreenScaleH(30)
-			local rightPadding = ScreenScaleH(14)
-			local textGap = ScreenScaleH(8)
-			surface.SetFont("ZCity_Veteran")
-			local statsW = surface.GetTextSize(statsText)
-			local maxNameW = math.max(0, rw - nameX - rightPadding - statsW - textGap)
-			local displayName = ply:Name() or "Unknown"
-			local appearanceName = ply:GetNWString("PlayerName", "")
-			local canSeeAppearanceNames = not LocalPlayer():Alive()
-			if canSeeAppearanceNames and appearanceName ~= "" then
-				displayName = displayName .. " (" .. appearanceName .. ")"
+			if selectedSteamID == ply:SteamID() then
+				surface.SetDrawColor(col.rowSelected)
+				surface.DrawRect(0, 0, rw, rh)
+			elseif self:IsHovered() then
+				surface.SetDrawColor(col.rowHover)
+				surface.DrawRect(0, 0, rw, rh)
+				surface.SetDrawColor(col.accent)
+				surface.DrawRect(0, rh - 1, rw, 1)
 			end
-			local fittedName = FitTextToWidth("ZCity_Veteran", displayName, maxNameW)
-			draw.SimpleText(fittedName, "ZCity_Veteran", nameX, rh / 2, mh2ColorText, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			draw.SimpleText(statsText, "ZCity_Veteran", rw - rightPadding, rh / 2, mh2ColorTextDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+
+			if not isSpectator then
+				local statusCol = ply:Alive() and col.rowAlive or col.rowDead
+				surface.SetDrawColor(statusCol.r, statusCol.g, statusCol.b, 120)
+				surface.DrawRect(0, 2, 2, rh - 4)
+			end
+
+			surface.SetDrawColor(col.rowBorder)
+			surface.DrawRect(0, rh - 1, rw, 1)
+
+			local avatarX = 6
+			local nameX = avatarX + avatarSize + 8
+
+			avatar:SetPos(avatarX + waveX, 3 + waveY)
+			avatar:SetSize(avatarSize, avatarSize)
+			avatar:SetPlayer(ply, 32)
+
+			if isSpectator then
+				local nameW = math.floor(rw * 0.65) - nameX
+				local pingX = math.floor(rw * 0.65)
+				local pingW = math.floor(rw * 0.20)
+				local displayName = ply:Name() or "Unknown"
+				local fitted = FitText("ZCity_Veteran", displayName, nameW - 8)
+				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+				draw.SimpleText(tostring(ply:Ping()) .. "ms", "ZCity_Veteran", pingX + pingW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			else
+				local nameW = math.floor(rw * 0.50) - nameX
+				local fragsX = math.floor(rw * 0.50)
+				local fragsW = math.floor(rw * 0.16)
+				local xpX = fragsX + fragsW
+				local xpW = math.floor(rw * 0.14)
+				local pingX = xpX + xpW
+				local pingW = math.floor(rw * 0.10)
+
+				local displayName = ply:Name() or "Unknown"
+				local appearanceName = ply:GetNWString("PlayerName", "")
+				if not LocalPlayer():Alive() and appearanceName ~= "" then
+					displayName = displayName .. " (" .. appearanceName .. ")"
+				end
+				local fitted = FitText("ZCity_Veteran", displayName, nameW - 8)
+				local nameCol = ply:Alive() and col.text or col.textBlood
+				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, nameCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+				draw.SimpleText(tostring(ply:Frags()), "ZCity_Veteran", fragsX + fragsW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				draw.SimpleText(tostring(math.floor(ply.exp or 0)), "ZCity_Veteran", xpX + xpW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+				local p = ply:Ping()
+				local pingCol = p < 80 and col.textDim or (p < 150 and Color(220, 180, 60, 200) or col.textBlood)
+				draw.SimpleText(tostring(p), "ZCity_Veteran", pingX + pingW * 0.5 + waveX, rh * 0.5 + waveY, pingCol, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+				for _, cx in ipairs({ fragsX, xpX, pingX }) do
+					surface.SetDrawColor(col.separator)
+					surface.DrawRect(cx, 4, 1, rh - 8)
+				end
+			end
 		end
 
-		function row:DoClick()
+		row.DoClick = function()
 			selectedSteamID = ply:SteamID()
-			if ply:IsBot() then chat.AddText(Color(255,0,0), "Нет, ты не можешь") return end
+			if ply:IsBot() then
+				chat.AddText(Color(255, 0, 0), "Нет, ты не можешь")
+				return
+			end
 			gui.OpenURL("https://steamcommunity.com/profiles/" .. ply:SteamID64())
 		end
 
-		function row:DoRightClick()
+		row.DoRightClick = function()
 			local Menu = DermaMenu()
-			Menu:AddOption("Account", function()
+			Menu:AddOption("Профиль", function()
 				zb.Experience.AccountMenu(ply)
-			end)
-			Menu:AddOption("Copy SteamID", function()
+			end):SetIcon("icon16/user.png")
+			Menu:AddOption("Копировать SteamID", function()
 				SetClipboardText(ply:SteamID())
-			end)
+			end):SetIcon("icon16/page_copy.png")
 			Menu:Open()
 		end
 	end
+
+	local bottomY = sizeY - bottomBarH - ScreenScaleH(1)
+
+	local bottomSep = vgui.Create("DPanel", scoreBoardMenu)
+	bottomSep:SetPos(margin, bottomY - 2)
+	bottomSep:SetSize(sizeX - margin * 2, 1)
+	bottomSep.Paint = function(_, sw, sh)
+		surface.SetDrawColor(col.separator)
+		surface.DrawRect(0, 0, sw, sh)
+	end
+
+	local function CreateMenuButton(parent, x, y, text, isToggle, getState, onClick)
+		local btn = vgui.Create("DButton", parent)
+		btn:SetText("")
+		btn:SetZPos(1500)
+		btn:SetCursor("hand")
+		surface.SetFont("ZCity_Veteran")
+		local tw, th = surface.GetTextSize(text)
+		local btnW = tw + ScreenScale(8)
+		local btnH = math.max(ScreenScaleH(15), th + 6)
+		btn:SetPos(x, y)
+		btn:SetSize(btnW, btnH)
+		local btnIdx = math.random(1, 100)
+		btn.Paint = function(self, bw, bh)
+			local t = CurTime()
+			local hovered = self:IsHovered()
+			local active = isToggle and getState and getState()
+			local wX = math.sin(t * 28 + btnIdx * 0.75) * shakeStrength * 0.3
+			local wY = math.cos(t * 24 + btnIdx * 0.65) * shakeStrength * 0.25
+			local textCol = col.text
+			if isToggle then
+				textCol = active and Color(180, 220, 180, 255) or col.textDim
+			end
+			if hovered then
+				textCol = Color(255, 255, 255, 255)
+			end
+			draw.SimpleText(text, "ZCity_Veteran", bw * 0.5 + wX, bh * 0.5 + wY, textCol, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			if hovered then
+				surface.SetDrawColor(col.accent)
+				surface.DrawRect(4, bh - 2, bw - 8, 1)
+			end
+			if isToggle then
+				local dotCol = active and Color(120, 200, 120, 200) or Color(160, 50, 50, 150)
+				surface.SetDrawColor(dotCol)
+				surface.DrawRect(2 + wX, bh * 0.5 - 2 + wY, 4, 4)
+			end
+		end
+		btn.DoClick = function()
+			if onClick then onClick() end
+		end
+		return btn
+	end
+
+	local muteBtnY = bottomY + ScreenScaleH(3)
+	local curBtnX = leftPanelX + ScreenScale(1)
+
+	local muteAllBtn = CreateMenuButton(scoreBoardMenu, curBtnX, muteBtnY, "Заглушить всех", true,
+		function() return hg.muteall end,
+		function()
+			hg.muteall = not hg.muteall
+			for _, ply in player.Iterator() do
+				if hg.muteall then
+					ply:SetVoiceVolumeScale(0)
+				else
+					local vol = (not hg.mutespect or ply:Alive()) and (hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1) or 0
+					ply:SetVoiceVolumeScale(vol)
+				end
+			end
+		end
+	)
+
+	curBtnX = curBtnX + muteAllBtn:GetWide() + ScreenScale(4)
+
+	CreateMenuButton(scoreBoardMenu, curBtnX, muteBtnY, "Заглушить наблюдателей", true,
+		function() return hg.mutespect end,
+		function()
+			hg.mutespect = not hg.mutespect
+			for _, ply in player.Iterator() do
+				if ply:Alive() then continue end
+				if hg.mutespect then
+					ply:SetVoiceVolumeScale(0)
+				else
+					local vol = not hg.muteall and (hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1) or 0
+					ply:SetVoiceVolumeScale(vol)
+				end
+			end
+		end
+	)
+
+	local isSpectator = LocalPlayer():Team() == TEAM_SPECTATOR
+	local actionText = isSpectator and "Играть" or "Наблюдать"
+	surface.SetFont("ZCity_Veteran")
+	local actionTW = surface.GetTextSize(actionText)
+	local actionBtnW = actionTW + ScreenScale(8)
+	local actionX = rightPanelX + rightPanelW - actionBtnW - ScreenScale(1)
+
+	CreateMenuButton(scoreBoardMenu, actionX, muteBtnY, actionText, false, nil,
+		function()
+			net.Start("ZB_SpecMode")
+			net.WriteBool(isSpectator and false or true)
+			net.SendToServer()
+			if IsValid(scoreBoardMenu) then
+				scoreBoardMenu:Remove()
+				scoreBoardMenu = nil
+			end
+		end
+	)
 
 	local function ClearRows(panel)
 		local canvas = panel:GetCanvas()
@@ -955,42 +1402,37 @@ function GM:ScoreboardShow()
 		end
 	end
 
-	local function BuildRows()
+	RebuildRows = function()
 		if not IsValid(scoreBoardMenu) then return end
-		ClearRows(playerListPanel)
-		ClearRows(spectatorListPanel)
-
-		local activePlayers = {}
-		local specPlayers = {}
+		local active = {}
+		local specs = {}
 		for _, ply in player.Iterator() do
 			if CurrentRound().name == "fear" and not ply:Alive() then continue end
 			if disappearance and ply ~= lply then continue end
 			if ply:Team() == TEAM_SPECTATOR then
-				specPlayers[#specPlayers + 1] = ply
+				specs[#specs + 1] = ply
 			else
-				activePlayers[#activePlayers + 1] = ply
+				active[#active + 1] = ply
 			end
 		end
-
-		SortPlayers(activePlayers, playerSort)
-		SortPlayers(specPlayers, spectatorSort)
-
-		for i, ply in ipairs(activePlayers) do
-			AddPlayerRow(playerListPanel:GetCanvas(), ply, i)
+		SortPlayers(active, playerSort)
+		SortPlayers(specs, spectatorSort)
+		local pScroll = playerListPanel:GetVBar():GetScroll()
+		local sScroll = spectatorListPanel:GetVBar():GetScroll()
+		ClearRows(playerListPanel)
+		ClearRows(spectatorListPanel)
+		for i, ply in ipairs(active) do
+			AddPlayerRow(playerListPanel:GetCanvas(), ply, i, false)
 		end
-		for i, ply in ipairs(specPlayers) do
-			AddPlayerRow(spectatorListPanel:GetCanvas(), ply, i)
+		for i, ply in ipairs(specs) do
+			AddPlayerRow(spectatorListPanel:GetCanvas(), ply, i, true)
 		end
+		playerListPanel:GetVBar():SetScroll(pScroll)
+		spectatorListPanel:GetVBar():SetScroll(sScroll)
 	end
 
-	local nextRefresh = 0
-	scoreBoardMenu.Think = function()
-		if nextRefresh > CurTime() then return end
-		nextRefresh = CurTime() + 0.45
-		BuildRows()
-	end
-	BuildRows()
-
+	scoreBoardMenu.RebuildRows = RebuildRows
+	RebuildRows()
 	return true
 end
 
