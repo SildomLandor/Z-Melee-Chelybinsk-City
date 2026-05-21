@@ -207,7 +207,7 @@ else
         ent.SvDB = ent.SvDB or {}
         ent.SvDB[dataName] = dataType
         if zb.Experience.OpenedAccount then
-            zb.Experience.OpenedAccount:Udpate(ent)
+            zb.Experience.OpenedAccount:Update(ent)
         end
     end)
 end
