@@ -471,7 +471,66 @@ local function OpenPlayerSoundSettings(selfa, ply)
 	Menu:Open()
 end
 
+local function GetVoiceIconPath(ply)
+	return ply:IsMuted() and "icon16/sound_mute.png" or "icon16/sound.png"
+end
 
+local function SetSoundButtonIcon(button, ply)
+	if not IsValid(button) or not IsValid(ply) then return end
+	local icon = GetVoiceIconPath(ply)
+	if button.SetImage then
+		button:SetImage(icon)
+		return
+	end
+	if button.SetIcon then
+		button:SetIcon(icon)
+		return
+	end
+	if button.SetMaterial then
+		button:SetMaterial(Material(icon))
+	end
+end
+
+local function OpenPlayerSoundSettings(selfa, ply)
+	local Menu = DermaMenu()
+	
+	if not hg.playerInfo[ply:SteamID()] or not istable(hg.playerInfo[ply:SteamID()]) then addToPlayerInfo(ply, false, 1) end
+
+	local mute = Menu:AddOption( "Mute", function(self)
+		if not IsValid(ply) then return end
+		if hg.muteall or (hg.mutespect and not ply:Alive()) then return end
+		
+		local muted = not ply:IsMuted()
+		ply:SetMuted(muted)
+		self:SetChecked(muted)
+		SetSoundButtonIcon(selfa, ply)
+		addToPlayerInfo(ply, muted, hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1)
+	end ) -- get your stupid one line ass outta here
+
+	mute:SetIsCheckable( true )
+	mute:SetChecked( ply:IsMuted() )
+	local volumeSlider = vgui.Create("DSlider", Menu)
+	volumeSlider:SetLockY( 0.5 )
+	volumeSlider:SetTrapInside( true )
+	volumeSlider:SetSlideX(hg.playerInfo[ply:SteamID()][2]) 
+	volumeSlider.OnValueChanged = function(self, x, y)
+		if not IsValid(ply) then return end
+		if hg.muteall or (hg.mutespect && !ply:Alive()) then return end
+		hg.playerInfo[ply:SteamID()][2] = x
+		ply:SetVoiceVolumeScale(hg.playerInfo[ply:SteamID()][2])
+		addToPlayerInfo(ply, ply:IsMuted(), hg.playerInfo[ply:SteamID()][2])
+	end
+
+	function volumeSlider:Paint(w,h)
+		draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0 ) )
+		draw.RoundedBox( 0, 0, 0, w*self:GetSlideX(), h, Color( 255, 0, 0 ) )
+		draw.DrawText( ( math.Round( 100*self:GetSlideX(), 0 ) ).."%", "DermaDefault", w/2, h/4, color_white, TEXT_ALIGN_CENTER )
+	end
+	function volumeSlider.Knob.Paint(self) end
+
+	Menu:AddPanel(volumeSlider)
+	Menu:Open()
+end
 
 hook.Add("Player Getup", "nomorespect", function(ply)
 	if not hg.mutespect then return end
