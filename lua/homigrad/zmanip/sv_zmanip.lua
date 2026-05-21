@@ -46,10 +46,17 @@ local gestures = {
 	["fuckyou"] = {"fuckyou", false},
 	["thumb_up"] = {"thump_up", false},
 	["point"] = {"point", false},
-	--["door_open_back"] = {"door_open_back", false},
-	--["door_open_forward"] = {"door_open_forward", false},
-	--["usedoor"] = "usedoor",
-	--["visordown"] = "visordown"
+	["door_open_back"] = {"door_open_back", false},
+	["door_open_forward"] = {"door_open_forward", false},
+	["usedoor"] = {"usedoor", false},
+	["visordown"] = {"visordown", false},
+	["ofges_help"] = {"ofges_help", false},
+	["ofges_hello"] = {"ofges_hello", false},
+	["ofges_regroup"] = {"ofges_regroup", false},
+	["ofges_wait"] = {"ofges_wait", false},
+	["ofges_omw"] = {"ofges_omw", false},
+	["ofges_danger"] = {"ofges_danger", false},
+	["ofges_aknowledge"] = {"ofges_aknowledge", false},
 }
 
 concommand.Add("hg_hand_gesture",function( ply, cmd, args )
