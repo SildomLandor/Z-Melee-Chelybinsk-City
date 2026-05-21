@@ -987,7 +987,7 @@ function GM:ScoreboardShow()
 		karma = 0
 		surface.SetFont("ZCity_Veteran")
 		karmtxt = 'Карма: ' .. karma
-		local karmCol = col.textBlood
+		local karmCol = col.textDim
 		surface.SetTextColor(karmCol)
 		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 250, srvY)
 		surface.DrawText(karmtxt)
@@ -1137,7 +1137,6 @@ function GM:ScoreboardShow()
 		pnl:SetSize(w, h)
 		pnl.Paint = function(_, pw, ph)
 			surface.SetDrawColor(col.panelBG)
-			surface.DrawRect(0, 0, pw, ph)
 			surface.SetDrawColor(col.panelBorder)
 			surface.DrawOutlinedRect(0, 0, pw, ph, 1)
 		end
