@@ -102,9 +102,9 @@ function plyMeta:GiveExp( ammout )
 		updateQuery:Where("steamid", steamID64)
 	updateQuery:Execute()
 
-    local points = math.min(ammout / 5, 10) * (1 + (self.EA_HasAccess and self:EA_HasAccess() and 2 or 0))
-    local mul = math.min(player.GetCount() / 10, 1)
-    self:PS_AddPoints(math.Round(points * mul,0))
+    --local points = math.min(ammout / 5, 10) * (1 + (self.EA_HasAccess and self:EA_HasAccess() and 2 or 0))
+    --local mul = math.min(player.GetCount() / 10, 1)
+    --self:PS_AddPoints(math.Round(points * mul,0))
     --self:SetNWInt( "experience", exp + ammout )
 end
 
