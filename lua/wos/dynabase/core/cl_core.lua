@@ -80,8 +80,3 @@ concommand.Add( "wos_dynabase_openconfig", function( ply, cmd, args )
 	wOS.DynaBase:OpenConfigMenu()
 end )
 
-list.Add( "DesktopWindows", {
-	icon = "wos/dynabase/widget.png",
-	title = "DynaBase Menu",
-	init = function() wOS.DynaBase:OpenConfigMenu() end,
-})
