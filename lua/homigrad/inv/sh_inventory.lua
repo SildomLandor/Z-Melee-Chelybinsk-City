@@ -184,7 +184,7 @@ if CLIENT then
 		plyMenu:Center()
 		plyMenu:MakePopup()
 		plyMenu:SetKeyBoardInputEnabled(false)
-		plyMenu:ShowCloseButton(true)
+		plyMenu:ShowCloseButton(false)
 		plyMenu:SetVisible(true)
 		plyMenu.Created = CurTime()
 		--plyMenu.OldPaint = 
