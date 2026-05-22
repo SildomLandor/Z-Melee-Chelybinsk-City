@@ -1,5 +1,5 @@
 local PANEL = {}
-
+local sw, sh = ScrW(), ScrH()
 local blur = Material("pp/blurscreen")
 local scale = 0.02
 local scalew = sw / 40
