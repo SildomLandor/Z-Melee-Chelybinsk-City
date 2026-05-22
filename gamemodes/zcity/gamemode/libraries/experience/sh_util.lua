@@ -142,9 +142,11 @@ end
 local plyMeta = FindMetaTable("Player")
 
 function plyMeta:GetAwards()
-    -- На клиенте данные уже получены через net.Receive("zb_xp_get") в cl_menu.lua,
-    -- и записаны в ply.skill / ply.exp
-    -- Не отправляем новый net запрос, чтобы избежать рекурсивного цикла!
+    if CLIENT then
+        net.Start("zb_xp_get")
+            net.WriteEntity(self)
+        net.SendToServer()
+    end
     return zb.Experience.GetAwards( self )
 end
 
@@ -205,7 +207,7 @@ else
         ent.SvDB = ent.SvDB or {}
         ent.SvDB[dataName] = dataType
         if zb.Experience.OpenedAccount then
-            zb.Experience.OpenedAccount:Update(ent)
+            zb.Experience.OpenedAccount:Udpate(ent)
         end
     end)
 end
