@@ -101,7 +101,22 @@ local function Run()
     local startTime = SysTime()
     print("Loading kzcity...")
     hg.loaded = false
-    LoadFilesInOrder(ProcessDirectoryOrdered("homigrad"))
+
+    local allFiles = ProcessDirectoryOrdered("homigrad")
+    local libFiles, otherFiles = {}, {}
+    for _, f in ipairs(allFiles) do
+        if f:match("^homigrad/libraries/") then
+            table_insert(libFiles, f)
+        else
+            table_insert(otherFiles, f)
+        end
+    end
+    for i = #libFiles, 1, -1 do
+        table_insert(otherFiles, 1, libFiles[i])
+    end
+
+    LoadFilesInOrder(otherFiles)
+
     hg.loaded = true
     print(string.format("Loaded zcity, %.5f seconds needed", SysTime() - startTime))
     hook.Run("HomigradRun")

@@ -570,7 +570,7 @@ players : 1 humans, 0 bots (20 max)
 	LocalPlayerSeen = true
 	hg.seenents = {}
 	hg.seenents2 = {}
-	local hg_fov = GetConVar("hg_fov")
+	local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "Change first-person field of view", 75, 100)
 	local math_cos = math.cos
 	local math_rad = math.rad
 	local util_DistanceToLine = util.DistanceToLine
