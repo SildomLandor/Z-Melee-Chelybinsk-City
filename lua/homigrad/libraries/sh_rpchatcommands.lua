@@ -1,4 +1,4 @@
-if engine.ActiveGamemode() == "sandbox" and CLIENT then
+if CLIENT then
     local commands = {
         ["/qa"] = function(msg, ply)
             return "¿ " .. msg .. " ? - " .. ply:GetPlayerName(), Color(255, 160, 255)
