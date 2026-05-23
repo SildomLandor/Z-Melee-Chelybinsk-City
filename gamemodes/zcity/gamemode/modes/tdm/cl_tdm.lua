@@ -72,7 +72,7 @@ function MODE:HUDPaint()
     local ColorObj = teams[team_].color2
     ColorObj.a = 255 * fade
     draw.SimpleText( Objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
+end
 
 net.Receive("tdm_open_buymenu",function() OpenBuyMenu() end)
 TDM_OpenedBuyMenu = TDM_OpenedBuyMenu or nil

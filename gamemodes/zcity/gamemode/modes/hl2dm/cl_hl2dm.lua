@@ -71,4 +71,4 @@ function MODE:HUDPaint()
     objective_color.a = 255 * fade
 
     draw.SimpleText(role_data.objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, objective_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
+end

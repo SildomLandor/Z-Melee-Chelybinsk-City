@@ -388,8 +388,7 @@ function MODE:HUDPaint()
 	local ColorObj = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color2 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color2 ) or MODE.TypeObjectives[MODE.Type].innocent.color2 or Color(255,255,255)
 	ColorObj.a = 255 * fade
 	draw.SimpleText( Objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
-end)
+end
 
 net.Receive("HMCD(SetSubRole)", function(len, ply)
 	lply.SubRole = net.ReadString()

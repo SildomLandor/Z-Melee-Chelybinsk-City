@@ -146,7 +146,7 @@ function MODE:HUDPaint()
     local ColorObj = fighter.color1
     ColorObj.a = 255 * fade
     draw.SimpleText( Objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
+end
 
 function MODE:RoundStart()
     for i,ply in player.Iterator() do
