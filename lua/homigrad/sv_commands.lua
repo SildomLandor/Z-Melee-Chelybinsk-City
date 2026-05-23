@@ -175,11 +175,6 @@ if SERVER then
         ply:ChatPrint("Fatass " .. target:Nick() .. " has been punished.")
     end, 2, "ник игрока"}
 
-    COMMANDS.pluv = {function(ply, args)
-        net.Start("PluvCommand")
-        net.Send(ply)
-    end, 0}
-
     COMMANDS.notify = {function(ply, args)
         if #args < 2 then
             ply:ChatPrint("Usage: !notify <player> <message>")

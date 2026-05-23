@@ -86,8 +86,6 @@ function zb:EndRound()
 	CurrentRound():EndRound()
 	hook.Run("ZB_EndRound")
 	zb.AddFade()
-
-	hg.achievements.SavePlayerAchievements()
 end
 
 function zb:CheckWinner(tbl)
@@ -171,12 +169,6 @@ function zb:EndRoundThink()
 
 			self:KillPlayers()
 			self:AutoBalance()
-
-			if hg.PluvTown.Active then
-				for _, ply in player.Iterator() do
-					ply:SetNetVar("CurPluv", "pluv")
-				end
-			end
 
 			CurrentRound().saved = {}
 

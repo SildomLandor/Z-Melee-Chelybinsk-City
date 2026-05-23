@@ -8,8 +8,7 @@ local Selects = {
     {Title = "Настройки", Func = function(luaMenu) luaMenu:SwitchToSettings() end},
     {Title = "Внешний Вид", Func = function(luaMenu) luaMenu:SwitchToAppearance() end},
     {Title = "Меню Предателя", GamemodeOnly = true, Func = function(luaMenu) luaMenu:SwitchToTraitorMenu() end},
-   -- {Title = "Достижения", Func = function(luaMenu) luaMenu:SwitchToAchievements() end},
-   -- {Title = "Скины", ShouldShow = function() return hg and hg.skins and hg.skins.HasAnySkins and hg.skins.HasAnySkins() end, Func = function(luaMenu) luaMenu:OpenSkinsPanel() end},
+ {Title = "Скины", ShouldShow = function() return hg and hg.skins and hg.skins.HasAnySkins and hg.skins.HasAnySkins() end, Func = function(luaMenu) luaMenu:OpenSkinsPanel() end},
     {Title = "Дискорд", Func = function(luaMenu) gui.OpenURL("https://discord.gg/FeHJjs5JZ9") end},
     {Title = "Главное Меню", Func = function(luaMenu) gui.ActivateGameUI() luaMenu:Close() end},
     {Title = "Отключиться", Func = function(luaMenu)
@@ -98,15 +97,6 @@ function PANEL:InitializeMarkup()
 		mapname = string.sub(mapname, prefix + 1)
 	end
 	local gm = string.lower(gmod.GetGamemode().Name .. " | " .. string.NiceName(zb ~= nil and zb.GetRoundName or mapname))
-
-    if hg.PluvTown.Active then
-        local text = "<font=ZC_MM_Title>meleecity</font>\n<font=ZCity_Small>" .. gm .. "</font>"
-
-        self.SelectedPluv = table.Random(hg.PluvTown.PluvMats)
-
-        return markup.Parse(text)
-    end
-
     local text = "<font=ZC_MM_Title>meleecity</font>\n<font=ZCity_Small>" .. gm .. "</font>"
     return markup.Parse(text)
 end
@@ -488,7 +478,6 @@ function PANEL:Think()
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(true) end
             if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(false) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(false) end
             if IsValid(self.TraitorMenuPanel) then self.TraitorMenuPanel:SetVisible(false) end
             if IsValid(self.TraitorPresetsPanel) then self.TraitorPresetsPanel:SetVisible(false) end
         elseif self.CurrentState == "Main" then
@@ -497,26 +486,17 @@ function PANEL:Think()
             end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
             if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(false) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(false) end
             if IsValid(self.TraitorMenuPanel) then self.TraitorMenuPanel:SetVisible(false) end
             if IsValid(self.TraitorPresetsPanel) then self.TraitorPresetsPanel:SetVisible(false) end
         elseif self.CurrentState == "Appearance" then
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
             if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(true) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(false) end
-            if IsValid(self.TraitorMenuPanel) then self.TraitorMenuPanel:SetVisible(false) end
-        elseif self.CurrentState == "Achievements" then
-            if IsValid(self.menuList) then self.menuList:SetVisible(false) end
-            if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
-            if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(false) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(true) end
             if IsValid(self.TraitorMenuPanel) then self.TraitorMenuPanel:SetVisible(false) end
         elseif self.CurrentState == "TraitorMenu" then
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
             if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(false) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(false) end
             if IsValid(self.TraitorMenuPanel) then 
                 self.TraitorMenuPanel:SetVisible(true) 
                 self.TraitorMenuPanel:SetMouseInputEnabled(true)
@@ -532,7 +512,6 @@ function PANEL:Think()
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
             if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(false) end
-            if IsValid(self.AchievementsPanel) then self.AchievementsPanel:SetVisible(false) end
             if IsValid(self.TraitorMenuPanel) then 
                 -- Keep visible if we are transitioning to loadout
                 if self.TargetState ~= "TraitorMenu" then
@@ -550,8 +529,7 @@ function PANEL:Think()
     -- Calculate Visual T (0 = Main, 1 = Target)
     -- This logic assumes we only transition from Main <-> Something.
     -- If we go Settings <-> Appearance directly, it might be weird, but for now we assume Main is the hub.
-    local visual_t = 0
-    if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "Achievements" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
+        if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
         if (self.TargetState == "TraitorMenu" and self.CurrentState == "TraitorPresets") or (self.TargetState == "TraitorPresets" and self.CurrentState == "TraitorMenu") then
             visual_t = self.TransitionProgress
         else
@@ -583,7 +561,7 @@ function PANEL:Think()
     
     -- Alpha handling for buttons during transition
     if IsValid(self.menuList) then
-        if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "Achievements" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
+    if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
             if self.CurrentState ~= "Main" then
                 self.menuList:SetAlpha(255)
                 self.menuList:SetVisible(false)
@@ -614,33 +592,9 @@ function PANEL:Think()
              if IsValid(self.SettingsReturnBtn) then
                 self.SettingsReturnBtn:SetAlpha(alpha)
                 if alpha <= 0 then self.SettingsReturnBtn:SetVisible(false) end
-             end
+            end
         end
     end
-
-    if IsValid(self.AppearancePanel) then
-        if self.TargetState == "Appearance" then
-            self.AppearancePanel:SetVisible(true)
-            self.AppearancePanel:SetAlpha(255 * visual_t)
-        elseif self.TargetState == "Main" and self.CurrentState == "Appearance" then
-             -- Fade out quickly
-             local alpha = math.Clamp(1 - ((1 - visual_t) * 3), 0, 1) * 255
-             self.AppearancePanel:SetAlpha(alpha)
-             if alpha <= 0 then self.AppearancePanel:SetVisible(false) end
-        end
-    end
-
-    if IsValid(self.AchievementsPanel) then
-        if self.TargetState == "Achievements" then
-            self.AchievementsPanel:SetVisible(true)
-            self.AchievementsPanel:SetAlpha(255 * visual_t)
-        elseif self.TargetState == "Main" and self.CurrentState == "Achievements" then
-            local alpha = math.Clamp(1 - ((1 - visual_t) * 3), 0, 1) * 255
-            self.AchievementsPanel:SetAlpha(alpha)
-            if alpha <= 0 then self.AchievementsPanel:SetVisible(false) end
-        end
-    end
-
     if IsValid(self.TraitorMenuPanel) then
         if self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" or (self.TargetState == "Main" and (self.CurrentState == "TraitorMenu" or self.CurrentState == "TraitorPresets")) then
             self.TraitorMenuPanel:SetVisible(true)
@@ -666,18 +620,12 @@ function PANEL:Think()
                 self.menuList:SetVisible(false)
             else
                 y = self.MenuTop - ScrH()
-                if self.CurrentState == "Achievements" or self.TargetState == "Achievements" then
-                    x = self.MenuX + ScrW()
-                    y = self.MenuTop
-                end
             end
         else
             if self.TargetState == "Appearance" or (self.TargetState == "Main" and self.CurrentState == "Appearance") then
                 y = self.MenuTop - ScrH() * eased_t
             elseif self.TargetState == "Settings" or (self.TargetState == "Main" and self.CurrentState == "Settings") then
                 x = self.MenuX - ScrW() * eased_t
-            elseif self.TargetState == "Achievements" or (self.TargetState == "Main" and self.CurrentState == "Achievements") then
-                x = self.MenuX + ScrW() * eased_t
             elseif self.TargetState == "TraitorMenu" or (self.TargetState == "Main" and self.CurrentState == "TraitorMenu") or self.TargetState == "TraitorPresets" or (self.TargetState == "Main" and self.CurrentState == "TraitorPresets") then
                 y = self.MenuTop + ScrH() * eased_t
             end
@@ -708,14 +656,6 @@ function PANEL:Think()
             self.SettingsReturnBtn:SetPos(baseX + ScrW() * (1 - eased_t) + (self.TransitionShakeX or 0), baseY + (self.TransitionShakeY or 0))
         else
             self.SettingsReturnBtn:SetPos(baseX + (self.TransitionShakeX or 0), baseY + (self.TransitionShakeY or 0))
-        end
-    end
-
-    if IsValid(self.AchievementsPanel) then
-        if self.TargetState == "Achievements" or (self.TargetState == "Main" and self.CurrentState == "Achievements") then
-            self.AchievementsPanel:SetPos(-ScrW() * (1 - eased_t) + (self.TransitionShakeX or 0), 0 + (self.TransitionShakeY or 0))
-        else
-            self.AchievementsPanel:SetPos(0 + (self.TransitionShakeX or 0), 0 + (self.TransitionShakeY or 0))
         end
     end
 
@@ -871,16 +811,7 @@ function PANEL:SwitchToTraitorPresets()
         self.TransitionProgress = 0
     end
     self:CreateTraitorMenuPanel()
-end
-
-function PANEL:SwitchToAchievements()
-    self.TargetState = "Achievements"
-    self.TransitionProgress = 0
-    self:CreateAchievementsPanel()
-    if hg and hg.achievements and hg.achievements.LoadAchievements then
-        hg.achievements.LoadAchievements()
     end
-end
 
 function PANEL:CloseSkinsPanel()
     self.SkinsPanelOpen = false
@@ -1464,194 +1395,6 @@ function PANEL:CreateSettingsPanel()
             return true
         end
     end
-end
-
-function PANEL:CreateAchievementButton(parent, ach)
-    local button = vgui.Create("DPanel", parent)
-    ach.img = isstring(ach.img) and Material(ach.img) or ach.img
-    button:SetMouseInputEnabled(true)
-    button:SetTall(ScreenScale(45))
-    button:Dock(TOP)
-    button:DockMargin(0, 0, 0, ScreenScale(6))
-    button.Padding = ScreenScale(10)
-
-    -- Hover State
-    button.IsHoveredState = false
-    button.OnCursorEntered = function(s)
-        s.IsHoveredState = true
-        sound.PlayFile("sound/hover.ogg", "noblock", function(station) if IsValid(station) then station:Play() end end)
-    end
-    button.OnCursorExited = function(s)
-        s.IsHoveredState = false
-    end
-
-    function button:UpdateDesc()
-        local width = self:GetWide() - self.Padding * 2
-        if width <= 0 then return end
-        if self.DescWidth == width then return end
-        self.DescWidth = width
-        -- Faint gray description
-        self.DescMarkup = markup.Parse("<font=ZCity_Small><color=180,180,180>" .. string.lower(ach.description) .. "</color></font>", width)
-    end
-
-    function button:PerformLayout()
-        self:UpdateDesc()
-    end
-
-    function button:Paint(w, h)
-        self:UpdateDesc()
-        self.lerpcolor = Lerp(FrameTime() * 10, self.lerpcolor or 0, 0)
-
-        local localach = hg.achievements.GetLocalAchievements()
-        local val = localach and localach[ach.key] and localach[ach.key].value or ach.start_value
-        local progress = math.Clamp(val / ach.needed_value, 0, 1)
-
-        -- Background (Faint Black/Transparent)
-        surface.SetDrawColor(0, 0, 0, 100)
-        surface.DrawRect(0, 0, w, h)
-        
-        -- Hover Flash
-        if self.IsHoveredState then
-            local alpha = math.random(20, 40)
-            surface.SetDrawColor(255, 255, 255, alpha)
-            surface.DrawRect(0, 0, w, h)
-        end
-        
-        -- Border (Faint White)
-        surface.SetDrawColor(255, 255, 255, 30)
-        surface.DrawOutlinedRect(0, 0, w, h)
-
-        -- Progress Bar (Bottom)
-        local barH = ScreenScale(3)
-        -- Bar Background
-        surface.SetDrawColor(0, 0, 0, 200)
-        surface.DrawRect(1, h - barH - 1, w - 2, barH)
-        
-        -- Bar Fill (Faint White)
-        surface.SetDrawColor(255, 255, 255, 150)
-        surface.DrawRect(1, h - barH - 1, (w - 2) * progress, barH)
-
-        -- Text Handling
-        local nameColor = Color(235, 235, 235)
-        local percentText = ach.showpercent and (math.floor(progress * 100) .. "%") or ""
-        
-        -- Shake effect on hover
-        local shakeX, shakeY = 0, 0
-        if self.IsHoveredState and math.random() > 0.8 then
-            shakeX = math.random(-1, 1)
-            shakeY = math.random(-1, 1)
-        end
-
-        draw.SimpleText(string.lower(ach.name), "ZCity_Veteran", self.Padding + shakeX, ScreenScale(4) + shakeY, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-        
-        if percentText ~= "" then
-            surface.SetFont("ZCity_Veteran")
-            local tw = surface.GetTextSize(percentText)
-            draw.SimpleText(percentText, "ZCity_Veteran", w - self.Padding - tw + shakeX, ScreenScale(4) + shakeY, nameColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-        end
-
-        if self.DescMarkup then
-            -- markup:Draw(x, y, alignx, aligny, alpha)
-            self.DescMarkup:Draw(self.Padding + shakeX, ScreenScale(22) + shakeY, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 255)
-        end
-    end
-
-    return button
-end
-
-function PANEL:UpdateAchievementsList()
-    if not IsValid(self.AchievementsScroll) then return end
-    self.AchievementsScroll:Clear()
-
-    for i, ach in pairs(hg.achievements.achievements_data.created_achevements) do
-        self.AchievementsScroll:AddItem(self:CreateAchievementButton(self.AchievementsScroll, ach))
-    end
-end
-
-function PANEL:CreateAchievementsPanel()
-    if IsValid(self.AchievementsPanel) then return end
-
-    self.AchievementsPanel = vgui.Create("DPanel", self)
-    self.AchievementsPanel:SetSize(ScrW(), ScrH())
-    self.AchievementsPanel:SetPos(0, 0)
-    self.AchievementsPanel:SetAlpha(0)
-    self.AchievementsPanel:SetVisible(false)
-    self.AchievementsPanel.Paint = function() end
-
-    local listW = math.max(ScreenScale(320), ScrW() * 0.6)
-    local listX = ScreenScale(28)
-    local listY = ScreenScaleH(80) -- Moved up since title is gone
-    local listH = math.max(ScrH() * 0.5, ScrH() - listY - ScreenScaleH(80))
-
-    self.AchievementsScroll = vgui.Create("DScrollPanel", self.AchievementsPanel)
-    self.AchievementsScroll:SetPos(listX, listY)
-    self.AchievementsScroll:SetSize(listW, listH)
-
-    local sbar = self.AchievementsScroll:GetVBar()
-    sbar:SetHideButtons(true)
-    function sbar:Paint(w, h)
-        draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 80))
-    end
-    function sbar.btnGrip:Paint(w, h)
-        self.lerpcolor = Lerp(FrameTime() * 10, self.lerpcolor or 0.2, (self:IsHovered() and 0.8 or 0.6))
-        draw.RoundedBox(0, 0, 0, w, h, Color(140 * self.lerpcolor, 120 * self.lerpcolor, 90 * self.lerpcolor))
-    end
-
-    local btn = vgui.Create("DLabel", self.AchievementsPanel)
-    btn:SetText("назад")
-    btn:SetMouseInputEnabled(true)
-    btn:SetFont("ZCity_Veteran")
-    btn:SetTall(ScreenScale(18))
-    btn:SizeToContents()
-    local padding = ScreenScale(4)
-    btn:SetWide(btn:GetWide() + padding * 2)
-    btn:SetPos(ScreenScale(20), ScrH() - ScreenScaleH(40))
-    btn:SetTextColor(Color(255, 255, 255))
-    btn.DoClick = function()
-        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-        self:SwitchToMain()
-    end
-
-    btn.Paint = function(self, w, h)
-        local font = self:GetFont()
-        local text = self:GetText()
-        surface.SetFont(font)
-        local tw, th = surface.GetTextSize(text)
-
-        if self:IsHovered() then
-            if not self.HoveredSoundPlayed then
-                sound.PlayFile("sound/hover.ogg", "noblock", function(station) if IsValid(station) then station:Play() end end)
-                self.HoveredSoundPlayed = true
-            end
-            
-            local alpha = 255
-            if math.random() > 0.9 then alpha = math.random(50, 200) end
-            
-            surface.SetDrawColor(255, 255, 255, alpha)
-            surface.DrawRect(padding, 0, tw, h)
-            self:SetTextColor(Color(0, 0, 0, alpha))
-        else
-            self.HoveredSoundPlayed = false
-            self:SetTextColor(Color(255, 255, 255))
-        end
-        
-        local offX, offY = 0, 0
-        if math.random() > 0.9 then
-             offX = math.random(-2, 2)
-             offY = math.random(-2, 2)
-        end
-        
-        draw.SimpleText(text, font, padding + offX, h/2 + offY, self:GetTextColor(), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        
-        if self:IsHovered() and math.random() > 0.7 then
-            local offsetX = math.random(-5, 5)
-            local offsetY = math.random(-2, 2)
-            draw.SimpleText(text, font, padding + offsetX, h/2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        end
-        return true
-    end
-
-    self:UpdateAchievementsList()
 end
 
 function PANEL:CreateTraitorMenuPanel()
@@ -2628,7 +2371,7 @@ function PANEL:Paint(w,h)
     
     -- Transition Logic for Backgrounds
     local progress = 0
-    if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "Achievements" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
+    if self.TargetState == "Settings" or self.TargetState == "Appearance" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
         progress = self.TransitionProgress
     elseif self.TargetState == "Main" then
         progress = 1 - self.TransitionProgress
@@ -2640,7 +2383,7 @@ function PANEL:Paint(w,h)
     if progress < 1 or self.TargetState == "Appearance" or self.TargetState == "TraitorMenu" or self.TargetState == "TraitorPresets" then
         -- Keep drawing if we are going to these menus
         surface.SetDrawColor( 80, 80, 80, 255 )
-        if self.TargetState == "Settings" or (self.TargetState == "Main" and self.CurrentState == "Settings") or self.TargetState == "Achievements" or (self.TargetState == "Main" and self.CurrentState == "Achievements") then
+        if self.TargetState == "Settings" or (self.TargetState == "Main" and self.CurrentState == "Settings") then
              surface.SetDrawColor( 80, 80, 80, 255 * (1 - progress) )
         elseif self.TargetState == "TraitorMenu" or (self.TargetState == "Main" and self.CurrentState == "TraitorMenu") or self.TargetState == "TraitorPresets" or (self.TargetState == "Main" and self.CurrentState == "TraitorPresets") then
              surface.SetDrawColor( 80, 80, 80, 255 )
@@ -2659,9 +2402,6 @@ function PANEL:Paint(w,h)
             elseif self.TargetState == "Appearance" or (self.TargetState == "Main" and self.CurrentState == "Appearance") then
                 offsetX = (w - zoomedW) / 2
                 offsetY = (h - zoomedH) / 2 - (h * progress)
-            elseif self.TargetState == "Achievements" or (self.TargetState == "Main" and self.CurrentState == "Achievements") then
-                offsetX = (w - zoomedW) / 2 + (w * progress)
-                offsetY = (h - zoomedH) / 2
             elseif self.TargetState == "TraitorMenu" or (self.TargetState == "Main" and self.CurrentState == "TraitorMenu") or self.TargetState == "TraitorPresets" or (self.TargetState == "Main" and self.CurrentState == "TraitorPresets") then
                 -- Move the main background DOWN as camera moves UP
                 offsetX = (w - zoomedW) / 2
@@ -2747,34 +2487,8 @@ function PANEL:Paint(w,h)
             surface.DrawTexturedRect(offsetX + shakeX + imageTransitionShakeX, offsetY + shakeY + imageTransitionShakeY, zoomedW, zoomedH)
         end
     end
-
-    if progress > 0 and (self.TargetState == "Achievements" or (self.TargetState == "Main" and self.CurrentState == "Achievements")) then
-        if not BgMat4:IsError() then
-            surface.SetMaterial(BgMat4)
-            local scale = 1.1
-            local zoomedW, zoomedH = w * scale, h * scale
-            local offsetX = (w - zoomedW) / 2 - (w * (1 - progress))
-            local offsetY = (h - zoomedH) / 2
-            local shakeX = math.random(-2, 2)
-            local shakeY = math.random(-2, 2)
-            surface.SetDrawColor(255, 255, 255, 255 * progress)
-            surface.DrawTexturedRect(offsetX + shakeX + imageTransitionShakeX, offsetY + shakeY + imageTransitionShakeY, zoomedW, zoomedH)
-        end
-
-        if not BgMat4Overlay:IsError() then
-            surface.SetMaterial(BgMat4Overlay)
-            local scale = 1.1
-            local zoomedW, zoomedH = w * scale, h * scale
-            local offsetX = (w - zoomedW) / 2 - (w * (1 - progress))
-            local offsetY = (h - zoomedH) / 2
-            local shakeX = math.random(-2, 2)
-            local shakeY = math.random(-2, 2)
-            surface.SetDrawColor(255, 255, 255, 200 * progress)
-            surface.DrawTexturedRect(offsetX + shakeX + imageTransitionShakeX, offsetY + shakeY + imageTransitionShakeY, zoomedW, zoomedH)
-        end
-    end
-
     
+
     -- Draw Flashing Image (Bottom Right in Settings) - BEFORE VHS
     if self.CurrentFlashImage and type(self.CurrentFlashImage) == "IMaterial" and not self.CurrentFlashImage:IsError() and self.FlashAlpha > 0 and (self.TargetState == "Settings" or self.CurrentState == "Settings") then
         surface.SetDrawColor(80, 80, 80, self.FlashAlpha) -- Made darker (150 -> 80)
@@ -2852,7 +2566,7 @@ function PANEL:Paint(w,h)
             -- Leave titleY as is (it was set above)
         else
             titleY = self.LogoY - ScrH()
-            if self.CurrentState == "Settings" or self.TargetState == "Settings" or self.CurrentState == "Achievements" or self.TargetState == "Achievements" then
+            if self.CurrentState == "Settings" or self.TargetState == "Settings" then
                 titleY = self.LogoY
             end
         end
