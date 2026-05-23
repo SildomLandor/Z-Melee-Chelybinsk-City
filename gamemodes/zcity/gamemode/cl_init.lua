@@ -393,6 +393,9 @@ local colSpect2 = Color(85,85,85,255)
 local colorBG = Color(55,55,55,255)
 local colorBGBlacky = Color(40,40,40,255)
 
+local voiceIconOn = Material("icon16/sound.png", "smooth mips")
+local voiceIconMute = Material("icon16/sound_mute.png", "smooth mips")
+
 hg.muteall = false
 hg.mutespect = false
 
@@ -435,26 +438,6 @@ local function OpenPlayerSoundSettings(selfa, ply)
 	Menu:Open()
 end
 
-local function GetVoiceIconPath(ply)
-	return ply:IsMuted() and "icon16/sound_mute.png" or "icon16/sound.png"
-end
-
-local function SetSoundButtonIcon(button, ply)
-	if not IsValid(button) or not IsValid(ply) then return end
-	local icon = GetVoiceIconPath(ply)
-	if button.SetImage then
-		button:SetImage(icon)
-		return
-	end
-	if button.SetIcon then
-		button:SetIcon(icon)
-		return
-	end
-	if button.SetMaterial then
-		button:SetMaterial(Material(icon))
-	end
-end
-
 local function OpenPlayerSoundSettings(selfa, ply)
 	local Menu = DermaMenu()
 	
@@ -467,7 +450,6 @@ local function OpenPlayerSoundSettings(selfa, ply)
 		local muted = not ply:IsMuted()
 		ply:SetMuted(muted)
 		self:SetChecked(muted)
-		SetSoundButtonIcon(selfa, ply)
 		addToPlayerInfo(ply, muted, hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1)
 	end ) -- get your stupid one line ass outta here
 
@@ -590,6 +572,7 @@ function GM:ScoreboardShow()
 	local listTopY = topBarH + sectionLabelH + columnHeaderH
 	local listH = sizeY - listTopY - bottomBarH - ScreenScaleH(4)
 	local rowH = ScreenScaleH(30)
+	local voiceIconSz = ScreenScaleH(17)
 
 	scoreBoardMenu = vgui.Create("ZFrame")
 	scoreBoardMenu:SetPos(posX, posY)
@@ -1141,11 +1124,21 @@ function GM:ScoreboardShow()
 		local avatar = vgui.Create("AvatarImage", row)
 		avatar:SetMouseInputEnabled(false)
 
-		local soundButton = vgui.Create("DImageButton", row)
+		local soundButton = vgui.Create("DButton", row)
+		soundButton:SetText("")
 		soundButton:Dock(RIGHT)
-		soundButton:SetWide(ScreenScale(10))
-		soundButton:DockMargin(4, 4, 6, 4)
-		SetSoundButtonIcon(soundButton, ply)
+		soundButton:SetWide(voiceIconSz + ScreenScale(4))
+		soundButton:DockMargin(4, 0, 6, 0)
+		soundButton.Paint = function(self, bw, bh)
+			if not IsValid(ply) then return end
+			local mat = ply:IsMuted() and voiceIconMute or voiceIconOn
+			local sz = math.min(voiceIconSz, bw, bh)
+			local x, y = (bw - sz) * 0.5, (bh - sz) * 0.5
+			local a = ply:IsMuted() and 120 or (self:IsHovered() and 255 or 200)
+			surface.SetDrawColor(255, 255, 255, a)
+			surface.SetMaterial(mat)
+			surface.DrawTexturedRect(x, y, sz, sz)
+		end
 		soundButton.DoClick = function(self)
 			OpenPlayerSoundSettings(self, ply)
 		end
