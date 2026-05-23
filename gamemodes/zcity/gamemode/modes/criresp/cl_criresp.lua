@@ -74,5 +74,5 @@ function MODE:HUDPaint()
 		ColorObj.a = 255 * fade
 		draw.SimpleText(Objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
-
+end
 

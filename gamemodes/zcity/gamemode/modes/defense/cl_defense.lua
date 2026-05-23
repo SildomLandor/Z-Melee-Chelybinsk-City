@@ -61,11 +61,7 @@ function MODE:HUDPaint()
     local objectiveColor = teams[team_].color2
     objectiveColor.a = 255 * fade
     draw.SimpleText(objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, objectiveColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
-
-
-hook.Add("HUDPaint", "DrawBossIncomingBanner", DrawBossIncomingBanner)
-
+end
 
 --[[concommand.Add("defense_test_boss_banner", function()
 	if not LocalPlayer():IsAdmin() then return end
