@@ -1433,41 +1433,6 @@ if CLIENT then
 	end)
 end
 
-/*  -- а кстати зачем здесь нэт, это же можно было на клиенте полностью сделать...
-	if CLIENT then
-		net.Receive("PluvCommand", function()
-			local specialSteamID = "STEAM_0:1:81850653" 
-			local playerSteamID = LocalPlayer():SteamID() 
-
-			local imageURLs = {"https://sadsalat.github.io/salatis/music/boof.gif", "https://i.ibb.co/drt1Lks/KtvCLSs.webp", "https://media.tenor.com/kG4PmVvJuRIAAAAC/rain-world-rain-world-saint.gif"} 
-			local soundURLs = {"https://sadsalat.github.io/salatis/music/sus-rock.mp3", "https://sadsalat.github.io/salatis/music/tiktok-raaaah-scream.mp3", "https://sadsalat.github.io/salatis/music/sus-rock.mp3"} 
-
-			local chosenImage = imageURLs[math.random(#imageURLs)]
-			local chosenSound = soundURLs[math.random(#soundURLs)]
-
-			sound.PlayURL(chosenSound, "", function(station)
-				if IsValid(station) then
-					station:Play()
-				else
-					print("Unable to play the sound.")
-				end
-			end)
-
-			local html = vgui.Create("HTML")
-			html:OpenURL(chosenImage)
-			html:SetSize(ScrW(), ScrH())
-			html:Center()
-			html:MakePopup()
-
-			timer.Simple(3, function()
-				if IsValid(html) then
-					html:Remove()
-				end
-			end)
-		end)
-	end
-*/
-
 local lightningMaterial = Material("sprites/lgtning")
 
 net.Receive("AnotherLightningEffect", function()

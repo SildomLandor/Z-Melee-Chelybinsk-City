@@ -71,7 +71,6 @@ surface.CreateFont("ZC_MM_Title", {
 })
 -- local Title = markup.Parse("error")
 
-local Pluv = Material("pluv/pluvkid.jpg")
 local LogoMat = Material("vgui/logo.png")
 local BgMat = Material("vgui/background.png")
 local EyeMat = Material("vgui/eye.png")
@@ -98,14 +97,6 @@ function PANEL:InitializeMarkup()
 		mapname = string.sub(mapname, prefix + 1)
 	end
 	local gm = string.lower(gmod.GetGamemode().Name .. " | " .. string.NiceName(zb ~= nil and zb.GetRoundName or mapname))
-
-    if hg.PluvTown.Active then
-        local text = "<font=ZC_MM_Title>meleecity</font>\n<font=ZCity_Small>" .. gm .. "</font>"
-
-        self.SelectedPluv = table.Random(hg.PluvTown.PluvMats)
-
-        return markup.Parse(text)
-    end
 
     local text = "<font=ZC_MM_Title>meleecity</font>\n<font=ZCity_Small>" .. gm .. "</font>"
     return markup.Parse(text)
