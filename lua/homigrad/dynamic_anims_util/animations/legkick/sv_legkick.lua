@@ -1,5 +1,47 @@
 local PLAYER = FindMetaTable("Player")
 
+local function PlyGrounded(ply)
+    if ply:IsOnGround() then return true end
+    local tr = util.TraceLine({
+        start = ply:GetPos() + ply:OBBCenter(),
+        endpos = ply:GetPos() + ply:OBBCenter() - Vector(0, 0, 14),
+        filter = ply,
+    })
+    return tr.Hit
+end
+
+local function LegKickFreeze(ply, cmd, mv, mul)
+    if ply:GetNWFloat("InLegKick", 0) <= CurTime() then return end
+
+    cmd:SetForwardMove(0)
+    cmd:SetSideMove(0)
+    mv:SetForwardSpeed(0)
+    mv:SetSideSpeed(0)
+    cmd:RemoveKey(IN_FORWARD)
+    cmd:RemoveKey(IN_BACK)
+    cmd:RemoveKey(IN_MOVELEFT)
+    cmd:RemoveKey(IN_MOVERIGHT)
+    cmd:RemoveKey(IN_SPEED)
+    cmd:RemoveKey(IN_JUMP)
+
+    ply.MovementInertia = vector_origin
+    ply.LastVelocity = vector_origin
+    ply.LastVelocityLen = 0
+    ply.CurrentSpeed = 0
+    if mul then mul[1] = 0 end
+end
+
+hook.Add("HG_MovementCalc_2", "HG-LegKickStop", function(mul, ply, cmd, mv)
+    LegKickFreeze(ply, cmd, mv, mul)
+end)
+
+hook.Add("FinishMove", "HG-LegKickStop", function(ply, mv)
+    if ply:GetNWFloat("InLegKick", 0) <= CurTime() then return end
+    if not PlyGrounded(ply) then return end
+    local vel = mv:GetVelocity()
+    mv:SetVelocity(Vector(0, 0, vel.z))
+end)
+
 local vpang = Angle(2, -1, 1)
 function PLAYER:LegAttack()
     if not self:Alive() or hg.GetCurrentCharacter(self):IsRagdoll() or self:GetNWFloat("InLegKick",0) > CurTime() then return end
@@ -7,8 +49,8 @@ function PLAYER:LegAttack()
     if self:GetNWBool("TauntStopMoving", false) then return end
     if hook.Run( "PlayerCanLegAttack", self ) == false then return end
 
-    local isAirKick = not self:IsOnGround()
-    local isSprintKick = self:IsSprinting() and self:IsOnGround()
+    local isSprintKick = self:IsSprinting() and PlyGrounded(self)
+    local isAirKick = not PlyGrounded(self) and self:GetVelocity().z > 40
 
     local handClass = "weapon_hands_sh"
     if self:HasWeapon("weapon_hg_coolhands") then
@@ -67,32 +109,23 @@ function PLAYER:LegAttack()
     dmg = dmg * (self:IsBerserk() and org.berserk * 5 or 1)
     dmg = dmg * (org.legstrength or 1)
 
+    local kickEnd = CurTime() + speed - animstopAdjust
+    self.InLegKick = kickEnd
+    self:SetNWFloat("InLegKick", kickEnd)
+
     if isAirKick then
         local launchAng = self:EyeAngles()
         launchAng[1] = 0
         self:SetVelocity(launchAng:Forward() * 180 + Vector(0, 0, -50))
-    elseif isSprintKick then
-        local launchAng = self:EyeAngles()
-        launchAng[1] = 0
-        self:SetVelocity(launchAng:Forward() * 120)
+    else
+        local v = self:GetVelocity()
+        self:SetVelocity(Vector(0, 0, v.z))
     end
 
-    self:PlayCustomAnims(anim, true, speed, true, animstopAdjust, {
+    self:PlayCustomAnims(anim, true, speed, isAirKick, animstopAdjust, {
         [0.12] = function(self)
             if hg.GetCurrentCharacter(self):IsRagdoll() then return end
             if not isAirKick and not self:IsOnGround() then self:PlayCustomAnims("") return end
-            local ang = self:EyeAngles()
-            ang[1] = 0
-
-            local reportPos = self:GetPos() + self:OBBCenter()
-            local tr = util.TraceLine({
-                start = reportPos,
-                endpos = reportPos + ang:Forward() * 32,
-                filter = {hg.GetCurrentCharacter(self),self}
-            })
-            if tr.Hit and self:IsOnGround() then
-                self:SetVelocity(ang:Forward() * -300)
-            end
         end,
         [0.21] = function(self)
             if hg.GetCurrentCharacter(self):IsRagdoll() then return end
@@ -100,19 +133,8 @@ function PLAYER:LegAttack()
             local ang = self:EyeAngles()
             if ang[1] > 55 and not (self:KeyDown(IN_DUCK) or self:Crouching()) then
                 self:ViewPunch(vpang)
-                return
             else
                 self:ViewPunch(-vpang)
-            end
-            ang[1] = 0
-            local reportPos = self:GetPos() + self:OBBCenter()
-            local tr = util.TraceLine({
-                start = reportPos,
-                endpos = reportPos + ang:Forward() * 72,
-                filter = {hg.GetCurrentCharacter(self),self}
-            })
-            if tr.Hit and self:IsOnGround() then
-                self:SetVelocity(ang:Forward() * -150)
             end
         end,
         [0.33] = function(self)
@@ -278,8 +300,6 @@ function PLAYER:LegAttack()
             end
         end
     })
-    self.InLegKick = CurTime() + speed - animstopAdjust
-    self:SetNWFloat("InLegKick",CurTime() + speed - animstopAdjust)
 end
 
 concommand.Add("hg_kick",function(ply)

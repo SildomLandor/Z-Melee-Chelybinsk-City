@@ -54,18 +54,22 @@ function postprs.LayerSetWeight(name, value)
 end
 
 local addtiveLayer = postprs.addtiveLayer
-local tab = {
-	["$pp_colour_brightness"] = 0,
-	["$pp_colour_contrast"] = 1,
-	["$pp_colour_colour"] = 1
+
+local h = {
+	["$pp_colour_addr"] = 0.012,
+	["$pp_colour_addg"] = -0.006,
+	["$pp_colour_addb"] = 0.018,
+	["$pp_colour_brightness"] = -0.045,
+	["$pp_colour_contrast"] = 1.12,
+	["$pp_colour_colour"] = 0.28,
+	["$pp_colour_mulr"] = 0,
+	["$pp_colour_mulg"] = 0,
+	["$pp_colour_mulb"] = 0,
 }
 
+local tab = table.Copy(h)
 local hook_Run = hook.Run
-local potatoTab = {
-	["$pp_colour_brightness"] = 0,
-	["$pp_colour_contrast"] = 1,
-	["$pp_colour_colour"] = 1
-}
+local potatoTab = table.Copy(h)
 
 hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	if hg.LightPostFX and hg.LightPostFX() then
@@ -76,12 +80,13 @@ hook.Add("RenderScreenspaceEffects", "homigrad", function()
 
 	hook_Run("Post Processing")
 
+	local extraBright = 0
 	for i = 1, #layers_name do
 		local layer = layers[layers_name[i]]
-		addtiveLayer.brightness = Lerp(layer.weight, 0, layer.brightness or 0)
+		extraBright = extraBright + Lerp(layer.weight, 0, layer.brightness or 0)
 	end
 
-	tab["$pp_colour_brightness"] = addtiveLayer.brightness
+	tab["$pp_colour_brightness"] = h["$pp_colour_brightness"] + extraBright
 	DrawColorModify(tab)
 
 	hook_Run("Post Pre Post Processing")
@@ -658,6 +663,28 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		render.SetMaterial(noiseMat)
 		render.DrawScreenQuad()
 	end
+end)
+
+hook.Add("Post Post Processing", "HorrorMood", function()
+	if hg.LightPostFX and hg.LightPostFX() then return end
+	if fx.drawPain then return end
+
+	local ct = CurTime()
+	updScreen()
+
+	vignetteMat:SetFloat("$c2_x", ct + 10000)
+	vignetteMat:SetFloat("$c0_z", 0.55)
+	vignetteMat:SetFloat("$c1_y", 0.55)
+	render.SetMaterial(vignetteMat)
+	render.DrawScreenQuad()
+
+	painMat:SetFloat("$c2_x", ct + 10000)
+	painMat:SetFloat("$c0_y", 0.8)
+	painMat:SetFloat("$c0_z", 1)
+	painMat:SetFloat("$c1_x", 0.07)
+	painMat:SetFloat("$c1_y", 0.07)
+	render.SetMaterial(painMat)
+	render.DrawScreenQuad()
 end)
 
 hook.Add("Player_Death", "ItDoesntNow", function(ply)
