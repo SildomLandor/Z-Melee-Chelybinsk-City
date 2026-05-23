@@ -8,12 +8,12 @@ concommand.Add("suicide", function(ply)
 
     local wep = ply:GetActiveWeapon()
     if not IsValid(wep) then
-        ply:ChatPrint("Я... не могу закончить этим...")
+        ply:Notify("Я... не могу закончить этим...", true, "suicide", 0)
         return
     end
 
     if wep.ishgweapon and wep:Clip1() <= 0 then
-        ply:ChatPrint("Пусто...")
+        ply:Notify("Пусто...", true, "suicide", 0)
         return
     end
 

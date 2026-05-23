@@ -311,9 +311,7 @@ if CLIENT then
 					last_time = nil
 				end
 
-				local font = hg.notificationFont
-
-				surface.SetFont(font)
+				surface.SetFont('ZCity_Veteran')
 				local txtw, txth = surface.GetTextSize(last_message or txt)
 
 				local col = coloruse
@@ -347,10 +345,10 @@ if CLIENT then
 							col2 = HSVToColor(350 + (math.sin(SysTime() + i / 50) * 10 * hg.berserkIntensity), 0.8, 0.9)
 							local posX = -math.sin(RealTime() * 7) * i / 2 * hg.berserkIntensity
 							local posY = -math.cos(RealTime() * 7) * i / 2 * hg.berserkIntensity
-							draw.SimpleText(last_message or txt, font, posX, posY, ColorAlpha(col2, col.a - i * 5), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+							draw.SimpleText(last_message or txt, 'ZCity_Veteran', posX, posY, ColorAlpha(col2, col.a - i * 5), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 						end
 
-						draw.GlowingText(last_message or txt, font, 0, 0, ColorAlpha(col2, col.a), ColorAlpha(col2, math.min(col.a, 50)), ColorAlpha(col2, math.min(col.a, 10)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+						draw.GlowingText(last_message or txt, 'ZCity_Veteran', 0, 0, ColorAlpha(col2, col.a), ColorAlpha(col2, math.min(col.a, 50)), ColorAlpha(col2, math.min(col.a, 10)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 						-- draw.SimpleTextOutlined(last_message or txt, font, 0, 0, ColorAlpha(col, col.a), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1, colBrown)
 					DisableClipping(false)
 					cam.PopModelMatrix()
@@ -364,7 +362,7 @@ if CLIENT then
 				else
 					local x, y = ScrW() / 2 - txtw / 2 + math.Rand(0, org.pain > 10 and org.pain / 10 or 0) + math.Rand(0, (255 - clr.g) / 255 * 2), ScrH() - ScrH() / 6 + math.Rand(0, org.pain > 10 and org.pain / 10 or 0) + math.Rand(0, (255 - clr.g) / 255 * 2)
 
-					draw.SimpleTextOutlined(last_message or txt, font, x, y, col, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1.5, colBrown)
+					draw.SimpleTextOutlined(last_message or txt, 'ZCity_Veteran', x, y, col, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER, 1.5, colBrown)
 				end
 			else
 				local tbl = hg.currentNotification
