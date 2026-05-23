@@ -868,9 +868,6 @@ function PANEL:SwitchToAchievements()
     self.TargetState = "Achievements"
     self.TransitionProgress = 0
     self:CreateAchievementsPanel()
-    if hg and hg.achievements and hg.achievements.LoadAchievements then
-        hg.achievements.LoadAchievements()
-    end
 end
 
 function PANEL:CloseSkinsPanel()
@@ -1493,9 +1490,7 @@ function PANEL:CreateAchievementButton(parent, ach)
         self:UpdateDesc()
         self.lerpcolor = Lerp(FrameTime() * 10, self.lerpcolor or 0, 0)
 
-        local localach = hg.achievements.GetLocalAchievements()
-        local val = localach and localach[ach.key] and localach[ach.key].value or ach.start_value
-        local progress = math.Clamp(val / ach.needed_value, 0, 1)
+        local progress = 0
 
         -- Background (Faint Black/Transparent)
         surface.SetDrawColor(0, 0, 0, 100)
@@ -1554,9 +1549,6 @@ function PANEL:UpdateAchievementsList()
     if not IsValid(self.AchievementsScroll) then return end
     self.AchievementsScroll:Clear()
 
-    for i, ach in pairs(hg.achievements.achievements_data.created_achevements) do
-        self.AchievementsScroll:AddItem(self:CreateAchievementButton(self.AchievementsScroll, ach))
-    end
 end
 
 function PANEL:CreateAchievementsPanel()
