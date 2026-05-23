@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Сломанная бутылка"
+SWEP.PrintName = "Розочка"
 SWEP.Instructions = "Разбитая пивная бутылка, похоже, кто-то был слишком пьян.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true

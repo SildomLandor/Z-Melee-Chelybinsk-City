@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Подходить"
+SWEP.PrintName = "Набор костюмов"
 SWEP.Instructions = "Простой костюм вместе с маской поможет скрыть вашу личность, ваша одежда останется в чемодане, в дальнейшем вы сможете ее надеть обратно."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true

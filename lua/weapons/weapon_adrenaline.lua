@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_bandage_sh"
-SWEP.PrintName = "Автоинжектор адреналина"
+SWEP.PrintName = "Шприц с адреналином"
 SWEP.Instructions = "Адреналин, также известный как адреналин, представляет собой гормон и лекарство, которое участвует в регуляции висцеральных функций. Используйте это, чтобы повысить кровяное давление и/или остановить остановку сердца. ПКМ, чтобы ввести кого-нибудь другого."
 SWEP.Category = "ZCity Medicine"
 SWEP.Spawnable = true

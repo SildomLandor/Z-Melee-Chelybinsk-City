@@ -2,19 +2,19 @@
 SWEP.Base = "weapon_hg_grenade_tpik"
 SWEP.PrintName = "РГД-5"
 SWEP.Instructions = 
-[[RGD-5 is an iconic post-WWII soviet anti-personnel grenade designed in the early 1950s. It's widely exported and used even to this day. It has a pyrotechnic delay of 3.2-4.2 seconds.
+[[РГД-5 — легендарная советская осколочная граната, разработанная в начале 1950-х годов после Второй мировой войны. Широко используется и сегодня, экспортировалась по всему миру. Имеет пиротехнический запал с задержкой 3.2–4.2 секунды.
 
-Reload looking on surface will set tripwire
+Перезарядка с наведением на поверхность — установка на растяжку.
 
-LMB - High ready
-While high ready:
-RMB to remove spoon.
-Reload to insert pin back.
+ЛКМ — Высокая готовность
+В высокой готовности:
+ПКМ — снять чеку.
+Перезарядка — вставить чеку обратно.
 
-RMB - Low ready
-While low ready:
-LMB to remove spoon.
-Reload to insert pin back.
+ПКМ — Низкая готовность
+В низкой готовности:
+ЛКМ — снять чеку.
+Перезарядка — вставить чеку обратно.
 ]]--"тильда двуеточее три"
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true

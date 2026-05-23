@@ -997,12 +997,12 @@ function GM:ScoreboardShow()
 		local specLabel = "НАБЛЮДАТЕЛИ"
 		local specLW = surface.GetTextSize(specLabel)
 		surface.SetTextColor(col.textDim)
-		surface.SetTextPos(rightPanelX + rightPanelW - specLW - ScreenScale(3) + labelShakeX2, sectionY - 3 + labelShakeY2)
+		surface.SetTextPos(rightPanelX + labelShakeX + rightPanelW - specLW - ScreenScale(3) - 180, sectionY - 3 + labelShakeY2)
 		surface.DrawText(specLabel)
 
 		surface.SetFont("ZB_InterfaceSmall")
 		surface.SetTextColor(col.textMuted)
-		surface.SetTextPos(rightPanelX + rightPanelW + 4 - ScreenScale(3) + labelShakeX2, sectionY + 1 + labelShakeY2)
+		surface.SetTextPos(rightPanelX + rightPanelW + labelShakeX + 4 - ScreenScale(3) - 185, sectionY + 1 + labelShakeY2)
 		surface.DrawText(" [" .. specCount .. "]")
 
 		local sepY = sectionY + sectionLabelH - 2

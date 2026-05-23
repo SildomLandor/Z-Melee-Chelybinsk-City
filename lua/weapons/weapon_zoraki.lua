@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Форсированный Сталкер М906"
+SWEP.PrintName = "Зораки-906"
 SWEP.Author = "Zoraki"
 SWEP.Instructions = "Универсальный малолитражный газовый пистолет несмертоносного действия. Под патрон 9 мм P.A.K."
 SWEP.Category = "Weapons - Pistols"

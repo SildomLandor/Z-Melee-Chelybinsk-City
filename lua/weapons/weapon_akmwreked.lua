@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Подземный Акм"
+SWEP.PrintName = "Поломанный АКМ"
 SWEP.Author = "Unknown..."
 SWEP.Instructions = "База АКМ, использованная в этой сборке, сделана из различных деталей АК от аналогичных автоматов, она была хреновая, стреляет медленнее АКМ, а также имеет чрезвычайно сильную отдачу. Используется калибр 7,62х39."
 SWEP.Category = "Weapons - Assault Rifles"

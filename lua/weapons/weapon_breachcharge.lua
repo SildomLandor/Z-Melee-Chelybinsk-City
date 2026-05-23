@@ -13,7 +13,7 @@ end
 SWEP.ViewModel = ""
 SWEP.WorldModel = "models/props_combine/combine_mine01.mdl"
 
-SWEP.PrintName = "Обвинение в нарушении"
+SWEP.PrintName = "Бронебомба"
 SWEP.Instructions = "Это взрывное устройство, используемое для взлома закрытых и/или запертых дверей.\\n\\nЩелкните левой кнопкой мыши, чтобы разместить его на двери."
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true
