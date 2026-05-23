@@ -1179,7 +1179,8 @@ hook.Add("PlayerCanPickupWeapon", "HMCD_TraitorRadioPickup", function( ply, weap
     if ply.isTraitor and weapon:GetClass() == "weapon_walkie_talkie" then
         if ply:HasWeapon("weapon_walkie_talkie") then
             weapon:Remove()
-			ply:SetActiveWeapon("weapon_walkie_talkie")
+			local wpn = ply:GetWeapon("weapon_walkie_talkie")
+			if IsValid(wpn) then ply:SetActiveWeapon(wpn) end
 			ply:ChatPrint("You hide the additional walkie talkie.")
         end
     end
