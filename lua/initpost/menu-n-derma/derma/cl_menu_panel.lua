@@ -248,10 +248,9 @@ function PANEL:Init()
 
     self.LogoX = ScreenScaleH(20)
     self.LogoY = ScreenScaleH(20)
-    
-    surface.SetFont("ZC_MM_Title")
-    local _, th = surface.GetTextSize("meleecity: delicacy")
-    self.LogoH = th
+
+    self:InitBloodyTitle()
+    self.LogoH = self.TitleH
 
     self.MenuTop = self.LogoY + self.LogoH + ScreenScaleH(60)
     
@@ -2360,6 +2359,214 @@ function PANEL:First( ply )
     self:AlphaTo( 255, 0.1, 0, nil )
 end
 
+local titleDripChars = {
+    { char = 1, xfrac = 0.85, delay = 1.5 },
+    { char = 3, xfrac = 0.5, delay = 0.8 },
+    { char = 4, xfrac = 0.1, delay = 2.2 },
+    { char = 5, xfrac = 0.9, delay = 0.3 },
+    { char = 6, xfrac = 0.5, delay = 3.0 },
+    { char = 7, xfrac = 0.15, delay = 1.1 },
+    { char = 7, xfrac = 0.85, delay = 4.0 },
+}
+
+function PANEL:InitBloodyTitle()
+    local titleFont = "ZC_MM_Title"
+    local titleText = "Челябинск"
+    surface.SetFont(titleFont)
+    local titleW, titleH = surface.GetTextSize(titleText)
+
+    self.TitleFont = titleFont
+    self.TitleText = titleText
+    self.TitleW = titleW
+    self.TitleH = titleH
+    self.TitleColor = Color(140, 15, 12, 255)
+    self.TitleColorDark = Color(90, 8, 6, 255)
+    self.TitleShadowColor = Color(40, 4, 2, 200)
+
+    local charPos = {}
+    local accW = 0
+    local i = 1
+    for _, code in utf8.codes(titleText) do
+        local ch = utf8.char(code)
+        local chW = surface.GetTextSize(ch)
+        charPos[i] = { x = accW, w = chW, cx = accW + chW * 0.5 }
+        accW = accW + chW
+        i = i + 1
+    end
+
+    local drips = {}
+    for _, src in ipairs(titleDripChars) do
+        local charInfo = charPos[src.char]
+        if not charInfo then continue end
+        local drip = {
+            localX = charInfo.x + charInfo.w * src.xfrac,
+            width = math.Rand(1.5, 3.5),
+            maxLength = math.Rand(ScreenScaleH(20), ScreenScaleH(80)),
+            speed = math.Rand(8, 25),
+            delay = src.delay,
+            currentLength = 0,
+            started = false,
+            dropSize = math.Rand(2, 4.5),
+            dropSpeed = math.Rand(15, 40),
+            dropFallen = false,
+            dropY = 0,
+            dropAlpha = 255,
+            alpha = math.random(160, 240),
+            wobble = math.Rand(0, math.pi * 2),
+            branches = {},
+        }
+        if math.random() > 0.5 then
+            for _ = 1, math.random(1, 2) do
+                drip.branches[#drip.branches + 1] = {
+                    startFrac = math.Rand(0.2, 0.7),
+                    angle = math.Rand(-0.4, 0.4),
+                    length = math.Rand(ScreenScaleH(5), ScreenScaleH(20)),
+                    width = math.Rand(0.8, 1.5),
+                    alpha = math.random(80, 160),
+                }
+            end
+        end
+        drips[#drips + 1] = drip
+    end
+
+    local spots = {}
+    for _ = 1, math.random(3, 6) do
+        spots[#spots + 1] = {
+            x = math.Rand(-titleW * 0.05, titleW * 1.05),
+            y = math.Rand(-titleH * 0.3, titleH * 0.3),
+            size = math.Rand(2, 6),
+            alpha = math.random(20, 60),
+        }
+    end
+
+    self.TitleDrips = drips
+    self.TitleBloodSpots = spots
+    self.TitleStartTime = CurTime()
+end
+
+function PANEL:PaintBloodyTitle(baseX, baseY, shakeX, shakeY)
+    local t = CurTime()
+    local age = t - (self.TitleStartTime or t)
+    shakeX = shakeX or 0
+    shakeY = shakeY or 0
+
+    DisableClipping(true)
+
+    local bx = baseX + shakeX * 1.5
+    local by = baseY + shakeY * 1.5
+    local titleText = self.TitleText
+    local titleH = self.TitleH
+    local titleFont = self.TitleFont
+
+    for _, drip in ipairs(self.TitleDrips or {}) do
+        if age < drip.delay then continue end
+        drip.started = true
+        local dripX = bx + drip.localX
+        local dripStartY = by + titleH - ScreenScaleH(10)
+
+        if drip.currentLength < drip.maxLength then
+            drip.currentLength = math.min(drip.currentLength + drip.speed * FrameTime(), drip.maxLength)
+        end
+
+        local len = drip.currentLength
+        if len <= 0 then continue end
+
+        local wobbleX = math.sin(t * 0.8 + drip.wobble) * 0.5
+        local segments = math.max(math.floor(len / 3), 1)
+
+        for s = 0, segments do
+            local frac = s / segments
+            local sy = dripStartY + len * frac
+            local segAlpha = drip.alpha * (1 - frac * 0.6)
+            local segWidth = drip.width * (1 - frac * 0.3)
+            surface.SetDrawColor(Lerp(frac, 140, 70), Lerp(frac, 15, 5), Lerp(frac, 12, 4), segAlpha)
+            surface.DrawRect(dripX - segWidth * 0.5 + wobbleX * frac, sy, segWidth, 3)
+        end
+
+        local bulgeW = drip.width * 1.8
+        surface.SetDrawColor(140, 18, 14, drip.alpha * 0.8)
+        surface.DrawRect(dripX - bulgeW * 0.5, dripStartY - 1, bulgeW, math.min(4, len * 0.3))
+
+        if drip.dropFallen then
+            drip.dropY = drip.dropY + drip.dropSpeed * FrameTime()
+            drip.dropAlpha = math.max(drip.dropAlpha - 80 * FrameTime(), 0)
+            if drip.dropAlpha > 0 then
+                local ds = drip.dropSize * 0.8
+                surface.SetDrawColor(120, 10, 8, drip.dropAlpha)
+                for dy = -ds, ds, 0.5 do
+                    local radius = math.sqrt(math.max(ds * ds - dy * dy, 0)) * 0.6
+                    surface.DrawRect(dripX - radius + wobbleX, drip.dropY + dy * 1.5, radius * 2, 1)
+                end
+            end
+            if drip.dropAlpha <= 0 then
+                drip.dropFallen = false
+                drip.dropAlpha = 255
+                drip.dropY = 0
+                drip.currentLength = drip.maxLength * math.Rand(0.7, 0.95)
+                drip.delay = age + math.Rand(3, 8)
+            end
+        end
+
+        for _, branch in ipairs(drip.branches) do
+            local branchStartY = dripStartY + len * branch.startFrac
+            if drip.currentLength < drip.maxLength * branch.startFrac then continue end
+            local branchLen = branch.length * math.min((drip.currentLength - drip.maxLength * branch.startFrac) / (drip.maxLength * 0.3), 1)
+            for bs = 0, math.floor(branchLen / 2) do
+                local bfrac = bs / math.max(math.floor(branchLen / 2), 1)
+                surface.SetDrawColor(100, 10, 8, branch.alpha * (1 - bfrac * 0.7))
+                surface.DrawRect(
+                    dripX + branch.angle * branchLen * bfrac + wobbleX * 0.5 - branch.width * 0.5,
+                    branchStartY + branchLen * bfrac,
+                    branch.width, 2
+                )
+            end
+        end
+    end
+
+    for _, spot in ipairs(self.TitleBloodSpots or {}) do
+        surface.SetDrawColor(120, 12, 10, spot.alpha)
+        local s = spot.size
+        for dy = -s, s, 0.8 do
+            local radius = math.sqrt(math.max(s * s - dy * dy, 0))
+            radius = radius * (0.85 + math.sin(dy * 2.5) * 0.15)
+            surface.DrawRect(bx + spot.x - radius, by + titleH * 0.5 + spot.y + dy, radius * 2, 1)
+        end
+    end
+
+    surface.SetFont(titleFont)
+    surface.SetTextColor(self.TitleShadowColor)
+    surface.SetTextPos(bx + 3, by + 3)
+    surface.DrawText(titleText)
+
+    surface.SetTextColor(self.TitleColorDark)
+    surface.SetTextPos(bx + 1, by + 1)
+    surface.DrawText(titleText)
+
+    local pulse = math.sin(t * 1.5) * 0.15 + 0.85
+    local tc = self.TitleColor
+    surface.SetTextColor(tc.r * pulse, tc.g * pulse, tc.b * pulse, 255)
+    surface.SetTextPos(bx, by)
+    surface.DrawText(titleText)
+
+    surface.SetTextColor(255, 80, 60, (math.sin(t * 0.7) * 0.3 + 0.7) * 35)
+    surface.SetTextPos(bx, by - 1)
+    surface.DrawText(titleText)
+
+    if math.random() > 0.97 then
+        surface.SetTextColor(180, 20, 15, math.random(20, 50))
+        surface.SetTextPos(bx + math.random(-4, 4), by + math.random(-2, 2))
+        surface.DrawText(titleText)
+    end
+
+    if math.random() > 0.92 then
+        surface.SetTextColor(200, 0, 0, 15)
+        surface.SetTextPos(bx + 2, by)
+        surface.DrawText(titleText)
+    end
+
+    DisableClipping(false)
+end
+
 local gradient_d = surface.GetTextureID("vgui/gradient-d")
 local gradient_r = surface.GetTextureID("vgui/gradient-r")
 local gradient_l = surface.GetTextureID("vgui/gradient-l")
@@ -2527,29 +2734,13 @@ function PANEL:Paint(w,h)
         surface.DrawRect(0, math.random(0, h), w, math.random(1, 2))
     end
     
-    -- Title Transition Logic
-    local text1 = "Челябинск"
-    
-    surface.SetFont("ZC_MM_Title")
-    
-    -- Always Draw Main Title (No Transition)
-    local time = CurTime()
-    local blink_chance = math.sin(time * 0.5)
-    local color_val = 0
-    if blink_chance > 0.8 then
-        local blink_speed = 20
-        color_val = (math.sin(time * blink_speed) + 1) / 2 * 255
-    end
-    
-    surface.SetTextColor(255, color_val, color_val, 255)
-    
     local textShakeX = math.random(-10, 10) * 0.1
     local textShakeY = math.random(-10, 10) * 0.1
     if math.random() > 0.9 then
         textShakeX = textShakeX + math.random(-3, 3)
         textShakeY = textShakeY + math.random(-3, 3)
     end
-    
+
     local titleY = self.LogoY
     if self.TargetState == "Appearance" or (self.TargetState == "Main" and self.CurrentState == "Appearance") then
         titleY = self.LogoY - ScrH() * progress
@@ -2572,10 +2763,7 @@ function PANEL:Paint(w,h)
         end
     end
 
-    surface.SetTextPos(self.LogoX + textShakeX, titleY + textShakeY)
-    surface.DrawText(text1)
-    
-
+    self:PaintBloodyTitle(self.LogoX, titleY, textShakeX, textShakeY)
 end
 
 function PANEL:AddSelect( pParent, strTitle, tbl )

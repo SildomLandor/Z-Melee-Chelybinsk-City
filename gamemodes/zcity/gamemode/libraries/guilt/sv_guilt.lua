@@ -123,6 +123,9 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     if not IsValid(Victim) or not (Victim:IsPlayer() or (Victim.organism.fakePlayer and Victim.organism.alive)) then return end
 	if Victim:IsNPC() or Victim:IsNextBot() then return end
 
+    Victim = hg.GetCurrentCharacter(Victim) or Victim
+    Victim = hg.RagdollOwner(Victim) or Victim
+
     local id = Victim:IsPlayer() and Victim:SteamID() or Victim:EntIndex()
     local id2 = Attacker:IsPlayer() and Attacker:SteamID() or Attacker:EntIndex()
     local maxharm = zb.MaximumHarm
@@ -174,9 +177,6 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     if newharm >= maxharm and oldharmdone < newharm then
         //Attacker:AddFrags(1) -- better make it a system that counts kills and gives frags at the end of the round
     end
-
-    Victim = hg.GetCurrentCharacter(Victim) or Victim
-    Victim = hg.RagdollOwner(Victim) or Victim
 
     local rnd, cround = CurrentRound()
     
@@ -413,36 +413,44 @@ end)
 util.AddNetworkString("open_guilt_menu")
 util.AddNetworkString("forgive_player")
 
-net.Receive("open_guilt_menu",function(len, ply)
-    if ply:Alive() then return end
-    local tbl = zb.HarmDoneKarma[ply] or {}
+local function guiltMenuPayload(victim)
+    local out = {}
+    local karmaTbl = zb.HarmDoneKarma[victim] or {}
+    local harmTbl = zb.HarmDone[victim] or {}
+    for att, karma in pairs(karmaTbl) do
+        if karma > 0.01 and IsValid(att) and att:IsPlayer() then
+            out[#out + 1] = {
+                ent = att:EntIndex(),
+                harm = harmTbl[att] or 0,
+                karma = karma,
+            }
+        end
+    end
+    return out
+end
+
+net.Receive("open_guilt_menu", function(_, ply)
+    if not IsValid(ply) then return end
     net.Start("open_guilt_menu")
-    net.WriteTable(tbl)
+    net.WriteTable(guiltMenuPayload(ply))
     net.Send(ply)
-    //current round guilt
 end)
 
-net.Receive("forgive_player", function(len, ply)
+net.Receive("forgive_player", function(_, ply)
+    if not IsValid(ply) or ply:Alive() then return end
     local ent = net.ReadEntity()
-    if not IsValid(ent) or not zb.HarmDoneKarma[ply] then return end
-    local harm = zb.HarmDoneKarma[ply][ent]
-    if not harm then return end
+    if not IsValid(ent) or not ent:IsPlayer() or not zb.HarmDoneKarma[ply] then return end
+    local karma = zb.HarmDoneKarma[ply][ent]
+    if not karma or karma <= 0 then return end
 
-    ent.Karma = math.Clamp(ent.Karma + harm, 0, zb.MaxKarma)
-    ent:SetNetVar("Karma",ent.Karma)
-    //ent:guilt_SetValue((ent.Karma or 100))
+    ent.Karma = math.Clamp((ent.Karma or 100) + karma, 0, zb.MaxKarma)
+    ent:SetNetVar("Karma", ent.Karma)
 
-    zb.HarmDone[ply][ent] = 0
+    if zb.HarmDone[ply] then zb.HarmDone[ply][ent] = 0 end
     zb.HarmDoneKarma[ply][ent] = 0
     net.Start("open_guilt_menu")
-    net.WriteTable(zb.HarmDoneKarma[ply])
+    net.WriteTable(guiltMenuPayload(ply))
     net.Send(ply)
-end)
-
-hook.Add("Player Spawn", "GuiltKnown",function(ply)
-    if ply.Karma then
-       -- ply:ChatPrint("Your current karma is "..tostring(math.Round(ply.Karma)).."")
-    end
 end)
 
 hook.Add("ZC_SomeoneGetFallBy","IdiotsMustBeKilled",function(Attacker,Victim)

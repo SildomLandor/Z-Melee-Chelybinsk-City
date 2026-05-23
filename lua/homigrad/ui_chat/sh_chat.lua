@@ -112,7 +112,7 @@ if CLIENT then
 		local fontW = fontWeight:GetFloat()
 
 		surface.CreateFont("zChatFont", {
-			font = font,
+			font = 'TrixiePro-Heavy',
 			size = ScreenScale(size),
 			extended = true,
 			weight = fontW,

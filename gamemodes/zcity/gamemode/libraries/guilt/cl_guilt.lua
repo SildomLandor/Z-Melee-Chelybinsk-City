@@ -1,7 +1,7 @@
 hook.Add("OnNetVarSet", "Guilt", function(index, key, var)
-	if key == "Karma" then
-		Entity(index).Karma = var
-	end
+	if key ~= "Karma" then return end
+	local ent = Entity(index)
+	if IsValid(ent) then ent.Karma = var end
 end)
 
 function zb.GetLocalKarma()
@@ -25,8 +25,9 @@ function zb.GetKarmaColor(karma, palette)
 	return palette.textBlood or Color(180, 40, 35, 255)
 end
 
-concommand.Add("hg_getkarma", function(ply)
-	if not ply:IsAdmin() then return end
+concommand.Add("hg_getkarma", function()
+	local ply = LocalPlayer()
+	if not IsValid(ply) or not ply:IsAdmin() then return end
 	net.Start("get_karma")
 	net.SendToServer()
 end)
@@ -50,23 +51,20 @@ end)
 
 local OpenMenu
 
-net.Receive("open_guilt_menu", function()
-	OpenMenu(net.ReadTable())
-end)
-
 local col = {
 	frameBG       = Color(10, 10, 19, 245),
 	frameBorder   = Color(90, 90, 95, 120),
+	panelBG       = Color(8, 8, 16, 245),
 	panelBorder   = Color(255, 255, 255, 25),
 	separator     = Color(255, 255, 255, 12),
 	text          = Color(200, 200, 200, 255),
 	textDim       = Color(160, 160, 165, 180),
 	textMuted     = Color(100, 100, 108, 140),
 	textBlood     = Color(180, 40, 35, 255),
-	rowHover      = Color(255, 255, 255, 12),
+	rowAlt        = Color(255, 255, 255, 4),
+	rowHover      = Color(255, 255, 255, 15),
 	rowBorder     = Color(255, 255, 255, 8),
-	btnHover      = Color(255, 255, 255, 15),
-	btnBorder     = Color(255, 255, 255, 25),
+	accent        = Color(200, 200, 200, 60),
 	scrollTrack   = Color(255, 255, 255, 6),
 	scrollGrip    = Color(200, 200, 200, 60),
 	scrollGripHov = Color(200, 200, 200, 100),
@@ -75,59 +73,19 @@ local col = {
 local NoiseMat = Material("vgui/noisevhs")
 if NoiseMat:IsError() then NoiseMat = Material("vgui/white") end
 
-local bloodDrips = {}
-for i = 1, math.random(4, 6) do
-	bloodDrips[i] = {
-		x = math.Rand(0, 1),
-		w = math.random(1, 2),
-		h = math.random(ScreenScaleH(8), ScreenScaleH(24)),
-		alpha = math.random(8, 20),
-		speed = math.Rand(0.15, 0.5),
-		offset = math.Rand(0, math.pi * 2),
-	}
+local guiltOverlay, guiltMenu
+
+local function entryHarm(data)
+	if istable(data) then return data.harm or 0 end
+	return tonumber(data) or 0
 end
 
-local function paint_frame(x, y, w, h)
-	draw.RoundedBox(0, x, y, w, h, col.frameBG)
-
-	if not NoiseMat:IsError() then
-		surface.SetMaterial(NoiseMat)
-		surface.SetDrawColor(255, 255, 255, 6)
-		local nx, ny = math.random(0, 512), math.random(0, 512)
-		surface.DrawTexturedRectUV(x, y, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
-	end
-
-	for ly = y, y + h, 3 do
-		surface.SetDrawColor(0, 0, 0, 12)
-		surface.DrawRect(x, ly, w, 1)
-	end
-
-	local t = CurTime()
-	for _, drip in ipairs(bloodDrips) do
-		local pulse = math.sin(t * drip.speed + drip.offset) * 0.3 + 0.7
-		surface.SetDrawColor(100, 15, 12, math.floor(drip.alpha * pulse))
-		surface.DrawRect(x + drip.x * w, y, drip.w, math.min(drip.h, h))
-	end
-
-	surface.SetDrawColor(col.frameBorder)
-	surface.DrawOutlinedRect(x, y, w, h, 1)
-	surface.SetDrawColor(col.panelBorder)
-	surface.DrawOutlinedRect(x + 2, y + 2, w - 4, h - 4, 1)
+local function entryKarma(data)
+	if istable(data) then return data.karma or 0 end
+	return tonumber(data) or 0
 end
 
-local function paint_bloody_title(text, cx, cy)
-	local font = "ZCity_Veteran"
-	surface.SetFont(font)
-	local tw, th = surface.GetTextSize(text)
-	local bx, by = cx - tw * 0.5, cy - th * 0.5
-	local pulse = math.sin(CurTime() * 1.5) * 0.15 + 0.85
-
-	draw.SimpleText(text, font, bx + 2, by + 2, Color(40, 4, 2, 200), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-	draw.SimpleText(text, font, bx + 1, by + 1, Color(90, 8, 6, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-	draw.SimpleText(text, font, bx, by, Color(140 * pulse, 15 * pulse, 12 * pulse, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
-end
-
-local function fit_text(font, text, maxW)
+local function fitText(font, text, maxW)
 	if not text or maxW <= 0 then return "" end
 	surface.SetFont(font)
 	if surface.GetTextSize(text) <= maxW then return text end
@@ -146,33 +104,66 @@ local function fit_text(font, text, maxW)
 	return string.sub(text, 1, lo) .. dots
 end
 
-local function style_scrollbar(sbar)
+local function harmLabel(harm)
+	if harm >= 9 then return "убил вас"
+	elseif harm >= 5 then return "почти убил"
+	elseif harm >= 2 then return "серьёзно ранил"
+	elseif harm >= 1 then return "сильно ранил"
+	else return "ранил" end
+end
+
+local function styleScrollbar(sbar)
 	if not IsValid(sbar) then return end
 	sbar:SetHideButtons(true)
 	sbar.Paint = function(_, sw, sh)
 		surface.SetDrawColor(col.scrollTrack)
 		surface.DrawRect(0, 0, sw, sh)
 	end
-	sbar.btnGrip.Paint = function(self, sw, sh)
-		surface.SetDrawColor(self:IsHovered() and col.scrollGripHov or col.scrollGrip)
-		surface.DrawRect(2, 0, sw - 4, sh)
+	if IsValid(sbar.btnGrip) then
+		sbar.btnGrip.Paint = function(self, sw, sh)
+			surface.SetDrawColor(self:IsHovered() and col.scrollGripHov or col.scrollGrip)
+			surface.DrawRect(2, 0, sw - 4, sh)
+		end
 	end
-end
-
-local function harmdone(harm)
-	if harm >= 9 then return "убил вас"
-	elseif harm >= 5 then return "почти убил вас"
-	elseif harm >= 2 then return "серьёзно ранил вас"
-	elseif harm >= 1 then return "сильно ранил вас"
-	else return "ранил вас" end
 end
 
 local function close_guilt_menu()
-	if IsValid(guiltMenu) then
-		guiltMenu:Remove()
-		guiltMenu = nil
+	if IsValid(guiltOverlay) then
+		guiltOverlay:Remove()
 	end
+	guiltOverlay = nil
+	guiltMenu = nil
+	gui.EnableScreenClicker(false)
 end
+
+local function guiltRowsFromPayload(tbl)
+	local rows = {}
+	for _, row in ipairs(tbl or {}) do
+		if not istable(row) then continue end
+		local ply = Entity(row.ent or 0)
+		if not IsValid(ply) or not ply:IsPlayer() then continue end
+		local data = { harm = row.harm, karma = row.karma }
+		if entryHarm(data) > 0.01 or entryKarma(data) > 0.01 then
+			rows[#rows + 1] = { ply = ply, data = data }
+		end
+	end
+	return rows
+end
+
+local function guiltHasEntries(tbl)
+	return #guiltRowsFromPayload(tbl) > 0
+end
+
+net.Receive("open_guilt_menu", function()
+	local tbl = net.ReadTable() or {}
+	if guiltHasEntries(tbl) then
+		OpenMenu(tbl)
+	elseif IsValid(guiltOverlay) then
+		close_guilt_menu()
+	else
+		OpenMenu(tbl)
+	end
+end)
 
 local showstuff = 0
 local pressed
@@ -183,17 +174,16 @@ hook.Add("Player_Death", "karmacheck", function(ply)
 end)
 
 hook.Add("HUDPaint", "shownotification", function()
-	if LocalPlayer():Alive() then return end
-	if IsValid(guiltMenu) then return end
+	local lply = LocalPlayer()
+	if not IsValid(lply) or lply:Alive() then return end
+	if IsValid(guiltOverlay) then return end
 
 	if showstuff > CurTime() then
 		local sw, sh = ScrW(), ScrH()
 		local txt = "Нажми [F], чтобы открыть меню прощения"
-		surface.SetFont("ZB_InterfaceSmall")
-		local tw, th = surface.GetTextSize(txt)
 		local pulse = math.sin(CurTime() * 3) * 0.2 + 0.8
-		draw.SimpleText(txt, "ZB_InterfaceSmall", sw * 0.5 + 1, sh - ScreenScaleH(28) + 1, Color(0, 0, 0, 120 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		draw.SimpleText(txt, "ZB_InterfaceSmall", sw * 0.5, sh - ScreenScaleH(28), Color(200, 200, 200, 220 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText(txt, "ZCity_Veteran", sw * 0.5 + 1, sh - ScreenScaleH(28) + 1, Color(0, 0, 0, 120 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText(txt, "ZCity_Veteran", sw * 0.5, sh - ScreenScaleH(28), Color(200, 200, 200, 220 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 
 	if input.IsKeyDown(KEY_F) and not gui.IsGameUIVisible() and not IsValid(vgui.GetKeyboardFocus()) then
@@ -211,101 +201,173 @@ OpenMenu = function(tbl)
 	close_guilt_menu()
 
 	local sw, sh = ScrW(), ScrH()
-	local sizeX = math.Clamp(math.floor(sw * 0.44), 340, 560)
-	local sizeY = math.Clamp(math.floor(sh * 0.52), 280, 520)
+	local sizeX = math.Clamp(math.floor(sw * 0.44), 340, 720)
+	local sizeY = math.Clamp(math.floor(sh * 0.48), 260, 460)
 	local posX = math.floor(sw * 0.5 - sizeX * 0.5)
-	local posY = math.floor(sh * 0.5 - sizeY * 0.5)
+	local posY = math.floor(sh * 0.44 - sizeY * 0.5)
+
 	local margin = ScreenScale(6)
-	local headerH = ScreenScaleH(44)
-	local footerH = ScreenScaleH(36)
+	local topBarH = ScreenScaleH(34)
+	local footerH = ScreenScaleH(26)
 	local rowH = ScreenScaleH(34)
+	local listTop = topBarH + ScreenScaleH(4)
+	local listH = math.max(sizeY - listTop - footerH - ScreenScaleH(4), ScreenScaleH(60))
 
-	guiltMenu = vgui.Create("DPanel")
-	guiltMenu:SetSize(sw, sh)
-	guiltMenu:SetPos(0, 0)
-	guiltMenu:MakePopup()
-	guiltMenu:SetKeyboardInputEnabled(false)
-	guiltMenu:SetAlpha(0)
-	guiltMenu:AlphaTo(255, 0.12, 0)
+	local bloodDrips = {}
+	for i = 1, math.random(4, 64) do
+		bloodDrips[i] = {
+			x = math.random(0, sizeX),
+			w = math.random(1, 2),
+			h = math.random(ScreenScaleH(8), ScreenScaleH(28)),
+			alpha = math.random(8, 20),
+			speed = math.Rand(0.15, 0.5),
+			offset = math.Rand(0, math.pi * 2),
+		}
+	end
 
-	function guiltMenu:Paint(w, h)
-		surface.SetDrawColor(0, 0, 0, 170)
+	local shakeX, shakeY = 0, 0
+	local targetShakeX, targetShakeY = 0, 0
+	local nextShakeSample = 0
+	local shakeStrength = 0.4
+
+	guiltOverlay = vgui.Create("DPanel")
+	guiltOverlay:SetSize(sw, sh)
+	guiltOverlay:SetPos(0, 0)
+	guiltOverlay:SetMouseInputEnabled(true)
+	guiltOverlay:SetKeyboardInputEnabled(true)
+	guiltOverlay:MakePopup()
+	gui.EnableScreenClicker(true)
+	guiltOverlay:SetAlpha(0)
+	guiltOverlay:AlphaTo(255, 0.12, 0)
+	guiltOverlay.OnRemove = function()
+		gui.EnableScreenClicker(false)
+	end
+	guiltOverlay.Paint = function(_, w, h)
+		surface.SetDrawColor(0, 0, 0, 165)
 		surface.DrawRect(0, 0, w, h)
-		paint_frame(posX, posY, sizeX, sizeY)
-		paint_bloody_title("ПРОЩЕНИЕ", posX + sizeX * 0.5, posY + headerH * 0.45)
+	end
+	guiltOverlay.OnKeyCodePressed = function(_, key)
+		if key == KEY_ESCAPE then close_guilt_menu() end
+	end
+	guiltOverlay.OnMousePressed = function(self, code)
+		if code ~= MOUSE_LEFT then return end
+		close_guilt_menu()
+	end
+
+	guiltMenu = vgui.Create("DPanel", guiltOverlay)
+	guiltMenu:SetPos(posX, posY)
+	guiltMenu:SetSize(sizeX, sizeY)
+	guiltMenu:SetMouseInputEnabled(true)
+	guiltMenu.OnMousePressed = function() end
+	guiltMenu.Paint = function(_, w, h)
+		surface.SetDrawColor(col.frameBG)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(col.frameBorder)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+	end
+
+	guiltMenu.Think = function()
+		local t = CurTime()
+		if t >= nextShakeSample then
+			nextShakeSample = t + 0.035
+			targetShakeX = math.Rand(-shakeStrength, shakeStrength)
+			targetShakeY = math.Rand(-shakeStrength * 0.6, shakeStrength * 0.6)
+		end
+		local lerpRate = math.Clamp(FrameTime() * 22, 0, 1)
+		shakeX = Lerp(lerpRate, shakeX, targetShakeX)
+		shakeY = Lerp(lerpRate, shakeY, targetShakeY)
+	end
+
+	guiltMenu.PaintOver = function(self, w, h)
+		local t = CurTime()
+
+		if not NoiseMat:IsError() then
+			surface.SetMaterial(NoiseMat)
+			surface.SetDrawColor(255, 255, 255, 6)
+			local nx, ny = math.random(0, 512), math.random(0, 512)
+			surface.DrawTexturedRectUV(0, 0, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+		end
+
+		for y = 0, h, 3 do
+			surface.SetDrawColor(0, 0, 0, 12)
+			surface.DrawRect(0, y, w, 1)
+		end
+
+		for _, drip in ipairs(bloodDrips) do
+			local pulse = math.sin(t * drip.speed + drip.offset) * 0.3 + 0.7
+			surface.SetDrawColor(125, 4, 0, math.floor(drip.alpha * pulse))
+			surface.DrawRect(drip.x + shakeX, 0, drip.w, drip.h)
+		end
+
+		local title = "ПРОЩЕНИЕ"
+		local cx = w * 0.5 + shakeX
+		local ty = margin + shakeY
+		draw.SimpleText(title, "ZCity_Veteran", cx + 1, ty - 15, Color(90, 8, 6, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, "ZCity_Veteran", cx, ty -15, Color(140, 15, 12, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 
 		surface.SetDrawColor(col.separator)
-		surface.DrawRect(posX + margin, posY + headerH, sizeX - margin * 2, 1)
-
-		surface.SetFont("ZB_InterfaceSmall")
-		surface.SetTextColor(col.textMuted)
-		local sub = "Вернуть карму обидчикам"
-		local stw = surface.GetTextSize(sub)
-		surface.SetTextPos(posX + sizeX * 0.5 - stw * 0.5, posY + headerH - ScreenScaleH(10))
-		surface.DrawText(sub)
+		surface.DrawRect(margin, topBarH - 1, w - margin * 2, 1)
+		surface.DrawRect(margin, listTop - ScreenScaleH(2), w - margin * 2, 1)
 	end
 
-	local frame = vgui.Create("DPanel", guiltMenu)
-	frame:SetPos(posX, posY)
-	frame:SetSize(sizeX, sizeY)
-	frame.Paint = function() end
-
-	local closeBtn = vgui.Create("DButton", frame)
-	closeBtn:SetPos(sizeX - margin - ScreenScale(28), margin)
-	closeBtn:SetSize(ScreenScale(26), ScreenScaleH(18))
-	closeBtn:SetText("")
-	closeBtn.Paint = function(self, w, h)
-		local hov = self:IsHovered()
-		surface.SetDrawColor(hov and col.btnHover or Color(0, 0, 0, 0))
-		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(col.btnBorder)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
-		draw.SimpleText("×", "ZCity_Veteran", w * 0.5, h * 0.5 - 1, hov and col.textBlood or col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local listPanel = vgui.Create("DScrollPanel", guiltMenu)
+	listPanel:SetPos(margin, listTop)
+	listPanel:SetSize(sizeX - margin * 2, listH)
+	listPanel.Paint = function(_, pw, ph)
 	end
-	closeBtn.DoClick = close_guilt_menu
+	styleScrollbar(listPanel:GetVBar())
 
-	local scroll = vgui.Create("DScrollPanel", frame)
-	scroll:SetPos(margin, headerH + ScreenScaleH(4))
-	scroll:SetSize(sizeX - margin * 2, sizeY - headerH - footerH - ScreenScaleH(6))
-	style_scrollbar(scroll:GetVBar())
+	local rows = guiltRowsFromPayload(tbl)
+	table.sort(rows, function(a, b) return entryHarm(a.data) > entryHarm(b.data) end)
 
-	local list = scroll:GetCanvas()
 	local count = 0
+	for i, rowData in ipairs(rows) do
+		local ply = rowData.ply
+		local data = rowData.data
+		if not IsValid(ply) then continue end
 
-	for ply, harm in pairs(tbl) do
-		if not IsValid(ply) or harm <= 0.01 then continue end
+		local harm = entryHarm(data)
+		local karmaBack = math.Round(entryKarma(data), 1)
+		if harm <= 0.01 and karmaBack <= 0.01 then continue end
 		count = count + 1
 
-		local name = ply:Name()
-		local harmTxt = harmdone(harm)
-		local karmaReturn = math.Round(harm, 1)
-		local row = vgui.Create("DButton", list)
+		local row = vgui.Create("DButton", listPanel:GetCanvas())
 		row:Dock(TOP)
-		row:DockMargin(0, 0, 0, ScreenScale(4))
 		row:SetTall(rowH)
 		row:SetText("")
 
-		row.Paint = function(self, w, h)
-			local hov = self:IsHovered()
-			if hov then
+		local avSize = rowH - 8
+		local avatar = vgui.Create("AvatarImage", row)
+		avatar:SetMouseInputEnabled(false)
+		avatar:SetPlayer(ply, 32)
+
+		row.Paint = function(self, rw, rh)
+			if i % 2 == 0 then
+				surface.SetDrawColor(col.rowAlt)
+				surface.DrawRect(0, 0, rw, rh)
+			end
+			if self:IsHovered() then
 				surface.SetDrawColor(col.rowHover)
-				surface.DrawRect(0, 0, w, h)
+				surface.DrawRect(0, 0, rw, rh)
+				surface.SetDrawColor(col.accent)
+				surface.DrawRect(0, rh - 1, rw, 1)
 			end
 			surface.SetDrawColor(col.rowBorder)
-			surface.DrawOutlinedRect(0, 0, w, h, 1)
+			surface.DrawRect(0, rh - 1, rw, 1)
 
-			local pad = ScreenScale(8)
-			local nameFont = "ZCity_Veteran"
-			local subFont = "ZB_InterfaceSmall"
-			local nameTxt = fit_text(nameFont, name, w - pad * 2)
-			local subTxt = fit_text(subFont, harmTxt .. " · +" .. karmaReturn .. " кармы", w - pad * 2)
+			local pad = ScreenScale(6)
+			local textX = pad + avSize + ScreenScale(6)
+			avatar:SetPos(pad, 4)
+			avatar:SetSize(avSize, avSize)
 
-			draw.SimpleText(nameTxt, nameFont, pad, h * 0.35, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			draw.SimpleText(subTxt, subFont, pad, h * 0.72, col.textMuted, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			local midW = rw - textX - pad
+			if self:IsHovered() then midW = midW - ScreenScale(52) end
 
-			if hov then
-				local act = fit_text(subFont, "простить", ScreenScale(52))
-				draw.SimpleText(act, subFont, w - pad, h * 0.5, col.textBlood, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+			draw.SimpleText(fitText("ZCity_Veteran", ply:Name(), midW), "ZCity_Veteran", textX, rh * 0.32, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			draw.SimpleText(fitText("ZCity_Veteran", harmLabel(harm) .. " · +" .. karmaBack .. " кармы", midW), "ZCity_Veteran", textX, rh * 0.72, col.textMuted, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+			if self:IsHovered() then
+				draw.SimpleText("простить", "ZCity_Veteran", rw - pad, rh * 0.5, col.textBlood, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 			end
 		end
 
@@ -313,27 +375,25 @@ OpenMenu = function(tbl)
 			net.Start("forgive_player")
 			net.WriteEntity(ply)
 			net.SendToServer()
-			tbl[ply] = nil
-			OpenMenu(tbl)
 		end
 	end
 
 	if count == 0 then
-		local empty = vgui.Create("DPanel", list)
+		local empty = vgui.Create("DPanel", listPanel:GetCanvas())
 		empty:Dock(TOP)
-		empty:SetTall(ScreenScaleH(80))
-		empty.Paint = function(_, w, h)
-			draw.SimpleText("Некого прощать", "ZCity_Veteran", w * 0.5, h * 0.4, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-			draw.SimpleText("Никто не причинил вам вреда в этом раунде", "ZB_InterfaceSmall", w * 0.5, h * 0.65, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		empty:SetTall(ScreenScaleH(72))
+		empty.Paint = function(_, ew, eh)
+			draw.SimpleText("Некого прощать", "ZCity_Veteran", ew * 0.5, eh * 0.4, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			--draw.SimpleText("никто не причинил вам вреда", "ZCity_Veteran_small", ew * 0.5, eh * 0.65, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		end
 	end
 
-	local hint = vgui.Create("DPanel", frame)
-	hint:SetPos(margin, sizeY - footerH + ScreenScaleH(2))
-	hint:SetSize(sizeX - margin * 2, footerH - ScreenScaleH(4))
-	hint.Paint = function(_, w, h)
+	local footer = vgui.Create("DPanel", guiltMenu)
+	footer:SetPos(margin, sizeY - footerH)
+	footer:SetSize(sizeX - margin * 2, footerH)
+	footer.Paint = function(_, fw, fh)
 		surface.SetDrawColor(col.separator)
-		surface.DrawRect(0, 0, w, 1)
-		draw.SimpleText("Нажмите на игрока, чтобы простить", "ZB_InterfaceSmall", w * 0.5, h * 0.55, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		surface.DrawRect(0, 0, fw, 1)
+		draw.SimpleText("клик - простить / фон - закрыть", "ZCity_Veteran_small", fw * 0.5, fh * 0.45, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 end

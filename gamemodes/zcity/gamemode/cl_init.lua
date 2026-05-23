@@ -1400,6 +1400,30 @@ function GM:ScoreboardHide()
 		scoreBoardMenu = nil
 	end
 end
+
+local function zbF3UsesBuyMenu()
+	local rnd = CurrentRound and CurrentRound()
+	return rnd and rnd.name == "tdm" and IsValid(LocalPlayer()) and LocalPlayer():Alive()
+end
+
+local function zbToggleF3Cursor()
+	if gui.IsGameUIVisible() then return end
+	if IsValid(scoreBoardMenu) then return end
+	gui.EnableScreenClicker(not vgui.CursorVisible())
+end
+
+function GM:ShowSpare1()
+	if zbF3UsesBuyMenu() then return end
+	zbToggleF3Cursor()
+end
+
+hook.Add("PlayerBindPress", "zb_f3_cursor", function(ply, bind, pressed)
+	if ply ~= LocalPlayer() or not pressed or bind ~= "gm_showspare1" then return end
+	if zbF3UsesBuyMenu() then return end
+	zbToggleF3Cursor()
+	return true
+end)
+
 local AdminShowVoiceChat = CreateClientConVar("zb_admin_show_voicechat","0",false,false,"Show voicechat panels for admins",0,1)
 hook.Add("PlayerStartVoice", "showVoicePanels", function(ply)
 	if !IsValid(ply) then return end

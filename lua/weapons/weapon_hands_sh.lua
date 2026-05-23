@@ -233,6 +233,14 @@ if CLIENT then
 	        self.worldModel:SetModel("models/weapons/salat/anims/furry_fists.mdl")
 	    end
 
+	    if self.pending_bfs_anim then
+	        local seq = self:LookupBFSAnimSequence(self.pending_bfs_anim)
+	        if seq >= 0 then
+	            self.worldModel:SetSequence(seq)
+	        end
+	        self.pending_bfs_anim = nil
+	    end
+
 	    if not self:GetFists() then return end
 
 	    local WorldModel = self.worldModel
@@ -945,10 +953,20 @@ function SWEP:SetupDataTables()
 end
 
 function SWEP:Deploy()
+	local owner = self:GetOwner()
+
+	if IsValid(owner) and owner:GetNWBool("mcd_admiring", false) then
+		self:SetFists(true)
+		self:SetHoldType("revolver")
+		self:DoBFSAnimation("seq_admire", 5, true, true)
+		self:SetNextPrimaryFire(CurTime() + 10)
+		self:SetNextSecondaryFire(CurTime() + 10)
+		return true
+	end
+
 	if not IsFirstTimePredicted() then
 		self:DoBFSAnimation("fists_draw",1)
-		local owner = self:GetOwner()
-		if not IsValid(owner:GetViewModel()) then
+		if IsValid(owner) and not IsValid(owner:GetViewModel()) then
 			owner:GetViewModel():SetPlaybackRate(.1)
 		end
 		return true
@@ -1641,6 +1659,9 @@ function SWEP:Think()
 	end
 
 	if owner:GetNWBool("mcd_admiring", false) then
+		if self:GetFists() then
+			self:SetHoldType("revolver")
+		end
 		return
 	end
 
@@ -2306,12 +2327,27 @@ if SERVER then
 	end )
 end
 
+function SWEP:LookupBFSAnimSequence(anim)
+	if type(anim) ~= "string" then return anim end
+	local wm = self:GetWM()
+	if not IsValid(wm) then return -1 end
+	local seq = wm:LookupSequence(anim)
+	if seq >= 0 or anim ~= "seq_admire" then return seq end
+	return wm:LookupSequence("fists_draw")
+end
+
 function SWEP:DoBFSAnimation(anim, time, slowmo, force_local)
-	if CLIENT and IsValid(self:GetWM()) then
-		self:GetWM():SetSequence(type(anim) == "string" and self:GetWM():LookupSequence(anim) or anim)
+	if CLIENT then
 		self.animtime = CurTime() + time
 		self.animduration = time
 		self.slowmoanim = slowmo and time or nil
+		local wm = self:GetWM()
+		if IsValid(wm) then
+			local seq = self:LookupBFSAnimSequence(anim)
+			if seq >= 0 then wm:SetSequence(seq) end
+		else
+			self.pending_bfs_anim = anim
+		end
 	end
 	if SERVER then
 		net.Start("play_anim")
@@ -2334,6 +2370,11 @@ if CLIENT then
 		if not IsValid(self) then return end
 		if force_local or (self.IsLocal and not self:IsLocal()) then
 			if not self.DoBFSAnimation then return end
+			if anim == "seq_admire" then
+				self:SetBlocking(false)
+				self:SetFists(true)
+				self:SetHoldType("revolver")
+			end
 			self:DoBFSAnimation(anim, time, slowmo)
 			if anim == "fists_left" or anim == "fists_right" or anim == "fists_uppercut" then
 				local owner = self:GetOwner()
@@ -2399,43 +2440,69 @@ function SWEP:Holster( wep )
 end
 
 if SERVER then
+	local function mcdApplyAdmireWep(wep)
+		if not IsValid(wep) then return end
+		wep:SetBlocking(false)
+		wep:SetFists(true)
+		wep:SetHoldType("revolver")
+		wep:DoBFSAnimation("seq_admire", 5, true, true)
+		wep:SetNextPrimaryFire(CurTime() + 10)
+		wep:SetNextSecondaryFire(CurTime() + 10)
+	end
+
+	local function mcdStopAdmire(ply)
+		if not IsValid(ply) or not ply:GetNWBool("mcd_admiring", false) then return end
+		ply:SetNWBool("mcd_admiring", false)
+		local wep = ply:GetActiveWeapon()
+		if not IsValid(wep) or wep:GetClass() ~= "weapon_hands_sh" then return end
+		wep:SetNextPrimaryFire(CurTime() + 1.5)
+		wep:SetNextSecondaryFire(CurTime() + 1.5)
+		wep.slowmoanim = nil
+		wep.animtime = CurTime()
+		wep:DoBFSAnimation("fists_draw", 1, false, true)
+	end
+
+	local function mcdStartAdmire(ply)
+		if not IsValid(ply) or not ply:Alive() then return end
+		if ply:GetNWBool("mcd_admiring", false) then return end
+		if (ply.mcd_admire_cooldown or 0) > CurTime() then return end
+		if IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdoll")) then return end
+
+		ply:SetNWBool("mcd_admiring", true)
+		ply.mcd_admire_cooldown = CurTime() + 1.5
+
+		if not ply:HasWeapon("weapon_hands_sh") then
+			ply:Give("weapon_hands_sh")
+		end
+		ply:SelectWeapon("weapon_hands_sh")
+
+		timer.Simple(0, function()
+			if not IsValid(ply) or not ply:GetNWBool("mcd_admiring", false) then return end
+			local wep = ply:GetActiveWeapon()
+			if not IsValid(wep) or wep:GetClass() ~= "weapon_hands_sh" then return end
+			mcdApplyAdmireWep(wep)
+		end)
+	end
+
 	concommand.Add("mcd_admire", function(ply, cmd, args)
 		if not IsValid(ply) then return end
-		if (ply.mcd_admire_cooldown or 0) > CurTime() then return end
-		local isAdmiring = not ply:GetNWBool("mcd_admiring", false)
-		if args[1] == "cancel" then isAdmiring = false end
-		ply:SetNWBool("mcd_admiring", isAdmiring)
-		ply.mcd_admire_cooldown = CurTime() + 1.5
-		if isAdmiring then
-			if not ply:HasWeapon("weapon_hands_sh") then
-				ply:Give("weapon_hands_sh")
-			end
-			ply:SelectWeapon("weapon_hands_sh")
-			timer.Simple(0.1, function()
-				if IsValid(ply) and IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon():GetClass() == "weapon_hands_sh" then
-					local wep = ply:GetActiveWeapon()
-					wep:SetFists(true)
-					wep.admire_started = CurTime()
-					wep:DoBFSAnimation("seq_admire", 5, true, true)
-					wep:SetNextPrimaryFire(CurTime() + 10)
-					wep:SetNextSecondaryFire(CurTime() + 10)
-				end
-			end)
-		else
-			if IsValid(ply) and IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon():GetClass() == "weapon_hands_sh" then
-				local wep = ply:GetActiveWeapon()
-				wep:SetNextPrimaryFire(CurTime() + 1.5)
-				wep:SetNextSecondaryFire(CurTime() + 1.5)
-				wep.slowmoanim = nil
-				wep.animtime = CurTime()
-				wep:DoBFSAnimation("fists_draw", 1, false, true)
-			end
+		if args[1] == "cancel" or ply:GetNWBool("mcd_admiring", false) then
+			mcdStopAdmire(ply)
+			return
 		end
+		mcdStartAdmire(ply)
 	end)
 
 	hook.Add("PlayerSwitchWeapon", "mcd_admire_prevent_switch", function(ply, oldWep, newWep)
 		if ply:GetNWBool("mcd_admiring", false) and IsValid(newWep) and newWep:GetClass() != "weapon_hands_sh" then
 			return true
+		end
+	end)
+
+	hook.Add("SetupMove", "mcd_admire_clear", function(ply)
+		if not ply:GetNWBool("mcd_admiring", false) then return end
+		if not ply:Alive() or IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdoll")) then
+			mcdStopAdmire(ply)
 		end
 	end)
 end

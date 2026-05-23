@@ -150,6 +150,14 @@ surface.CreateFont("ZCity_Veteran_hmcdobj", {
     antialias = true
 })
 
+surface.CreateFont("ZCity_Veteran_small", {
+    font = "TrixiePro-Heavy",
+    size = ScreenScale(10),
+    weight = 500,
+    extended = true,
+    antialias = true
+})
+
 surface.CreateFont("ZCity_Veteran_big", {
     font = "TrixiePro-Heavy",
     size = ScreenScale(20),

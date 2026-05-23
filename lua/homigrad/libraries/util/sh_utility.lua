@@ -424,7 +424,7 @@ hg.ConVars = hg.ConVars or {}
 			if not IsValid(ply) then return end
 
 			ply:SetWalkSpeed(100)
-			ply:SetRunSpeed(350) -- 230
+			ply:SetRunSpeed(285)
 
 			ply:SetJumpPower(DEFAULT_JUMP_POWER)
 
