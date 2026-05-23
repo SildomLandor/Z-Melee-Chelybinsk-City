@@ -362,7 +362,7 @@ if CLIENT then
 		end
 		local searchCycle = CurTime() + 3
 		function DScrollPanel:Paint(w, h)
-			draw.RoundedBox(0, 0, 0, w, h, invCol.panelBG)
+			--draw.RoundedBox(0, 0, 0, w, h, invCol.panelBG)
 			if (plyMenu.Created + count + 3) >= CurTime() then
 				local txt = "обыск"
 				for i = 1, 3 - math.Round(searchCycle - CurTime(), 0) do
