@@ -26,11 +26,37 @@ if CLIENT then
 		OpenInv(ent)
 	end)
 
-	local colRed = Color(255, 0, 0, 255)
-	local colBlack2 = Color(100, 100, 100)
-	local colBlack3 = Color(50, 50, 50, 120)
-	local colBlue = Color(150, 150, 150)
 	local buttons = {}
+
+	local invCol = {
+		frameBG       = Color(10, 10, 19, 235),
+		frameBorder   = Color(90, 90, 95, 120),
+		panelBG       = Color(8, 8, 16, 200),
+		text          = Color(200, 200, 200, 255),
+		textDim       = Color(160, 160, 165, 180),
+		textMuted     = Color(100, 100, 108, 140),
+		separator     = Color(255, 255, 255, 12),
+		scrollTrack   = Color(255, 255, 255, 6),
+		scrollGrip    = Color(200, 200, 200, 60),
+		scrollGripHov = Color(200, 200, 200, 100),
+	}
+
+	local invNoiseMat = Material("vgui/noisevhs")
+	if invNoiseMat:IsError() then invNoiseMat = Material("vgui/white") end
+
+	local function InvStyleScrollbar(sbar)
+		if not IsValid(sbar) then return end
+		sbar:SetHideButtons(true)
+		sbar.Paint = function(_, sw, sh)
+			surface.SetDrawColor(invCol.scrollTrack)
+			surface.DrawRect(0, 0, sw, sh)
+		end
+		sbar.btnGrip.Paint = function(grip, sw, sh)
+			local c = grip:IsHovered() and invCol.scrollGripHov or invCol.scrollGrip
+			surface.SetDrawColor(c)
+			surface.DrawRect(2, 0, sw - 4, sh)
+		end
+	end
 	local function BuildLootTakeKey(owner, tblIndex, thing)
 		if not IsValid(owner) then return "" end
 		return owner:EntIndex() .. "|" .. tblIndex .. "|" .. thing
@@ -76,8 +102,7 @@ if CLIENT then
 	local function getIconThing(i, thing, tab)
 		if tab == "Weapons" and weapons.Get(i) then
 			local GunTable = weapons.Get(i)
-			--print(GunTable.WepSelectIcon2)
-			local Icon = (GunTable.WepSelectIcon2 ~= nil and GunTable.WepSelectIcon2) or GunTable.WepSelectIcon
+				local Icon = (GunTable.WepSelectIcon2 ~= nil and GunTable.WepSelectIcon2) or GunTable.WepSelectIcon
 			local Overide = GunTable.WepSelectIcon2 == nil and true or false
 			local HaveIcon = true
 			return Icon, HaveIcon, Overide, GunTable.WepSelectIcon2box
@@ -158,12 +183,6 @@ if CLIENT then
 	end
 
 	local plyMenu
-	local chosen
-	local chooseButton
-	local chooseButtonHuy
-	local blurMat = Material("pp/blurscreen")
-	local Dynamic = 0
-	BlurBackground = BlurBackground or hg.DrawBlur
 
 	hook.Add("OnNetVarSet","inventory_netvar",function(index,key,var)
 		if key == "Inventory" then
@@ -177,101 +196,162 @@ if CLIENT then
 		end
 	end)
 
-	local clr_text = Color(255,255,255,45)
 	OpenInv = function(ent)
 		if IsValid(plyMenu) then
 			plyMenu:Remove()
 			plyMenu = nil
 		end
-		
-		cooldown = CurTime() + 0
 
+		cooldown = CurTime() + 0
 		if not IsValid(ent) then return end
 
 		local ply = LocalPlayer()
-		Dynamic = 0
 		local inv = ent:GetNetVar("Inventory")
-		inv["Money"] = {}
-		-- local entmoney = ent:GetNetVar("zb_Scrappers_RaidMoney") or 0
-		-- if entmoney > 0 then inv["Money"]["Money"] = entmoney end
-		local armor = ent:GetNetVar("Armor")
-		inv["Armor"] = armor
 		if not inv then return end
 
-		local nameStr = "Unknown"
-		if IsValid(ent) then
-			if (ent:IsPlayer() or ent:IsRagdoll()) then
-				nameStr = ent:GetPlayerName() or string.NiceName(ent:GetClass())
+		inv["Money"] = {}
+		inv["Armor"] = ent:GetNetVar("Armor")
+
+		local nameStr = "контейнер"
+		if ent:IsPlayer() or ent:IsRagdoll() then
+			nameStr = ent:GetPlayerName() or string.NiceName(ent:GetClass())
+		end
+		local title = nameStr .. " — инвентарь"
+
+		local margin = ScreenScale(6)
+		local topBarH = ScreenScaleH(34)
+		local bottomBarH = ScreenScaleH(22)
+		local gridCols = 5
+		local gridPad = ScreenScale(8)
+		local sizeX = math.floor(ScrW() * 0.44)
+		local boxW = sizeX / 6
+		local boxH = sizeX / 10
+		local colWide = sizeX / gridCols - sizeX / 16 / 6
+		local rowH = boxH + ScreenScale(6)
+
+		local itemCount = 0
+		for tab, things in pairs(inv) do
+			if not istable(things) then continue end
+			for i, thing in pairs(things) do
+				local thing1 = istable(thing) and thing or {thing}
+				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
+				if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == i then continue end
+				itemCount = itemCount + 1
 			end
 		end
-		local name = nameStr .. "'s inventory" or "Container"
-		local sizeX, sizeY = ScrW() / 3, ScrH() / 2.5
+
+		local rows = math.max(1, math.ceil(itemCount / gridCols))
+		local chromeH = topBarH + bottomBarH + margin * 2
+		local contentH = rows * rowH + gridPad
+		local minFrameH = chromeH + rowH + gridPad
+		local maxFrameH = math.floor(ScrH() * 0.88)
+		local sizeY = math.Clamp(chromeH + contentH, minFrameH, maxFrameH)
+
+		local shakeX, shakeY = 0, 0
+		local targetShakeX, targetShakeY = 0, 0
+		local nextShakeSample = 0
+		local shakeStrength = 0.45
+
+		local bloodDrips = {}
+		for i = 1, math.random(4, 7) do
+			bloodDrips[i] = {
+				x = math.random(margin, sizeX - margin),
+				w = math.random(1, 2),
+				h = math.random(ScreenScaleH(8), ScreenScaleH(28)),
+				alpha = math.random(6, 22),
+				speed = math.Rand(0.15, 0.6),
+				offset = math.Rand(0, math.pi * 2),
+			}
+		end
+
 		plyMenu = vgui.Create("ZFrame")
 		plyMenu.ent = ent
 		plyMenu.entindex = ent:EntIndex()
-
 		plyMenu:SetTitle("")
 		plyMenu:SetSize(sizeX, sizeY)
 		plyMenu:Center()
 		plyMenu:MakePopup()
-		plyMenu:SetKeyBoardInputEnabled(false)
+		plyMenu:SetKeyboardInputEnabled(false)
 		plyMenu:ShowCloseButton(false)
-		plyMenu:SetVisible(true)
+		plyMenu:SetDraggable(false)
+		plyMenu:SetColorBG(invCol.frameBG)
+		plyMenu:SetColorBR(invCol.frameBorder)
+		plyMenu:SetAlpha(0)
+		plyMenu:AlphaTo(255, 0.12, 0)
 		plyMenu.Created = CurTime()
-		--plyMenu.OldPaint = 
-		plyMenu.PaintOver = function(self, w, h)
-			draw.DrawText(name, "HomigradFontSmall", w / 2, 10, color_white, TEXT_ALIGN_CENTER)
 
-			draw.DrawText("R - Закрыть | Hold LMB - Взять | RMB - Меню предмета", "HomigradFontSmall", w / 2, h - h*0.055 , clr_text, TEXT_ALIGN_CENTER)
-		end
-		function plyMenu:Think()
-			local ent = self.ent
-			if not IsValid(ent) then self:Close() return end
-			if LocalPlayer().organism.otrub or not LocalPlayer():Alive() then self:Remove() return end
-			if (ent:GetPos() - LocalPlayer():GetPos()):LengthSqr() > 125^2 then self:Remove() return end
-			if ent:IsPlayer() and (not IsValid(ent.FakeRagdoll) or (ent.organism and not ent.organism.otrub)) then self:Remove() return end
-			if input.IsKeyDown(KEY_R) then
-				self:Close()
+		plyMenu.Think = function(self)
+			local t = CurTime()
+			if t >= nextShakeSample then
+				nextShakeSample = t + 0.035
+				targetShakeX = math.Rand(-shakeStrength, shakeStrength)
+				targetShakeY = math.Rand(-shakeStrength * 0.6, shakeStrength * 0.6)
 			end
+			local lerpRate = math.Clamp(FrameTime() * 22, 0, 1)
+			shakeX = Lerp(lerpRate, shakeX, targetShakeX)
+			shakeY = Lerp(lerpRate, shakeY, targetShakeY)
+
+			local e = self.ent
+			if not IsValid(e) then self:Close() return end
+			if LocalPlayer().organism.otrub or not LocalPlayer():Alive() then self:Remove() return end
+			if (e:GetPos() - LocalPlayer():GetPos()):LengthSqr() > 125 ^ 2 then self:Remove() return end
+			if e:IsPlayer() and (not IsValid(e.FakeRagdoll) or (e.organism and not e.organism.otrub)) then self:Remove() return end
+			if input.IsKeyDown(KEY_R) then self:Close() end
+		end
+
+		plyMenu.PaintOver = function(self, w, h)
+			local t = CurTime()
+
+			if not invNoiseMat:IsError() then
+				surface.SetMaterial(invNoiseMat)
+				surface.SetDrawColor(255, 255, 255, 6)
+				local nx, ny = math.random(0, 512), math.random(0, 512)
+				surface.DrawTexturedRectUV(0, 0, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+			end
+
+			for y = 0, h, 3 do
+				surface.SetDrawColor(0, 0, 0, 12)
+				surface.DrawRect(0, y, w, 1)
+			end
+
+			for _, drip in ipairs(bloodDrips) do
+				local pulse = math.sin(t * drip.speed + drip.offset) * 0.3 + 0.7
+				surface.SetDrawColor(100, 15, 12, math.floor(drip.alpha * pulse))
+				surface.DrawRect(drip.x + shakeX, 0, drip.w, drip.h)
+			end
+
+			surface.SetDrawColor(invCol.frameBorder)
+			surface.DrawOutlinedRect(0, 0, w, h, 1)
+
+			surface.SetDrawColor(invCol.separator)
+			surface.DrawRect(margin, topBarH - 1, w - margin * 2, 1)
+
+			surface.SetFont("ZCity_Veteran")
+			surface.SetTextColor(invCol.text)
+			local titleW = surface.GetTextSize(title)
+			surface.SetTextPos(w * 0.5 - titleW * 0.5 + shakeX, ScreenScaleH(6) + shakeY * 0.5)
+			surface.DrawText(title)
+
+			surface.SetFont("ZB_InterfaceSmall")
+			surface.SetTextColor(invCol.textMuted)
+			local hint = "R — закрыть | удерж. ЛКМ — взять | ПКМ — подсказка"
+			local hintW = surface.GetTextSize(hint)
+			surface.SetTextPos(w * 0.5 - hintW * 0.5 + shakeX * 0.3, h - bottomBarH + ScreenScaleH(4))
+			surface.DrawText(hint)
 		end
 
 		local DScrollPanel = vgui.Create("DScrollPanel", plyMenu)
-		DScrollPanel:SetPos(sizeX / 30, sizeY / 12)
-		DScrollPanel:SetSize(sizeX - sizeX / 16, sizeY - sizeY / 7)
 		DScrollPanel:Dock(FILL)
-		DScrollPanel:DockMargin(2,8,2,20)
-		--function DScrollPanel:Paint(w, h)
-		--	draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 100))
-		--	surface.SetDrawColor(255, 0, 0, 128)
-		--	surface.DrawOutlinedRect(0, 0, w, h, 2.5)
-		--end
-
-		--local sbar = DScrollPanel:GetVBar()
-		--sbar:SetHideButtons( true )
-		--function sbar:Paint(w, h)
-		--	draw.RoundedBox(0, 0, 0, w, h, Color(0, 0, 0, 100))
-		--	surface.SetDrawColor(255, 0, 0, 128)
-		--	surface.DrawOutlinedRect(0, 0, w, h, 2.5)
-		--end
---
-		--function sbar.btnUp:Paint(w, h)
-		--end
---
-		--function sbar.btnDown:Paint(w, h)
-		--end
---
-		--function sbar.btnGrip:Paint(w, h)
-		--	draw.RoundedBox(0, 0, 0, w, h, Color(148, 0, 0, 100))
-		--	surface.SetDrawColor(255, 0, 0, 128)
-		--	surface.DrawOutlinedRect(0, 0, w, h, 2.5)
-		--end
+		DScrollPanel:DockMargin(margin, topBarH, margin, bottomBarH)
+		InvStyleScrollbar(DScrollPanel:GetVBar())
 
 		local grid = vgui.Create("DGrid", DScrollPanel)
-		grid:Dock(FILL)
-		grid:DockMargin(12, 10, 0, 0)
-		grid:SetCols(5)
-		grid:SetColWide(sizeX / 5 - sizeX / 16 / 9)
-		grid:SetRowHeight(sizeY / 6.5 + sizeY / 32)
+		grid:Dock(TOP)
+		grid:DockMargin(ScreenScale(4), ScreenScale(4), ScreenScale(4), ScreenScale(4))
+		grid:SetCols(gridCols)
+		grid:SetColWide(colWide)
+		grid:SetRowHeight(rowH)
+		grid:SetTall(rows * rowH + gridPad)
 		local count = 0
 		for tab, things in pairs(inv) do
 			if not istable(things) then continue end
@@ -280,18 +360,17 @@ if CLIENT then
 				count = count + ((ent:IsPlayer() or ent:IsRagdoll()) and ((hg.TraitorLoot[i] and ent:IsPlayer()) and 2 or 0.5) or 1) * (not ent.foundloot[i] and 1 or 0)
 			end
 		end
-		local time = CurTime() + 3
+		local searchCycle = CurTime() + 3
 		function DScrollPanel:Paint(w, h)
-			txt = "Searching"
-			if time > 0 then
-				for i = 1, 3 - math.Round(time-CurTime(),0) do
+			draw.RoundedBox(0, 0, 0, w, h, invCol.panelBG)
+			if (plyMenu.Created + count + 3) >= CurTime() then
+				local txt = "обыск"
+				for i = 1, 3 - math.Round(searchCycle - CurTime(), 0) do
 					txt = txt .. "."
 				end
-				if time < CurTime() then
-					time = CurTime() + 3
-				end
+				if searchCycle < CurTime() then searchCycle = CurTime() + 3 end
+				draw.SimpleText(txt, "ZCity_Veteran", w * 0.5, h * 0.42, invCol.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			end
-			draw.DrawText((plyMenu.Created + count + 3) < CurTime() and "" or txt, "ZCity_Small", w / 2, h / 2.8, Color(255,255,255,15), TEXT_ALIGN_CENTER)
 		end
 		local count2 = 0
 		
@@ -310,7 +389,6 @@ if CLIENT then
 
 				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
 
-				--ent.foundloot = {}
 				ent.foundloot = ent.foundloot or {}
 
 				if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == i then continue end
@@ -319,12 +397,11 @@ if CLIENT then
 				local button = vgui.Create("DButton", plyMenu)
 				button:SetText("")
 				button:DockMargin(5, 0, 2, 0)
-				button:SetSize(0,0)
-				--button:SetSize(sizeX / 5.8, sizeY / 5.8)
+				button:SetSize(0, 0)
 				button.Created = CurTime() + (!ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
 					if self.Created and self.Created < CurTime() then
-						self:SetSize(sizeX / 5.8, sizeY / 5.8)
+						self:SetSize(boxW, boxH)
 						self:SetAlpha(0)
 						surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
 						self:AlphaTo(255, 0.3, 0)
@@ -396,45 +473,56 @@ if CLIENT then
 					OptionsMenu:Open()
 				end
 
-				local name = nameThings(i, thing)
+				local itemName = nameThings(i, thing)
 				button.col1 = 100
 				button.Paint = function(self, w, h)
-					button.col1 = Lerp(0.1, button.col1, button:IsHovered() and 255 or 100)
-					if button:IsHovered() then
-						button.SoundKD = button.SoundKD or 0
-						if (grid.SoundKD or 0) < CurTime() and button.SoundKD < CurTime() then surface.PlaySound("arc9_eft_shared/generic_mag_pouch_out" .. math.random(7) .. ".ogg") end
-						button.SoundKD = CurTime() + 0.1
+					self.col1 = Lerp(0.1, self.col1, self:IsHovered() and 255 or 100)
+
+					if self:IsHovered() then
+						self.SoundKD = self.SoundKD or 0
+						if (grid.SoundKD or 0) < CurTime() and self.SoundKD < CurTime() then
+							surface.PlaySound("arc9_eft_shared/generic_mag_pouch_out" .. math.random(7) .. ".ogg")
+						end
+						self.SoundKD = CurTime() + 0.1
 					end
 
-					surface.SetDrawColor(button.col1, 0, 0, 15)
+					surface.SetDrawColor(self.col1, 0, 0, 15)
 					surface.DrawRect(0, 0, w, h)
+
 					local Icon, HaveIcon, Overide, Quad = getIconThing(i, thing, tab)
 					if Icon then
-						button.Icon = button.Icon or (isstring(Icon) and Material(Icon)) or Icon -- Ну тут так, без выбора если что материал будет
+						self.Icon = self.Icon or (isstring(Icon) and Material(Icon)) or Icon
 					end
 
-					if HaveIcon then
-						if Overide and isnumber( Icon ) then
-							surface.SetTexture(button.Icon)
+					if HaveIcon and self.Icon then
+						if Overide and isnumber(Icon) then
+							surface.SetTexture(self.Icon)
 						else
-							surface.SetMaterial(button.Icon)
+							surface.SetMaterial(self.Icon)
 						end
-
 						surface.SetDrawColor(255, 255, 255)
-						surface.DrawTexturedRect(Quad and w / 5 + 5 or 0 - 5, 5, Quad and (w / 2 + 2.5) or (w + 10), Quad and h / 1.3 or h - 10)
+						surface.DrawTexturedRect(
+							Quad and w / 5 + 5 or -5,
+							5,
+							Quad and (w / 2 + 2.5) or (w + 10),
+							Quad and h / 1.3 or h - 10
+						)
 					end
 
-					surface.SetDrawColor(button.col1, 0, 0, button.col1)
+					surface.SetDrawColor(self.col1, 0, 0, self.col1)
 					surface.DrawOutlinedRect(0, 0, w, h, 1)
-					if button.HoldPressed and button.HoldReady and button.HoldDuration and button.HoldStart and button.HoldDuration > 0 then
-						local progress = math.Clamp((CurTime() - button.HoldStart) / button.HoldDuration, 0, 1)
+
+					if self.HoldPressed and self.HoldReady and self.HoldDuration and self.HoldStart and self.HoldDuration > 0 then
+						local progress = math.Clamp((CurTime() - self.HoldStart) / self.HoldDuration, 0, 1)
 						surface.SetDrawColor(255, 255, 255, 255)
 						surface.DrawRect(0, h - 4, w * progress, 4)
 					end
-					local Text = (tab == "Ammo" and game.GetAmmoName(name)) or language.GetPhrase(name)
-					local SubText = utf8.sub(Text, 17)
-					Text = utf8.sub(Text, 1, 17) .. "\n" .. utf8.sub(Text, 18)
-					draw.DrawText(Text, "ZCity_VerySuperTiny", w / 2, (HaveIcon and h / ((#SubText > 0 and 1.65) or 1.3)) or h / 3, color_white, TEXT_ALIGN_CENTER)
+
+					local text = (tab == "Ammo" and game.GetAmmoName(itemName)) or language.GetPhrase(itemName)
+					local subLine = utf8.sub(text, 18)
+					text = utf8.sub(text, 1, 17) .. "\n" .. subLine
+					local textY = HaveIcon and h / ((#subLine > 0 and 1.65) or 1.3) or h / 3
+					draw.DrawText(text, "ZCity_VerySuperTiny", w / 2, textY, color_white, TEXT_ALIGN_CENTER)
 				end
 				button.OnRemove = function(self)
 					if self.HoldKey then
@@ -444,6 +532,11 @@ if CLIENT then
 				grid:AddItem(button)
 			end
 		end
-	--plyMenu:SlideDown(0.5)
+
+		grid:InvalidateLayout(true)
+		local canvas = DScrollPanel:GetCanvas()
+		if IsValid(canvas) then
+			canvas:SetTall(math.max(grid:GetTall(), DScrollPanel:GetTall()))
+		end
 	end
 end
