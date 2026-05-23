@@ -398,7 +398,7 @@ if CLIENT then
 				button:SetText("")
 				button:DockMargin(5, 0, 2, 0)
 				button:SetSize(0, 0)
-				button.Created = CurTime() + (!ent.foundloot[i] and 2 or 0) + count2
+				button.Created = CurTime() + (IsValid(ent.FakeRagdoll) and !ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
 					if self.Created and self.Created < CurTime() then
 						self:SetSize(boxW, boxH)
