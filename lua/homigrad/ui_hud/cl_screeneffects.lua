@@ -56,8 +56,19 @@ local tab = {
 }
 
 local hook_Run = hook.Run
+local potatoTab = {
+	["$pp_colour_brightness"] = 0,
+	["$pp_colour_contrast"] = 1,
+	["$pp_colour_colour"] = 1
+}
+
 hook.Add("RenderScreenspaceEffects", "homigrad", function()
-	//if potatopc:GetInt() >= 1 then return end
+	if hg.LightPostFX and hg.LightPostFX() then
+		DrawColorModify(potatoTab)
+		hook_Run("Post Post Pre Post Processing")
+		return
+	end
+
 	hook_Run("Post Processing")
 	//DrawSunEffect()
 	for _, layer in ipairs(layers_name) do
@@ -79,6 +90,10 @@ hook.Add("RenderScreenspaceEffects", "homigrad", function()
 	hook_Run("Post Pre Post Processing")
 
 	hook_Run("Post Post Processing")
+
+	if hg.postprocess and hg.postprocess.RunExtra then
+		hg.postprocess.RunExtra()
+	end
 
 	hook_Run("Post Post Pre Post Processing")
 end)

@@ -369,6 +369,7 @@ players : 1 humans, 0 bots (20 max)
 
 		local vignetteMat = Material( "effects/shaders/zb_vignette" )
 		hook.Add("RenderScreenspaceEffects","SIB_Suppresss",function()
+			if hg.LightPostFX and hg.LightPostFX() then return end
 			if not LocalPlayer():Alive() then return end
 
 			local fraction = math.Clamp(SIB_suppress.Force / 5, 0, 1)
@@ -563,7 +564,9 @@ players : 1 humans, 0 bots (20 max)
 --//
 
 --\\ Can see or not
-	--local checkcd = 0
+	local checkcd = 0
+	local cachedPlayers = {}
+	local cachedPlayerCount = -1
 	local ents_FindByClass = ents.FindByClass
 	local player_GetAll = player.GetAll
 	local render_GetViewSetup = render.GetViewSetup
@@ -577,10 +580,17 @@ players : 1 humans, 0 bots (20 max)
 	local table_Add = table.Add
 
 	hook.Add("Think", "CanBeSeenOrNot", function()
-		--if checkcd > CurTime() then return end
-		--checkcd = CurTime() + 1
+		if checkcd > CurTime() then return end
+		checkcd = CurTime() + 0.15
+
 		local entities = ents_FindByClass("prop_ragdoll")
-		table_Add(entities, player_GetAll())
+
+		local pc = player.GetCount()
+		if pc ~= cachedPlayerCount then
+			cachedPlayers = player_GetAll()
+			cachedPlayerCount = pc
+		end
+		table_Add(entities, cachedPlayers)
 
 		local orgents = {}
 		for ent in pairs(hg.organism_ents) do

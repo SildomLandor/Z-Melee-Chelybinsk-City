@@ -1,3 +1,6 @@
+local hg_enable_vfire = ConVarExists("hg_enable_vfire") and GetConVar("hg_enable_vfire") or CreateConVar("hg_enable_vfire", "1", bit.bor(FCVAR_ARCHIVE, FCVAR_REPLICATED), "Enable vfire fire system (0 = off)")
+if not hg_enable_vfire:GetBool() then return end
+
 local entMeta = FindMetaTable("Entity")
 
 --[[-------------------------------------------------------------------------

@@ -760,22 +760,46 @@
 		end
 
 		local hg_tpik_distance = ConVarExists("hg_tpik_distance") and GetConVar("hg_tpik_distance") or CreateClientConVar("hg_tpik_distance",1024,true,false,"The distance (in hammer units) at which the third person inverse kinematics enables, 0 = inf",0,2048)
+		local hg_tpik_near_only = ConVarExists("hg_tpik_near_only") and GetConVar("hg_tpik_near_only") or CreateClientConVar("hg_tpik_near_only", "0", true, false, "TPIK only for local player and spect target", 0, 1)
 
 		local render_GetViewSetup = render.GetViewSetup
-		function hg.ShouldTPIK(ply)
+		function hg.ShouldTPIK(ply, ent)
+			if not IsValid(ply) then return false end
+
 			local time = CurTime()
 			if (ply.cachedtpik or 0) > time then return ply.cachedval end
 			ply.cachedtpik = time + 0.1
 
-			local int = hg_tpik_distance:GetInt()
-			if (int == 0 or ply == lply or ply == lply:GetNWEntity("spect")) then
+			local spect = lply:GetNWEntity("spect")
+			if ply == lply or ply == spect then
 				ply.cachedval = true
 				return true
 			end
 
-			local view = render.GetViewSetup(true)
-			if (ply:GetPos():DistToSqr(view.origin) > int * int) then
-				ply.cachedval = false 
+			if hg_tpik_near_only:GetBool() then
+				ply.cachedval = false
+				return false
+			end
+
+			if IsValid(ent) and ent.NotSeen then
+				ply.cachedval = false
+				return false
+			end
+
+			if ply.NotSeen then
+				ply.cachedval = false
+				return false
+			end
+
+			local int = hg_tpik_distance:GetInt()
+			if int == 0 then
+				ply.cachedval = true
+				return true
+			end
+
+			local view = render_GetViewSetup(true)
+			if ply:GetPos():DistToSqr(view.origin) > int * int then
+				ply.cachedval = false
 				return false
 			end
 
