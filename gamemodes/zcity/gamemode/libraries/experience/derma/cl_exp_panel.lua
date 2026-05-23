@@ -1,83 +1,99 @@
 local PANEL = {}
 
-local gradient_u = Material("vgui/gradient-u")
-
-local function PaintPanel1(self,w,h)
-end
-
-local function RenderMedalBox(w,h)
-    if w > h then
-        surface.SetDrawColor( 0,0,0,155 )
-        surface.DrawTexturedRect( (w/2 - h/2) + 5, 0+5, h, h )
-        surface.SetDrawColor( 255,255,255,255 )
-        surface.DrawTexturedRect( w/2 - h/2, 0, h, h )
-    else
-        surface.SetDrawColor( 0,0,0,155 )
-        surface.DrawTexturedRect( 0+5, ( h/2 - w/2 )+5, w, w )
-        surface.SetDrawColor( 255,255,255,255 )
-        surface.DrawTexturedRect( 0, h/2 - w/2, w, w )
-    end
+local function drawMedal(w, h, scale)
+    local s = math.min(w, h) * (scale or 1)
+    local x, y = (w - s) * 0.5, (h - s) * 0.5
+    surface.SetDrawColor(0, 0, 0, 140)
+    surface.DrawRect(x + 4, y + 4, s, s)
+    surface.SetDrawColor(255, 255, 255, 255)
+    surface.DrawTexturedRect(x, y, s, s)
 end
 
 function PANEL:Init()
-    self.Player = nil
+    local col = zb.Experience.UI.col
+    local pad = ScreenScale(6)
+    local avH = ScreenScaleH(52)
 
-    self.PlyLabel = vgui.Create( "DLabel", self )
-    self.PlyLabel:Dock( TOP )
-    self.PlyLabel:SetContentAlignment(8)
-    self.PlyLabel:SetSize(0,50)
-    self.PlyLabel:SetFont( "ZB_InterfaceMedium" )
-    self.PlyLabel:SetColor(color_white)
+    self.Avatar = vgui.Create("AvatarImage", self)
+    self.Avatar:Dock(TOP)
+    self.Avatar:DockMargin(pad, pad, pad, ScreenScaleH(4))
+    self.Avatar:SetTall(avH)
+    self.Avatar:SetMouseInputEnabled(false)
 
-    self.MedalPanel = vgui.Create( "DPanel", self )
-    self.MedalPanel:Dock( FILL )
-    self.MedalPanel.Band = nil
-    self.MedalPanel.Medal = nil
+    self.Name = vgui.Create("DLabel", self)
+    self.Name:Dock(TOP)
+    self.Name:SetContentAlignment(5)
+    self.Name:SetTall(ScreenScaleH(18))
+    self.Name:SetFont("ZCity_Veteran")
+    self.Name:SetTextColor(col.text)
 
-    function self:Paint( w, h )  
-        PaintPanel1( self, w, h )
+    self.Medals = vgui.Create("DPanel", self)
+    self.Medals:Dock(FILL)
+    self.Medals:DockMargin(pad, ScreenScaleH(6), pad, ScreenScaleH(4))
+    self.Medals.Paint = function(pnl, pw, ph)
+        if not pnl.band or not pnl.medal then return end
+        surface.SetMaterial(pnl.band.icon)
+        drawMedal(pw, ph)
+        surface.SetMaterial(pnl.medal.icon)
+        drawMedal(pw, ph, 0.72)
     end
 
-    function self.MedalPanel:Paint( w, h )
-        if not self.Band or not self.Medal then return end
-        surface.SetMaterial( self.Band.icon )
+    self.Tier = vgui.Create("DLabel", self)
+    self.Tier:Dock(BOTTOM)
+    self.Tier:DockMargin(0, 0, 0, ScreenScaleH(2))
+    self.Tier:SetContentAlignment(5)
+    self.Tier:SetTall(ScreenScaleH(20))
+    self.Tier:SetFont("ZCity_Veteran")
+    self.Tier:SetTextColor(col.textBlood)
 
-        RenderMedalBox(w,h)
+    self.Xp = vgui.Create("DLabel", self)
+    self.Xp:Dock(BOTTOM)
+    self.Xp:SetContentAlignment(5)
+    self.Xp:SetTall(ScreenScaleH(16))
+    self.Xp:SetFont("ZB_InterfaceSmall")
+    self.Xp:SetTextColor(col.textDim)
 
-        surface.SetMaterial( self.Medal.icon )
+    self.Skill = vgui.Create("DLabel", self)
+    self.Skill:Dock(BOTTOM)
+    self.Skill:SetContentAlignment(5)
+    self.Skill:SetTall(ScreenScaleH(16))
+    self.Skill:SetFont("ZB_InterfaceSmall")
+    self.Skill:SetTextColor(col.textMuted)
 
-        RenderMedalBox(w,h)
+    self.Paint = function(_, pw, ph)
+        surface.SetDrawColor(col.panelBG)
+        surface.DrawRect(0, 0, pw, ph)
+        surface.SetDrawColor(col.panelBorder)
+        surface.DrawOutlinedRect(0, 0, pw, ph, 1)
+        surface.SetDrawColor(col.separator)
+        surface.DrawRect(pad, avH + ScreenScaleH(22), pw - pad * 2, 1)
     end
-
-    self.ExpLabel = vgui.Create( "DLabel", self )
-    self.ExpLabel:Dock( BOTTOM )
-    self.ExpLabel:SetContentAlignment(8)
-    self.ExpLabel:SetSize(0,50)
-    self.ExpLabel:SetFont( "ZB_InterfaceMedium" )
-    self.ExpLabel:SetColor(color_white)
-
 end
 
-function PANEL:SetPlayer( ply )
-    self.Player = ply
-    local Band, Medal = ply:GetAwards()
-    
-    self.MedalPanel.Band = Band
-    self.MedalPanel.Medal = Medal
-    self.PlyLabel:SetText( ply:Nick().."'s medal" )
-    self.ExpLabel:SetText( (ply.exp or 0).." XP ".. math.Round(ply.skill or 0,3) .. " Skill" )
-    local oldexp = 0
-    function self.ExpLabel:Think()
-        if ply.exp != oldexp then
-            local Band, Medal = ply:GetAwards()
+function PANEL:Pull()
+    local ply = self.ply
+    if not IsValid(ply) then return end
+    local band, medal = ply:GetAwards()
+    self.Medals.band = band
+    self.Medals.medal = medal
+    self.Tier:SetText(medal and medal.name or "—")
+    self.Xp:SetText(math.floor(ply.exp or 0) .. " XP")
+    self.Skill:SetText("Skill " .. math.Round(ply.skill or 0, 3))
+end
 
-            self.Band = Band
-            self.Medal = Medal
-        end
-        self:SetText( (ply.exp or 0).." XP ".. math.Round(ply.skill or 0,3) .. " Skill" )
-        oldexp = ply.exp
+function PANEL:SetPlayer(ply)
+    self.ply = ply
+    self.Avatar:SetPlayer(ply, 64)
+    self.Name:SetText(ply:Nick())
+    self:Pull()
+
+    local last = ply.exp
+    self.Think = function()
+        if not IsValid(ply) then return end
+        if ply.exp == last then return end
+        last = ply.exp
+        self:Pull()
     end
 end
 
-
-vgui.Register( "ZB_ExpPanel", PANEL, "DPanel" )
+vgui.Register("ZB_ExpPanel", PANEL, "DPanel")

@@ -110,6 +110,7 @@ zb.Experience.Bands = {
 }
 
 local SHTable = zb.Experience
+zb.Experience.UI = zb.Experience.UI or {}
 
 function zb.Experience.GetAwards( self )
     local skill = self.skill
@@ -200,6 +201,56 @@ if SERVER then
         end)
     end)
 else
+    local UI = zb.Experience.UI
+    UI.col = {
+        frameBG = Color(10, 10, 19, 235),
+        frameBorder = Color(90, 90, 95, 120),
+        panelBG = Color(8, 8, 16, 245),
+        panelBorder = Color(255, 255, 255, 25),
+        text = Color(200, 200, 200, 255),
+        textDim = Color(160, 160, 165, 180),
+        textMuted = Color(100, 100, 108, 140),
+        textTitle = Color(200, 200, 200, 255),
+        textBlood = Color(180, 40, 35, 255),
+        accent = Color(200, 200, 200, 60),
+        accentDim = Color(255, 255, 255, 15),
+        separator = Color(255, 255, 255, 12),
+        scrollTrack = Color(255, 255, 255, 6),
+        scrollGrip = Color(200, 200, 200, 60),
+        scrollGripHov = Color(200, 200, 200, 100),
+        rowAlt = Color(255, 255, 255, 4),
+    }
+    UI.NoiseMat = Material("vgui/noisevhs")
+    if UI.NoiseMat:IsError() then UI.NoiseMat = Material("vgui/white") end
+
+    function UI.StyleScrollbar(sbar)
+        if not IsValid(sbar) then return end
+        local col = UI.col
+        sbar:SetHideButtons(true)
+        sbar.Paint = function(_, sw, sh)
+            surface.SetDrawColor(col.scrollTrack)
+            surface.DrawRect(0, 0, sw, sh)
+        end
+        sbar.btnGrip.Paint = function(btn, sw, sh)
+            surface.SetDrawColor(btn:IsHovered() and col.scrollGripHov or col.scrollGrip)
+            surface.DrawRect(2, 0, sw - 4, sh)
+        end
+    end
+
+    function UI.PaintNoiseOverlay(w, h, col, a)
+        if UI.NoiseMat:IsError() then return end
+        surface.SetMaterial(UI.NoiseMat)
+        surface.SetDrawColor(255, 255, 255, a or 6)
+        local u, v = math.random(0, 512), math.random(0, 512)
+        surface.DrawTexturedRectUV(0, 0, w, h, u / 512, v / 512, u / 512 + w / 768, v / 512 + h / 768)
+        for y = 0, h, 3 do
+            surface.SetDrawColor(0, 0, 0, 12)
+            surface.DrawRect(0, y, w, 1)
+        end
+        surface.SetDrawColor(col.frameBorder)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+    end
+
     net.Receive( "get_svPData", function()
         local ent = net.ReadEntity()
         local dataName = net.ReadString()
@@ -207,7 +258,7 @@ else
         ent.SvDB = ent.SvDB or {}
         ent.SvDB[dataName] = dataType
         if zb.Experience.OpenedAccount then
-            zb.Experience.OpenedAccount:Udpate(ent)
+            zb.Experience.OpenedAccount:Update(ent)
         end
     end)
 end
