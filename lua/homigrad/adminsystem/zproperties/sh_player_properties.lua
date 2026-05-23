@@ -362,11 +362,7 @@ properties.Add( "setplayerclass", {
 	MenuIcon = "vgui/entities/npc_nukude_proto_h", -- The icon to display next to the property
 
 	Filter = check,
-	Action = function( self, ent ) -- The action to perform upon using the property ( Clientside )
-		self:MsgStart()
-			net.WriteEntity( ent )
-		self:MsgEnd()
-	end,
+	Action = function() end,
 	PlayerClass = function( self, ent, name )
 		self:MsgStart()
 			net.WriteEntity( ent )
@@ -404,6 +400,7 @@ properties.Add( "break_limb", {
 	MenuIcon = "icon16/exclamation.png",
 
 	Filter = check,
+	Action = function() end,
 	MenuOpen = function( self, option, ent, tr )
 		ent = hg.RagdollOwner(ent) or hg.GetCurrentCharacter(ent) or ent
 
@@ -499,6 +496,7 @@ properties.Add( "amputate_limb", {
 	MenuIcon = "effects/arc9_eft/evil.png",
 
 	Filter = check,
+	Action = function() end,
 	MenuOpen = function( self, option, ent, tr )
 		ent = hg.RagdollOwner(ent) or hg.GetCurrentCharacter(ent) or ent
 
