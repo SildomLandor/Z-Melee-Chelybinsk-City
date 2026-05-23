@@ -83,11 +83,6 @@ local boneAlias = {
 	head = "head", spine = "spine",
 }
 
-concommand.Add("hg_throatclutch_dist", function()
-	local ply = LocalPlayer()
-	print(("[throat] L→neck %.1f  R→neck %.1f (цель 4–6)"):format(hg.throatclutch_hand_dist(ply, "l"), hg.throatclutch_hand_dist(ply, "r")))
-end)
-
 -- hg_throatclutch_tune rfa p 5
 concommand.Add("hg_throatclutch_tune", function(_, _, args)
 	local ply = LocalPlayer()
