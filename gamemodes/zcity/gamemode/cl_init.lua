@@ -931,7 +931,8 @@ function GM:ScoreboardShow()
 		surface.SetTextPos(w - margin - tickTW - ScreenScale(2) + shakeX - 50, srvY)
 		surface.DrawText(tickText)
 
-		karma = 0
+		local karma = zb.GetLocalKarma and zb.GetLocalKarma() or 100
+		local karmtxt = "Карма: " .. karma
 		surface.SetFont("ZCity_Veteran")
 		karmtxt = 'Карма: ' .. karma
 		local karmCol = col.textDim

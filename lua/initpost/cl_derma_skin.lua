@@ -141,6 +141,23 @@ surface.CreateFont("ZCity_Fixed_Icons_Small", {
 	extended = true,
 	weight = 500
 })
+
+surface.CreateFont("ZCity_Veteran_hmcdobj", {
+    font = "TrixiePro-Heavy",
+    size = ScreenScale(14),
+    weight = 500,
+    extended = true,
+    antialias = true
+})
+
+surface.CreateFont("ZCity_Veteran_big", {
+    font = "TrixiePro-Heavy",
+    size = ScreenScale(20),
+    weight = 500,
+    extended = true,
+    antialias = true
+})
+
 --//
 
 local gradient = surface.GetTextureID("vgui/gradient-d")

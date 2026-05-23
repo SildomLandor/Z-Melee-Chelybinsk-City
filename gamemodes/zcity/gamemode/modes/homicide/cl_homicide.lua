@@ -15,50 +15,174 @@ MODE.TypeSounds = {
 	["wildwest"] = "snd_jack_hmcd_wildwest.mp3",
 	["supermario"] = "snd_jack_hmcd_psycho.mp3"
 }
+
 local fade = 0
+local fadeFX = {
+	noiseMat = Material("vgui/noisevhs"),
+	shakeX = 0,
+	shakeY = 0,
+	targetShakeX = 0,
+	targetShakeY = 0,
+	nextShake = 0,
+}
+
+if fadeFX.noiseMat:IsError() then
+	fadeFX.noiseMat = Material("vgui/white")
+end
+
+function MODE.GetRoundFadeOverlay()
+	local diff = (MODE.DynamicFadeScreenEndTime or 0) - CurTime()
+	if diff <= 0 then return 0 end
+	return math.min(diff / (MODE.FadeScreenTime or 1.5), 1)
+end
+
+local function UpdateFadeShake(intensity)
+	intensity = math.Clamp(intensity, 0, 1)
+	if intensity <= 0.01 then
+		local calm = math.Clamp(FrameTime() * 10, 0, 1)
+		fadeFX.shakeX = Lerp(calm, fadeFX.shakeX, 0)
+		fadeFX.shakeY = Lerp(calm, fadeFX.shakeY, 0)
+		return
+	end
+
+	local t = CurTime()
+	if t >= fadeFX.nextShake then
+		fadeFX.nextShake = t + 0.035
+		local s = 1.5 + intensity * 5.5
+		fadeFX.targetShakeX = math.Rand(-s, s)
+		fadeFX.targetShakeY = math.Rand(-s * 0.65, s * 0.65)
+	end
+
+	local rate = math.Clamp(FrameTime() * 22, 0, 1)
+	fadeFX.shakeX = Lerp(rate, fadeFX.shakeX, fadeFX.targetShakeX)
+	fadeFX.shakeY = Lerp(rate, fadeFX.shakeY, fadeFX.targetShakeY)
+end
+
+local function PaintRoundFadeBG(overlay)
+	local w, h = ScrW(), ScrH()
+	local a = math.floor(255 * overlay)
+
+	draw.RoundedBox(0, 0, 0, w, h, Color(10, 10, 19, a))
+
+	local mat = fadeFX.noiseMat
+	if not mat:IsError() then
+		surface.SetMaterial(mat)
+		surface.SetDrawColor(255, 255, 255, math.floor(10 + 14 * overlay))
+		local nx, ny = math.random(0, 512), math.random(0, 512)
+		surface.DrawTexturedRectUV(0, 0, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+	end
+
+	for y = 0, h, 3 do
+		surface.SetDrawColor(0, 0, 0, math.floor(8 + 10 * overlay))
+		surface.DrawRect(0, y, w, 1)
+	end
+
+	if math.random() > 0.55 then
+		surface.SetDrawColor(180, 20, 15, math.floor(6 * overlay))
+		surface.DrawRect(math.random(0, w), math.random(0, h), math.random(w * 0.2, w * 0.5), 1)
+	end
+
+	surface.SetDrawColor(90, 90, 95, math.floor(40 * overlay))
+	surface.DrawOutlinedRect(0, 0, w, h, 1)
+end
+
+local function DrawFadeText(text, font, cx, cy, col, ax, ay, shakeMul)
+	shakeMul = shakeMul or 1
+	local sx = fadeFX.shakeX * shakeMul
+	local sy = fadeFX.shakeY * shakeMul
+
+	if shakeMul >= 1.4 and math.random() > 0.9 then
+		sx = sx + math.random(-4, 4)
+		sy = sy + math.random(-2, 2)
+	end
+
+	draw.SimpleText(text, font, cx + sx, cy + sy, col, ax, ay)
+end
+
+local function DrawFadeTitle(text, cx, cy, col, alpha)
+	local font = "ZCity_Veteran_big"
+	local sx = fadeFX.shakeX * 2.2
+	local sy = fadeFX.shakeY * 2.2
+
+	if math.random() > 0.88 then
+		sx = sx + math.random(-5, 5)
+		sy = sy + math.random(-3, 3)
+	end
+
+	surface.SetFont(font)
+	local tw, th = surface.GetTextSize(text)
+	local bx, by = cx + sx - tw * 0.5, cy + sy - th * 0.5
+	local pulse = math.sin(CurTime() * 1.5) * 0.15 + 0.85
+
+	draw.SimpleText(text, font, bx + 2, by + 2, Color(40, 4, 2, alpha * 0.75), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx + 1, by + 1, Color(90, 8, 6, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx, by, Color(col.r * pulse, col.g * pulse, col.b * pulse, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+
+	if math.random() > 0.94 then
+		draw.SimpleText(text, font, bx + math.random(-3, 3), by + math.random(-2, 2), Color(180, 20, 15, alpha * 0.45), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	end
+end
+
+local function StoreTraitorWords(ply, w1, w2)
+	MODE.TraitorWord = w1
+	MODE.TraitorWordSecond = w2
+	if not IsValid(ply) then return end
+	ply.HMCD_TraitorWord = w1
+	ply.HMCD_TraitorWordSecond = w2
+end
+
 net.Receive("HMCD_RoundStart",function()
+	local lply = LocalPlayer()
+
 	for i, ply in player.Iterator() do
 		ply.isTraitor = false
 		ply.isGunner = false
+		ply.HMCD_TraitorWord = nil
+		ply.HMCD_TraitorWordSecond = nil
 	end
 
-	--\\
 	lply.isTraitor = net.ReadBool()
 	lply.isGunner = net.ReadBool()
 	MODE.Type = net.ReadString()
 	local screen_time_is_default = net.ReadBool()
 	lply.SubRole = net.ReadString()
 	lply.MainTraitor = net.ReadBool()
-	MODE.TraitorWord = net.ReadString()
-	MODE.TraitorWordSecond = net.ReadString()
+	local w1 = net.ReadString()
+	local w2 = net.ReadString()
 	MODE.TraitorExpectedAmt = net.ReadUInt(MODE.TraitorExpectedAmtBits)
 	StartTime = CurTime()
 	MODE.TraitorsLocal = {}
 
+	if lply.isTraitor then
+		StoreTraitorWords(lply, w1, w2)
+	else
+		StoreTraitorWords(lply, "", "")
+	end
+
 	if(lply.isTraitor and screen_time_is_default)then
 		if(MODE.TraitorExpectedAmt == 1)then
-			chat.AddText("You are alone on your mission.")
+			chat.AddText("Вы один на задании.")
 		else
 			if(MODE.TraitorExpectedAmt == 2)then
-				chat.AddText("You have 1 accomplice")
+				chat.AddText("У вас 1 сообщник.")
 			else
-				chat.AddText("There are(is) " .. MODE.TraitorExpectedAmt - 1 .. " traitor(s) besides you")
+				chat.AddText("Кроме вас ещё " .. MODE.TraitorExpectedAmt - 1 .. " предателей.")
 			end
 
-			chat.AddText("Traitor secret words are: \"" .. MODE.TraitorWord .. "\" and \"" .. MODE.TraitorWordSecond .. "\".")
+			chat.AddText("Кодовые слова: «" .. MODE.TraitorWord .. "» и «" .. MODE.TraitorWordSecond .. "».")
 		end
 
 		if(lply.MainTraitor)then
 			if(MODE.TraitorExpectedAmt > 1)then
-				chat.AddText("Traitor names (only you, as a main traitor can see them):")
+				chat.AddText("Имена предателей (видите только вы, главный предатель):")
 			end
 
-			for key = 1, MODE.TraitorExpectedAmt do
+			local read_amt = math.max(0, MODE.TraitorExpectedAmt - 1)
+			for key = 1, read_amt do
 				local traitor_info = {net.ReadColor(false), net.ReadString()}
 
 				if(MODE.TraitorExpectedAmt > 1)then
 					MODE.TraitorsLocal[#MODE.TraitorsLocal + 1] = traitor_info
-
 					chat.AddText(traitor_info[1], "\t" .. traitor_info[2])
 				end
 			end
@@ -85,6 +209,11 @@ net.Receive("HMCD_RoundStart",function()
 	end
 
 	fade = 0
+	fadeFX.shakeX = 0
+	fadeFX.shakeY = 0
+	fadeFX.targetShakeX = math.Rand(-4, 4)
+	fadeFX.targetShakeY = math.Rand(-3, 3)
+	fadeFX.nextShake = 0
 end)
 
 MODE.TypeNames = {
@@ -95,7 +224,6 @@ MODE.TypeNames = {
 	["wildwest"] = "Wild west",
 	["supermario"] = "Super Mario"
 }
-
 
 surface.CreateFont("ZB_HomicideSmall", {
 	font = font(),
@@ -179,22 +307,22 @@ MODE.TypeObjectives.standard = {
 
 MODE.TypeObjectives.wildwest = {
 	traitor = {
-		objective = "This town ain't that big for all of us.",
-		name = "The Killer",
+		objective = "Этот город слишком мал для нас всех. Убей остальных и стань единственным выжившим.",
+		name = "Убийца",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You're the sheriff of this town. You gotta find and kill the lawless bastard.",
-		name = "The Sheriff",
+		objective = "Ты — шериф этого городка. Найди и уничтожь негодяя, нарушившего закон.",
+		name = "Шериф",
 		color1 = Color(0,120,190),
 		color2 = Color(158,0,190)
 	},
 
 	innocent = {
-		objective = "We gotta get justice served over here, there's a lawless prick murdering men.",
-		name = "a Fellow Cowboy",
+		objective = "Закон должен восторжествовать. В этом городе произошли убийства — будь осторожен и помоги найти преступника.",
+		name = "Ковбой",
 		color1 = Color(0,120,190),
 		color2 = Color(158,0,190)
 	},
@@ -202,42 +330,42 @@ MODE.TypeObjectives.wildwest = {
 
 MODE.TypeObjectives.gunfreezone = {
 	traitor = {
-		objective = "You're geared up with items, poisons, explosives and weapons hidden in your pockets. Murder everyone here.",
-		name = "a Murderer",
+		objective = "У тебя есть всё необходимое: предметы, яды, взрывчатка и оружие спрятаны по карманам. Убей здесь всех.",
+		name = "Убийца",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You are a bystander of a murder scene, although it didn't happen to you, you better be cautious.",
-		name = "a Bystander",
+		objective = "Ты свидетель на месте убийства. Будь осторожен и внимателен — хотя тебя не убили, опасность всё ещё рядом.",
+		name = "Свидетель",
 		color1 = Color(0,120,190)
 	},
 
 	innocent = {
-		objective = "You are a bystander of a murder scene, although it didn't happen to you, you better be cautious.",
-		name = "a Bystander",
+		objective = "Ты свидетель на месте убийства. Хотя убийство случилось не с тобой, лучше быть начеку.",
+		name = "Свидетель",
 		color1 = Color(0,120,190)
 	},
 }
 
 MODE.TypeObjectives.suicidelunatic = {
 	traitor = {
-		objective = "My brother insha'Allah, don't let him down.",
-		name = "a Shahid",
+		objective = "Твои братья рассчитывают на тебя, брат, не подведи их ради высшей цели.",
+		name = "Шахид",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "Sheep fucker's gone crazy, now you need to survive.",
-		name = "an Innocent",
+		objective = "Кто-то сошёл с ума и пошёл на всё — попытайся выжить любой ценой.",
+		name = "Невиновный",
 		color1 = Color(0,120,190)
 	},
 
 	innocent = {
-		objective = "Sheep fucker's gone crazy, now you need to survive.",
-		name = "an Innocent",
+		objective = "Кто-то сошёл с ума и пошёл на всё — попытайся выжить любой ценой.",
+		name = "Невиновный",
 		color1 = Color(0,120,190)
 	},
 }
@@ -245,39 +373,33 @@ MODE.TypeObjectives.suicidelunatic = {
 
 MODE.TypeObjectives.supermario = {
 	traitor = {
-		objective = "You're the evil Mario! Jump around and take down everyone.",
-		name = "Traitor Mario",
+		objective = "Ты злой Марио! Прыгай по карте и устрани всех остальных.",
+		name = "Предатель Марио",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You're the hero Mario! Use your jumping ability to stop the traitor.",
-		name = "Hero Mario",
+		objective = "Ты герой Марио! Используй свои прыжки, чтобы остановить предателя.",
+		name = "Герой Марио",
 		color1 = Color(158,0,190),
 		color2 = Color(158,0,190)
 	},
 
 	innocent = {
-		objective = "You're a bystander Mario, survive and avoid the traitor's traps!",
-		name = "Innocent Mario",
+		objective = "Ты мирный Марио — выживай и избегай ловушек предателя!",
+		name = "Мирный Марио",
 		color1 = Color(0,120,190)
 	},
 }
 
 function MODE:RenderScreenspaceEffects()
-	-- MODE.DynamicFadeScreenEndTime = MODE.DynamicFadeScreenEndTime or 0
-	fade_end_time = MODE.DynamicFadeScreenEndTime or 0
-	local time_diff = fade_end_time - CurTime()
+	local overlay = MODE.GetRoundFadeOverlay()
+	if overlay <= 0 then return end
 
-	if(time_diff > 0)then
-		zb.RemoveFade()
-
-		local fade = math.min(time_diff / MODE.FadeScreenTime, 1)
-
-		surface.SetDrawColor(0, 0, 0, 255 * fade)
-		surface.DrawRect(-1, -1, ScrW() + 1, ScrH() + 1 )
-	end
+	zb.RemoveFade()
+	UpdateFadeShake(overlay)
+	PaintRoundFadeBG(overlay)
 end
 
 local handicap = {
@@ -289,24 +411,32 @@ local handicap = {
 
 function MODE:HUDPaint()
 	if not MODE.Type or not MODE.TypeObjectives[MODE.Type] then return end
-	if lply:Team() == TEAM_SPECTATOR then return end
+	local lply = LocalPlayer()
+	if not IsValid(lply) or lply:Team() == TEAM_SPECTATOR then return end
 	if StartTime + 12 < CurTime() then return end
-	
-	fade = Lerp(FrameTime()*1, fade, math.Clamp(StartTime + 5 - CurTime(),-2,2))
 
-	draw.SimpleText("Хомисайд | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно"), "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local sw, sh = ScrW(), ScrH()
+	local overlay = MODE.GetRoundFadeOverlay()
+	UpdateFadeShake(math.max(overlay, 0.35))
+
+	fade = Lerp(FrameTime() * 1, fade, math.Clamp(StartTime + 5 - CurTime(), -2, 2))
+	local textFade = math.Clamp(fade, 0, 1)
+
+	local titleStr = "Хомисайд | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно")
+	local titleCol = Color(0, 162, 255, 255 * textFade)
+	DrawFadeTitle(titleStr, sw * 0.5, sh * 0.1, titleCol, 255 * textFade)
 
 	local Rolename = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.name ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.name ) or MODE.TypeObjectives[MODE.Type].innocent.name
 	local ColorRole = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color1 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color1 ) or MODE.TypeObjectives[MODE.Type].innocent.color1
-	ColorRole.a = 255 * fade
+	ColorRole.a = 255 * textFade
 
 	local color_role_innocent = MODE.TypeObjectives[MODE.Type].innocent.color1
-	color_role_innocent.a = 255 * fade
+	color_role_innocent.a = 255 * textFade
 
-	local color_white_faded = Color(255, 255, 255, 255 * fade)
-	color_white_faded.a = 255 * fade
+	local color_white_faded = Color(255, 255, 255, 255 * textFade)
+	color_white_faded.a = 255 * textFade
 
-	draw.SimpleText("Вы — " .. Rolename, "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	DrawFadeText("Вы - " .. Rolename, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.25)
 
 
 
@@ -320,13 +450,13 @@ function MODE:HUDPaint()
 		local subName = (hg.TraitorLoadout and hg.TraitorLoadout.GetSubRoleLabel(lply.SubRole))
 			or (MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Name)
 			or lply.SubRole
-		draw.SimpleText(subName, "ZB_HomicideMediumLarge", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		DrawFadeText(subName, "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
 	end
 
 	if(!lply.MainTraitor and lply.isTraitor)then
 		cur_y = cur_y + ScreenScale(20)
 
-		draw.SimpleText("Помощник", "ZB_HomicideMedium", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		DrawFadeText("Помощник", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
 	end
 
 
@@ -337,38 +467,38 @@ function MODE:HUDPaint()
 			MODE.TraitorsLocal = MODE.TraitorsLocal or {}
 
 			if(#MODE.TraitorsLocal > 1)then
-				draw.SimpleText("Traitors list:", "ZB_HomicideMedium", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				DrawFadeText("Traitors list:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
 
 				for _, traitor_info in ipairs(MODE.TraitorsLocal) do
-					local traitor_color = Color(traitor_info[1].r, traitor_info[1].g, traitor_info[1].b, 255 * fade)
+					local traitor_color = Color(traitor_info[1].r, traitor_info[1].g, traitor_info[1].b, 255 * textFade)
 					cur_y = cur_y + ScreenScale(15)
 
-					draw.SimpleText(traitor_info[2], "ZB_HomicideMedium", sw * 0.5, cur_y, traitor_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+					DrawFadeText(traitor_info[2], "ZCity_Veteran_big", sw * 0.5, cur_y, traitor_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
 				end
 			end
 		else
-			draw.SimpleText("Traitor secret words:", "ZB_HomicideMedium", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			DrawFadeText("Traitor secret words:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
 
 			cur_y = cur_y + ScreenScale(15)
 
-			draw.SimpleText("\"" .. MODE.TraitorWord .. "\"", "ZB_HomicideMedium", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			DrawFadeText("\"" .. MODE.TraitorWord .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.15)
 
 			cur_y = cur_y + ScreenScale(15)
 
-			draw.SimpleText("\"" .. MODE.TraitorWordSecond .. "\"", "ZB_HomicideMedium", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			DrawFadeText("\"" .. MODE.TraitorWordSecond .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.15)
 		end
 	end
 
 	if(lply.Profession and lply.Profession != "")then
 		cur_y = cur_y + ScreenScale(20)
 
-		draw.SimpleText("Occupation: " .. ((MODE.Professions[lply.Profession] and MODE.Professions[lply.Profession].Name or lply.Profession) or lply.Profession), "ZB_HomicideMedium", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		DrawFadeText("Профессия: " .. ((MODE.Professions[lply.Profession] and MODE.Professions[lply.Profession].Name or lply.Profession) or lply.Profession), "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
 	end
 	
 	if(handicap[lply:GetLocalVar("karma_sickness", 0)])then
 		cur_y = cur_y + ScreenScale(20)
 
-		draw.SimpleText(handicap[lply:GetLocalVar("karma_sickness", 0)], "ZB_HomicideMedium", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		DrawFadeText(handicap[lply:GetLocalVar("karma_sickness", 0)], "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
 	end
 
 	local Objective = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.objective ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.objective ) or MODE.TypeObjectives[MODE.Type].innocent.objective
@@ -388,8 +518,8 @@ function MODE:HUDPaint()
 	end
 
 	local ColorObj = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color2 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color2 ) or MODE.TypeObjectives[MODE.Type].innocent.color2 or Color(255,255,255)
-	ColorObj.a = 255 * fade
-	draw.SimpleText( Objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	ColorObj.a = 255 * textFade
+	DrawFadeText(Objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
 end
 
 net.Receive("HMCD(SetSubRole)", function(len, ply)

@@ -1,6 +1,6 @@
 local MODE = MODE
 MODE.name = "hmcd"
-MODE.PrintName = "Homicide"
+MODE.PrintName = "Хомисайд"
 
 --\\
 MODE.TraitorExpectedAmtBits = 13
@@ -11,8 +11,8 @@ MODE.ConVarName_SubRole_Traitor_SOE = "hmcd_subrole_traitor_soe"
 MODE.ConVarName_SubRole_Traitor = "hmcd_subrole_traitor"
 
 if(CLIENT)then
-	MODE.ConVar_SubRole_Traitor_SOE = CreateClientConVar(MODE.ConVarName_SubRole_Traitor_SOE, "traitor_default_soe", true, true, "Select traitor role in State of Emergency homicide mode")
-	MODE.ConVar_SubRole_Traitor = CreateClientConVar(MODE.ConVarName_SubRole_Traitor, "traitor_default", true, true, "Select murder role in Standard homicide modes")
+	MODE.ConVar_SubRole_Traitor_SOE = CreateClientConVar(MODE.ConVarName_SubRole_Traitor_SOE, "traitor_default_soe", true, true, "Подроль предателя в режиме ЧП (Homicide)")
+	MODE.ConVar_SubRole_Traitor = CreateClientConVar(MODE.ConVarName_SubRole_Traitor, "traitor_default", true, true, "Подроль убийцы в стандартном Homicide")
 end
 
 --; TODO
@@ -23,11 +23,11 @@ MODE.SubRoles = {
 	--==\\
 	--; https://youtu.be/zP7ux8WsYYI?si=S-Uw2EAehGR5WD3D
 	["traitor_default"] = {
-		Name = "Defoko",
-		Description = [[Default.
-You've prepared for a long time.
-You are equipped with various weapons, poisons and explosives, grenades and your favourite heavy duty knife and a zoraki signal pistol to help you kill.]],
-		Objective = "You're geared up with items, poisons, explosives and weapons hidden in your pockets. Murder everyone here.",
+		Name = "Дефолт",
+		Description = [[Стандартный набор.
+Долго готовился.
+Оружие, яды, гранаты, тяжёлый нож и сигнальный пистолет Zoraki.]],
+		Objective = "Полный стандартный набор в карманах. Убей всех.",
 		SpawnFunction = function(ply)
 			local wep = ply:Give("weapon_zoraki")
 			
@@ -55,11 +55,11 @@ You are equipped with various weapons, poisons and explosives, grenades and your
 		end,
 	},
 	["traitor_default_soe"] = {
-		Name = "Defoko",
-		Description = [[Default.
-You've prepared a long time for this moment.
-You are equipped with various weapons, poisons and explosives, grenades and your favourite heavy duty knife and silenced pistol with an additional mag to help you kill.]],
-		Objective = "You're geared up with items, poisons, explosives and weapons hidden in your pockets. Murder everyone here.",
+		Name = "Дефолт",
+		Description = [[Стандартный набор ЧП.
+Долго готовился.
+Глушитель, нож, гранаты, яды, взрывчатка и доп. магазин.]],
+		Objective = "Полный стандартный набор в карманах. Убей всех.",
 		SpawnFunction = function(ply)
 			if not IsValid(ply) then return end
 			local p22 = ply:Give("weapon_p22")
@@ -88,12 +88,11 @@ You are equipped with various weapons, poisons and explosives, grenades and your
 	
 	--==\\
 	["traitor_infiltrator"] = {
-		Name = "Infiltrator",
-		Description = [[Can break people's necks from behind.
-Can completely disguise as other players if they're in ragdoll.
-Has no weapons or tools except knife, epipen and smoke grenade.
-For people who like to play chess.]],
-		Objective = "You're an expert in diversion. Be discreet and kill one by one",
+		Name = "Саботажник",
+		Description = [[Ломает шеи сзади.
+Может полностью переодеться в одежду игрока из регдолла.
+Только нож, эпипен и дымовая граната.]],
+		Objective = "Эксперт по диверсиям. Действуй тихо, убирай по одному.",
 		SpawnFunction = function(ply)
 			ply:Give("weapon_sogknife")
 			ply:Give("weapon_adrenaline")
@@ -107,12 +106,11 @@ For people who like to play chess.]],
 		end,
 	},
 	["traitor_infiltrator_soe"] = {
-		Name = "Infiltrator",
-		Description = [[Can break people's necks from behind.
-Can completely disguise as other players if they're in ragdoll.
-Has smoke grenade, walkie-talkie, knife, taser with 2 additional shooting heads and epipen.
-For people who like to play chess.]],
-		Objective = "You're an expert in diversion. Be discreet and kill one by one",
+		Name = "Саботажник",
+		Description = [[Ломает шеи сзади.
+Переодевание через регдолл.
+Дым, нож, тазер с двумя доп. электродами и эпипен.]],
+		Objective = "Эксперт по диверсиям. Действуй тихо, убирай по одному.",
 		SpawnFunction = function(ply)
 			local taser = ply:Give("weapon_taser")
 			
@@ -137,15 +135,13 @@ For people who like to play chess.]],
 	--; СДЕЛАТЬ ЕМУ ЛУТ ДРУГИХ ИГРОКОВ ДАЖЕ ПОКА У НИХ НЕТ ПУШКИ В РУКАХ
 	--; Сделать ему вырубание по вагус нерву
 	["traitor_assasin"] = {
-		Name = "Assasin",
-		Description = [[Can quickly disarm people from any angle.
-Disarms faster from behind.
-Disarms faster from front if the victim is in ragdoll.
-Proficient in shooting from guns.
-Has additional stamina (+ 80 units compared to other traitors).
-Equipped with walkie-talkie.
-For people who like to play checkers.]],
-		Objective = "You're an expert in guns and in disarmament. Disarm gunman and use his weapon against others",
+		Name = "Ассасин",
+		Description = [[Быстро обезоруживает с любого угла.
+Быстрее сзади и по регдоллу спереди.
+Опытен в стрельбе.
++80 к выносливости.
+Рация.]],
+		Objective = "Разоружай стрелка и бей его же оружием.",
 		SpawnFunction = function(ply)
 			-- ply:Give("weapon_sogknife")	
 			-- ply:Give("weapon_adrenaline")
@@ -161,15 +157,13 @@ For people who like to play checkers.]],
 		end,
 	},
 	["traitor_assasin_soe"] = {
-		Name = "Assasin",
-		Description = [[Can quickly disarm people from any angle.
-Disarms faster from behind.
-Disarms faster from front if the victim is in ragdoll.
-Proficient in shooting from guns.
-Has additional stamina (+ 80 units compared to other traitors).
-Equipped with walkie-talkie, knife, epipen and flashlight.
-For people who like to play checkers.]],
-		Objective = "You're an expert in guns and in disarmament. Disarm gunman and use his weapon against others",
+		Name = "Ассасин",
+		Description = [[Быстро обезоруживает с любого угла.
+Быстрее сзади и по регдоллу спереди.
+Опытен в стрельбе.
++80 к выносливости.
+Нож, эпипен, фонарик.]],
+		Objective = "Разоружай стрелка и бей его же оружием.",
 		SpawnFunction = function(ply)
 			ply:Give("weapon_sogknife")	
 			ply:Give("weapon_adrenaline")
@@ -189,11 +183,11 @@ For people who like to play checkers.]],
 	
 	--==\\
 	["traitor_chemist"] = {
-		Name = "Chemist",
-		Description = [[Has multiple chemical agents and epipen and knife.
-Resistant to a certain degree to all chemical agents mentioned.
-Can detect presence and potency of chemical agents in the air.]],
-		Objective = "You're a chemist who decided to use his knowledge to hurt others. Poison everything.",
+		Name = "Химик",
+		Description = [[Набор ядов, нож и эпипен.
+Устойчив к своим химикатам.
+Чувствует яды в воздухе.]],
+		Objective = "Отравляй всё, что движется.",
 		SpawnFunction = function(ply)
 			ply:Give("weapon_sogknife")
 			ply:Give("weapon_adrenaline")
@@ -235,9 +229,9 @@ Can detect presence and potency of chemical agents in the air.]],
 		-- end,
 	-- },
 	["traitor_custom"] = {
-		Name = "Custom",
-		Description = [[Loadout from main menu. No preset kit.]],
-		Objective = "Murder everyone with the gear you chose.",
+		Name = "Мокрушник",
+		Description = [[Снаряжение из главного меню. Без пресета.]],
+		Objective = "Убей всех выбранным снаряжением.",
 		SpawnFunction = function(ply)
 			if not IsValid(ply) then return end
 			ply.organism.stamina.max = 220
@@ -247,9 +241,9 @@ Can detect presence and potency of chemical agents in the air.]],
 		end,
 	},
 	["traitor_custom_soe"] = {
-		Name = "Custom",
-		Description = [[Loadout from main menu. No preset kit.]],
-		Objective = "Murder everyone with the gear you chose.",
+		Name = "Мокрушник",
+		Description = [[Снаряжение из главного меню. Без пресета.]],
+		Objective = "Убей всех выбранным снаряжением.",
 		SpawnFunction = function(ply)
 			if not IsValid(ply) then return end
 			ply.organism.stamina.max = 220
@@ -260,9 +254,9 @@ Can detect presence and potency of chemical agents in the air.]],
 		end,
 	},
 	["traitor_martial_artist"] = {
-		Name = "Martial Artist",
-		Description = [[Superfighter. Starts with nunchucks. No flashlight.]],
-		Objective = "Murder everyone. Your body is your weapon.",
+		Name = "Мастер боевых искусств",
+		Description = [[Супербоец. Нунчаки с собой. Без фонарика.]],
+		Objective = "Твоё тело — оружие. Убей всех.",
 		SpawnFunction = function(ply)
 			if not IsValid(ply) then return end
 			if hg and hg.TraitorLoadout then
@@ -271,9 +265,9 @@ Can detect presence and potency of chemical agents in the air.]],
 		end,
 	},
 	["traitor_martial_artist_soe"] = {
-		Name = "Martial Artist",
-		Description = [[Superfighter. Starts with nunchucks. No flashlight.]],
-		Objective = "Murder everyone. Your body is your weapon.",
+		Name = "Мастер боевых искусств",
+		Description = [[Супербоец. Нунчаки с собой. Без фонарика.]],
+		Objective = "Твоё тело — оружие. Убей всех.",
 		SpawnFunction = function(ply)
 			if not IsValid(ply) then return end
 			if hg and hg.TraitorLoadout then
@@ -282,14 +276,13 @@ Can detect presence and potency of chemical agents in the air.]],
 		end,
 	},
 	["traitor_zombie"] = {
-		Name = "Zombie",
-		Description = [[Can infect other players silently.
-Infected players can be cured by a doctor.
-If all players are cured zombie will lose.
-Instead of dying will be randomly transported to another infected player's body.
-Has no weapons or any tools.
-Despite being zombie, still bears appearance of a normal human.]],
-		Objective = "You're the zombie. Infect everyone to win. Avoid doctor.",
+		Name = "Зомби",
+		Description = [[Тихо заражает игроков.
+Врач может вылечить.
+Если все вылечены — зомби проигрывает.
+При смерти переносится в тело другого заражённого.
+Без оружия. Выглядит как обычный человек.]],
+		Objective = "Зарази всех. Избегай врача.",
 		SpawnFunction = function(ply)
 			-- ply:Give("weapon_sogknife")	
 			-- ply:Give("weapon_adrenaline")
@@ -313,31 +306,31 @@ MODE.ProfessionsRoundTypes = {
 
 MODE.Professions = {
 	["doctor"] = {
-		Name = "Doctor",
+		Name = "Врач",
 		SpawnFunction = function(ply)	--; TODO MAKE IT WORK
 			--; It's a bad practice to give professions any weapons or tools
 		end,
 	},
 	["huntsman"] = {
-		Name = "Huntsman",
+		Name = "Егерь",
 		SpawnFunction = function(ply)
 			--; It's a bad practice to give professions any weapons or tools
 		end,
 	},
 	["engineer"] = {
-		Name = "Engineer",
+		Name = "Инженер",
 		SpawnFunction = function(ply)
 			--; It's a bad practice to give professions any weapons or tools
 		end,
 	},
 	["cook"] = {
-		Name = "Cook",
+		Name = "Повар",
 		SpawnFunction = function(ply)
 			--; It's a bad practice to give professions any weapons or tools
 		end,
 	},
 	["builder"] = {
-		Name = "Builder",
+		Name = "Строитель",
 		SpawnFunction = function(ply)
 			--; It's a bad practice to give professions any weapons or tools
 		end,
@@ -415,90 +408,90 @@ MODE.RoleChooseRoundTypes = {
 MODE.Roles = {}
 MODE.Roles.soe = {
 	traitor = {
-		name = "Traitor",
+		name = "предатель",
 		color = Color(190,0,0)
 	},
 
 	gunner = {
-		name = "Innocent",
+		name = "невиновный",
 		color = Color(158,0,190)
 	},
 
 	innocent = {
-		name = "Innocent",
+		name = "невиновный",
 		color = Color(0,120,190)
 	},
 }
 
 MODE.Roles.standard = {
 	traitor = {
-		objective = "You've been preparing for this for a long time. Kill everyone.",
-		name = "Murderer",
+		objective = "Долго готовился. Убей всех.",
+		name = "убийца",
 		color = Color(190,0,0)
 	},
 
 	gunner = {
-		name = "Bystander",
+		name = "свидетель",
 		color = Color(158,0,190)
 	},
 
 	innocent = {
-		name = "Bystander",
+		name = "свидетель",
 		color = Color(0,120,190)
 	},
 }
 
 MODE.Roles.wildwest = {
 	traitor = {
-		objective = "You've been preparing for this for a long time. Kill everyone.",
-		name = "Murderer",
+		objective = "В этом городе всем не хватит места. Убей всех.",
+		name = "убийца",
 		color = Color(190,0,0)
 	},
 
 	gunner = {
-		name = "Bystander",
+		name = "свидетель",
 		color = Color(159,85,0)
 	},
 
 	innocent = {
-		name = "Bystander",
+		name = "свидетель",
 		color = Color(159,85,0)
 	},
 }
 
 MODE.Roles.gunfreezone = {
 	traitor = {
-		name = "Murderer",
+		name = "убийца",
 		color = Color(190,0,0)
 	},
 
 	gunner = {
-		name = "Innocent",
+		name = "невиновный",
 		color = Color(0,120,190)
 	},
 
 	innocent = {
-		name = "Innocent",
+		name = "невиновный",
 		color = Color(0,120,190)
 	},
 }
 
 MODE.Roles.supermario = {
 	traitor = {
-		objective = "You're the evil Mario! Jump around and take down everyone.",
-		name = "Traitor Mario",
+		objective = "Ты злой Марио! Прыгай и валите всех.",
+		name = "злой Марио",
 		color = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You're the hero Mario! Use your jumping ability to stop the traitor.",
-		name = "Hero Mario",
+		objective = "Ты герой Марио! Прыгай и останови предателя.",
+		name = "герой Марио",
 		color = Color(158,0,190)
 	},
 
 	innocent = {
-		objective = "You're a bystander Mario, survive and avoid the traitor's traps!",
-		name = "Innocent Mario",
+		objective = "Обычный Марио — выживи и не попадай в ловушки.",
+		name = "Марио",
 		color = Color(0,120,190)
 	},
 }

@@ -42,10 +42,10 @@ TL.WeaponAddonOrder = {
 
 TL.Skillsets = {
 	["none"] = {cost = 0, name = "Мокрушник", desc = "Без особых навыков.", objective = "Убей всех выбранным снаряжением."},
-	["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов."},
-	["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе."},
-	["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе."},
-	["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика."},
+	["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов.", objective = "Эксперт по диверсиям. Действуй тихо, убирай по одному."},
+	["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе.", objective = "Разоружай стрелка и бей его же оружием."},
+	["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе.", objective = "Отравляй всё, что движется."},
+	["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика.", objective = "Твоё тело — оружие. Убей всех."},
 }
 
 TL.WeaponExclusions = {
@@ -130,10 +130,6 @@ function TL.ApplySubRoleLocales(modeTbl)
 	for subRoleId, info in pairs(MODE.SubRoles) do
 		local name = TL.GetSubRoleLabel(subRoleId)
 		if name then info.Name = name end
-		local desc = TL.GetSubRoleDescription(subRoleId)
-		if desc then info.Description = desc end
-		local obj = TL.GetSubRoleObjective(subRoleId)
-		if obj then info.Objective = obj end
 	end
 end
 

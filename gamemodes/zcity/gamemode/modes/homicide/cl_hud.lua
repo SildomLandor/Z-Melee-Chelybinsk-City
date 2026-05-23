@@ -152,62 +152,138 @@ hook.Add("HUDPaint", "HMCD_SubRoles_Abilities", function()
 end)
 
 
---// Я ебал это делать
+--// traitor panel (scoreboard / esc-menu style)
 
-surface.CreateFont("TraitorPanelTitle", {
-	font = "coolvetica",
-	size = 22,
-	weight = 500,
-	antialias = true
-})
-
-surface.CreateFont("TraitorPanelText", {
-	font = "coolvetica",
-	size = 19,
-	weight = 500,
-	antialias = true
-})
-
-surface.CreateFont("TraitorPanelWords", {
-	font = "coolvetica",
-	size = 24,
-	weight = 700,
-	antialias = true,
-	italic = false
-})
-
-
+local tp_scale = ScreenScaleH or ScreenScale
 
 local traitor_panel = {
-    assistants = {},
-    dead_anim = {}, 
-    width = 300,
-    height = 280,
-    assist_height = 200,
-    spacing = 26,
-    padding = 15,
-    left_padding = 90, 
-    avatar_size = 24, 
-    fade_speed = 3,
-    instance = nil,
-    visible = true,
-    target_x = 0,
-    smooth_toggle = 0,
-    alpha = 255,
-    last_toggle_time = 0,
-    toggle_cooldown = 0.3,
-    assistant_status_cache = {},
-    assistant_avatars = {}, 
-    avatar_materials = {}, 
-    colors = {
-        bg = Color(30, 0, 0, 230),
-        border = Color(180, 0, 0, 255),
-        border_inner = Color(90, 0, 0, 150),
-        title = Color(255, 255, 255, 255),
-        words = Color(255, 80, 80, 255),
-        assistant = Color(200, 70, 70, 255)
-    }
+	assistants = {},
+	dead_anim = {},
+	width = math.Clamp(math.floor(ScrW() * 0.17), 260, 380),
+	height = tp_scale(152),
+	assist_height = tp_scale(96),
+	padding = tp_scale(8),
+	left_padding = tp_scale(44),
+	avatar_size = tp_scale(17),
+	fade_speed = 3,
+	visible = true,
+	smooth_toggle = 0,
+	last_toggle_time = 0,
+	toggle_cooldown = 0.3,
+	assistant_status_cache = {},
+	assistant_avatars = {},
+	noise_mat = Material("vgui/noisevhs"),
+	col = {
+		frameBG     = Color(10, 10, 19, 238),
+		frameBorder = Color(90, 90, 95, 120),
+		panelBG     = Color(8, 8, 16, 245),
+		panelBorder = Color(255, 255, 255, 25),
+		separator   = Color(255, 255, 255, 12),
+		text        = Color(200, 200, 200, 255),
+		textDim     = Color(160, 160, 165, 180),
+		textMuted   = Color(100, 100, 108, 140),
+		textBlood   = Color(180, 40, 35, 255),
+		textTitle   = Color(200, 200, 200, 255),
+		rowDead     = Color(160, 35, 35, 255),
+	},
+	blood_drips = {},
 }
+
+if traitor_panel.noise_mat:IsError() then
+	traitor_panel.noise_mat = Material("vgui/white")
+end
+
+for i = 1, math.random(4, 7) do
+	traitor_panel.blood_drips[i] = {
+		x = math.random(0, traitor_panel.width),
+		w = math.random(1, 2),
+		h = math.random(tp_scale(8), tp_scale(28)),
+		alpha = math.random(8, 22),
+		speed = math.Rand(0.15, 0.5),
+		offset = math.Rand(0, math.pi * 2),
+	}
+end
+
+local function tp_fit_text(font, text, maxW)
+	if not text or maxW <= 0 then return "" end
+	surface.SetFont(font)
+	if surface.GetTextSize(text) <= maxW then return text end
+	local dots = "..."
+	local dotsW = surface.GetTextSize(dots)
+	if dotsW >= maxW then return "" end
+	local lo, hi = 0, #text
+	while lo < hi do
+		local mid = math.floor((lo + hi + 1) * 0.5)
+		if surface.GetTextSize(string.sub(text, 1, mid) .. dots) <= maxW then
+			lo = mid
+		else
+			hi = mid - 1
+		end
+	end
+	return string.sub(text, 1, lo) .. dots
+end
+
+local function tp_paint_bloody_title(text, cx, cy)
+	local font = "ZCity_Veteran"
+	surface.SetFont(font)
+	local tw, th = surface.GetTextSize(text)
+	local bx, by = cx - tw * 0.5, cy - th * 0.5
+	local t = CurTime()
+	local pulse = math.sin(t * 1.5) * 0.15 + 0.85
+
+	draw.SimpleText(text, font, bx + 2, by + 2, Color(40, 4, 2, 200), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx + 1, by + 1, Color(90, 8, 6, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx, by, Color(140 * pulse, 15 * pulse, 12 * pulse, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+
+	if math.random() > 0.96 then
+		draw.SimpleText(text, font, bx + math.random(-2, 2), by + math.random(-1, 1), Color(180, 20, 15, math.random(25, 60)), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	end
+end
+
+local function tp_get_traitor_words(ply)
+	local w1 = IsValid(ply) and ply:GetNWString("HMCD_TraitorWord", "") or ""
+	local w2 = IsValid(ply) and ply:GetNWString("HMCD_TraitorWord2", "") or ""
+
+	if w1 == "" and IsValid(ply) then w1 = ply.HMCD_TraitorWord or "" end
+	if w2 == "" and IsValid(ply) then w2 = ply.HMCD_TraitorWordSecond or "" end
+
+	local mode = zb and zb.modes and zb.modes.hmcd
+	if w1 == "" and mode then w1 = mode.TraitorWord or "" end
+	if w2 == "" and mode then w2 = mode.TraitorWordSecond or "" end
+
+	return w1, w2
+end
+
+local function tp_paint_frame(x, y, w, h)
+	local col = traitor_panel.col
+	local mat = traitor_panel.noise_mat
+
+	draw.RoundedBox(0, x, y, w, h, col.frameBG)
+
+	if not mat:IsError() then
+		surface.SetMaterial(mat)
+		surface.SetDrawColor(255, 255, 255, 6)
+		local nx, ny = math.random(0, 512), math.random(0, 512)
+		surface.DrawTexturedRectUV(x, y, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+	end
+
+	for ly = y, y + h, 3 do
+		surface.SetDrawColor(0, 0, 0, 12)
+		surface.DrawRect(x, ly, w, 1)
+	end
+
+	local t = CurTime()
+	for _, drip in ipairs(traitor_panel.blood_drips) do
+		local pulse = math.sin(t * drip.speed + drip.offset) * 0.3 + 0.7
+		surface.SetDrawColor(100, 15, 12, math.floor(drip.alpha * pulse))
+		surface.DrawRect(x + drip.x % w, y, drip.w, math.min(drip.h, h))
+	end
+
+	surface.SetDrawColor(col.frameBorder)
+	surface.DrawOutlinedRect(x, y, w, h, 1)
+	surface.SetDrawColor(col.panelBorder)
+	surface.DrawOutlinedRect(x + 2, y + 2, w - 4, h - 4, 1)
+end
 
 
 local function CreateAvatarPanel(steamid)
@@ -277,189 +353,147 @@ net.Receive("HMCD_TraitorDeathState", function()
 end)
 
 hook.Add("HUDPaint", "DrawTraitorPanel", function()
-    local ply = LocalPlayer()
-    if not ply.isTraitor or not ply:Alive() then 
-        traitor_panel.visible = false 
-        
-       
-        for steamid, avatar in pairs(traitor_panel.assistant_avatars) do
-            if IsValid(avatar) then
-                avatar:SetVisible(false)
-            end
-        end
-        
-        return 
-    end
+	local ply = LocalPlayer()
+	if not ply.isTraitor or not ply:Alive() then
+		traitor_panel.visible = false
+		for _, avatar in pairs(traitor_panel.assistant_avatars) do
+			if IsValid(avatar) then avatar:SetVisible(false) end
+		end
+		return
+	end
 
+	local col = traitor_panel.col
+	local pad = traitor_panel.padding
+	local pw = math.Clamp(math.floor(ScrW() * 0.17), 260, 380)
+	traitor_panel.width = pw
 
-    local target = traitor_panel.visible and 0 or traitor_panel.width + 40
-    traitor_panel.smooth_toggle = Lerp(FrameTime() * 10, traitor_panel.smooth_toggle, target)
-    
-    local is_main = ply.MainTraitor
-    local height = is_main and traitor_panel.height or traitor_panel.assist_height
-    local x = ScrW() - traitor_panel.width - 20 + traitor_panel.smooth_toggle
-    local y = ScrH() / 2 - (height / 2)
-    
+	local target = traitor_panel.visible and 0 or pw + 40
+	traitor_panel.smooth_toggle = Lerp(FrameTime() * 10, traitor_panel.smooth_toggle, target)
 
-    if traitor_panel.smooth_toggle > traitor_panel.width + 30 then 
-        for steamid, avatar in pairs(traitor_panel.assistant_avatars) do
-            if IsValid(avatar) then
-                avatar:SetVisible(false)
-            end
-        end
-        return 
-    end
-    
+	local is_main = ply.MainTraitor
+	local height = is_main and traitor_panel.height or traitor_panel.assist_height
+	local x = ScrW() - pw - ScreenScale(10) + traitor_panel.smooth_toggle
+	local y = ScrH() * 0.5 - height * 0.5
+	local cx = x + pw * 0.5
 
-    draw.RoundedBox(6, x, y, traitor_panel.width, height, traitor_panel.colors.bg)
-    surface.SetDrawColor(traitor_panel.colors.border_inner)
-    surface.DrawOutlinedRect(x + 3, y + 3, traitor_panel.width - 6, height - 6, 1)
-    surface.SetDrawColor(traitor_panel.colors.border)
-    surface.DrawOutlinedRect(x, y, traitor_panel.width, height, 2)
-    
+	if traitor_panel.smooth_toggle > pw + 30 then
+		for _, avatar in pairs(traitor_panel.assistant_avatars) do
+			if IsValid(avatar) then avatar:SetVisible(false) end
+		end
+		return
+	end
 
-    local title = is_main and "MAIN TRAITOR" or "TRAITOR'S ASSISTANT"
-    draw.SimpleText(title, "TraitorPanelTitle", x + traitor_panel.width/2, y + 15, 
-                    traitor_panel.colors.title, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    
+	tp_paint_frame(x, y, pw, height)
 
-    surface.SetDrawColor(traitor_panel.colors.border)
-    surface.DrawLine(x + 15, y + 30, x + traitor_panel.width - 15, y + 30)
-    
+	local headerH = tp_scale(34)
+	tp_paint_bloody_title(is_main and "ПРЕДАТЕЛЬ" or "ПОМОЩНИК", cx, y + headerH * 0.5)
 
-    draw.SimpleText("Press F4 to toggle panel", "TraitorPanelText", x + traitor_panel.width/2, y + 42, 
-                    Color(180, 180, 180, 220), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    
-    local word_y = y + 65
-    draw.SimpleText("Secret Words:", "TraitorPanelText", x + traitor_panel.width/2, word_y, 
-                    Color(220, 220, 220), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    
-    word_y = word_y + 25
-    local word1 = MODE.TraitorWord or "???"
-    
-    draw.SimpleText(word1, "TraitorPanelWords", x + traitor_panel.width/2, word_y, 
-                    traitor_panel.colors.words, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    
-    word_y = word_y + 30
-    local word2 = MODE.TraitorWordSecond or "???"
-    
-    draw.SimpleText(word2, "TraitorPanelWords", x + traitor_panel.width/2, word_y, 
-                    traitor_panel.colors.words, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    
-    if is_main then
-        for steamid, avatar in pairs(traitor_panel.assistant_avatars) do
-            if IsValid(avatar) then
-                avatar:SetVisible(false)
-            end
-        end
-        
-        local assist_y = y + 150     
-        local has_assistants = false
-        MODE.TraitorsLocal = MODE.TraitorsLocal or {}
-        
-        if #MODE.TraitorsLocal > (ply.MainTraitor and 1 or 0) then
-            has_assistants = true
-        end
-        
-        if has_assistants then
-            draw.SimpleText("Your Assistants:", "TraitorPanelText", x + traitor_panel.width/2, assist_y, 
-                            Color(220, 220, 220), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-            
-            assist_y = assist_y + 25   
-            
-            for _, traitor_info in ipairs(MODE.TraitorsLocal) do
-                if not traitor_info or #traitor_info < 2 then continue end
-                
-                if ply.MainTraitor and ply.CurAppearance and traitor_info[2] == ply.CurAppearance.AName then
-                    continue
-                end
-                
-                local color = traitor_info[1]
-                local name = traitor_info[2]
-                local steamID = traitor_info[3] or ""
-                
-                local player_found = nil
-                for _, v in player.Iterator() do
-                    if v.isTraitor and v.CurAppearance and v.CurAppearance.AName == name then
-                        player_found = v
-                        break
-                    end
-                end
-                
-                local is_alive = true
-                if traitor_panel.assistant_status_cache[name] == false then
-                    is_alive = false
-                end
-                
-                if player_found then
-                    is_alive = player_found:Alive() and (not player_found.organism or not player_found.organism.incapacitated)
-                    traitor_panel.assistant_status_cache[name] = is_alive
-                end
-                
-                if not is_alive then
-                    traitor_panel.dead_anim[name] = traitor_panel.dead_anim[name] or 255
-                    traitor_panel.dead_anim[name] = math.max(traitor_panel.dead_anim[name] - FrameTime() * 100 * traitor_panel.fade_speed, 0)
-                    
-                    if traitor_panel.dead_anim[name] <= 0 then continue end
-                else
-                    traitor_panel.dead_anim[name] = nil
-                end
-                
-                local alpha = traitor_panel.dead_anim[name] or 255
-                local display_color = is_alive and color or Color(150, 150, 150)
-                display_color = Color(display_color.r, display_color.g, display_color.b, alpha)
-                
-                local status = is_alive and "" or " [DEAD]"
+	surface.SetDrawColor(col.separator)
+	surface.DrawRect(x + pad, y + headerH, pw - pad * 2, 1)
 
+	local hintY = y + headerH + tp_scale(10)
+	draw.SimpleText("F4 — свернуть", "ZB_InterfaceSmall", cx, hintY, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
-                local display_name = name
-                if #name > 20 then
-                    display_name = string.sub(name, 1, 18) .. ".."
-                end
-                
+	local word_y = hintY + tp_scale(16)
+	draw.SimpleText("Кодовые слова", "ZB_ScoreboardHeader", cx, word_y, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
-                if steamID and steamID ~= "" then
-                    local avatar_player = player.GetBySteamID(steamID)
-                    
-                    if IsValid(avatar_player) then
-                        local avatar = CreateAvatarPanel(steamID)
-                        
-                        if avatar then
-                            avatar:SetPos(x + 15, assist_y - traitor_panel.avatar_size/2)
-                            avatar:SetSize(traitor_panel.avatar_size, traitor_panel.avatar_size)
-                            avatar:SetAlpha(alpha)
-                            avatar:SetVisible(true)
-                            
-                            surface.SetDrawColor(50, 50, 50, alpha)
-                            surface.DrawOutlinedRect(x + 15, assist_y - traitor_panel.avatar_size/2, 
-                                                     traitor_panel.avatar_size, traitor_panel.avatar_size, 1)
-                        end
-                    end
-                end
-                
-                draw.SimpleText(display_name..status, "TraitorPanelText", x + traitor_panel.left_padding, assist_y, 
-                                display_color, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-                
-                assist_y = assist_y + 25   
-                
+	word_y = word_y + tp_scale(14)
+	local word1, word2 = tp_get_traitor_words(ply)
+	if word1 == "" then word1 = "—" end
+	if word2 == "" then word2 = "—" end
+	draw.SimpleText("\"" .. word1 .. "\"", "ZCity_Veteran", cx, word_y, col.textBlood, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
-                if assist_y > y + height - 30 then
-                    break
-                end
-            end
-        else
+	word_y = word_y + tp_scale(18)
+	draw.SimpleText("\"" .. word2 .. "\"", "ZCity_Veteran", cx, word_y, col.textBlood, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
-            draw.SimpleText("No assistants available", "TraitorPanelText", x + traitor_panel.width/2, assist_y, 
-                            Color(150, 150, 150), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-        end
-    else
+	if not is_main then
+		for _, avatar in pairs(traitor_panel.assistant_avatars) do
+			if IsValid(avatar) then avatar:SetVisible(false) end
+		end
+		return
+	end
 
-        for steamid, avatar in pairs(traitor_panel.assistant_avatars) do
-            if IsValid(avatar) then
-                avatar:SetVisible(false)
-            end
-        end
-    end
+	for _, avatar in pairs(traitor_panel.assistant_avatars) do
+		if IsValid(avatar) then avatar:SetVisible(false) end
+	end
+
+	local assist_y = word_y + tp_scale(22)
+	MODE.TraitorsLocal = MODE.TraitorsLocal or {}
+	local has_assistants = #MODE.TraitorsLocal > (ply.MainTraitor and 1 or 0)
+
+	if not has_assistants then
+		draw.SimpleText("Нет сообщников", "ZB_InterfaceSmall", cx, assist_y, col.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		return
+	end
+
+	draw.SimpleText("Сообщники", "ZB_ScoreboardHeader", cx, assist_y, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	assist_y = assist_y + tp_scale(18)
+
+	local rowH = tp_scale(22)
+	local avSz = traitor_panel.avatar_size
+	local nameMaxW = pw - traitor_panel.left_padding - pad
+	local rowIdx = 0
+
+	for _, traitor_info in ipairs(MODE.TraitorsLocal) do
+		if not traitor_info or #traitor_info < 2 then continue end
+		if ply.MainTraitor and ply.CurAppearance and traitor_info[2] == ply.CurAppearance.AName then continue end
+
+		local color = traitor_info[1]
+		local name = traitor_info[2]
+		local steamID = traitor_info[3] or ""
+
+		local player_found
+		for _, v in player.Iterator() do
+			if v.isTraitor and v.CurAppearance and v.CurAppearance.AName == name then
+				player_found = v
+				break
+			end
+		end
+
+		local is_alive = traitor_panel.assistant_status_cache[name] ~= false
+		if player_found then
+			is_alive = player_found:Alive() and (not player_found.organism or not player_found.organism.incapacitated)
+			traitor_panel.assistant_status_cache[name] = is_alive
+		end
+
+		if not is_alive then
+			traitor_panel.dead_anim[name] = traitor_panel.dead_anim[name] or 255
+			traitor_panel.dead_anim[name] = math.max(traitor_panel.dead_anim[name] - FrameTime() * 100 * traitor_panel.fade_speed, 0)
+			if traitor_panel.dead_anim[name] <= 0 then continue end
+		else
+			traitor_panel.dead_anim[name] = nil
+		end
+
+		local alpha = traitor_panel.dead_anim[name] or 255
+		local rowColor = is_alive and Color(color.r, color.g, color.b, alpha) or Color(col.rowDead.r, col.rowDead.g, col.rowDead.b, alpha)
+		local display_name = tp_fit_text("ZCity_Veteran", name, nameMaxW)
+		local status = is_alive and "" or " [мёртв]"
+
+		rowIdx = rowIdx + 1
+		local rowY = assist_y
+		if rowIdx % 2 == 0 then
+			surface.SetDrawColor(255, 255, 255, 4)
+			surface.DrawRect(x + pad, rowY - rowH * 0.5, pw - pad * 2, rowH)
+		end
+
+		local avX, avY = x + pad, rowY - avSz * 0.5
+		if steamID ~= "" and IsValid(player.GetBySteamID(steamID)) then
+			local avatar = CreateAvatarPanel(steamID)
+			if avatar then
+				avatar:SetPos(avX, avY)
+				avatar:SetSize(avSz, avSz)
+				avatar:SetAlpha(alpha)
+				avatar:SetVisible(true)
+				surface.SetDrawColor(col.panelBorder.r, col.panelBorder.g, col.panelBorder.b, alpha)
+				surface.DrawOutlinedRect(avX, avY, avSz, avSz, 1)
+			end
+		end
+
+		draw.SimpleText(display_name .. status, "ZCity_Veteran", x + traitor_panel.left_padding, rowY, rowColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+		assist_y = assist_y + rowH
+		if assist_y > y + height - tp_scale(12) then break end
+	end
 end)
 
 
