@@ -923,6 +923,13 @@ hook.Add("Think", "Fake", function()
 				lleg:ApplyForceCenter(force)
 			end
 		end*/
+
+		if hg.organism and hg.organism.ThroatClutchAmt and hg.organism.ThroatClutchRagdoll then
+			local amt = hg.organism.ThroatClutchAmt(org)
+			if amt >= 0.12 and not org.choking and not org.otrub then
+				hg.organism.ThroatClutchRagdoll(ragdoll, org)
+			end
+		end
 	end
 end)
 

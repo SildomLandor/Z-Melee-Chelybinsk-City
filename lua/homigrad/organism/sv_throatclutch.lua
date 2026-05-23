@@ -1,5 +1,33 @@
-local Rand = math.Rand
-local random = math.random
+local Rand, random, sin, cos = math.Rand, math.random, math.sin, math.cos
+local CurTime = CurTime
+
+function hg.organism.ThroatClutchRagdoll(rag, org)
+	if not IsValid(rag) then return end
+	org = org or rag.organism
+	if org and org.choking then return end
+	if IsValid(rag.ConsLH) or IsValid(rag.ConsRH) then return end
+
+	local headPhysRef = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 10))
+	local lhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 5))
+	local rhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 7))
+	if not IsValid(headPhysRef) or not IsValid(lhandPhys) or not IsValid(rhandPhys) then return end
+
+	local pos = headPhysRef:GetPos()
+	local lpos = lhandPhys:GetPos()
+	local rpos = rhandPhys:GetPos()
+	local t = CurTime()
+
+	if not org or not org.larmamputated then
+		local leftOffset = pos - (pos - lpos):GetNormalized() * (2 + sin(t * 2) * 0.5)
+		hg.ShadowControl(rag, 4, 0.001, nil, nil, nil, leftOffset, 80, 60)
+		hg.ShadowControl(rag, 5, 0.001, nil, nil, nil, leftOffset, 80, 60)
+	end
+	if not org or not org.rarmamputated then
+		local rightOffset = pos - (pos - rpos):GetNormalized() * (2 + cos(t * 1.8) * 0.5)
+		hg.ShadowControl(rag, 6, 0.001, nil, nil, nil, rightOffset, 80, 60)
+		hg.ShadowControl(rag, 7, 0.001, nil, nil, nil, rightOffset, 80, 60)
+	end
+end
 
 local function throatGaspSound(ply, vol)
 	local fem = ThatPlyIsFemale(ply)
@@ -30,37 +58,13 @@ hook.Add("Org Clear", "throatclutch", function(org)
 end)
 
 hook.Add("Org Think", "throatclutch", function(owner, org)
-	if hg.organism.ThroatClutchAmt(org) < 0.15 then return end
-	if org.otrub or org.choking then return end
-	hg.organism.ThroatClutchGasp(org)
-end)
-
-hook.Add("Player Think", "throatclutch_fake", function(ply)
-	if CLIENT then return end
-	local rag = ply.FakeRagdoll
-	if not IsValid(rag) then return end
-
-	local org = ply.organism
-	if not org or org.choking then return end
-	if IsValid(rag.ConsLH) or IsValid(rag.ConsRH) then return end
-
 	local amt = hg.organism.ThroatClutchAmt(org)
-	if amt < 0.12 or not org.canmove then return end
+	if amt < 0.15 then return end
+	if org.otrub or org.choking then return end
 
-	local head = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 10))
-	local lh = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 5))
-	local rh = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 7))
-	if not IsValid(head) or not IsValid(lh) or not IsValid(rh) then return end
+	hg.organism.ThroatClutchGasp(org)
 
-	local pos = head:GetPos()
-	local ang = head:GetAngles()
-	local neck = pos + ang:Forward() * 2 + ang:Up() * 1
-	local wobble = math.sin(CurTime() * 8) * 1.5 * amt
-
-	if not org.larmamputated then
-		hg.ShadowControl(rag, 5, 0.001, nil, nil, nil, neck + ang:Right() * (-3 + wobble), 70 + amt * 30, 50)
-	end
-	if not org.rarmamputated then
-		hg.ShadowControl(rag, 7, 0.001, nil, nil, nil, neck + ang:Right() * (3 - wobble), 70 + amt * 30, 50)
+	if owner:IsPlayer() and owner:Alive() and not IsValid(owner.FakeRagdoll) and amt >= 0.2 then
+		org.needfake = true
 	end
 end)
