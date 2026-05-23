@@ -442,7 +442,12 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	k2 = (30 - (o2 or 30)) / 30 + (1 - (consciousnessLerp or 1)) * 1-- + brain * 2
 	k3 = ((5000 / math.max(blood, 1000)) - 1) * 1.5
 
-	DrawSharpen(k1 * 2, k1 * 1)
+	hg_potatopc = hg_potatopc or hg.ConVars and hg.ConVars.potatopc
+	local potato = hg_potatopc and hg_potatopc:GetBool()
+
+	if not potato then
+		DrawSharpen(k1 * 2, k1 * 1)
+	end
 	local lowpulse = math.max((70 - pulse) / 70, 0) + math.max(3000 * ((math.cos(CurTime()/2) + 1) / 2 * 0.1 + 1) - (blood * adrenK - 300),0) / 400
 
 	if (lply.PlayerClassName == "headcrabzombie" or lply:GetNetVar("headcrab")) and lply:Alive() then
@@ -455,7 +460,7 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 
 	disorientationLerp = LerpFT(disorientation > disorientationLerp and 1 or 0.01, disorientationLerp, math.max(lply.suiciding and 1.5 or 0, disorientation))
 
-	if (disorientationLerp > 1) and lply:Alive() or brain > 0 then
+	if not potato and ((disorientationLerp > 1) and lply:Alive() or brain > 0) then
 		local add2 = disorientationLerp - 1
 		if not brain_motionblur and lply.PlayerClassName ~= "headcrabzombie" then DrawMotionBlur(0.15 - math.Clamp(add2 / 1, 0, 0.1), add2 * 2, 0.001) end
 		if disorientationLerp > 2 then
@@ -478,36 +483,25 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	end
 
 
-	//pain = math.abs(math.cos(CurTime())) * 40
-	if (pain > 0) or (hurt > 0) or (immobilization > 0) or (brain > 0) then
-		local k = ((hurt + immobilization / 15) / 2)
-		--DrawToyTown(1, k * ScrH())
+	if not potato and ((pain > 0) or (hurt > 0) or (immobilization > 0) or (brain > 0)) then
 		local newpain = pain - 10
 		if newpain > 0 then
-			//surface.SetDrawColor(0, 0, 0, (newpain / 20) * 255 - math.ease.InOutCirc(math.abs(math.cos(CurTime()))) * 50)
-			//surface.SetMaterial(pain_mat)
-			//surface.DrawTexturedRect(-1, -1, ScrW()+1, ScrH()+1)
-			local blur = math.max((newpain / 30 + brain * 10),0) / 30
+			local blur = math.max((newpain / 30 + brain * 10), 0) / 30
 			if blur > 0 then
-				DrawMaterialOverlay( "sprites/mat_jack_hmcd_scope_aberration", blur )
+				DrawMaterialOverlay("sprites/mat_jack_hmcd_scope_aberration", blur)
 			end
 		end
 	end
-	hg_potatopc = hg_potatopc or hg.ConVars.potatopc
-	local potato = hg_potatopc:GetBool()
-	if (k1 > 0) or (k2 > 0) or (k3 > 0) or brain > 0 then
-		if !potato then
-			DrawToyTown(2, (k3 * 3 + k2 * 1 + brain * 10) * ScrH() / 2)
-		else
 
-		end
+	if not potato and ((k1 > 0) or (k2 > 0) or (k3 > 0) or brain > 0) then
+		DrawToyTown(2, (k3 * 3 + k2 * 1 + brain * 10) * ScrH() / 2)
 	end
 
 	--DrawMaterialOverlay( "homigrad/vgui/bloodblur.png", 0)
 	local view = render.GetViewSetup()
 	--RenderSuperDoF(view.origin,view.angles,0)
-	if analgesia > 1 then
-		DrawMaterialOverlay( "particle/warp4_warp_noz", -(analgesia - 0.5) * math.sin(CurTime()) * 5 / 150 )
+	if not potato and analgesia > 1 then
+		DrawMaterialOverlay("particle/warp4_warp_noz", -(analgesia - 0.5) * math.sin(CurTime()) * 5 / 150)
 	end
 
 	/*

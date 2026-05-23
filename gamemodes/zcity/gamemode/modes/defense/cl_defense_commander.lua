@@ -740,21 +740,6 @@ else
     COMMANDER_HINT.iconMaterial = Material("icon16/information.png")
 end
 
-
-function CheckAndShowCommanderHint()
-    local ply = LocalPlayer()
-    if not IsValid(ply) then return end
-    
-    if ply:GetNWString("PlayerRole") == "Commander" and ply:Alive() then
-        if not COMMANDER_HINT.shownThisRound then
-            ShowCommanderHint()
-            COMMANDER_HINT.shownThisRound = true
-            --print("[DEFENSE] Showing commander hint")
-        end
-    end
-end
-
-
 local function ShowCommanderHint()
     COMMANDER_HINT.active = true
     COMMANDER_HINT.alpha = 0
@@ -764,16 +749,23 @@ local function ShowCommanderHint()
     COMMANDER_HINT.nextTypewriterTime = CurTime()
     
     COMMANDER_HINT.iconPos = Vector(-50, ScrH() * 0.3, 0)
-    
-
-    COMMANDER_HINT.targetIconPos = Vector(0, 0, 0) 
-    
+    COMMANDER_HINT.targetIconPos = Vector(0, 0, 0)
     COMMANDER_HINT.endTime = nil
 
     surface.PlaySound("buttons/button24.wav")
-    --print("[DEFENSE] Commander hint activated")
 end
 
+function CheckAndShowCommanderHint()
+    local ply = LocalPlayer()
+    if not IsValid(ply) then return end
+    
+    if ply:GetNWString("PlayerRole") == "Commander" and ply:Alive() then
+        if not COMMANDER_HINT.shownThisRound then
+            ShowCommanderHint()
+            COMMANDER_HINT.shownThisRound = true
+        end
+    end
+end
 
 local function DrawCommanderHint()
     if not COMMANDER_HINT.active then return end

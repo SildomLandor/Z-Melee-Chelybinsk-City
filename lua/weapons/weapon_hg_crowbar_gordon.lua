@@ -1,6 +1,6 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "лом"
+SWEP.PrintName = "Лом Гордона"
 SWEP.Instructions = "«Я думаю, ты уронил это еще в Черной Мезе!»"
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = false

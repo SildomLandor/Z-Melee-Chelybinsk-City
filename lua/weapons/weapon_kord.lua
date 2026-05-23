@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Однажды 6П50"
+SWEP.PrintName = "КОРД-6П50"
 SWEP.Author = "Degtyarev plant"
 SWEP.Instructions = "Крупнокалиберный пулемет под патрон 12,7х108 мм\\n\\nСкорость стрельбы 650 выстрелов в минуту."
 SWEP.Category = "Weapons - Machineguns"

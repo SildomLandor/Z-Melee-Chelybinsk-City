@@ -2724,6 +2724,7 @@ end
 
 function SWEP:NPCThink()
     local npc = self:GetOwner()
+    if not IsValid(npc) then return end
     self:SetWeaponHoldType("melee")
     
     if npc:GetClass() == "npc_metropolice" then

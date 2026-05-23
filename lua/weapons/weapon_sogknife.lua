@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "SOG Нож 200"
+SWEP.PrintName = "SOG 200"
 SWEP.Instructions = "Серьезный большой нож, используемый морскими котиками (спецназ ВМС США). Хороший выбор для оружия ближнего боя.\\n\\nЛКМ для атаки.\\nR + ЛКМ, чтобы изменить режим атаки.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true

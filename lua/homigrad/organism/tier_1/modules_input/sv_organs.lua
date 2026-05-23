@@ -178,7 +178,12 @@ local function hitArtery(artery, org, dmg, dmgInfo, boneindex, dir, hit)
 		hg.AddHarmToAttacker(dmgInfo, 15, "Carotid artery punctured harm")
 	end
 
+	local was = org[artery]
 	org[artery] = math.min(org[artery] + 1, 1)
+
+	if artery == "arteria" and org[artery] > was and hg.organism.ThroatClutchGasp then
+		hg.organism.ThroatClutchGasp(org, true)
+	end
 
 	local owner = org.owner
 	local bonea = owner:LookupBone(boneindex)
@@ -230,7 +235,6 @@ input_list.lungsR = function(org, bone, dmg, dmgInfo)
 end
 
 input_list.trachea = function(org, bone, dmg, dmgInfo)
-	do return 0 end
 	local oldDmg = org.trachea
 
 	if dmgInfo:IsDamageType(DMG_BLAST) then dmg = dmg / 5 end
@@ -238,6 +242,10 @@ input_list.trachea = function(org, bone, dmg, dmgInfo)
 	local result = damageOrgan(org, dmg * 2, dmgInfo, "trachea")
 
 	hg.AddHarmToAttacker(dmgInfo, (org.trachea - oldDmg) * 8, "Trachea damage harm")
+
+	if org.trachea - oldDmg >= 0.12 and hg.organism.ThroatClutchGasp then
+		hg.organism.ThroatClutchGasp(org, true)
+	end
 
 	//org.internalBleed = org.internalBleed + dmg * 2
 

@@ -1,4 +1,5 @@
 local MODE = MODE
+MODE.name = "criresp"
 
 zb = zb or {}
 zb.Points = zb.Points or {}

@@ -1,4 +1,4 @@
-﻿if SERVER then AddCSLuaFile() end
+if SERVER then AddCSLuaFile() end
 SWEP.PrintName = "Сюрикен"
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = "Сюрикен, также называемый метательными звездами или звездами ниндзя, представляет собой японское скрытое оружие, используемое самураями или ниндзя или в боевых искусствах в качестве скрытого кинжала, чтобы отвлечь или сбить с толку."
@@ -103,6 +103,7 @@ function SWEP:Initialize()
 		self:SetHold(self.HoldType)
 	end
 
+	hg.weapons2 = hg.weapons2 or {}
 	hg.weapons2[self] = true
 	self.count = 1
 end

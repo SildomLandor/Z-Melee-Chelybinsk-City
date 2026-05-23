@@ -93,13 +93,14 @@ hook.Add("WeaponEquip", "homigrad-inventory", function(wep, ply)
         wep.sling = nil
         if not inv["Weapons"]["hg_sling"] then
             inv["Weapons"]["hg_sling"] = true
-            ply:ChatPrint("You took the sling the weapon was attached to.")
+            ply:ChatPrint("Вы прикрепили ремень к оружию.")
         else
             local sling = ents.Create("hg_sling")
             sling:SetPos(ply:EyePos())
             sling:SetVelocity(ply:GetAimVector() * 5)
             sling:Spawn()
-            ply:ChatPrint("You deattached the sling the weapon was connected to.")
+            ply:ChatPrint("Вы отсоединили ремень, к которому было прикреплено оружие.")
+       
         end
     end
 
@@ -367,20 +368,71 @@ local functions = {
     -- end,
 }
 
-util.AddNetworkString("ply_take_item")
-net.Receive("ply_take_item", function(len, ply)
-    if (ply.cooldown_takeitem or 0) > CurTime() then return end
-    ply.cooldown_takeitem = CurTime() + 0.5
+local function CanLootEnt(ent)
+    if not ent:IsPlayer() then return true end
+    if not (ent.organism and ent.organism.otrub) then return false end
+    return IsValid(ent.FakeRagdoll)
+end
 
+local function BuildLootTakeKey(ent, tblIndex, thing)
+    if not IsValid(ent) then return "" end
+    return ent:EntIndex() .. "|" .. tblIndex .. "|" .. thing
+end
+
+local function GetLootTakeDuration(tblIndex, thing)
+    if tblIndex == "Weapons" then
+        local swep = weapons.Get(thing)
+        local weight = swep and tonumber(swep.weight)
+        if weight ~= nil then
+            return math.Clamp(weight, 0, 5)
+        end
+    end
+
+    return math.Rand(0.5, 1.15)
+end
+
+util.AddNetworkString("ply_take_item_begin")
+util.AddNetworkString("ply_take_item_begin_ack")
+net.Receive("ply_take_item_begin", function(_, ply)
+    local tblIndex = net.ReadString()
+    local thing = net.ReadString()
+    net.ReadTable()
+    local ent = net.ReadEntity()
+
+    if not IsValid(ent) or not IsValid(ply) then return end
+    if not CanLootEnt(ent) then return end
+    if ent:GetPos():Distance(ply:GetPos()) > 125 then return end
+
+    local key = BuildLootTakeKey(ent, tblIndex, thing)
+    local duration = GetLootTakeDuration(tblIndex, thing)
+    ply.lootTakePending = ply.lootTakePending or {}
+    ply.lootTakePending[key] = CurTime() + duration
+
+    net.Start("ply_take_item_begin_ack")
+        net.WriteString(key)
+        net.WriteFloat(duration)
+    net.Send(ply)
+end)
+
+util.AddNetworkString("ply_take_item")
+net.Receive("ply_take_item", function(_, ply)
     local tblIndex = net.ReadString()
     local thing = net.ReadString()
     local tbl = net.ReadTable()
     local ent = net.ReadEntity()
-    
-    if !IsValid(ent) or !IsValid(ply) then return end
-    if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
 
+    if not IsValid(ent) or not IsValid(ply) then return end
+    if not CanLootEnt(ent) then return end
     if ent:GetPos():Distance(ply:GetPos()) > 125 then return end
+
+    local key = BuildLootTakeKey(ent, tblIndex, thing)
+    local unlockTime = ply.lootTakePending and ply.lootTakePending[key]
+    if not unlockTime or unlockTime > CurTime() then return end
+    if (ply.cooldown_takeitem or 0) > CurTime() then return end
+
+    ply.cooldown_takeitem = CurTime() + 0.3
+    ply.lootTakePending[key] = nil
+
     local func = functions[tblIndex]
     if func then func(ply, ent, thing, unpack(tbl)) end
     ply:SetNetVar("Inventory", ply.inventory)
@@ -394,10 +446,10 @@ local playerMeta = FindMetaTable("Player")
 function playerMeta:OpenInventory(ent)
     hook.Run("ZB_InventoryOpened",self,ent)
     if not IsValid(ent) then return end
-    if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
+    if not CanLootEnt(ent) then return end
     if ent:IsPlayer() then hg.RenewInv(ent) end
     if self:IsPlayer() then hg.RenewInv(self) end
-    self.cooldown_takeitem = CurTime() + 0.5
+    self.cooldown_takeitem = CurTime() + 0.3
     net.Start("should_open_inv")
     net.WriteEntity(ent)
     net.Send(self)
@@ -428,6 +480,11 @@ hook.Add("Player Think", "loot-fellows",function(ply)
         if not trace then return end
         local ent = trace.Entity
         ent = IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
+        if ent:IsPlayer() and not (ent.organism and ent.organism.otrub) then
+            if not ply.keypressed then ply:ChatPrint("Не могу обыскать человека пока он в сознании.") end
+            ply.keypressed = true
+            return
+        end
 		local _ply, _ent, canloot = hook.Run("ZB_CanLootInventory", ply, ent, canloot)
 		if canloot ~= nil and canloot == false then
 			ply.keypressed = true

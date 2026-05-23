@@ -932,22 +932,8 @@ function SWEP:CustomThink()
     local allowStruggle = IsValid(ragPly2) and ragPly2:IsPlayer() and ragPly2:Alive() and not knockedOut
     
     if allowStruggle then
-        local headPhysRef = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 10))
-        local lhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 5))
-        local rhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 7))
-        
-        if IsValid(headPhysRef) and IsValid(lhandPhys) and IsValid(rhandPhys) then
-            local pos = headPhysRef:GetPos()
-            local lpos = lhandPhys:GetPos()
-            local rpos = rhandPhys:GetPos()
+        hg.organism.ThroatClutchRagdoll(rag, ragOrg)
 
-            local leftOffset = pos - (pos - lpos):GetNormalized() * (2 + math.sin(CurTime() * 2) * 0.5)
-            local rightOffset = pos - (pos - rpos):GetNormalized() * (2 + math.cos(CurTime() * 1.8) * 0.5)
-
-            hg.ShadowControl(rag, 5, 0.001, nil, nil, nil, leftOffset, 80, 60)
-            hg.ShadowControl(rag, 7, 0.001, nil, nil, nil, rightOffset, 80, 60)
-        end
-        
         if self._fw_punchshit < CurTime() then 
             -- Only viewpunch if the owner is not fake
             if not isFake then

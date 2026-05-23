@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Организация Объединенных Наций P90"
+SWEP.PrintName = "P90"
 SWEP.Author = "FN Herstal"
 SWEP.Instructions = "Пистолет-пулемет под патрон 5,7х28 мм\\n\\nСкорость стрельбы 1000 выстрелов в минуту."
 SWEP.Category = "Weapons - Machine-Pistols"

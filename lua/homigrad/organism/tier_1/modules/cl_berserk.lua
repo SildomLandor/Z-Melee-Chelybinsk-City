@@ -34,7 +34,7 @@ local offset = CreateClientConVar("berserk_offset", "0.85", true, false, "Set be
 local bpm = CreateClientConVar("berserk_bpm", "70", true, false, "Set berserk effect bpm", 1, 280)
 local path = CreateClientConVar("berserk_path", "sound/zbattle/pharmacia.mp3", true, false, "Set berserk effect music path")
 
-hook.Add("RenderScreenspaceEffects", "berserkEffect", function()
+local function berserkThink()
 	local organism = lply:Alive() and lply.organism
 	if !organism then
 		hg.underberserk = false
@@ -105,51 +105,61 @@ hook.Add("RenderScreenspaceEffects", "berserkEffect", function()
 		hg.berserkIntensity = 0
 	end
 
+	if IsValid(hg.berserkStation) then
+		hg.berserkStation:SetVolume(math.min(1, (organism.otrub and 0) or berserkClamped))
+	end
+end
+
+hook.Add("Think", "berserkEffect", berserkThink)
+
+local function berserkScreenspace()
+	if hg.LightPostFX and hg.LightPostFX() then return end
+
+	local organism = lply:Alive() and lply.organism
+	if not organism then return end
+
+	local berserk = organism.berserk or 0
+	local berserkClamped = math.Clamp(berserk, 0, 3) * (organism.consciousness or 1)
+
 	if hg.underberserk then
-		local intensity = (SysTime() - hg.berserkStartTime)
-		tab[ "$pp_colour_contrast" ] = intensity / 2
-		tab[ "$pp_colour_addr" ] = intensity / 10
-		tab[ "$pp_colour_brightness" ] = intensity / 10
+		local intensity = SysTime() - hg.berserkStartTime
+		tab["$pp_colour_contrast"] = intensity / 2
+		tab["$pp_colour_addr"] = intensity / 10
+		tab["$pp_colour_brightness"] = intensity / 10
 		DrawColorModify(tab)
-		DrawBloom( 0.65, intensity * 4, 9, 9, 1, 1, intensity / 16, 0.2, 0.2 )
+		DrawBloom(0.65, intensity * 4, 9, 9, 1, 1, intensity / 16, 0.2, 0.2)
 
 		render.UpdateScreenEffectTexture()
-			cc:SetFloat("$c0_x", 3.5 - intensity)
-			cc:SetInt("$c0_y", 1)
-			render.SetMaterial(cc)
+		cc:SetFloat("$c0_x", 3.5 - intensity)
+		cc:SetInt("$c0_y", 1)
+		render.SetMaterial(cc)
 		render.DrawScreenQuad()
 	end
 
 	if hg.underberserk2 and IsValid(hg.berserkStation) then
-		--local intensity = ((hg.berserkStartTime2 + SysTime()) / 60) * 70 % 1
-		--intensity = math.abs(math.cos(1 - (intensity * 2))) * berserkClamped
 		local intensity = 1 - ((hg.berserkStation:GetTime() - offset:GetFloat()) / 60 * bpm:GetInt())
 		intensity = (intensity - math.Round(intensity)) % 1
-		--intensity = math.sqrt(math.sqrt(intensity))
 		intensity = math.Clamp(intensity * 0.25 + 0.75, 0, 1)
-		intensity = math.ease.InExpo(intensity) * berserkClamped * 2--math.abs(math.cos(1 - (intensity * 2))) * berserkClamped
+		intensity = math.ease.InExpo(intensity) * berserkClamped * 2
 
-		tab2[ "$pp_colour_mulr" ] = (1.5 * math.min(1, berserk * 4)) + (intensity / 5)
-		tab2[ "$pp_colour_addr" ] = (0.1 * math.min(1, berserk * 4)) + intensity / 64
-		-- tab[ "$pp_colour_contrast" ] = 1 + intensity / 8
-
-		tab2[ "$pp_colour_colour" ] = 1 - math.Clamp(intensity, 0, 0.9)
-		tab2[ "$pp_colour_mulg" ] = 0
-		tab2[ "$pp_colour_mulb" ] = 0
+		tab2["$pp_colour_mulr"] = (1.5 * math.min(1, berserk * 4)) + (intensity / 5)
+		tab2["$pp_colour_addr"] = (0.1 * math.min(1, berserk * 4)) + intensity / 64
+		tab2["$pp_colour_colour"] = 1 - math.Clamp(intensity, 0, 0.9)
+		tab2["$pp_colour_mulg"] = 0
+		tab2["$pp_colour_mulb"] = 0
 
 		DrawColorModify(tab2)
-		DrawBloom( 0.65, intensity, 9, 9, 1, 1, intensity / 16, 0.2, 0.2 )
+		DrawBloom(0.65, intensity, 9, 9, 1, 1, intensity / 16, 0.2, 0.2)
 
 		hg.notificationFont = "BerserkFont"
-
 		hg.berserkIntensity = intensity
 		hg.berserkClamped = berserkClamped
 	end
+end
 
-	if IsValid(hg.berserkStation) then
-		hg.berserkStation:SetVolume(math.min(1, (organism.otrub and 0) or berserkClamped))
-	end
-end)
+if hg.postprocess and hg.postprocess.AddExtra then
+	hg.postprocess.AddExtra("berserk", berserkScreenspace)
+end
 
 local grainMat = CreateMaterial("grain2berserk","screenspace_general",{
 	["$pixshader"] = "zb_grain2_ps20b",
@@ -171,6 +181,7 @@ local grainMat = CreateMaterial("grain2berserk","screenspace_general",{
 })
 
 hook.Add("Post Post Processing", "berserkEffect", function()
+	if hg.LightPostFX and hg.LightPostFX() then return end
 	if hg.underberserk2 and hg.berserkClamped then
 		render.UpdateScreenEffectTexture()
 		render.UpdateFullScreenDepthTexture()

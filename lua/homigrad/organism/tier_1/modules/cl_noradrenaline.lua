@@ -27,7 +27,7 @@ local tab2 = {
 }
 
 local cc = Material( "effects/shaders/merc_chromaticaberration" )
-hook.Add("RenderScreenspaceEffects", "noradrenalineEffect", function()
+hook.Add("Think", "noradrenalineEffect", function()
 	local organism = lply:Alive() and lply.organism
 	
 	if !organism then
@@ -90,6 +90,7 @@ local grainMat = CreateMaterial("grain2noradrenaline", "screenspace_general",{
 })
 
 hook.Add("Post Post Processing", "noradrenalineEffect", function()
+	if hg.LightPostFX and hg.LightPostFX() then return end
 	if hg.undernoradrenaline and hg.noradrenalineClamped then
 		render.UpdateScreenEffectTexture()
 		render.UpdateFullScreenDepthTexture()

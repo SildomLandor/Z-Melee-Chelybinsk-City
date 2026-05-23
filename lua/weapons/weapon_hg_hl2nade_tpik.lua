@@ -1,20 +1,20 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_hg_grenade_tpik"
-SWEP.PrintName = "Объединить осколочную гранату"
+SWEP.PrintName = "Граната HL2"
 SWEP.Instructions = 
-[[The Grenade comes equipped with a red blinking light and a chirping timer that are played when the grenade is thrown, letting both the attacker and the victim know when an active grenade is in their vicinity. Most Combine Soldiers carry at least a few of these and use them to flush out and/or kill enemies.
+[[Граната прикреплена красным мигающим светом и частотомером, которые срабатывают при бросании гранаты, позволяя и атакующему, и жертве знать, когда активная граната находится в их близости. Большинство солдат Комбина несут по крайней мере несколько из этих гранат и используют их для вытеснения и/или убийства врагов.
 
-Reload looking on surface will set tripwire
+Перезарядка с прицелом на поверхность устанавливает ловушку-растяжку
 
-LMB - High ready
-While high ready:
-RMB to remove spoon.
-Reload to insert pin back.
+ЛКМ — Высокая готовность
+В режиме высокой готовности:
+ПКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 
-RMB - Low ready
-While low ready:
-LMB to remove spoon.
-Reload to insert pin back.
+ПКМ — Низкая готовность
+В режиме низкой готовности:
+ЛКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 ]]--"тильда двуеточее три"
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true

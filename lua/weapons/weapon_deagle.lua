@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Пустынный орел"
+SWEP.PrintName = "Дигл"
 SWEP.Author = "Magnum Research/Israel Weapon Industries"
 SWEP.Instructions = "Пистолет под патрон .50 Magnum"
 SWEP.Category = "Weapons - Pistols"

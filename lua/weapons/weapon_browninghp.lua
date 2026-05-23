@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Браунинг Хай-Пауэр"
+SWEP.PrintName = "Браунинг HP"
 SWEP.Author = "Browning Arms Company"
 SWEP.Instructions = "Browning Hi-Power — это полуавтоматический пистолет одинарного действия под патроны 9×19 мм Parabellum и .40 S&W."
 SWEP.Category = "Weapons - Pistols"

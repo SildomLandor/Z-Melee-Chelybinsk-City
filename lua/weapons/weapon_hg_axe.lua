@@ -1,6 +1,6 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Колун"
+SWEP.PrintName = "Топор"
 SWEP.Instructions = "Топор — это инструмент, который тысячелетиями использовался для обработки, раскалывания и рубки древесины. Может выломать двери.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 

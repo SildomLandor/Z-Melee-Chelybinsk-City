@@ -1,4 +1,5 @@
 local MODE = MODE
+MODE.name = "tdm"
 
 zb = zb or {}
 zb.Points = zb.Points or {}

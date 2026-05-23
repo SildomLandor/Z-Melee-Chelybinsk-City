@@ -234,6 +234,53 @@ Can detect presence and potency of chemical agents in the air.]],
 			-- ply:SetNetVar("Inventory", inv)
 		-- end,
 	-- },
+	["traitor_custom"] = {
+		Name = "Custom",
+		Description = [[Loadout from main menu. No preset kit.]],
+		Objective = "Murder everyone with the gear you chose.",
+		SpawnFunction = function(ply)
+			if not IsValid(ply) then return end
+			ply.organism.stamina.max = 220
+			if hg and hg.TraitorLoadout then
+				hg.TraitorLoadout.GiveTraitorFlashlight(ply)
+			end
+		end,
+	},
+	["traitor_custom_soe"] = {
+		Name = "Custom",
+		Description = [[Loadout from main menu. No preset kit.]],
+		Objective = "Murder everyone with the gear you chose.",
+		SpawnFunction = function(ply)
+			if not IsValid(ply) then return end
+			ply.organism.stamina.max = 220
+			ply.organism.recoilmul = 1
+			if hg and hg.TraitorLoadout then
+				hg.TraitorLoadout.GiveTraitorFlashlight(ply)
+			end
+		end,
+	},
+	["traitor_martial_artist"] = {
+		Name = "Martial Artist",
+		Description = [[Superfighter. Starts with nunchucks. No flashlight.]],
+		Objective = "Murder everyone. Your body is your weapon.",
+		SpawnFunction = function(ply)
+			if not IsValid(ply) then return end
+			if hg and hg.TraitorLoadout then
+				hg.TraitorLoadout.ApplySkillset(ply, "martial_artist", "standard")
+			end
+		end,
+	},
+	["traitor_martial_artist_soe"] = {
+		Name = "Martial Artist",
+		Description = [[Superfighter. Starts with nunchucks. No flashlight.]],
+		Objective = "Murder everyone. Your body is your weapon.",
+		SpawnFunction = function(ply)
+			if not IsValid(ply) then return end
+			if hg and hg.TraitorLoadout then
+				hg.TraitorLoadout.ApplySkillset(ply, "martial_artist", "soe")
+			end
+		end,
+	},
 	["traitor_zombie"] = {
 		Name = "Zombie",
 		Description = [[Can infect other players silently.
@@ -310,9 +357,11 @@ MODE.RoleChooseRoundTypes = {
 		TraitorDefaultRole = "traitor_default",
 		Traitor = {
 			["traitor_default"] = true,
+			["traitor_custom"] = true,
 			["traitor_infiltrator"] = true,
 			["traitor_chemist"] = true,
 			["traitor_assasin"] = true,
+			["traitor_martial_artist"] = true,
 			--; ОБЪЕДЕНИТЬ ХИМИКА И ДИВЕРСАНТА!!! наверное
 			-- ["traitor_demoman"] = true,
 		},
@@ -338,9 +387,11 @@ MODE.RoleChooseRoundTypes = {
 		TraitorDefaultRole = "traitor_default_soe",
 		Traitor = {
 			["traitor_default_soe"] = true,
+			["traitor_custom_soe"] = true,
 			["traitor_infiltrator_soe"] = true,
-			-- ["traitor_chemist_soe"] = true,
+			["traitor_chemist"] = true,
 			["traitor_assasin_soe"] = true,
+			["traitor_martial_artist_soe"] = true,
 			-- ["traitor_demoman_soe"] = true,
 		},
 		Professions = {

@@ -1,4 +1,5 @@
 local MODE = MODE
+MODE.name = "riot"
 
 zb = zb or {}
 zb.Points = zb.Points or {}

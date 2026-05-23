@@ -630,9 +630,8 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     if not IsValid(ply) then return end
     if not ply:IsPlayer() then return end
     if not ply.InVehicle then return end
-    
-    //local systime = SysTime()
-    local should = hg.ShouldTPIK(ply)
+
+    local should = hg.ShouldTPIK(ply, ent)
     //print("shouldtpik func: ", SysTime() - systime)
 
     if should then

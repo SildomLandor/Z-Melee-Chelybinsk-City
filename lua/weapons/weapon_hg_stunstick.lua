@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "парализатор"
+SWEP.PrintName = "Электродубинка"
 SWEP.Instructions = "Метрокоп выпустил электрифицированное оружие ближнего боя, используемое для прекращения беспорядков и нарушений. Подберите банку.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true

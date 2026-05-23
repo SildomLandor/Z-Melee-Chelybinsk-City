@@ -112,8 +112,6 @@ end,0}
 if SERVER then
     util.AddNetworkString("PunishLightningEffect")
     util.AddNetworkString("AnotherLightningEffect")
-    util.AddNetworkString("PluvCommand")
-
     COMMANDS.zc_god = {function(ply)
         if not ply.organism then return end
         

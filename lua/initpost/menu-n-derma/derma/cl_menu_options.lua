@@ -25,6 +25,7 @@ function hg.settings:AddOpt( strCategory, strConVar, strTitle, bDecimals, bStrin
 end
 
 hg.settings:AddOpt("Оптимизация","hg_potatopc", "Режим картофельного ПК")
+hg.settings:AddOpt("Оптимизация","hg_tpik_near_only", "TPIK только себя и тех кто рядом с тобой")
 hg.settings:AddOpt("Оптимизация","hg_anims_draw_distance", "Дальность прорисовки анимаций")
 hg.settings:AddOpt("Оптимизация","hg_anim_fps", "FPS анимаций")
 hg.settings:AddOpt("Оптимизация","hg_attachment_draw_distance", "Дальность прорисовки аксессуаров")
@@ -217,5 +218,54 @@ concommand.Add("hg_settings",function()
     s:MakePopup()
     hg_options = s
 end)
+
+local perfBtnColor = Color(39, 39, 39, 220)
+local perfBtnOutline = Color(105, 0, 0, 220)
+
+function PANEL:CreatePerfButtons()
+    local fDock = self.fDock
+    local row = vgui.Create("DPanel", fDock)
+    row:Dock(TOP)
+    row:SetTall(ScreenScale(28))
+    row:DockMargin(ScreenScaleH(75), 4, ScreenScaleH(75), 4)
+    function row:Paint(w, h)
+        draw.RoundedBox(0, 0, 0, w, h, perfBtnColor)
+        surface.SetDrawColor(perfBtnOutline)
+        surface.DrawOutlinedRect(0, 0, w, h, 1.5)
+    end
+
+    local function addBtn(text, cmd)
+        local btn = vgui.Create("DButton", row)
+        btn:SetText(text)
+        btn:SetFont("ZCity_Tiny")
+        btn:Dock(LEFT)
+        btn:DockMargin(4, 4, 4, 4)
+        btn:SetWide(ScreenScale(70))
+        function btn:DoClick()
+            RunConsoleCommand(cmd)
+        end
+    end
+
+    addBtn("Средний ПК", "hg_perf_preset_mid")
+    addBtn("Слабый ПК", "hg_perf_preset_low")
+    addBtn("Сброс", "hg_perf_preset_off")
+
+    local hint = vgui.Create("DLabel", fDock)
+    hint:Dock(TOP)
+    hint:SetFont("ZCity_Tiny")
+    hint:SetText("Замер FPS: hg_fps_baseline spawn 5 | бой 8 | прицел 8")
+    hint:SetWrap(true)
+    hint:SetAutoStretchVertical(true)
+    hint:DockMargin(ScreenScaleH(75), 0, ScreenScaleH(75), 6)
+end
+
+local _CreateCategory = PANEL.CreateCategory
+function PANEL:CreateCategory(strCategory)
+    local cat = _CreateCategory(self, strCategory)
+    if strCategory == "ZCity Settings" then
+        self:CreatePerfButtons()
+    end
+    return cat
+end
 
 --https://vk.com/audio-2001212316_123212316

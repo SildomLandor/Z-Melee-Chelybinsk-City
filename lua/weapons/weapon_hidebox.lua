@@ -1,5 +1,5 @@
 if SERVER then AddCSLuaFile() end
-SWEP.PrintName = "Складная коробка"
+SWEP.PrintName = "коробка"
 SWEP.Instructions = "Удобный складной ящик, в котором можно спрятаться от врагов."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true

@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Приклеенный осколок стекла"
+SWEP.PrintName = "Осколок стекла с скотчем"
 SWEP.Instructions = "Кусок разбитого стекла, заклеенный бинтом/лентой, чтобы его было безопаснее использовать.\\n\\nЛКМ, чтобы атаковать.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true

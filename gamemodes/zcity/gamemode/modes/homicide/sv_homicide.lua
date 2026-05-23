@@ -324,7 +324,6 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 		ply.organism.recoilmul = 0.8
 
-		ply:SetNetVar("CurPluv", "pluvberet")
 
 		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
 	end
@@ -352,7 +351,6 @@ MODE.Types.wildwest = {
 		ply.organism.recoilmul = 1.0
 		ply.organism.stamina.range = 220
 
-		ply:SetNetVar("CurPluv", "pluvfancy")
 
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_sling"] = true
@@ -416,7 +414,6 @@ MODE.Types.wildwest = {
 				weapon:SetClip1(weapon:GetMaxClip1())
 			end
 
-			v:SetNetVar("CurPluv", "pluvfancy")
 
 			local inv = v:GetNetVar("Inventory")
 			inv["Weapons"] = inv["Weapons"] or {}
@@ -459,7 +456,6 @@ MODE.Types.wildwest = {
 		inv["Weapons"]["hg_flashlight"] = true
 		ply:SetNetVar("Inventory",inv)
 
-		ply:SetNetVar("CurPluv", "pluvberet")
 
 		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
 	end
@@ -537,7 +533,6 @@ MODE.Types.gunfreezone = {
 
 		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
 
-		ply:SetNetVar("CurPluv", "pluvberet")
 	end
 }
 
@@ -580,7 +575,6 @@ MODE.Types.soe = {
 		inv["Weapons"]["hg_sling"] = true
 		ply:SetNetVar("Inventory",inv)
 
-		ply:SetNetVar("CurPluv", "pluvboss")
 	end,
 	PoliceTime = 250,
 	PoliceAllowed = true,
@@ -623,7 +617,6 @@ MODE.Types.soe = {
 		ply:SetActiveWeapon(hands)
 	
 		zb.GiveRole(ply, "National Guard", Color(55, 85, 0))
-		ply:SetNetVar("CurPluv", "pluvberet")
 	end,
 	PoliceText = "National guards have arrived.",
 	PoliceSound = "snd_jack_hmcd_heli2.mp3"
@@ -1069,7 +1062,6 @@ function MODE:EquipSWAT(ply, index)
 
     ply.organism.recoilmul = 0.6
 
-    ply:SetNetVar("CurPluv", "pluvberet")
     local hands = ply:Give("weapon_hands_sh")
     ply:SetActiveWeapon(hands)
 
@@ -1107,7 +1099,6 @@ function MODE:EquipNationalGuard(ply, index)
 	inv["Weapons"]["hg_sling"] = true
 	ply:SetNetVar("Inventory", inv)
 
-	ply:SetNetVar("CurPluv", "pluvberet")
     local hands = ply:Give("weapon_hands_sh")
     ply:SetActiveWeapon(hands)
     zb.GiveRole(ply, "National Guard", Color(60, 90, 0))
@@ -1188,7 +1179,8 @@ hook.Add("PlayerCanPickupWeapon", "HMCD_TraitorRadioPickup", function( ply, weap
     if ply.isTraitor and weapon:GetClass() == "weapon_walkie_talkie" then
         if ply:HasWeapon("weapon_walkie_talkie") then
             weapon:Remove()
-			ply:SetActiveWeapon("weapon_walkie_talkie")
+			local wpn = ply:GetWeapon("weapon_walkie_talkie")
+			if IsValid(wpn) then ply:SetActiveWeapon(wpn) end
 			ply:ChatPrint("You hide the additional walkie talkie.")
         end
     end
@@ -1612,37 +1604,21 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                 MODE.Types.supermario.CustomJump(current_ply)
             end
 
-            local sub_role = nil
             if(spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type])then
-                if(current_ply.isTraitor)then
-                    local sub_role_id = MODE.Type == "soe" and (current_ply:GetInfo(MODE.ConVarName_SubRole_Traitor_SOE) or "traitor_default_soe") or (current_ply:GetInfo(MODE.ConVarName_SubRole_Traitor) or "traitor_default")
-					sub_role = sub_role_id
-                end
-
                 if(current_ply.isGunner)then
                     MODE.Types[MODE.Type].GunManLoot(current_ply)
                 end
 
-                if(sub_role)then
-                    if(current_ply.isGunner)then
-
-                    elseif(current_ply.isTraitor)then
-                        local role_info = MODE.SubRoles[sub_role]
-                        if(!role_info or !MODE.RoleChooseRoundTypes[MODE.Type].Traitor[sub_role])then
-                            sub_role = MODE.RoleChooseRoundTypes[MODE.Type].TraitorDefaultRole or "traitor_default"
-                            role_info = MODE.SubRoles[sub_role]
-                        end
-
-                        if(current_ply.MainTraitor)then
-                            local spawn_func = role_info.SpawnFunction
-                            current_ply.SubRole = sub_role
-                            spawn_func(current_ply)
-                        end
-                    end
+                if(current_ply.isTraitor and current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
+                    MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
                 end
             else
                 if(current_ply.isTraitor)then
-                    MODE.Types[MODE.Type].TraitorLoot(current_ply)
+                    if(current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
+                        MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
+                    else
+                        MODE.Types[MODE.Type].TraitorLoot(current_ply)
+                    end
                 end
 
                 if(current_ply.isGunner)then

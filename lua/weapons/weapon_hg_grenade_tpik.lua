@@ -1,18 +1,18 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_tpik_base"
-SWEP.PrintName = "М67"
+SWEP.PrintName = "Граната М67"
 SWEP.Instructions = 
-[[M67 fragmentation grenade is used by many countries around the world since 1968. It has a pyrotechnic delay of 4-5.5 seconds.
+[[Осколочная граната М67 используется многими странами мира с 1968 года. Имеет пиротехнический замедлитель 4–5.5 секунды.
 
-LMB - High ready
-While high ready:
-RMB to remove spoon.
-Reload to insert pin back.
+ЛКМ — Высокая готовность
+В режиме высокой готовности:
+ПКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 
-RMB - Low ready
-While low ready:
-LMB to remove spoon.
-Reload to insert pin back.
+ПКМ — Низкая готовность
+В режиме низкой готовности:
+ЛКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 ]]--"тильда двуеточее три"
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true

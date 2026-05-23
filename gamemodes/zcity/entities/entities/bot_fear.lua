@@ -138,10 +138,12 @@ if SERVER then
         
         -- simplify path
         self.Path = {}
-        local skip = 0
-        for i = 1, #path do
-            if !hg.isVisible(self.Path[#self.Path], path[i + 1], {self.Victim}, MASK_SOLID_BRUSHONLY) then
-                self.Path[#self.Path + 1] = path[i]
+        if #path > 0 then
+            self.Path[1] = path[1]
+            for i = 1, #path - 1 do
+                if !hg.isVisible(self.Path[#self.Path], path[i + 1], {self.Victim}, MASK_SOLID_BRUSHONLY) then
+                    self.Path[#self.Path + 1] = path[i + 1]
+                end
             end
         end
 
@@ -178,8 +180,10 @@ if SERVER then
             end
         end
 
-        self.TotalLen = self.TotalLen + (self.Path[1] - self.Path[math.Clamp(2, 1, #self.Path)]):Length()
-        self.HidingSpot = self.Path[#self.Path]
+        if #self.Path >= 2 then
+            self.TotalLen = self.TotalLen + (self.Path[1] - self.Path[2]):Length()
+        end
+        self.HidingSpot = self.Path[#self.Path] or self:GetPos()
         self.IsHidingSpotCovered = found
     end
 

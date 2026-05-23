@@ -1,7 +1,7 @@
 SWEP.Base = "weapon_revolver2"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Кольт Королевская Кобра"
+SWEP.PrintName = "Кольт Кобра"
 SWEP.Author = "Colt's Manufacturing Co."
 SWEP.Instructions = "Револьвер под патрон .357 Magnum"
 SWEP.Category = "Weapons - Pistols"

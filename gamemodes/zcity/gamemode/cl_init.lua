@@ -291,8 +291,9 @@ net.Receive("RoundInfo", function()
 				CurrentRound():EndRound()
 			end
 		elseif zb.ROUND_STATE == 1 then
-			if CurrentRound().RoundStart then
-				CurrentRound():RoundStart()
+			local mode = CurrentRound()
+			if mode and mode.RoundStart then
+				mode:RoundStart()
 			end
 		end
 	end
@@ -310,14 +311,21 @@ hook.Add("Player Disconnected","retrymenu",function(data)
 	end
 end)
 
-CreateFontFamily({ antialias = true }, {   -- antialias как общая настройка
-    ZB_InterfaceSmall       = { size = ScreenScale(6) },
-    ZB_InterfaceMedium      = { size = ScreenScale(10) },
-    ZB_ScrappersMedium      = { size = ScreenScale(10) },
-    ZB_InterfaceMediumLarge = { size = 35 },
-    ZB_InterfaceLarge       = { size = ScreenScale(20) },
-    ZB_InterfaceHumongous   = { size = 200 },
-})
+local function ZB_CreateUIFonts()
+    CreateFontFamily({ antialias = true }, {
+        ZB_InterfaceSmall       = { size = ScreenScaleH(11) },
+        ZB_InterfaceMedium      = { size = ScreenScaleH(13) },
+        ZB_ScrappersMedium      = { size = ScreenScaleH(13) },
+        ZB_InterfaceMediumLarge = { size = 35 },
+        ZB_InterfaceLarge       = { size = ScreenScaleH(22) },
+        ZB_InterfaceHumongous   = { size = 200 },
+        ZCity_Veteran             = { size = ScreenScaleH(15), weight = 700 },
+        ZB_ScoreboardHeader       = { size = ScreenScaleH(12), weight = 600 },
+    })
+end
+
+ZB_CreateUIFonts()
+hook.Add("OnScreenSizeChanged", "zcity_ui_fonts", ZB_CreateUIFonts)
 
 
 hg.playerInfo = hg.playerInfo or {}
@@ -385,6 +393,9 @@ local colSpect2 = Color(85,85,85,255)
 local colorBG = Color(55,55,55,255)
 local colorBGBlacky = Color(40,40,40,255)
 
+local voiceIconOn = Material("icon16/sound.png", "smooth mips")
+local voiceIconMute = Material("icon16/sound_mute.png", "smooth mips")
+
 hg.muteall = false
 hg.mutespect = false
 
@@ -427,26 +438,6 @@ local function OpenPlayerSoundSettings(selfa, ply)
 	Menu:Open()
 end
 
-local function GetVoiceIconPath(ply)
-	return ply:IsMuted() and "icon16/sound_mute.png" or "icon16/sound.png"
-end
-
-local function SetSoundButtonIcon(button, ply)
-	if not IsValid(button) or not IsValid(ply) then return end
-	local icon = GetVoiceIconPath(ply)
-	if button.SetImage then
-		button:SetImage(icon)
-		return
-	end
-	if button.SetIcon then
-		button:SetIcon(icon)
-		return
-	end
-	if button.SetMaterial then
-		button:SetMaterial(Material(icon))
-	end
-end
-
 local function OpenPlayerSoundSettings(selfa, ply)
 	local Menu = DermaMenu()
 	
@@ -459,7 +450,6 @@ local function OpenPlayerSoundSettings(selfa, ply)
 		local muted = not ply:IsMuted()
 		ply:SetMuted(muted)
 		self:SetChecked(muted)
-		SetSoundButtonIcon(selfa, ply)
 		addToPlayerInfo(ply, muted, hg.playerInfo[ply:SteamID()] and hg.playerInfo[ply:SteamID()][2] or 1)
 	end ) -- get your stupid one line ass outta here
 
@@ -568,10 +558,10 @@ function GM:ScoreboardShow()
 	local posY = math.floor(ScrH() * 0.5 - sizeY * 0.5 + leaderboardOffsetY)
 
 	local margin = ScreenScale(5)
-	local topBarH = ScreenScaleH(38)
-	local columnHeaderH = ScreenScaleH(16)
-	local sectionLabelH = ScreenScaleH(18)
-	local bottomBarH = ScreenScaleH(26)
+	local topBarH = ScreenScaleH(42)
+	local columnHeaderH = ScreenScaleH(22)
+	local sectionLabelH = ScreenScaleH(22)
+	local bottomBarH = ScreenScaleH(30)
 	local panelGap = ScreenScale(4)
 
 	local leftPanelX = margin
@@ -581,7 +571,8 @@ function GM:ScoreboardShow()
 
 	local listTopY = topBarH + sectionLabelH + columnHeaderH
 	local listH = sizeY - listTopY - bottomBarH - ScreenScaleH(4)
-	local rowH = ScreenScaleH(24)
+	local rowH = ScreenScaleH(30)
+	local voiceIconSz = ScreenScaleH(17)
 
 	scoreBoardMenu = vgui.Create("ZFrame")
 	scoreBoardMenu:SetPos(posX, posY)
@@ -927,7 +918,7 @@ function GM:ScoreboardShow()
 
 		surface.SetFont("ZB_InterfaceSmall")
 		surface.SetTextColor(col.textMuted)
-		local subY = srvY + ScreenScaleH(13)
+		local subY = srvY + ScreenScaleH(16)
 		surface.SetTextPos(srvX + shakeX * 0.3, subY)
 		surface.DrawText(hg.Version .. " | " .. (game.GetMap() or "unknown"))
 
@@ -990,12 +981,12 @@ function GM:ScoreboardShow()
 		local specLabel = "НАБЛЮДАТЕЛИ"
 		local specLW = surface.GetTextSize(specLabel)
 		surface.SetTextColor(col.textDim)
-		surface.SetTextPos(rightPanelX + rightPanelW - specLW - ScreenScale(3) + labelShakeX2, sectionY - 3 + labelShakeY2)
+		surface.SetTextPos(rightPanelX + labelShakeX + rightPanelW - specLW - ScreenScale(3) - 180, sectionY - 3 + labelShakeY2)
 		surface.DrawText(specLabel)
 
 		surface.SetFont("ZB_InterfaceSmall")
 		surface.SetTextColor(col.textMuted)
-		surface.SetTextPos(rightPanelX + rightPanelW + 4 - ScreenScale(3) + labelShakeX2, sectionY + 1 + labelShakeY2)
+		surface.SetTextPos(rightPanelX + rightPanelW + labelShakeX + 4 - ScreenScale(3) - 185, sectionY + 1 + labelShakeY2)
 		surface.DrawText(" [" .. specCount .. "]")
 
 		local sepY = sectionY + sectionLabelH - 2
@@ -1067,7 +1058,7 @@ function GM:ScoreboardShow()
 				end
 				local align = c.align or TEXT_ALIGN_LEFT
 				local tx = align == TEXT_ALIGN_CENTER and bw * 0.5 or (align == TEXT_ALIGN_RIGHT and bw - 6 or 6)
-				draw.SimpleText(c.label .. arrow, "ZB_InterfaceSmall", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
+				draw.SimpleText(c.label .. arrow, "ZB_ScoreboardHeader", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
 				if capturedIdx > 1 then
 					surface.SetDrawColor(col.separator)
 					surface.DrawRect(0, 3, 1, bh - 6)
@@ -1133,11 +1124,21 @@ function GM:ScoreboardShow()
 		local avatar = vgui.Create("AvatarImage", row)
 		avatar:SetMouseInputEnabled(false)
 
-		local soundButton = vgui.Create("DImageButton", row)
+		local soundButton = vgui.Create("DButton", row)
+		soundButton:SetText("")
 		soundButton:Dock(RIGHT)
-		soundButton:SetWide(ScreenScale(10))
-		soundButton:DockMargin(4, 4, 6, 4)
-		SetSoundButtonIcon(soundButton, ply)
+		soundButton:SetWide(voiceIconSz + ScreenScale(4))
+		soundButton:DockMargin(4, 0, 6, 0)
+		soundButton.Paint = function(self, bw, bh)
+			if not IsValid(ply) then return end
+			local mat = ply:IsMuted() and voiceIconMute or voiceIconOn
+			local sz = math.min(voiceIconSz, bw, bh)
+			local x, y = (bw - sz) * 0.5, (bh - sz) * 0.5
+			local a = ply:IsMuted() and 120 or (self:IsHovered() and 255 or 200)
+			surface.SetDrawColor(255, 255, 255, a)
+			surface.SetMaterial(mat)
+			surface.DrawTexturedRect(x, y, sz, sz)
+		end
 		soundButton.DoClick = function(self)
 			OpenPlayerSoundSettings(self, ply)
 		end
@@ -1362,7 +1363,8 @@ function GM:ScoreboardShow()
 		local active = {}
 		local specs = {}
 		for _, ply in player.Iterator() do
-			if CurrentRound().name == "fear" and not ply:Alive() then continue end
+			local mode = CurrentRound()
+			if mode and mode.name == "fear" and not ply:Alive() then continue end
 			if disappearance and ply ~= lply then continue end
 			if ply:Team() == TEAM_SPECTATOR then
 				specs[#specs + 1] = ply
@@ -1425,41 +1427,6 @@ if CLIENT then
 		end
 	end)
 end
-
-/*  -- а кстати зачем здесь нэт, это же можно было на клиенте полностью сделать...
-	if CLIENT then
-		net.Receive("PluvCommand", function()
-			local specialSteamID = "STEAM_0:1:81850653" 
-			local playerSteamID = LocalPlayer():SteamID() 
-
-			local imageURLs = {"https://sadsalat.github.io/salatis/music/boof.gif", "https://i.ibb.co/drt1Lks/KtvCLSs.webp", "https://media.tenor.com/kG4PmVvJuRIAAAAC/rain-world-rain-world-saint.gif"} 
-			local soundURLs = {"https://sadsalat.github.io/salatis/music/sus-rock.mp3", "https://sadsalat.github.io/salatis/music/tiktok-raaaah-scream.mp3", "https://sadsalat.github.io/salatis/music/sus-rock.mp3"} 
-
-			local chosenImage = imageURLs[math.random(#imageURLs)]
-			local chosenSound = soundURLs[math.random(#soundURLs)]
-
-			sound.PlayURL(chosenSound, "", function(station)
-				if IsValid(station) then
-					station:Play()
-				else
-					print("Unable to play the sound.")
-				end
-			end)
-
-			local html = vgui.Create("HTML")
-			html:OpenURL(chosenImage)
-			html:SetSize(ScrW(), ScrH())
-			html:Center()
-			html:MakePopup()
-
-			timer.Simple(3, function()
-				if IsValid(html) then
-					html:Remove()
-				end
-			end)
-		end)
-	end
-*/
 
 local lightningMaterial = Material("sprites/lgtning")
 

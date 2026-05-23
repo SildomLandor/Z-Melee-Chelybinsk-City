@@ -181,29 +181,31 @@ function MODE:Intermission()
 end
 
 function MODE:CheckAlivePlayers()
-	local cops = {}
-	local victims = {}
-	local shooters = {}
+	local aliveTeams = {
+		[0] = {},
+		[1] = {},
+		[2] = {},
+	}
 
 	for _, ply in ipairs(team.GetPlayers(0)) do
 		if ply:Alive() and not ply:GetNetVar("handcuffed", false) then
-			table.insert(cops, ply)
+			aliveTeams[0][#aliveTeams[0] + 1] = ply
 		end
 	end
 
 	for _, ply in ipairs(team.GetPlayers(1)) do
 		if ply:Alive() and not ply:GetNetVar("handcuffed", false) then
-			table.insert(victims, ply)
+			aliveTeams[1][#aliveTeams[1] + 1] = ply
 		end
 	end
 
 	for _, ply in ipairs(team.GetPlayers(2)) do
 		if ply:Alive() and not ply:GetNetVar("handcuffed", false) then
-			table.insert(shooters, ply)
+			aliveTeams[2][#aliveTeams[2] + 1] = ply
 		end
 	end
 
-	return {cops, victims, shooters}
+	return aliveTeams
 end
 
 function MODE:BuildRoundReport(winner)
@@ -220,13 +222,17 @@ function MODE:BuildRoundReport(winner)
 		end
 	end
 
-	local winnerText = "Никто"
+	local winnerText
 	if winner == 0 then
-		winnerText = "СОБР"
+		winnerText = "СОБР победили"
 	elseif winner == 1 then
-		winnerText = "Жертвы"
+		winnerText = "Жертвы победили"
 	elseif winner == 2 then
-		winnerText = "Передозированый"
+		winnerText = "Передозированый победил"
+	elseif winner == 3 then
+		winnerText = "Никто не выжил"
+	else
+		winnerText = "Исход не определён"
 	end
 
 	return {
@@ -249,7 +255,7 @@ function MODE:ShouldRoundEnd()
 	local aliveTeams = self:CheckAlivePlayers()
 	local endRound, winner = false, nil
 
-	if table.Count(aliveTeams[3]) == 0 then
+	if #(aliveTeams[2] or {}) == 0 then
 		endRound = true
 		winner = self.CopsArrived and 0 or 1
 	else
@@ -558,12 +564,14 @@ function MODE:EndRound()
 		end
 	end
 
-	for _, ply in player.Iterator() do
-		if ply:Team() == winner then
-			ply:GiveExp(math.random(15, 30))
-			ply:GiveSkill(math.Rand(0.1, 0.15))
-		else
-			ply:GiveSkill(-math.Rand(0.05, 0.1))
+	if winner ~= 3 then
+		for _, ply in player.Iterator() do
+			if ply:Team() == winner then
+				ply:GiveExp(math.random(15, 30))
+				ply:GiveSkill(math.Rand(0.1, 0.15))
+			else
+				ply:GiveSkill(-math.Rand(0.05, 0.1))
+			end
 		end
 	end
 

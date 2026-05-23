@@ -1,3 +1,8 @@
+local ScrW, ScrH = ScrW(), ScrH()
+hook.Add("OnScreenSizeChanged", "hg_screeneffects_scr", function()
+	ScrW, ScrH = ScrW(), ScrH()
+end)
+
 local function DrawSunEffect()
 	local sun = util.GetSunInfo()
 	if !sun then return end
@@ -6,7 +11,7 @@ local function DrawSunEffect()
 	local scrpos = sunpos:ToScreen()
 	local dot = (sun.direction:Dot(EyeVector()) - 0.8) * 5
 	if dot <= 0 then return end
-	DrawSunbeams(0.1, 0.15 * dot * sun.obstruction, 0.1, scrpos.x / ScrW(), scrpos.y / ScrH())
+	DrawSunbeams(0.1, 0.15 * dot * sun.obstruction, 0.1, scrpos.x / ScrW, scrpos.y / ScrH)
 end
 
 hg.postprocess = hg.postprocess or {}
@@ -56,29 +61,35 @@ local tab = {
 }
 
 local hook_Run = hook.Run
+local potatoTab = {
+	["$pp_colour_brightness"] = 0,
+	["$pp_colour_contrast"] = 1,
+	["$pp_colour_colour"] = 1
+}
+
 hook.Add("RenderScreenspaceEffects", "homigrad", function()
-	//if potatopc:GetInt() >= 1 then return end
-	hook_Run("Post Processing")
-	//DrawSunEffect()
-	for _, layer in ipairs(layers_name) do
-		layer = layers[layer]
-		local weight = layer.weight
-		//for k, v in pairs(layer) do
-			//if k == "weight" then continue end
-		addtiveLayer["brightness"] = Lerp(weight, 0, layer["brightness"] or 0)
-		//end
+	if hg.LightPostFX and hg.LightPostFX() then
+		DrawColorModify(potatoTab)
+		hook_Run("Post Post Pre Post Processing")
+		return
 	end
 
-	//DrawBloom(addtiveLayer.bloom_darken, addtiveLayer.bloom_mul, addtiveLayer.bloom_sizex, addtiveLayer.bloom_sizey, addtiveLayer.bloom_passes, addtiveLayer.bloom_colormul, addtiveLayer.bloom_colorr, addtiveLayer.bloom_colorg, addtiveLayer.bloom_colorb)
-	//DrawSharpen(addtiveLayer.sharpen, addtiveLayer.sharpen_dist)
-	//if not brain_motionblur then DrawMotionBlur(addtiveLayer.blur_addalpha, addtiveLayer.blur_drawalpha, addtiveLayer.blur_delay) end
-	//DrawToyTown(addtiveLayer.toytown, addtiveLayer.toytown_h * ScrH())
+	hook_Run("Post Processing")
+
+	for i = 1, #layers_name do
+		local layer = layers[layers_name[i]]
+		addtiveLayer.brightness = Lerp(layer.weight, 0, layer.brightness or 0)
+	end
+
 	tab["$pp_colour_brightness"] = addtiveLayer.brightness
 	DrawColorModify(tab)
 
 	hook_Run("Post Pre Post Processing")
-
 	hook_Run("Post Post Processing")
+
+	if hg.postprocess and hg.postprocess.RunExtra then
+		hg.postprocess.RunExtra()
+	end
 
 	hook_Run("Post Post Pre Post Processing")
 end)
@@ -130,10 +141,9 @@ hook.Add("Post Processing", "Main", function()
 	local waterLevel = oldWaterLevel
 	if timecheck < CurTime() then
 		local pos = hg.eye(lply)
-
 		if !pos then return end
 
-		waterLevel = (ply:WaterLevel() == 3) or ((ply:WaterLevel() > 1) and bit.band(util.PointContents(pos), CONTENTS_WATER) == CONTENTS_WATER)  //lply:WaterLevel()
+		waterLevel = (ply:WaterLevel() == 3) or ((ply:WaterLevel() > 1) and bit.band(util.PointContents(pos), CONTENTS_WATER) == CONTENTS_WATER)
 
 		timecheck = CurTime() + 0.1
 	end
@@ -162,14 +172,8 @@ hook.Add("Post Processing", "Main", function()
 	end
 
 	oldWaterLevel = waterLevel
-
 	DrawSunEffect()
 end)
-
-// funny :)
-
-//that one furry game
-
 
 local painMat = Material("effects/shaders/zb_grain")
 local noiseMat = Material("effects/shaders/zb_grainwhite")
@@ -188,14 +192,15 @@ local tempLerp = 36.6
 local show_image_time = 0
 local show_some_images_time = 0
 local lobotomy_mats = {
-	[1] = Material("overlays/photopsiaoverlay1.png"),
-	[2] = Material("overlays/photopsiaoverlay2.png"),
-	[3] = Material("overlays/photopsiaoverlay3.png"),
-	[4] = Material("overlays/photopsiaoverlay4.png"),
-	[5] = Material("overlays/peripheralorboverlay.png"),
-	[6] = Material("overlays/tallflash1.png"),
-	[7] = Material("overlays/tallflash2.png"),
-	[8] = Material("overlays/tallflash3.png")
+	Material("overlays/photopsiaoverlay1.png"),
+	Material("overlays/photopsiaoverlay2.png"),
+	Material("overlays/photopsiaoverlay3.png"),
+	Material("overlays/photopsiaoverlay4.png"),
+	Material("overlays/photopsiaoverlay5.png"),
+	Material("overlays/peripheralorboverlay.png"),
+	Material("overlays/tallflash1.png"),
+	Material("overlays/tallflash2.png"),
+	Material("overlays/tallflash3.png")
 }
 
 local function stopthings()
@@ -207,11 +212,6 @@ local function stopthings()
 	consciousnessLerp = 1
 
 	lply.tinnitus = 0
-
-	--[[if IsValid(PainStation) then
-		PainStation:Stop()
-		PainStation = nil
-	end--]]
 
 	if IsValid(NoiseStation) then
 		NoiseStation:Stop()
@@ -259,249 +259,182 @@ local function stopthings()
 	end
 end
 
-local stations = {
-	0.06,
-	0.1,
-	0.15,
-	0.22,
-	0.27,
-}
+local stations = {0.06, 0.1, 0.15, 0.22, 0.27}
 
 local choosera = 1
 local tempolerp = 0
 local lerpblood = 0
 local addtime = CurTime()
 local hurtoverlay = Material("zcity/neurotrauma/damageOverlay.png", "smooth")
-hook.Add("Post Post Processing", "ItHurts", function()
+
+local depthFrame = -1
+
+local function updScreen()
+	render.UpdateScreenEffectTexture()
+end
+
+local function updDepth()
+	updScreen()
+	if depthFrame == FrameNumber() then return end
+	render.UpdateFullScreenDepthTexture()
+	depthFrame = FrameNumber()
+end
+
+local LerpFT = LerpFT or Lerp
+
+local fx = {
+	active = false,
+	drawBlind = false,
+	drawHurt = false,
+	drawHeat = false,
+	drawAssim = false,
+	drawGrain = false,
+	drawCold = false,
+	drawPain = false,
+	drawO2 = false,
+	drawBrainBlur = false,
+	drawBrainImg = false,
+	drawOtrubBlur = false,
+	blindness = 0,
+	consciousness = 0,
+	heat = 0,
+	pain = 0,
+	shock = 0,
+	o2 = 0,
+	brain = 0,
+	otrub = false,
+	lobotomy_index = 0,
+}
+
+local function ensurePainBeat()
+	if IsValid(PainStation) and PainStation:GetState() == GMOD_CHANNEL_PLAYING then return end
+	sound.PlayFile("sound/zbattle/pain_beat.ogg", "noblock noplay", function(station)
+		if IsValid(station) then
+			station:SetVolume(0)
+			station:Play()
+			station:SetTime(math.min(math.Rand(0, station:GetLength()), 139))
+			PainStation = station
+			station:EnableLooping(true)
+		end
+	end)
+end
+
+local function ensureAssimSound()
+	if IsValid(AssimilationStation) and AssimilationStation:GetState() == GMOD_CHANNEL_PLAYING then return end
+	sound.PlayFile("sound/zbattle/furry/conversion/assimilation_noise3.ogg", "noblock noplay", function(station)
+		if IsValid(station) then
+			station:SetVolume(0)
+			station:Play()
+			AssimilationStation = station
+			station:EnableLooping(true)
+		end
+	end)
+end
+
+local function ensureBrainSound(chooser)
+	if IsValid(BrainTraumaStation) and choosera == chooser and BrainTraumaStation:GetState() == GMOD_CHANNEL_PLAYING then return end
+	if IsValid(BrainTraumaStation) then
+		BrainTraumaStation:Stop()
+		BrainTraumaStation = nil
+	end
+	choosera = chooser
+	sound.PlayFile("sound/zcitysnd/real_sonar/brainhemorrhagestage" .. chooser .. ".mp3", "noblock noplay", function(station)
+		if IsValid(station) then
+			station:SetVolume(0)
+			station:Play()
+			BrainTraumaStation = station
+			station:EnableLooping(true)
+		end
+	end)
+end
+
+hook.Add("Think", "ItHurtsThink", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
 
 	if IsValid(PainStation) then
 		PainStation:SetVolume(0)
 	end
 
-	if !lply:Alive() and !IsValid(spect) then stopthings() return end
-	if !lply:Alive() and viewmode != 1 then stopthings() return end
+	if !lply:Alive() and !IsValid(spect) then stopthings() fx.active = false return end
+	if !lply:Alive() and viewmode != 1 then stopthings() fx.active = false return end
+
 	local organism = lply:Alive() and lply.organism or (IsValid(spect) and spect.organism)
-	if !organism then stopthings() return end
-	if !organism.brain then stopthings() return end
+	if !organism or !organism.brain then stopthings() fx.active = false return end
+	if !organism.o2 or !isnumber(organism.o2[1]) or !organism.analgesia then stopthings() fx.active = false return end
+
 	local org = organism
+	fx.active = true
+	fx.otrub = org.otrub
 
-	if org.blindness or amtflashed >= 0.8 then
-		local blindness = ((org.blindness and math.Round(org.blindness) == 0) or amtflashed >= 0.8) and 0 or org.blindness
-		render.UpdateScreenEffectTexture()
-		render.UpdateFullScreenDepthTexture()
-
-		blindMat:SetFloat("$c0_x", 5)
-		blindMat:SetFloat("$c0_y", CurTime())
-		blindMat:SetFloat("$c0_z", math.Round(blindness))
-		render.SetMaterial(blindMat)
-		render.DrawScreenQuad()
-	end
-
-	if (org.consciousness < 0.7) then
-		lerpblood = LerpFT(0.01, lerpblood or 0, math.Clamp((0.7 - org.consciousness) * 5, 0, 1) * 255)
-		//local lowblood = (3600 - (org.blood or 5000)) / 600
-
-		addtime = addtime + FrameTime() / 6
-		local amt = (math.cos(addtime) + math.sin(addtime * 3) + math.sin(addtime * 2)) / 90
-		local amt2 = (math.sin(addtime) + math.cos(addtime * 5) + math.sin(addtime * 6)) / 90
-		local mat = Matrix({
-			{1 - amt, amt, 0, -amt2 / 2},
-			{amt2, 1 - amt2, 0, -amt / 2},
-			{0, 0, 1, 0},
-			{0, 0, 0, 1},
-		})
-		hurtoverlay:SetMatrix("$basetexturetransform", mat)
-		surface.SetMaterial(hurtoverlay)
-		surface.SetDrawColor(0, 0, 0, lerpblood)
-		surface.DrawTexturedRect(-ScrW() * 2.0, -ScrH() * 2.0, ScrW() * 5, ScrH() * 5)
-		//ViewPunch(Angle(-amt * 1, amt2 * 1,0))
-		//ViewPunch2(Angle(-amt * 1, amt2 * 1,0))
-	end
-
-	if !IsValid(PainStation) or PainStation:GetState() != GMOD_CHANNEL_PLAYING then
-		sound.PlayFile("sound/zbattle/pain_beat.ogg", "noblock noplay", function(station)
-			if IsValid(station) then
-				station:SetVolume(0)
-				station:Play()
-				station:SetTime(math.min(math.Rand(0, station:GetLength()), 139))
-				PainStation = station
-				station:EnableLooping(true)
-			end
-		end)
-	end
-
-	local LerpFT = LerpFT or Lerp
-
-	if !org or !org.o2 or !isnumber(org.o2[1]) or !org.analgesia then stopthings() return end
-
-	local o2 = org.o2[1] or 0
-	o2 = o2 + (org.CO or 0)
+	local o2raw = (org.o2[1] or 0) + (org.CO or 0)
 	local brain = org.brain or 0
-	O2Lerp = LerpFT(0.01, O2Lerp, (30 - o2) * (org.otrub and 2 or 10) + (brain * 100) * (org.otrub and 1 or 5))
 
+	O2Lerp = LerpFT(0.01, O2Lerp, (30 - o2raw) * (org.otrub and 2 or 10) + (brain * 100) * (org.otrub and 1 or 5))
 	tempLerp = LerpFT(0.01, tempLerp, org.temperature)
 
-	if tempLerp > 38 then
-		local heat = tempLerp - 38
-
-		render.UpdateScreenEffectTexture()
-
-		heatMat:SetFloat("$c0_x", -CurTime() * 0.25) //math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
-		heatMat:SetFloat("$c0_y", 0.06 * heat) //(math.sin(CurTime()) + 1) * 2) //intensity (strict)
-		heatMat:SetFloat("$c2_x", (math.sin(CurTime()) - 2) * heat)
-
-		render.SetMaterial(heatMat)
-		render.DrawScreenQuad()
-	end
-
-	local pain = org.pain or 0
-	pain = math.max(pain - 15, 0)
+	local pain = math.max((org.pain or 0) - 15, 0)
 	local shock = (org.shock or 0) * 1 + (1 - org.consciousness) * 40
 	shockLerp = LerpFT(0.01, shockLerp or 0, shock + (lply.suiciding and math.max(0, org.heartbeat - 90) or 0))
 	consciousnessLerp = LerpFT(org.consciousness < (consciousnessLerp or 1) and 1 or 0.01, consciousnessLerp or 1, org.consciousness)
-	// local immobilization = org.immobilization
 	PainLerp = LerpFT(0.05, PainLerp, math.max(pain * (org.otrub and 0.2 or 1), 0))
 	assimilatedLerp = LerpFT(0.01, assimilatedLerp, org.assimilated or 0)
-
-	if assimilatedLerp > 0.001 then
-		render.UpdateScreenEffectTexture()
-
-		assimilationMat:SetFloat("$c0_x", -CurTime()) //math.sin(CurTime() * 0.1) * CurTime() * 0.01) //time
-		assimilationMat:SetFloat("$c0_y", assimilatedLerp * 3) //(math.sin(CurTime()) + 1) * 2) //intensity (strict)
-		local ctime = CurTime() * 2
-		local val = math.Clamp(3 - 1 / 3 * (math.sin(ctime * 2.8862) + math.cos(ctime * 1.115) - math.sin(ctime * 0.6215) + 3), 0, 5)
-		local val2 = math.Clamp(1 - 1 / 6 * (math.sin(ctime * 1.1862) + math.cos(ctime * 2.315) - math.sin(ctime * 0.9215) + 3), 0, 1)
-		assimilationMat:SetFloat("$c1_y", val)
-		assimilationMat:SetFloat("$c1_x", val2 - 0.5)
-
-		if !IsValid(AssimilationStation) or AssimilationStation:GetState() != GMOD_CHANNEL_PLAYING then
-			sound.PlayFile("sound/zbattle/furry/conversion/assimilation_noise3.ogg", "noblock noplay", function(station, err)
-				if IsValid(station) then
-					station:SetVolume(0)
-					station:Play()
-					AssimilationStation = station
-					station:EnableLooping(true)
-				end
-			end)
-		else
-			AssimilationStation:SetVolume(assimilatedLerp * 2)
-			//AssimilationStation:SetPlaybackRate(assimilatedLerp * 1)
-		end
-
-		render.SetMaterial(assimilationMat)
-		render.DrawScreenQuad()
-	else
-		if IsValid(AssimilationStation) then
-			AssimilationStation:Stop()
-			AssimilationStation = nil
-		end
-	end
-
-	if (org.consciousness or 0) < 1 then
-		local consciousness = 1 - consciousnessLerp
-		render.UpdateScreenEffectTexture()
-		render.UpdateFullScreenDepthTexture()
-
-		grainMat:SetFloat("$c0_x", CurTime()) // time
-		grainMat:SetFloat("$c0_y", 0.5) // gate
-		grainMat:SetFloat("$c0_z", consciousness * 3) // Pixelize
-		grainMat:SetFloat("$c1_x", consciousness) // lerp
-		grainMat:SetFloat("$c1_y", 10) // vignette intensity
-		grainMat:SetFloat("$c1_z", consciousness) // BlurIntensity
-		grainMat:SetFloat("$c2_x", 0) // r
-		grainMat:SetFloat("$c2_y", 0) // g
-		grainMat:SetFloat("$c2_z", 0) // b
-		grainMat:SetFloat("$c3_x", 0) // ImageIntensity
-
-		render.SetMaterial(grainMat)
-		render.DrawScreenQuad()
-	end
 
 	local tempo = math.Clamp((5 - (tempLerp - 29)) * 0.5 - 5 * (org.heartbeat < 1 and 1 or 0), 0, 5)
 	tempolerp = LerpFT(0.01, tempolerp, tempo)
 
-	if (tempolerp > 0) then
-		render.UpdateScreenEffectTexture()
+	fx.drawBlind = org.blindness or (amtflashed or 0) >= 0.8
+	fx.blindness = fx.drawBlind and ((((org.blindness and math.Round(org.blindness) == 0) or (amtflashed or 0) >= 0.8) and 0) or org.blindness) or 0
 
-		coldMat:SetFloat("$c0_y", tempolerp)
-
-		render.SetMaterial(coldMat)
-		render.DrawScreenQuad()
+	fx.drawHurt = (org.consciousness or 1) < 0.7
+	if fx.drawHurt then
+		lerpblood = LerpFT(0.01, lerpblood or 0, math.Clamp((0.7 - org.consciousness) * 5, 0, 1) * 255)
+		addtime = addtime + FrameTime() / 6
 	end
 
-	if (PainLerp > 0.001 or shockLerp > 5) or org.otrub then
-		local strobe = math.ease.InOutSine(math.abs(math.cos(CurTime() * 2))) * PainLerp / 2
-		pain = PainLerp + strobe
-		shock = shockLerp
-		render.UpdateScreenEffectTexture()
+	fx.drawHeat = tempLerp > 38
+	fx.heat = fx.drawHeat and (tempLerp - 38) or 0
 
-		vignetteMat:SetFloat("$c2_x", CurTime() + 10000) //Time
-		vignetteMat:SetFloat("$c0_z", org.otrub and 5 or (pain / 40 + math.max(shock - 5, 0) / 3)) //ColorIntensity
-		vignetteMat:SetFloat("$c1_y", org.otrub and 10 or (pain / 40 + math.max(shock - 5, 0) / 3)) //Vignette
+	fx.drawAssim = assimilatedLerp > 0.001
+	fx.drawGrain = (org.consciousness or 1) < 1
+	fx.consciousness = fx.drawGrain and (1 - consciousnessLerp) or 0
 
-		render.SetMaterial(vignetteMat)
-		render.DrawScreenQuad()
+	fx.drawCold = tempolerp > 0
+	fx.drawPain = PainLerp > 0.001 or shockLerp > 5 or org.otrub
+	fx.drawO2 = O2Lerp > 1
+	fx.o2 = O2Lerp
+	fx.brain = brain
 
-		render.UpdateScreenEffectTexture()
+	if fx.drawPain or PainLerp > 0.01 then
+		ensurePainBeat()
+	end
 
-		painMat:SetFloat("$c2_x", CurTime() + 10000) //Time
-		painMat:SetFloat("$c0_y", 0.8) //Gate
-		painMat:SetFloat("$c0_z", 1) //ColorIntensity
-		painMat:SetFloat("$c1_x", math.Clamp(pain / 90, 0, 0.75)) //Lerp
-		painMat:SetFloat("$c1_y", math.Clamp(pain / 90, 0, 0.75)) //Vignette
-
-		render.SetMaterial(painMat)
-		render.DrawScreenQuad()
-
-		if org.otrub then
-			DrawMotionBlur(0.1, 1., 0.01)
-			lply:ScreenFade( SCREENFADE.IN, Color(0,0,0), 2, 0.5 )
+	if fx.drawAssim then
+		ensureAssimSound()
+		if IsValid(AssimilationStation) then
+			AssimilationStation:SetVolume(assimilatedLerp * 2)
 		end
-		if IsValid(PainStation) then
-			PainStation:SetVolume(math.Clamp(math.Remap(pain, 0, 120, 0, 2), 0, 2))
-		end
+	elseif IsValid(AssimilationStation) then
+		AssimilationStation:Stop()
+		AssimilationStation = nil
 	end
 
 	if brain > 0.01 then
 		local chooser = 1
-		for i, choose in ipairs(stations) do
-			if choose < brain then
-				chooser = i
-			end
+		for i = 1, #stations do
+			if stations[i] < brain then chooser = i end
 		end
-
-		if !IsValid(BrainTraumaStation) or choosera != chooser or BrainTraumaStation:GetState() != GMOD_CHANNEL_PLAYING then
-			if IsValid(BrainTraumaStation) then
-				BrainTraumaStation:Stop()
-				BrainTraumaStation = nil
-			end
-
-			sound.PlayFile("sound/zcitysnd/real_sonar/brainhemorrhagestage" .. chooser .. ".mp3", "noblock noplay", function(station, err)
-				if IsValid(station) then
-					station:SetVolume(0)
-					station:Play()
-					BrainTraumaStation = station
-					station:EnableLooping(true)
-				end
-			end)
-			choosera = chooser
-		end
-
+		ensureBrainSound(chooser)
 		if IsValid(BrainTraumaStation) then
 			BrainTraumaStation:SetVolume(math.Clamp(!org.otrub and brain * 2 or 0, 0, 1))
 		end
-	else
-		if IsValid(BrainTraumaStation) then
-			BrainTraumaStation:Stop()
-			BrainTraumaStation = nil
-		end
+	elseif IsValid(BrainTraumaStation) then
+		BrainTraumaStation:Stop()
+		BrainTraumaStation = nil
 	end
 
-	//if brain > 0.1 and not org.otrub and show_some_images_time > 0 and false then
 	if lply.tinnitus and lply.tinnitus > CurTime() and lply:Alive() then
-		if !IsValid(Tinnitus) or Tinnitus:GetState() != GMOD_CHANNEL_PLAYING  then
-			sound.PlayFile("sound/zcitysnd/real_sonar/tinnitus" .. math.random(3) .. ".mp3", "noblock noplay", function(station, err)
+		if !IsValid(Tinnitus) or Tinnitus:GetState() != GMOD_CHANNEL_PLAYING then
+			sound.PlayFile("sound/zcitysnd/real_sonar/tinnitus" .. math.random(3) .. ".mp3", "noblock noplay", function(station)
 				if IsValid(station) then
 					station:SetVolume(0)
 					station:Play()
@@ -509,123 +442,234 @@ hook.Add("Post Post Processing", "ItHurts", function()
 					station:EnableLooping(true)
 				end
 			end)
-		end
-
-		if IsValid(Tinnitus) then
+		elseif IsValid(Tinnitus) then
 			Tinnitus:SetVolume(math.min(math.max(lply.tinnitus - CurTime(), 0) / 10, 1))
 		end
-	else
-		if IsValid(Tinnitus) then
-			Tinnitus:Stop()
-			Tinnitus = nil
-		end
+	elseif IsValid(Tinnitus) then
+		Tinnitus:Stop()
+		Tinnitus = nil
 	end
+
+	fx.drawBrainBlur = false
+	fx.drawBrainImg = false
+	brain_motionblur = false
 
 	if brain > 0.1 and !org.otrub then
 		if show_some_images_time > 0 then
+			fx.drawBrainBlur = true
 			brain_motionblur = true
-			DrawMotionBlur(0.1, 1., 0.1)
 			show_some_images_time = show_some_images_time - 1
+
 			if show_image_time <= 0 and math.random(10 * (1 - brain)) < 2 then
 				show_image_time = 250 * (0.1 * 3) * math.Rand(0.1, 1) * (math.random(2) == 1 and 0.1 or 1)
-				lobotomy_index = math.random(#lobotomy_mats)
+				fx.lobotomy_index = math.random(#lobotomy_mats)
 			end
 
 			if show_image_time > 0 then
+				fx.drawBrainImg = true
 				show_image_time = show_image_time - 1
-
-				if lobotomy_index then
-					surface.SetDrawColor(255,255,255,255)
-					surface.SetMaterial(lobotomy_mats[lobotomy_index])
-					local rand = 5
-					surface.DrawTexturedRect(-math.random(rand), -math.random(rand), ScrW() + math.random(rand), ScrH() + math.random(rand))
-				end
 			end
 		else
-			brain_motionblur = false
 			show_some_images_time = math.random(1200) < (brain * 15) and 250 or 0
 		end
 	else
-		brain_motionblur = false
 		show_image_time = 0
-		lobotomy_index = 0
+		fx.lobotomy_index = 0
 	end
 
-	if O2Lerp > 1 then
-		render.UpdateScreenEffectTexture()
-
-		o2 = O2Lerp
-
-		noiseMat:SetFloat("$c0_y", 1 - o2 / 200) //Gate
-		noiseMat:SetFloat("$c0_z", 1) //ColorIntensity
-		noiseMat:SetFloat("$c1_x", math.Clamp(o2 / 200, 0, 2)) //Lerp
-		noiseMat:SetFloat("$c1_y", o2 * (!org.otrub and 0.05 or 1)) //Vignette
-		noiseMat:SetFloat("$c2_x", CurTime() + 10000) //Time
-
-		render.SetMaterial(noiseMat)
-		render.DrawScreenQuad()
-
-		if o2 > 50 and !org.otrub then
-			if !IsValid(NoiseStation2) or NoiseStation2:GetState() != GMOD_CHANNEL_PLAYING then
-				sound.PlayFile("sound/zbattle/conscioustypebeat.ogg", "noblock noplay", function(station)
-					if IsValid(station) then
-						station:SetVolume(0)
-						station:Play()
-						station:SetTime(math.min(brain / 0.5 * station:GetLength()), 87)
-						NoiseStation2 = station
-						station:EnableLooping(true)
-					end
-				end)
-			end
-
-			if IsValid(NoiseStation2) then
-				NoiseStation2:SetVolume(math.Clamp((o2 - 50) / 100 + (brain > 0.3 and (brain - 0.3) * 5 or 0), 0, 0.25))
-			end
-		else
-			if IsValid(NoiseStation2) then
-				NoiseStation2:SetVolume(0)
-			end
+	if fx.drawO2 and fx.o2 > 50 and !org.otrub then
+		if !IsValid(NoiseStation2) or NoiseStation2:GetState() != GMOD_CHANNEL_PLAYING then
+			sound.PlayFile("sound/zbattle/conscioustypebeat.ogg", "noblock noplay", function(station)
+				if IsValid(station) then
+					station:SetVolume(0)
+					station:Play()
+					station:SetTime(math.min(brain / 0.5 * station:GetLength(), 87))
+					NoiseStation2 = station
+					station:EnableLooping(true)
+				end
+			end)
+		elseif IsValid(NoiseStation2) then
+			NoiseStation2:SetVolume(math.Clamp((fx.o2 - 50) / 100 + (brain > 0.3 and (brain - 0.3) * 5 or 0), 0, 0.25))
 		end
+	elseif IsValid(NoiseStation2) then
+		NoiseStation2:SetVolume(0)
+	end
 
-		if o2 > 20 and org.otrub then
-			if !IsValid(NoiseStation) or NoiseStation:GetState() != GMOD_CHANNEL_PLAYING then
-				sound.PlayFile("sound/zbattle/unconscious_type_beat.ogg", "noblock noplay", function(station)
-					if IsValid(station) then
-						station:SetVolume(0)
-						station:Play()
-						station:SetTime(math.min(brain / 0.5 * station:GetLength(), 200))
-						NoiseStation = station
-						station:EnableLooping(true)
-					end
-				end)
-			end
+	if fx.drawO2 and fx.o2 > 20 and org.otrub then
+		if !IsValid(NoiseStation) or NoiseStation:GetState() != GMOD_CHANNEL_PLAYING then
+			sound.PlayFile("sound/zbattle/unconscious_type_beat.ogg", "noblock noplay", function(station)
+				if IsValid(station) then
+					station:SetVolume(0)
+					station:Play()
+					station:SetTime(math.min(brain / 0.5 * station:GetLength(), 200))
+					NoiseStation = station
+					station:EnableLooping(true)
+				end
+			end)
+		elseif IsValid(NoiseStation) then
+			NoiseStation:SetVolume(math.Clamp((fx.o2 - 30) / 100 + (brain > 0.3 and (brain - 0.3) * 5 or 0), 0, 1))
+		end
+	elseif IsValid(NoiseStation) then
+		NoiseStation:SetVolume(0)
+	end
 
-			if IsValid(NoiseStation) then
-				NoiseStation:SetVolume(math.Clamp((o2 - 30) / 100 + (brain > 0.3 and (brain - 0.3) * 5 or 0), 0, 1))
-			end
-		else
-			if IsValid(NoiseStation) then
-				NoiseStation:SetVolume(0)
-			end
+	if !fx.drawO2 and IsValid(NoiseStation) then
+		NoiseStation:Stop()
+		NoiseStation = nil
+	end
+
+	if fx.drawPain then
+		local strobe = math.ease.InOutSine(math.abs(math.cos(CurTime() * 2))) * PainLerp / 2
+		fx.pain = PainLerp + strobe
+		fx.shock = shockLerp
+		fx.drawOtrubBlur = org.otrub
+		if IsValid(PainStation) then
+			PainStation:SetVolume(math.Clamp(math.Remap(fx.pain, 0, 120, 0, 2), 0, 2))
 		end
 	else
-		if IsValid(NoiseStation) then
-			NoiseStation:Stop()
-			NoiseStation = nil
+		fx.drawOtrubBlur = false
+	end
+
+	fx.active = fx.drawBlind or fx.drawHurt or fx.drawHeat or fx.drawAssim or fx.drawGrain or fx.drawCold
+		or fx.drawPain or fx.drawO2 or fx.drawBrainBlur or fx.drawBrainImg
+end)
+
+hook.Add("Post Post Processing", "ItHurts", function()
+	if !fx.active then return end
+
+	local ct = CurTime()
+	local org_otrub = fx.otrub
+
+	if fx.drawBlind then
+		updDepth()
+		blindMat:SetFloat("$c0_x", 5)
+		blindMat:SetFloat("$c0_y", ct)
+		blindMat:SetFloat("$c0_z", math.Round(fx.blindness))
+		render.SetMaterial(blindMat)
+		render.DrawScreenQuad()
+	end
+
+	if fx.drawHurt then
+		local amt = (math.cos(addtime) + math.sin(addtime * 3) + math.sin(addtime * 2)) / 90
+		local amt2 = (math.sin(addtime) + math.cos(addtime * 5) + math.sin(addtime * 6)) / 90
+		hurtoverlay:SetMatrix("$basetexturetransform", Matrix({
+			{1 - amt, amt, 0, -amt2 / 2},
+			{amt2, 1 - amt2, 0, -amt / 2},
+			{0, 0, 1, 0},
+			{0, 0, 0, 1},
+		}))
+		surface.SetMaterial(hurtoverlay)
+		surface.SetDrawColor(0, 0, 0, lerpblood)
+		surface.DrawTexturedRect(-ScrW * 2, -ScrH * 2, ScrW * 5, ScrH * 5)
+	end
+
+	if fx.drawHeat then
+		updScreen()
+		heatMat:SetFloat("$c0_x", -ct * 0.25)
+		heatMat:SetFloat("$c0_y", 0.06 * fx.heat)
+		heatMat:SetFloat("$c2_x", (math.sin(ct) - 2) * fx.heat)
+		render.SetMaterial(heatMat)
+		render.DrawScreenQuad()
+	end
+
+	if fx.drawAssim then
+		updScreen()
+		assimilationMat:SetFloat("$c0_x", -ct)
+		assimilationMat:SetFloat("$c0_y", assimilatedLerp * 3)
+		local ctime = ct * 2
+		local val = math.Clamp(3 - 1 / 3 * (math.sin(ctime * 2.8862) + math.cos(ctime * 1.115) - math.sin(ctime * 0.6215) + 3), 0, 5)
+		local val2 = math.Clamp(1 - 1 / 6 * (math.sin(ctime * 1.1862) + math.cos(ctime * 2.315) - math.sin(ctime * 0.9215) + 3), 0, 1)
+		assimilationMat:SetFloat("$c1_y", val)
+		assimilationMat:SetFloat("$c1_x", val2 - 0.5)
+		render.SetMaterial(assimilationMat)
+		render.DrawScreenQuad()
+	end
+
+	if fx.drawGrain then
+		updDepth()
+		local c = fx.consciousness
+		grainMat:SetFloat("$c0_x", ct)
+		grainMat:SetFloat("$c0_y", 0.5)
+		grainMat:SetFloat("$c0_z", c * 3)
+		grainMat:SetFloat("$c1_x", c)
+		grainMat:SetFloat("$c1_y", 10)
+		grainMat:SetFloat("$c1_z", c)
+		grainMat:SetFloat("$c2_x", 0)
+		grainMat:SetFloat("$c2_y", 0)
+		grainMat:SetFloat("$c2_z", 0)
+		grainMat:SetFloat("$c3_x", 0)
+		render.SetMaterial(grainMat)
+		render.DrawScreenQuad()
+	end
+
+	if fx.drawCold then
+		updScreen()
+		coldMat:SetFloat("$c0_y", tempolerp)
+		render.SetMaterial(coldMat)
+		render.DrawScreenQuad()
+	end
+
+	if fx.drawPain then
+		local pain = fx.pain
+		local shock = fx.shock
+		updScreen()
+
+		vignetteMat:SetFloat("$c2_x", ct + 10000)
+		vignetteMat:SetFloat("$c0_z", org_otrub and 5 or (pain / 40 + math.max(shock - 5, 0) / 3))
+		vignetteMat:SetFloat("$c1_y", org_otrub and 10 or (pain / 40 + math.max(shock - 5, 0) / 3))
+		render.SetMaterial(vignetteMat)
+		render.DrawScreenQuad()
+
+		updScreen()
+
+		painMat:SetFloat("$c2_x", ct + 10000)
+		painMat:SetFloat("$c0_y", 0.8)
+		painMat:SetFloat("$c0_z", 1)
+		painMat:SetFloat("$c1_x", math.Clamp(pain / 90, 0, 0.75))
+		painMat:SetFloat("$c1_y", math.Clamp(pain / 90, 0, 0.75))
+		render.SetMaterial(painMat)
+		render.DrawScreenQuad()
+
+		if fx.drawOtrubBlur then
+			DrawMotionBlur(0.1, 1., 0.01)
+			lply:ScreenFade(SCREENFADE.IN, Color(0, 0, 0), 2, 0.5)
 		end
+	end
+
+	if fx.drawBrainBlur then
+		DrawMotionBlur(0.1, 1., 0.1)
+	end
+
+	if fx.drawBrainImg and fx.lobotomy_index > 0 then
+		local rand = 5
+		surface.SetDrawColor(255, 255, 255, 255)
+		surface.SetMaterial(lobotomy_mats[fx.lobotomy_index])
+		surface.DrawTexturedRect(-math.random(rand), -math.random(rand), ScrW + math.random(rand), ScrH + math.random(rand))
+	end
+
+	if fx.drawO2 then
+		updScreen()
+		local o2 = fx.o2
+		noiseMat:SetFloat("$c0_y", 1 - o2 / 200)
+		noiseMat:SetFloat("$c0_z", 1)
+		noiseMat:SetFloat("$c1_x", math.Clamp(o2 / 200, 0, 2))
+		noiseMat:SetFloat("$c1_y", o2 * (!org_otrub and 0.05 or 1))
+		noiseMat:SetFloat("$c2_x", ct + 10000)
+		render.SetMaterial(noiseMat)
+		render.DrawScreenQuad()
 	end
 end)
 
 hook.Add("Player_Death", "ItDoesntNow", function(ply)
 	if !((ply == lply) or (ply == lply:GetNWEntity("spect"))) then return end
-
 	stopthings()
+	fx.active = false
 end)
 
 hook.Add("Player Spawn", "ItDoesntNow", function(ply)
 	if ply != lply then return end
-
 	stopthings()
+	fx.active = false
 end)
 
 local function removeflash()
@@ -634,6 +678,7 @@ local function removeflash()
 	end
 end
 
+local lastFlashMode, lastFlashP, lastFlashY, lastFlashR
 hook.Add("PreDrawOpaqueRenderables", "renderblindnessflash", function()
 	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
 	if !lply:Alive() and !IsValid(spect) then removeflash() return end
@@ -642,20 +687,27 @@ hook.Add("PreDrawOpaqueRenderables", "renderblindnessflash", function()
 	local organism = lply:Alive() and lply.organism or (IsValid(spect) and spect.organism)
 	if !organism or isbool(organism) then return end
 
-	if !(organism.blindness or (amtflashed or 0) >= 0.8) then removeflash() return end
+	if !(organism.blindness or (amtflashed or 0) >= 0.8) then removeflash() lastFlashMode = nil return end
 	local blindness = ((organism.blindness and math.Round(organism.blindness) == 0) or amtflashed >= 0.8) and 0 or organism.blindness
 
 	local eyesmode = math.Round(blindness)
 	local view = render.GetViewSetup(true)
+	local p, y, r = view.angles[1], view.angles[2], view.angles[3]
+	y = y + (eyesmode == 2 and 90 or eyesmode == 1 and -90 or 0)
+	p = eyesmode == 0 and p or 0
+
+	if lastFlashMode == eyesmode and lastFlashP == p and lastFlashY == y and lastFlashR == r then return end
+	lastFlashMode = eyesmode
+	lastFlashP, lastFlashY, lastFlashR = p, y, r
+	local Ang = Angle(p, y, r)
+
 	if !IsValid(lply.blindflash) then
 		lply.blindflash = ProjectedTexture()
 		lply.blindflash:SetTexture("effects/flashlight001")
 		lply.blindflash:SetEnableShadows(false)
 		lply.blindflash:SetConstantAttenuation(.1)
 	end
-	local Ang = view.angles
-	Ang[2] = Ang[2] + (eyesmode == 2 and 90 or eyesmode == 1 and -90 or 0)
-	Ang[1] = eyesmode == 0 and Ang[1] or 0
+
 	lply.blindflash:SetFarZ(40)
 	lply.blindflash:SetFOV(160)
 	lply.blindflash:SetBrightness(1)

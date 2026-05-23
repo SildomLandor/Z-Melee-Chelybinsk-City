@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Подходить"
+SWEP.PrintName = "Набор костюмов"
 SWEP.Instructions = "Простой костюм вместе с маской поможет скрыть вашу личность, ваша одежда останется в чемодане, в дальнейшем вы сможете ее надеть обратно."
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
@@ -276,9 +276,6 @@ if SERVER then
                 net.Send(ply)
 
                 wep:EmitSound("snds_jack_gmod/equip"..math.random(1,5)..".wav")
-
-                wep.StoredPluv = ply:GetNetVar("CurPluv", "pluv")
-                ply:SetNetVar("CurPluv", "pluv51")
             end
         end
     end)
@@ -295,8 +292,6 @@ function SWEP:SecondaryAttack()
             net.Start("SuitCostumeStatus")
             net.WriteBool(false)
             net.Send(self:GetOwner())
-
-            self:GetOwner():SetNetVar("CurPluv", self.StoredPluv or "pluv")
         else
             net.Start("SuitCostumeStatus")
             net.WriteBool(false)

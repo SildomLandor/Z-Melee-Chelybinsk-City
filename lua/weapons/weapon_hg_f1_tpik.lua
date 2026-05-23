@@ -1,20 +1,20 @@
 ﻿if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_hg_grenade_tpik"
-SWEP.PrintName = "Ф1"
+SWEP.PrintName = "Лимонка"
 SWEP.Instructions = 
-[[A famous soviet WWII offensive grenade. It's still widely exported and used to this day. It has a pyrotechnic delay of 3.2-4.2 seconds.
+[[Знаменитая советская наступательная граната Второй мировой войны. До сих пор широко экспортируется и используется. Имеет пиротехнический замедлитель 3.2–4.2 секунды.
 
-Reload looking on surface will set tripwire
+Перезарядка с прицелом на поверхность устанавливает ловушку-растяжку
 
-LMB - High ready
-While high ready:
-RMB to remove spoon.
-Reload to insert pin back.
+ЛКМ — Высокая готовность
+В режиме высокой готовности:
+ПКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 
-RMB - Low ready
-While low ready:
-LMB to remove spoon.
-Reload to insert pin back.
+ПКМ — Низкая готовность
+В режиме низкой готовности:
+ЛКМ — снять предохранительную скобу.
+Перезарядка — вернуть чеку на место.
 ]]--"тильда двуеточее три"
 SWEP.Category = "Weapons - Explosive"
 SWEP.Spawnable = true

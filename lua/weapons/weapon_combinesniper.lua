@@ -1,7 +1,7 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Комбинировать снайперскую винтовку"
+SWEP.PrintName = "Снайперская винтовка комбайнов"
 SWEP.Author = "Universal Union"
 SWEP.Instructions = "Мощная комбинированная полуавтоматическая снайперская винтовка. Стреляет теми же импульсными боеприпасами, но сила пули намного больше."
 SWEP.Category = "Weapons - Sniper Rifles"
