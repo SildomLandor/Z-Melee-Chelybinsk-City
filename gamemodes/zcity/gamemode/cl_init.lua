@@ -310,14 +310,21 @@ hook.Add("Player Disconnected","retrymenu",function(data)
 	end
 end)
 
-CreateFontFamily({ antialias = true }, {   -- antialias как общая настройка
-    ZB_InterfaceSmall       = { size = ScreenScale(6) },
-    ZB_InterfaceMedium      = { size = ScreenScale(10) },
-    ZB_ScrappersMedium      = { size = ScreenScale(10) },
-    ZB_InterfaceMediumLarge = { size = 35 },
-    ZB_InterfaceLarge       = { size = ScreenScale(20) },
-    ZB_InterfaceHumongous   = { size = 200 },
-})
+local function ZB_CreateUIFonts()
+    CreateFontFamily({ antialias = true }, {
+        ZB_InterfaceSmall       = { size = ScreenScaleH(11) },
+        ZB_InterfaceMedium      = { size = ScreenScaleH(13) },
+        ZB_ScrappersMedium      = { size = ScreenScaleH(13) },
+        ZB_InterfaceMediumLarge = { size = 35 },
+        ZB_InterfaceLarge       = { size = ScreenScaleH(22) },
+        ZB_InterfaceHumongous   = { size = 200 },
+        ZCity_Veteran             = { size = ScreenScaleH(15), weight = 700 },
+        ZB_ScoreboardHeader       = { size = ScreenScaleH(12), weight = 600 },
+    })
+end
+
+ZB_CreateUIFonts()
+hook.Add("OnScreenSizeChanged", "zcity_ui_fonts", ZB_CreateUIFonts)
 
 
 hg.playerInfo = hg.playerInfo or {}
@@ -568,10 +575,10 @@ function GM:ScoreboardShow()
 	local posY = math.floor(ScrH() * 0.5 - sizeY * 0.5 + leaderboardOffsetY)
 
 	local margin = ScreenScale(5)
-	local topBarH = ScreenScaleH(38)
-	local columnHeaderH = ScreenScaleH(16)
-	local sectionLabelH = ScreenScaleH(18)
-	local bottomBarH = ScreenScaleH(26)
+	local topBarH = ScreenScaleH(42)
+	local columnHeaderH = ScreenScaleH(22)
+	local sectionLabelH = ScreenScaleH(22)
+	local bottomBarH = ScreenScaleH(30)
 	local panelGap = ScreenScale(4)
 
 	local leftPanelX = margin
@@ -581,7 +588,7 @@ function GM:ScoreboardShow()
 
 	local listTopY = topBarH + sectionLabelH + columnHeaderH
 	local listH = sizeY - listTopY - bottomBarH - ScreenScaleH(4)
-	local rowH = ScreenScaleH(24)
+	local rowH = ScreenScaleH(30)
 
 	scoreBoardMenu = vgui.Create("ZFrame")
 	scoreBoardMenu:SetPos(posX, posY)
@@ -927,7 +934,7 @@ function GM:ScoreboardShow()
 
 		surface.SetFont("ZB_InterfaceSmall")
 		surface.SetTextColor(col.textMuted)
-		local subY = srvY + ScreenScaleH(13)
+		local subY = srvY + ScreenScaleH(16)
 		surface.SetTextPos(srvX + shakeX * 0.3, subY)
 		surface.DrawText(hg.Version .. " | " .. (game.GetMap() or "unknown"))
 
@@ -1067,7 +1074,7 @@ function GM:ScoreboardShow()
 				end
 				local align = c.align or TEXT_ALIGN_LEFT
 				local tx = align == TEXT_ALIGN_CENTER and bw * 0.5 or (align == TEXT_ALIGN_RIGHT and bw - 6 or 6)
-				draw.SimpleText(c.label .. arrow, "ZB_InterfaceSmall", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
+				draw.SimpleText(c.label .. arrow, "ZB_ScoreboardHeader", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
 				if capturedIdx > 1 then
 					surface.SetDrawColor(col.separator)
 					surface.DrawRect(0, 3, 1, bh - 6)
