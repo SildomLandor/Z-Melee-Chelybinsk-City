@@ -31,6 +31,37 @@ if CLIENT then
 	local colBlack3 = Color(50, 50, 50, 120)
 	local colBlue = Color(150, 150, 150)
 	local buttons = {}
+	local function BuildLootTakeKey(owner, tblIndex, thing)
+		if not IsValid(owner) then return "" end
+		return owner:EntIndex() .. "|" .. tblIndex .. "|" .. thing
+	end
+
+	net.Receive("ply_take_item_begin_ack", function()
+		local key = net.ReadString()
+		local duration = net.ReadFloat()
+		local button = buttons[key]
+		if not IsValid(button) then return end
+		button.HoldDuration = math.max(duration, 0)
+		button.HoldStart = CurTime()
+		button.HoldReady = true
+	end)
+
+	local function BeginTakeRequest(button, tblIndex, thing, item, owner)
+		if not IsValid(button) then return end
+		button.HoldKey = BuildLootTakeKey(owner, tblIndex, thing)
+		button.HoldReady = false
+		button.HoldDuration = nil
+		button.HoldStart = CurTime()
+		button.HoldRequested = true
+		buttons[button.HoldKey] = button
+		net.Start("ply_take_item_begin")
+			net.WriteString(tblIndex)
+			net.WriteString(thing)
+			net.WriteTable(istable(item) and item or {item})
+			net.WriteEntity(owner)
+		net.SendToServer()
+	end
+
 	local function nameThings(i, thing)
 		local weps = weapons.Get(i)
 		local entss = scripted_ents.Get(i)
@@ -191,14 +222,14 @@ if CLIENT then
 		plyMenu.PaintOver = function(self, w, h)
 			draw.DrawText(name, "HomigradFontSmall", w / 2, 10, color_white, TEXT_ALIGN_CENTER)
 
-			draw.DrawText("R - Close | LMB - Take | RMB - Item menu", "HomigradFontSmall", w / 2, h - h*0.055 , clr_text, TEXT_ALIGN_CENTER)
+			draw.DrawText("R - Close | Hold LMB - Take | RMB - Item menu", "HomigradFontSmall", w / 2, h - h*0.055 , clr_text, TEXT_ALIGN_CENTER)
 		end
 		function plyMenu:Think()
 			local ent = self.ent
 			if not IsValid(ent) then self:Close() return end
 			if LocalPlayer().organism.otrub or not LocalPlayer():Alive() then self:Remove() return end
 			if (ent:GetPos() - LocalPlayer():GetPos()):LengthSqr() > 125^2 then self:Remove() return end
-			if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then self:Remove() return end
+			if ent:IsPlayer() and (not IsValid(ent.FakeRagdoll) or (ent.organism and not ent.organism.otrub)) then self:Remove() return end
 			if input.IsKeyDown(KEY_R) then
 				self:Close()
 			end
@@ -292,65 +323,77 @@ if CLIENT then
 				--button:SetSize(sizeX / 5.8, sizeY / 5.8)
 				button.Created = CurTime() + (!ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
-					if self.Created and (self.Created < CurTime()) then
+					if self.Created and self.Created < CurTime() then
 						self:SetSize(sizeX / 5.8, sizeY / 5.8)
 						self:SetAlpha(0)
 						surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
-						self:AlphaTo(255,0.3,0)
+						self:AlphaTo(255, 0.3, 0)
 						ent.foundloot[i] = true
 						self.Created = nil
 					end
-				end
-				
-				button.DoClick = function()
-					if cooldown > CurTime() then return end
 
-					cooldown = CurTime() + 0.5
-					
-					if not functions[tab](ply, ent, i, unpack(thing1)) then
-						local OptionsMenu = DermaMenu() 
-							OptionsMenu:AddOption( "You have item like this", function() end )
-						OptionsMenu:Open()
+					local holding = self:IsHovered() and input.IsMouseDown(MOUSE_LEFT)
+					if not holding then
+						self.HoldPressed = false
+						self.HoldRequested = false
+						self.HoldReady = false
+						self.HoldDuration = nil
+						self.HoldStart = nil
+						if self.HoldKey then
+							buttons[self.HoldKey] = nil
+						end
 						return
 					end
+
+					if not self.HoldPressed then
+						self.HoldPressed = true
+						BeginTakeRequest(self, tab, i, thing, ent)
+					end
+
+					if not self.HoldReady or not self.HoldDuration or not self.HoldStart then return end
+					if CurTime() < self.HoldStart + self.HoldDuration then return end
+					if cooldown > CurTime() then return end
+
+					cooldown = CurTime() + 0.3
+
+					if not functions[tab](ply, ent, i, unpack(thing1)) then
+						local OptionsMenu = DermaMenu()
+							OptionsMenu:AddOption("You have item like this", function() end)
+						OptionsMenu:Open()
+						self.HoldPressed = false
+						self.HoldRequested = false
+						self.HoldReady = false
+						self.HoldDuration = nil
+						self.HoldStart = nil
+						return
+					end
+
 					if istable(thing) then
 						thing["render"] = {}
 					end
-					
+
 					surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
 					grid.SoundKD = CurTime() + 0.2
-					button:Remove()
+					self:Remove()
 					TakeItem(tab, i, thing, ent)
-					--timer.Simple(0.5 * math.max(ply:Ping() / 50,1),function()
-					--	--OpenInv(ent)
-					--end)
 				end
+
+				button.DoClick = function() end
 
 				button.DoRightClick = function()
 					if cooldown > CurTime() then return end
+					cooldown = CurTime() + 0.3
 
-					cooldown = CurTime() + 0.5
-
-					
 					if not functions[tab](ply, ent, i, unpack(thing1)) then
-						local OptionsMenu = DermaMenu() 
-							OptionsMenu:AddOption( "You have item like this", function() end )
+						local OptionsMenu = DermaMenu()
+							OptionsMenu:AddOption("You have item like this", function() end)
 						OptionsMenu:Open()
 						return
 					end
-					if istable(thing) then
-						thing["render"] = {}
-					end
-					
-					surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
-					grid.SoundKD = CurTime() + 0.2
-					--button:Remove()
-					local OptionsMenu = DermaMenu() 
-						OptionsMenu:AddOption( "Take", function() button:Remove() TakeItem(tab, i, thing, ent) end )
+
+					local OptionsMenu = DermaMenu()
+						OptionsMenu:AddOption("Hold LMB to take", function() end)
 					OptionsMenu:Open()
-					--timer.Simple(0.5 * math.max(ply:Ping() / 50,1),function()
-					--	--OpenInv(ent)
-					--end)
 				end
 
 				local name = nameThings(i, thing)
@@ -381,12 +424,22 @@ if CLIENT then
 						surface.DrawTexturedRect(Quad and w / 5 + 5 or 0 - 5, 5, Quad and (w / 2 + 2.5) or (w + 10), Quad and h / 1.3 or h - 10)
 					end
 
-					surface.SetDrawColor(button.col1,0,0,button.col1)
+					surface.SetDrawColor(button.col1, 0, 0, button.col1)
 					surface.DrawOutlinedRect(0, 0, w, h, 1)
+					if button.HoldPressed and button.HoldReady and button.HoldDuration and button.HoldStart and button.HoldDuration > 0 then
+						local progress = math.Clamp((CurTime() - button.HoldStart) / button.HoldDuration, 0, 1)
+						surface.SetDrawColor(255, 255, 255, 255)
+						surface.DrawRect(0, h - 4, w * progress, 4)
+					end
 					local Text = (tab == "Ammo" and game.GetAmmoName(name)) or language.GetPhrase(name)
 					local SubText = utf8.sub(Text, 17)
 					Text = utf8.sub(Text, 1, 17) .. "\n" .. utf8.sub(Text, 18)
 					draw.DrawText(Text, "ZCity_VerySuperTiny", w / 2, (HaveIcon and h / ((#SubText > 0 and 1.65) or 1.3)) or h / 3, color_white, TEXT_ALIGN_CENTER)
+				end
+				button.OnRemove = function(self)
+					if self.HoldKey then
+						buttons[self.HoldKey] = nil
+					end
 				end
 				grid:AddItem(button)
 			end

@@ -220,13 +220,13 @@ function MODE:BuildRoundReport(winner)
 		end
 	end
 
-	local winnerText = "Никто"
+	local winnerText
 	if winner == 0 then
-		winnerText = "СОБР"
+		winnerText = "СОБР победили"
 	elseif winner == 1 then
-		winnerText = "Жертвы"
+		winnerText = "Жертвы победили"
 	elseif winner == 2 then
-		winnerText = "Передозированый"
+		winnerText = "Передозированый победил"
 	end
 
 	return {
