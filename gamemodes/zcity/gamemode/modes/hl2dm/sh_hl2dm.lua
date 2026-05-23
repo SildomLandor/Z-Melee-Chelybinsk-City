@@ -1,4 +1,5 @@
 local MODE = MODE
+MODE.name = "hl2dm"
 
 zb = zb or {}
 

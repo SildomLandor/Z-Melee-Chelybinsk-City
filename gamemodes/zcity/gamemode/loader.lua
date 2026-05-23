@@ -90,6 +90,10 @@ local function InitMode()
 	if table.IsEmpty(MODE) then return end
 
 	local name = MODE.name
+	if not name then
+		ErrorNoHalt("[zcity] mode has no MODE.name\n")
+		return
+	end
 	local saved = zb.modes[name] and zb.modes[name].saved or {}
 
 	if MODE.base then

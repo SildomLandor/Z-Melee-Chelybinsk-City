@@ -1,5 +1,6 @@
 
 local MODE = MODE
+MODE.name = "dm"
 
 MODE.MapSize = 7500
 MODE.ZoneTimeToShrink = 120
