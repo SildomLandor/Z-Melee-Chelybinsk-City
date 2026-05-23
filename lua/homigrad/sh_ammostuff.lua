@@ -3055,7 +3055,7 @@ if CLIENT then
 
 					return 0
 				end,
-				"Drop Ammo"
+				"Выкинуть патроны"
 			}
 		end
 	end)

@@ -13,7 +13,7 @@ local func = function()
 
 	server_is_crashed = true
 
-	PrintMessage(HUD_PRINTTALK, "Physics are crashed, restart schedule created")
+	PrintMessage(HUD_PRINTTALK, "Физике пиздец, восстанавливаем через 10 секунд")
 
 	timer.Create("PhysicsCrashedSchedule", 10, 1, function()
 		engine.CloseServer()

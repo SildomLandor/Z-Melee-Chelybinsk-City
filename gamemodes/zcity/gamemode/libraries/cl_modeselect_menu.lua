@@ -25,7 +25,7 @@ if CLIENT then
     net.Receive("ZB_NotifyRoundListChange", function()
         local playerName = net.ReadString()
         
-        chat.AddText(Color(180, 180, 255), playerName, Color(255, 255, 255), " has modified the game mode queue")
+        chat.AddText(Color(180, 180, 255), playerName, Color(255, 255, 255), " изменил очередь режимов")
         
         net.Start("ZB_RequestRoundList")
         net.SendToServer()
@@ -156,7 +156,7 @@ if CLIENT then
         queuePanelInstance = queuePanel
         
         local titleLabel = vgui.Create("DLabel", queuePanel)
-        titleLabel:SetText("Game Mode Queue")
+        titleLabel:SetText("Очередь режимов")
         titleLabel:SetFont("DermaLarge")
         titleLabel:SetTextColor(Color(255, 200, 0))
         titleLabel:Dock(TOP)
@@ -168,7 +168,7 @@ if CLIENT then
         queueScroll:DockMargin(5, 5, 5, 5)
         
         local saveBtn = vgui.Create("DButton", queuePanel)
-        saveBtn:SetText("Apply Queue")
+        saveBtn:SetText("Применить очередь")
         saveBtn:Dock(BOTTOM)
         saveBtn:DockMargin(5, 5, 5, 5)
         saveBtn:SetTall(30)
@@ -181,7 +181,7 @@ if CLIENT then
                     net.WriteBool(true)
                 net.SendToServer()
                 
-                chat.AddText(Color(0, 255, 0), "Game mode queue has been set!")
+                chat.AddText(Color(0, 255, 0), "Очередь режимов установлена!")
             //else
                 //chat.AddText(Color(255, 0, 0), "Game mode queue is empty!")
             //end
