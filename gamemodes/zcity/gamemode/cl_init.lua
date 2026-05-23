@@ -291,8 +291,9 @@ net.Receive("RoundInfo", function()
 				CurrentRound():EndRound()
 			end
 		elseif zb.ROUND_STATE == 1 then
-			if CurrentRound().RoundStart then
-				CurrentRound():RoundStart()
+			local mode = CurrentRound()
+			if mode and mode.RoundStart then
+				mode:RoundStart()
 			end
 		end
 	end
@@ -1369,7 +1370,8 @@ function GM:ScoreboardShow()
 		local active = {}
 		local specs = {}
 		for _, ply in player.Iterator() do
-			if CurrentRound().name == "fear" and not ply:Alive() then continue end
+			local mode = CurrentRound()
+			if mode and mode.name == "fear" and not ply:Alive() then continue end
 			if disappearance and ply ~= lply then continue end
 			if ply:Team() == TEAM_SPECTATOR then
 				specs[#specs + 1] = ply
