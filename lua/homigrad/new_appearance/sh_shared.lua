@@ -539,7 +539,7 @@ hg.Appearance.SkeletonAppearanceTable = {
 	},
 	AName = "John Z-City",
 	AColor = Color(180, 0, 0),
-	AAttachments = {},
+	AAttachments = {"none", "none", "none"},
 	ABodygroups = {},
 	AFacemap = "Default"
 }
@@ -548,9 +548,12 @@ function hg.Appearance.GetRandomAppearance()
 	local randomAppearance = table.Copy(hg.Appearance.SkeletonAppearanceTable)
 
 	local iSex = math.random(1, 2)
+	local tMdl, strModel = table.Random(hg.Appearance.PlayerModels[iSex])
 
+	randomAppearance.AModel = strModel
 	randomAppearance.AName = GenerateRandomName(iSex)
 	randomAppearance.AColor = ColorRand(false)
+	randomAppearance.AAttachments = {"none", "none", "none"}
 
 	for i = 1, 1 do
 		local data, k = table.Random(hg.Accessories or {})
@@ -564,7 +567,6 @@ function hg.Appearance.GetRandomAppearance()
 		randomAppearance.AClothes = {main = str, pants = str, boots = str}
 	end
 
-	local tMdl = table.Random(hg.Appearance.PlayerModels[iSex])
 	local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {})
 	randomAppearance.AFacemap = facemap
 

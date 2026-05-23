@@ -203,108 +203,6 @@ local function CreateStyledListMenu(title)
     return menu
 end
 
-local clr_ico, clr_menu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
-local openMenus = {}
-
-local clr_ico, clr_menu = Color(30, 30, 40, 255), Color(15, 15, 20, 250)
-local openMenus = {}
-local function RegisterOpenMenu(menu)
-    if not IsValid(menu) then return end
-    table.insert(openMenus, menu)
-end
-local function CloseAllOpenMenus()
-    for i = #openMenus, 1, -1 do
-        local m = openMenus[i]
-        if IsValid(m) then
-            m:Remove()
-        end
-        table.remove(openMenus, i)
-    end
-end
-local function CreateStyledListMenu(title)
-    local menu = vgui.Create("DPanel")
-    menu:SetSize(ScrW() * 0.75, ScrH() * 0.75)
-    menu:Center()
-    menu:MakePopup()
-    RegisterOpenMenu(menu)
-
-    function menu:Paint(w, h)
-        surface.SetDrawColor(10, 10, 10, 230)
-        surface.DrawRect(0, 0, w, h)
-        surface.SetDrawColor(25, 25, 25, 230)
-        surface.DrawRect(0, 0, w, ScreenScale(16))
-        surface.SetDrawColor(40, 40, 40, 220)
-        surface.DrawOutlinedRect(0, 0, w, h, 1)
-        draw.SimpleText(string.upper(title or ""), "ZCity_Veteran", ScreenScale(4), ScreenScale(8), Color(220, 220, 220), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-    end
-
-    local closeBtn = vgui.Create("DButton", menu)
-    closeBtn:SetSize(ScreenScale(12), ScreenScale(12))
-    closeBtn:SetPos(menu:GetWide() - ScreenScale(12), 0)
-    closeBtn:SetText("X")
-    closeBtn:SetFont("ZCity_Tiny")
-    closeBtn:SetTextColor(Color(200, 200, 200))
-    closeBtn.DoClick = function() menu:Remove() end
-    closeBtn.Paint = function(s, w, h)
-        if s:IsHovered() then
-            surface.SetDrawColor(255, 0, 0, 255)
-            surface.DrawRect(0, 0, w, h)
-            s:SetTextColor(Color(255, 255, 255))
-        else
-            s:SetTextColor(Color(200, 200, 200))
-        end
-    end
-
-    local scroll = CreateStyledScrollPanel(menu)
-    scroll:Dock(FILL)
-    scroll:DockMargin(ScreenScale(10), ScreenScale(16), ScreenScale(10), ScreenScale(10))
-    menu.ScrollPanel = scroll
-
-    function menu:AddOption(text, onClick)
-        local btn = vgui.Create("DButton", self.ScrollPanel)
-        btn:SetText(text)
-        btn:SetFont("ZCity_Veteran")
-        btn:SetTall(ScreenScale(16))
-        btn:Dock(TOP)
-        btn:DockMargin(0, 0, 0, ScreenScale(4))
-        btn:SetTextColor(Color(255, 255, 255))
-        btn.DoClick = function()
-            if onClick then onClick() end
-            surface.PlaySound("player/weapon_draw_0"..math.random(2, 5)..".wav")
-            if IsValid(menu) then menu:Remove() end
-        end
-        btn.Paint = function(s, w, h)
-            s.HoverLerp = LerpFT(0.2, s.HoverLerp or 0, s:IsHovered() and 1 or 0)
-            local slideOffset = s.HoverLerp * ScreenScale(6)
-            if s:IsHovered() then
-                surface.SetDrawColor(255, 255, 255, 255)
-                surface.DrawRect(slideOffset, 0, w, h)
-                s:SetTextColor(Color(0, 0, 0))
-            else
-                s:SetTextColor(Color(255, 255, 255))
-            end
-            s:SetTextColor(Color(0,0,0,0))
-            local textColor = s:IsHovered() and Color(0,0,0) or Color(255,255,255)
-            draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2), h/2, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            if s:IsHovered() and math.random() > 0.7 then
-                local offsetX = math.random(-2, 2)
-                local offsetY = math.random(-2, 2)
-                draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2) + offsetX, h/2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            end
-            return true
-        end
-        return btn
-    end
-
-    function menu:AddPanel(pnl)
-        pnl:SetParent(self.ScrollPanel)
-        pnl:Dock(TOP)
-        pnl:DockMargin(0, 0, 0, ScreenScale(6))
-    end
-
-    return menu
-end
-
 local function CreateStyledAccessoryMenu(parent, title)
 	local menu = vgui.Create("DPanel")
 	menu:SetSize(ScrW() * 0.8, ScrH() * 0.8)
@@ -507,7 +405,28 @@ local function CreateStyledAccessoryMenu(parent, title)
 
 	menu.Close = function() menu:Remove() end
 
+	RegisterOpenMenu(menu)
 	return menu
+end
+
+local function NormalizeAppearanceTable(tbl)
+	tbl.AAttachments = tbl.AAttachments or {}
+	for i = 1, 3 do
+		if not tbl.AAttachments[i] or tbl.AAttachments[i] == "" then
+			tbl.AAttachments[i] = "none"
+		end
+	end
+
+	tbl.AClothes = tbl.AClothes or {main = "normal", pants = "normal", boots = "normal"}
+	tbl.ABodygroups = tbl.ABodygroups or {}
+	tbl.AFacemap = tbl.AFacemap or "Default"
+
+	if tbl.AColor and not IsColor(tbl.AColor) then
+		tbl.AColor = Color(tbl.AColor.r or 180, tbl.AColor.g or 0, tbl.AColor.b or 0, tbl.AColor.a or 255)
+	end
+
+	tbl.AColor = tbl.AColor or Color(180, 0, 0)
+	return tbl
 end
 
 function PANEL:SetAppearance(tAppearance)
@@ -543,12 +462,29 @@ function PANEL:PostInit()
 	self.modelPosID = "All"
 
 	self.AppearanceTable = self.AppearanceTable or hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString()) or APmodule.GetRandomAppearance()
+	NormalizeAppearanceTable(self.AppearanceTable)
+
+	local function resetModelPos()
+		if IsValid(main) then main.modelPosID = "All" end
+	end
+
+	local function bindMenuClose(menu)
+		function menu:OnRemove()
+			resetModelPos()
+		end
+	end
 
 	local tMdl = APmodule.PlayerModels[1][self.AppearanceTable.AModel] or APmodule.PlayerModels[2][self.AppearanceTable.AModel]
+	if not tMdl then
+		local fallbackName, fallbackMdl = table.Random(APmodule.PlayerModels[1])
+		tMdl = fallbackMdl
+		self.AppearanceTable.AModel = fallbackName
+	end
 
 	-- Fullscreen Model Viewer
 	local viewer = vgui.Create("DModelPanel", self)
 	viewer:Dock(FILL)
+	viewer:SetMouseInputEnabled(false)
 	viewer:SetModel(util.IsValidModel(tostring(tMdl.mdl)) and tostring(tMdl.mdl) or "models/player/group01/female_01.mdl")
 	viewer:SetFOV(60)
 	viewer:SetLookAng(Angle(11, 180, 0))
@@ -566,7 +502,10 @@ function PANEL:PostInit()
 	local controlsTop = ScreenScale(60)
 	controls:SetSize(ScreenScale(140), ScrH() - controlsTop)
 	controls:SetPos(ScreenScale(20), controlsTop)
-	controls.Paint = function() end
+	controls.Paint = function(_, w, h)
+		surface.SetDrawColor(0, 0, 0, 170)
+		surface.DrawRect(0, 0, w, h)
+	end
 
 	local content = vgui.Create("DScrollPanel", controls)
 	content:Dock(FILL)
@@ -578,7 +517,10 @@ function PANEL:PostInit()
 	local presetControls = vgui.Create("DPanel", self)
 	presetControls:SetSize(ScreenScale(140), ScrH() - controlsTop)
 	presetControls:SetPos(ScrW() - ScreenScale(160), controlsTop)
-	presetControls.Paint = function() end
+	presetControls.Paint = function(_, w, h)
+		surface.SetDrawColor(0, 0, 0, 170)
+		surface.DrawRect(0, 0, w, h)
+	end
 
 	local presetContent = vgui.Create("DScrollPanel", presetControls)
 	presetContent:Dock(FILL)
@@ -601,6 +543,7 @@ function PANEL:PostInit()
 	}
 
 	function viewer:Think()
+		if not IsValid(main) then return end
 		self.SmoothFOV = LerpFT(0.05, self.SmoothFOV or self:GetFOV(), main.modelPosID == "All" and 60 or 45)
 		self.LookAngles = LerpFT(0.05, self.LookAngles or 11, main.modelPosID == "All" and 11 or 0)
 		self:SetFOV(self.SmoothFOV)
@@ -612,6 +555,7 @@ function PANEL:PostInit()
 	local funpos3x
 
 	function viewer:LayoutEntity(Entity)
+		if not IsValid(main) then return end
 		local lookX, lookY = input.GetCursorPos()
 		lookX = lookX / sizeX - 0.5
 		lookY = lookY / sizeY - 0.5
@@ -619,8 +563,10 @@ function PANEL:PostInit()
 		Entity.Angles = LerpAngle(FrameTime() * 5, Entity.Angles, Angle(lookY * 2, (self.Rotate and -179 or 0) - lookX * 75, 0))
 		local tbl = main.AppearanceTable
 		tMdl = APmodule.PlayerModels[1][tbl.AModel] or APmodule.PlayerModels[2][tbl.AModel]
+		if not tMdl then return end
 
-		Entity:SetNWVector("PlayerColor", Vector(tbl.AColor.r / 255, tbl.AColor.g / 255, tbl.AColor.b / 255))
+		local clr = tbl.AColor or Color(180, 0, 0)
+		Entity:SetNWVector("PlayerColor", Vector(clr.r / 255, clr.g / 255, clr.b / 255))
 		Entity:SetAngles(Entity.Angles)
 		Entity:SetSequence(Entity:LookupSequence("idle_suitcase"))
 		Entity:SetSubMaterial()
@@ -669,9 +615,12 @@ function PANEL:PostInit()
 	end
 
 	function viewer:PostDrawModel(Entity)
+		if not IsValid(main) then return end
 		local tbl = main.AppearanceTable
 		for k, attach in ipairs(tbl.AAttachments) do
-			DrawAccesories(Entity, Entity, attach, hg.Accessories[attach], false, true)
+			if attach and attach ~= "" and attach ~= "none" and hg.Accessories[attach] then
+				DrawAccesories(Entity, Entity, attach, hg.Accessories[attach], false, true)
+			end
 		end
 		Entity:SetupBones()
 	end
@@ -694,6 +643,9 @@ function PANEL:PostInit()
 		btn.Paint = function(s, w, h)
 			s.HoverLerp = LerpFT(0.2, s.HoverLerp or 0, s:IsHovered() and 1 or 0)
 			local slideOffset = s.HoverLerp * ScreenScale(10)
+
+			surface.SetDrawColor(25, 25, 30, 200)
+			surface.DrawRect(0, 0, w, h)
 
 			if s:IsHovered() then
 				if not s.HoveredSoundPlayed then
@@ -723,31 +675,6 @@ function PANEL:PostInit()
 		end
 
 		return btn
-	end
-
-	local function OpenAccessoryMenu(title, placement, slotIndex, onSelect)
-		main.modelPosID = placement == "head" and "Head" or placement == "face" and "Face" or "Torso"
-		CloseAllOpenMenus()
-		originalAccessory[slotIndex] = main.AppearanceTable.AAttachments[slotIndex]
-
-		local menu = CreateStyledAccessoryMenu(nil, title)
-
-		for k, v in pairs(hg.Accessories) do
-			if v.placement != placement and v.placement != (placement == "head" and "ears" or placement) then continue end
-			menu:AddAccessoryIcon(v.model, k, v, function(key)
-				main.AppearanceTable.AAttachments[slotIndex] = key
-			end)
-		end
-
-		menu:AddNoneOption(function()
-			main.AppearanceTable.AAttachments[slotIndex] = "none"
-		end)
-
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
-
-		return menu
 	end
 
 	-- Name
@@ -783,33 +710,22 @@ function PANEL:PostInit()
 
 	function modelSelector:OnSelect(i, str)
 		main.AppearanceTable.AModel = str
+		local mdl = APmodule.PlayerModels[1][str] or APmodule.PlayerModels[2][str]
+		if mdl then
+			main.AppearanceTable.AName = APmodule.GenerateRandomName(mdl.sex and 2 or 1)
+			NameEntry:SetText(main.AppearanceTable.AName)
+		end
 	end
 
 	for k, v in pairs(APmodule.PlayerModels[1]) do modelSelector:AddChoice(k) end
 	for k, v in pairs(APmodule.PlayerModels[2]) do modelSelector:AddChoice(k) end
 
-	local previewAccessory = {nil, nil, nil}
-	local originalAccessory = {nil, nil, nil}
-	local openMenus = {}
-	local function CloseAllOpenMenus()
-		for i = #openMenus, 1, -1 do
-			local m = openMenus[i]
-			if IsValid(m) then m:Remove() end
-			table.remove(openMenus, i)
-		end
-	end
-
-	table.insert(openMenus, nil) -- placeholder for menu tracking
-
 	-- Hats
 	CreateControlBtn("ГОЛОВНОЙ УБОР", function()
 		main.modelPosID = "Head"
 		CloseAllOpenMenus()
-		originalAccessory[1] = main.AppearanceTable.AAttachments[1]
 
 		local menu = CreateStyledAccessoryMenu(nil, "Select Hat")
-		table.insert(openMenus, menu)
-
 		for k, v in pairs(hg.Accessories) do
 			if v.placement != "head" and v.placement != "ears" then continue end
 			menu:AddAccessoryIcon(v.model, k, v, function(key)
@@ -821,20 +737,15 @@ function PANEL:PostInit()
 			main.AppearanceTable.AAttachments[1] = "none"
 		end)
 
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Face
 	CreateControlBtn("ЛИЦО", function()
 		main.modelPosID = "Face"
 		CloseAllOpenMenus()
-		originalAccessory[2] = main.AppearanceTable.AAttachments[2]
 
 		local menu = CreateStyledAccessoryMenu(nil, "Select Face Accessory")
-		table.insert(openMenus, menu)
-
 		for k, v in pairs(hg.Accessories) do
 			if v.placement != "face" then continue end
 			menu:AddAccessoryIcon(v.model, k, v, function(key)
@@ -846,20 +757,15 @@ function PANEL:PostInit()
 			main.AppearanceTable.AAttachments[2] = "none"
 		end)
 
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Body
 	CreateControlBtn("ТЕЛО", function()
 		main.modelPosID = "Torso"
 		CloseAllOpenMenus()
-		originalAccessory[3] = main.AppearanceTable.AAttachments[3]
 
 		local menu = CreateStyledAccessoryMenu(nil, "Select Body Accessory")
-		table.insert(openMenus, menu)
-
 		for k, v in pairs(hg.Accessories) do
 			if v.placement != "torso" and v.placement != "spine" then continue end
 			menu:AddAccessoryIcon(v.model, k, v, function(key)
@@ -871,9 +777,7 @@ function PANEL:PostInit()
 			main.AppearanceTable.AAttachments[3] = "none"
 		end)
 
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Torso Bodygroup
@@ -895,9 +799,7 @@ function PANEL:PostInit()
 			menu:AddOption("No options", function() end):SetEnabled(false)
 		end
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Legs/Boots Bodygroup
@@ -919,9 +821,7 @@ function PANEL:PostInit()
 			menu:AddOption("No options", function() end):SetEnabled(false)
 		end
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Gloves (HANDS Bodygroup)
@@ -943,9 +843,7 @@ function PANEL:PostInit()
 				end
 			end
 		end
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Facemap
@@ -961,9 +859,7 @@ function PANEL:PostInit()
 			end)
 		end
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Jacket (main clothes)
@@ -998,9 +894,7 @@ function PANEL:PostInit()
 		end
 
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Pants
@@ -1027,9 +921,7 @@ function PANEL:PostInit()
 		end
 
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Boots
@@ -1047,9 +939,7 @@ function PANEL:PostInit()
 		end
 
 		menu:Open()
-		function menu:OnRemove()
-			main.modelPosID = "All"
-		end
+		bindMenuClose(menu)
 	end)
 
 	-- Spacer
@@ -1071,8 +961,13 @@ function PANEL:PostInit()
 	returnBtn:SetTextColor(Color(255, 255, 255))
 
 	returnBtn.DoClick = function()
+		CloseAllOpenMenus()
 		if main.Close then main:Close() end
 		sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+	end
+
+	function main:OnRemove()
+		CloseAllOpenMenus()
 	end
 
 	returnBtn.Paint = function(self, w, h)
@@ -1194,7 +1089,7 @@ function PANEL:PostInit()
 			function presetBtn:DoClick()
 				local loadedPreset = LoadPreset(presetName)
 				if loadedPreset then
-					main.AppearanceTable = loadedPreset
+					main.AppearanceTable = NormalizeAppearanceTable(loadedPreset)
 					NameEntry:SetText(loadedPreset.AName or "")
 					modelSelector:SetText(loadedPreset.AModel or "Male 01")
 					presetNameEntry:SetText(presetName)
@@ -1209,6 +1104,10 @@ function PANEL:PostInit()
 			end
 		end
 	end, presetContent)
+
+	controls:MoveToFront()
+	presetControls:MoveToFront()
+	returnBtn:MoveToFront()
 
 	self:CallbackAppearance()
 end

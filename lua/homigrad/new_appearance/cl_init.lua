@@ -17,6 +17,17 @@ function hg.Appearance.LoadAppearanceFile(strFile_name)
 
 	if not hg.Appearance.AppearanceValidater(tblAppearance) then return false, "file is damaged [data/zcity/appearances/" .. strFile_name .. ".json]"  end
 
+	if tblAppearance.AColor and not IsColor(tblAppearance.AColor) then
+		tblAppearance.AColor = Color(tblAppearance.AColor.r or 180, tblAppearance.AColor.g or 0, tblAppearance.AColor.b or 0, tblAppearance.AColor.a or 255)
+	end
+
+	tblAppearance.AAttachments = tblAppearance.AAttachments or {}
+	for i = 1, 3 do
+		if not tblAppearance.AAttachments[i] or tblAppearance.AAttachments[i] == "" then
+			tblAppearance.AAttachments[i] = "none"
+		end
+	end
+
 	return tblAppearance
 end
 

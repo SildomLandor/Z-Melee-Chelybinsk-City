@@ -490,7 +490,11 @@ function PANEL:Think()
         elseif self.CurrentState == "Appearance" then
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
             if IsValid(self.SettingsList) then self.SettingsList:SetVisible(false) end
-            if IsValid(self.AppearancePanel) then self.AppearancePanel:SetVisible(true) end
+            if IsValid(self.AppearancePanel) then
+                self.AppearancePanel:SetVisible(true)
+                self.AppearancePanel:SetAlpha(255)
+                self.AppearancePanel:SetMouseInputEnabled(true)
+            end
             if IsValid(self.TraitorMenuPanel) then self.TraitorMenuPanel:SetVisible(false) end
         elseif self.CurrentState == "TraitorMenu" then
             if IsValid(self.menuList) then self.menuList:SetVisible(false) end
@@ -633,8 +637,17 @@ function PANEL:Think()
     end
 
     if IsValid(self.AppearancePanel) then
-        if self.TargetState == "Appearance" or (self.TargetState == "Main" and self.CurrentState == "Appearance") then
+        if self.TargetState == "Appearance" then
+            self.AppearancePanel:SetVisible(true)
+            self.AppearancePanel:SetAlpha(255 * visual_t)
+            self.AppearancePanel:SetMouseInputEnabled(visual_t > 0.05)
             self.AppearancePanel:SetPos(self.TransitionShakeX or 0, ScrH() * (1 - eased_t) + (self.TransitionShakeY or 0))
+        elseif self.TargetState == "Main" and self.CurrentState == "Appearance" then
+            local alpha = math.Clamp(1 - ((1 - visual_t) * 3), 0, 1) * 255
+            self.AppearancePanel:SetAlpha(alpha)
+            self.AppearancePanel:SetMouseInputEnabled(alpha > 12)
+            self.AppearancePanel:SetPos(self.TransitionShakeX or 0, ScrH() * (1 - eased_t) + (self.TransitionShakeY or 0))
+            if alpha <= 0 then self.AppearancePanel:SetVisible(false) end
         else
             self.AppearancePanel:SetPos(0 + (self.TransitionShakeX or 0), 0 + (self.TransitionShakeY or 0))
         end

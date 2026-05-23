@@ -133,21 +133,30 @@ local vest_list = {
     "vest1"
 }
 
+local function giveWepAmmo(ply, cls, mul)
+    local wep = ply:Give(cls)
+    if not IsValid(wep) then return end
+    mul = mul or 3
+    local clip = wep:GetMaxClip1()
+    if clip > 0 then
+        wep:SetClip1(clip)
+        ply:GiveAmmo(clip * mul, wep:GetPrimaryAmmoType(), true)
+    end
+    return wep
+end
+
 local rebel_subclasses = {
     default = {
         give_fn = function(ply)
-            local wep1 = ply:Give(primary_weapons[math.random(#primary_weapons)])
-            ply:GiveAmmo(wep1:GetMaxClip1() * 3, wep1:GetPrimaryAmmoType(), true)
-
-            if isfunction(primary_attachments[wep1:GetClass()]) then
+            local wep1 = giveWepAmmo(ply, primary_weapons[math.random(#primary_weapons)])
+            if IsValid(wep1) and isfunction(primary_attachments[wep1:GetClass()]) then
                 primary_attachments[wep1:GetClass()](ply, wep1)
             end
 
-            local wep2 = ply:Give(secondary_weapons[math.random(#secondary_weapons)])
-            ply:GiveAmmo(wep2:GetMaxClip1() * 3, wep2:GetPrimaryAmmoType(), true)
+            giveWepAmmo(ply, secondary_weapons[math.random(#secondary_weapons)])
 
             local wep_g = ply:Give("weapon_hg_hl2nade_tpik")
-            if wep_g then wep_g.count = 1 end
+            if IsValid(wep_g) then wep_g.count = 1 end
         end
     },
 
@@ -155,8 +164,10 @@ local rebel_subclasses = {
         give_fn = function(ply)
             ply:Give("weapon_bandage_sh")
             local bbag = ply:Give("weapon_bloodbag")
-            bbag.bloodtype = "o-"
-            bbag.modeValues[1] = 1
+            if IsValid(bbag) then
+                bbag.bloodtype = "o-"
+                bbag.modeValues[1] = 1
+            end
             ply:Give("weapon_medkit_sh")
             ply:Give("weapon_mannitol")
             ply:Give("weapon_morphine")
@@ -167,35 +178,26 @@ local rebel_subclasses = {
             ply:Give("weapon_betablock")
             ply:Give("weapon_adrenaline")
 
-            local wep1 = ply:Give(primary_weapons[math.random(#primary_weapons)])
-            ply:GiveAmmo(wep1:GetMaxClip1() * 3, wep1:GetPrimaryAmmoType(), true)
-            //hg.AddAttachmentForce(ply, wep1, "ent_att_laser2")
-
-            local wep2 = ply:Give(secondary_weapons[math.random(#secondary_weapons)])
-            ply:GiveAmmo(wep2:GetMaxClip1() * 3, wep2:GetPrimaryAmmoType(), true)
+            giveWepAmmo(ply, primary_weapons[math.random(#primary_weapons)])
+            giveWepAmmo(ply, secondary_weapons[math.random(#secondary_weapons)])
         end
     },
 
     sniper = {
         give_fn = function(ply)
-            local wep1 = ply:Give("weapon_hg_crossbow")
-            ply:GiveAmmo(wep1:GetMaxClip1() * 10, wep1:GetPrimaryAmmoType(), true)
-
-            local wep2 = ply:Give("weapon_revolver357")
-            ply:GiveAmmo(wep2:GetMaxClip1() * 3, wep2:GetPrimaryAmmoType(), true)
+            giveWepAmmo(ply, "weapon_hg_crossbow", 10)
+            giveWepAmmo(ply, "weapon_revolver357")
         end
     },
 
     grenadier = {
         give_fn = function(ply)
-            ply:Give(math.random(0,1) == 1 and "weapon_hg_rebelrpg" or "weapon_hg_rpg")
+            ply:Give(math.random(0, 1) == 1 and "weapon_hg_rebelrpg" or "weapon_hg_rpg")
             ply:Give("weapon_claymore")
             ply:Give("weapon_traitor_ied")
             ply:Give("weapon_hg_slam")
             ply:Give("weapon_hg_pipebomb_tpik")
-
-            local wep = ply:Give("weapon_revolver357")
-            ply:GiveAmmo(wep:GetMaxClip1() * 3, wep:GetPrimaryAmmoType(), true)
+            giveWepAmmo(ply, "weapon_revolver357")
         end
     }
 }

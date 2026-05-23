@@ -57,6 +57,11 @@ local function ForceApplyAppearance(ply, tbl, noModelChange)
     end
 
     local clr = tbl.AColor
+    if clr and not IsColor(clr) then
+        clr = Color(clr.r or 180, clr.g or 0, clr.b or 0, clr.a or 255)
+        tbl.AColor = clr
+    end
+    clr = clr or Color(180, 0, 0)
     if ply.SetPlayerColor then
         ply:SetPlayerColor(Vector(clr.r / 255,clr.g / 255,clr.b / 255))
     end
