@@ -222,7 +222,7 @@ if CLIENT then
 		plyMenu.PaintOver = function(self, w, h)
 			draw.DrawText(name, "HomigradFontSmall", w / 2, 10, color_white, TEXT_ALIGN_CENTER)
 
-			draw.DrawText("R - Close | Hold LMB - Take | RMB - Item menu", "HomigradFontSmall", w / 2, h - h*0.055 , clr_text, TEXT_ALIGN_CENTER)
+			draw.DrawText("R - Закрыть | Hold LMB - Взять | RMB - Меню предмета", "HomigradFontSmall", w / 2, h - h*0.055 , clr_text, TEXT_ALIGN_CENTER)
 		end
 		function plyMenu:Think()
 			local ent = self.ent
@@ -358,7 +358,7 @@ if CLIENT then
 
 					if not functions[tab](ply, ent, i, unpack(thing1)) then
 						local OptionsMenu = DermaMenu()
-							OptionsMenu:AddOption("You have item like this", function() end)
+							OptionsMenu:AddOption("У вас есть такой предмет", function() end)
 						OptionsMenu:Open()
 						self.HoldPressed = false
 						self.HoldRequested = false
@@ -386,13 +386,13 @@ if CLIENT then
 
 					if not functions[tab](ply, ent, i, unpack(thing1)) then
 						local OptionsMenu = DermaMenu()
-							OptionsMenu:AddOption("You have item like this", function() end)
+							OptionsMenu:AddOption("У вас есть такой предмет", function() end)
 						OptionsMenu:Open()
 						return
 					end
 
 					local OptionsMenu = DermaMenu()
-						OptionsMenu:AddOption("Hold LMB to take", function() end)
+						OptionsMenu:AddOption("Зажмите LMB для взятия", function() end)
 					OptionsMenu:Open()
 				end
 
