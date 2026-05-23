@@ -88,8 +88,8 @@ net.Receive("HMCD_RoundStart",function()
 end)
 
 MODE.TypeNames = {
-	["standard"] = "Standard",
-	["soe"] = "State of Emergency",
+	["standard"] = "Стандарт",
+	["soe"] = "Чрезвычайное положение",
 	["gunfreezone"] = "Gun Free Zone",
 	["suicidelunatic"] = "Suicide Lunatic",
 	["wildwest"] = "Wild west",
@@ -135,44 +135,44 @@ surface.CreateFont("ZB_HomicideHumongous", {
 MODE.TypeObjectives = {}
 MODE.TypeObjectives.soe = {
 	traitor = {
-		objective = "You're geared up with items, poisons, explosives and weapons hidden in your pockets. Murder everyone here.",
-		name = "a Traitor",
+		objective = "Снаряжение, яды и оружие в карманах. Убей всех.",
+		name = "предатель",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You are an innocent with a hunting weapon. Find and neutralize the traitor before it's too late.",
-		name = "an Innocent",
+		objective = "Невиновный с охотничьим оружием. Найди и обезвредь предателя.",
+		name = "невиновный",
 		color1 = Color(0,120,190),
 		color2 = Color(158,0,190)
 	},
 
 	innocent = {
-		objective = "You are an innocent, rely only on yourself, but stick around with crowds to make traitor's job harder.",
-		name = "an Innocent",
+		objective = "Держись рядом с людьми — так предателю сложнее.",
+		name = "невиновный",
 		color1 = Color(0,120,190)
 	},
 }
 
 MODE.TypeObjectives.standard = {
 	traitor = {
-		objective = "You're geared up with items, poisons, explosives and weapons hidden in your pockets. Murder everyone here.",
-		name = "a Murderer",
+		objective = "Снаряжение, яды и оружие в карманах. Убей всех.",
+		name = "убийца",
 		color1 = Color(190,0,0),
 		color2 = Color(190,0,0)
 	},
 
 	gunner = {
-		objective = "You are a bystander with a concealed firearm. You've tasked yourself to help police find the criminal faster.",
-		name = "a Bystander",
+		objective = "Скрытое оружие. Помоги найти преступника быстрее.",
+		name = "свидетель",
 		color1 = Color(0,120,190),
 		color2 = Color(158,0,190)
 	},
 
 	innocent = {
-		objective = "You are a bystander of a murder scene, although it didn't happen to you, you better be cautious.",
-		name = "a Bystander",
+		objective = "На месте убийства. Будь осторожен.",
+		name = "свидетель",
 		color1 = Color(0,120,190)
 	},
 }
@@ -294,7 +294,7 @@ function MODE:HUDPaint()
 	
 	fade = Lerp(FrameTime()*1, fade, math.Clamp(StartTime + 5 - CurTime(),-2,2))
 
-	draw.SimpleText("Homicide | " .. (MODE.TypeNames[MODE.Type] or "Unknown"), "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	draw.SimpleText("Хомисайд | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно"), "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
 	local Rolename = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.name ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.name ) or MODE.TypeObjectives[MODE.Type].innocent.name
 	local ColorRole = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color1 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color1 ) or MODE.TypeObjectives[MODE.Type].innocent.color1
@@ -306,7 +306,7 @@ function MODE:HUDPaint()
 	local color_white_faded = Color(255, 255, 255, 255 * fade)
 	color_white_faded.a = 255 * fade
 
-	draw.SimpleText("You are "..Rolename , "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	draw.SimpleText("Вы — " .. Rolename, "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
 
 
@@ -317,13 +317,16 @@ function MODE:HUDPaint()
 	if(lply.SubRole and lply.SubRole != "")then
 		cur_y = cur_y + ScreenScale(20)
 
-		draw.SimpleText("" .. ((MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Name or lply.SubRole) or lply.SubRole), "ZB_HomicideMediumLarge", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		local subName = (hg.TraitorLoadout and hg.TraitorLoadout.GetSubRoleLabel(lply.SubRole))
+			or (MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Name)
+			or lply.SubRole
+		draw.SimpleText(subName, "ZB_HomicideMediumLarge", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 
 	if(!lply.MainTraitor and lply.isTraitor)then
 		cur_y = cur_y + ScreenScale(20)
 
-		draw.SimpleText("Assistant", "ZB_HomicideMedium", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText("Помощник", "ZB_HomicideMedium", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 
 
@@ -371,18 +374,17 @@ function MODE:HUDPaint()
 	local Objective = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.objective ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.objective ) or MODE.TypeObjectives[MODE.Type].innocent.objective
 
 	if(lply.SubRole and lply.SubRole != "")then
-		if(MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Objective)then
-			Objective = MODE.SubRoles[lply.SubRole].Objective
-		end
+		local subObj = (hg.TraitorLoadout and hg.TraitorLoadout.GetSubRoleObjective(lply.SubRole))
+			or (MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Objective)
+		if subObj then Objective = subObj end
 	end
 
 	if(!lply.MainTraitor and lply.isTraitor)then
-		Objective = "You are equipped with nothing. Help other traitors win."
+		Objective = "Без снаряжения. Помоги другим предателям победить."
 	end
 
-	--; WARNING Traitor's objective is not lined up with SubRole's
 	if(!MODE.RoleEndedChosingState)then
-		Objective = "Round is starting..."
+		Objective = "Раунд начинается..."
 	end
 
 	local ColorObj = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color2 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color2 ) or MODE.TypeObjectives[MODE.Type].innocent.color2 or Color(255,255,255)

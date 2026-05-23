@@ -188,7 +188,7 @@ function PANEL:Construct()
 	local button_ready = vgui.Create("DButton", self)
 	button_ready:Dock(FILL)
 	button_ready:SetSkin(hg.GetMainSkin())
-	button_ready:SetText("APPLY")
+	button_ready:SetText("ГОТОВ")
 	button_ready.DoClick = function(sel)
 		//if(sel.Clicked)then
 			if(IsValid(VGUI_HMCD_RolePanelList))then

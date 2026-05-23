@@ -5,6 +5,8 @@ ENT.Spawnable		= true
 
 
 local function check_unseen_nav(ent)
+    if not IsValid(ent) then return end
+
     local chosenvec
     local dist = 9999999999999
     local alive = zb:CheckAlive()
@@ -42,6 +44,8 @@ function ENT:Initialize()
 
     if IsValid(self.Victim) then
         local ent = hg.GetCurrentCharacter(self.Victim)
+        if not IsValid(ent) then self:Remove() return end
+
         for i = 0, ent:GetPhysicsObjectCount() - 1 do
             --constraint.NoCollide(self, ent, 0, i, false)
         end
@@ -64,11 +68,16 @@ end
 
 function ENT:RunBehaviour()
 	while ( true ) do
+        if not IsValid(self.Victim) then self:Remove() return end
+
 		self:StartActivity( ACT_WALK )
 		self.loco:SetDesiredSpeed( 400 )
         
         local ent = hg.GetCurrentCharacter(self.Victim)
+        if not IsValid(ent) then self:Remove() return end
+
         local owner = hg.RagdollOwner(ent) or ent
+        if not IsValid(owner) then self:Remove() return end
         
         local movepos, shouldremove = check_unseen_nav(owner)
 
@@ -123,7 +132,10 @@ function ENT:BehaveUpdate( fInterval )
 
     if IsValid(self.Victim) then
         local ent = hg.GetCurrentCharacter(self.Victim)
+        if not IsValid(ent) then self:Remove() return end
+
         local owner = hg.RagdollOwner(ent) or ent
+        if not IsValid(owner) then self:Remove() return end
 
         local tr = util.QuickTrace(self:GetPos(), self:GetVelocity(), {self, ent})
         if IsValid(tr.Entity) and hgIsDoor(tr.Entity) and tr.Entity:GetInternalVariable( "m_eDoorState" ) == 0 then

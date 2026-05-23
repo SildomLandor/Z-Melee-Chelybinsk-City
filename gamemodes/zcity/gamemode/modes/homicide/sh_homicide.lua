@@ -503,6 +503,10 @@ MODE.Roles.supermario = {
 	},
 }
 
+if hg and hg.TraitorLoadout then
+	hg.TraitorLoadout.ApplySubRoleLocales(MODE)
+end
+
 function MODE.GetPlayerTraceToOther(ply, aim_vector, dist)
 	local trace = hg.eyeTrace(ply, dist, nil, aim_vector)
 	

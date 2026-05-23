@@ -21,7 +21,10 @@ if SERVER then
         
         if IsValid(self.Victim) then
             local ent = hg.GetCurrentCharacter(self.Victim)
+            if not IsValid(ent) then self:Remove() return end
+
             local owner = hg.RagdollOwner(ent) or ent
+            if not IsValid(owner) then self:Remove() return end
             
             hg.StunPlayer(owner)
 
@@ -175,7 +178,7 @@ if SERVER then
             
             if self.Stuck > 5 then
                 self:Remove()
-            else
+            elseif IsValid(self.Victim) then
                 self:SetPos(self.Victim:GetPos())
             end
         end
@@ -212,6 +215,11 @@ if SERVER then
     function ENT:Think()
         if self.CreationTime + 1 > CurTime() then return end --fuck this shit
 
+        if not IsValid(self.Victim) then
+            self:Remove()
+            return
+        end
+
         if !self.HidingSpot then
             self:FindHidingSpot()
         end
@@ -247,7 +255,11 @@ if SERVER then
 
         if IsValid(self.Victim) then
             local ent = hg.GetCurrentCharacter(self.Victim)
+            if not IsValid(ent) then self:Remove() return end
+
             local owner = hg.RagdollOwner(ent) or ent
+            if not IsValid(owner) then self:Remove() return end
+
             hg.LightStunPlayer(owner, 3)
 
             if (self.NextTryKill or 0) < CurTime() then

@@ -41,7 +41,7 @@ TL.WeaponAddonOrder = {
 }
 
 TL.Skillsets = {
-	["none"] = {cost = 0, name = "Мокрушник", desc = "Без особых навыков."},
+	["none"] = {cost = 0, name = "Мокрушник", desc = "Без особых навыков.", objective = "Убей всех выбранным снаряжением."},
 	["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов."},
 	["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе."},
 	["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе."},
@@ -69,6 +69,77 @@ TL.SubRoleBySkillset = {
 		martial_artist = "traitor_martial_artist_soe",
 	},
 }
+
+TL.SubRoleLocales = {
+	traitor_default = {
+		name = "Дефолт",
+		desc = "Стандартный набор: оружие, яды, гранаты, нож и сигнальный пистолет.",
+		objective = "Полный стандартный набор. Убей всех.",
+	},
+	traitor_default_soe = {
+		name = "Дефолт",
+		desc = "Стандартный набор ЧП: глушитель, нож, гранаты, яды и взрывчатка.",
+		objective = "Полный стандартный набор. Убей всех.",
+	},
+	traitor_zombie = {
+		name = "Зомби",
+		desc = "Тихо заражает игроков. Лечится врачом. Без оружия, выглядит как обычный человек.",
+		objective = "Зарази всех. Избегай врача.",
+	},
+}
+
+TL._skillsetBySubRole = {}
+for _, map in pairs(TL.SubRoleBySkillset) do
+	for skillset, subRole in pairs(map) do
+		TL._skillsetBySubRole[subRole] = skillset
+	end
+end
+
+function TL.GetSubRoleLabel(subRoleId)
+	local skillset = TL._skillsetBySubRole[subRoleId]
+	if skillset and TL.Skillsets[skillset] then
+		return TL.Skillsets[skillset].name
+	end
+	local loc = TL.SubRoleLocales[subRoleId]
+	return loc and loc.name
+end
+
+function TL.GetSubRoleDescription(subRoleId)
+	local skillset = TL._skillsetBySubRole[subRoleId]
+	if skillset and TL.Skillsets[skillset] then
+		return TL.Skillsets[skillset].desc
+	end
+	local loc = TL.SubRoleLocales[subRoleId]
+	return loc and loc.desc
+end
+
+function TL.GetSubRoleObjective(subRoleId)
+	local skillset = TL._skillsetBySubRole[subRoleId]
+	if skillset and TL.Skillsets[skillset] then
+		local ss = TL.Skillsets[skillset]
+		return ss.objective or ss.desc
+	end
+	local loc = TL.SubRoleLocales[subRoleId]
+	return loc and loc.objective
+end
+
+function TL.ApplySubRoleLocales(modeTbl)
+	local MODE = modeTbl or (zb and zb.modes and zb.modes.hmcd)
+	if not MODE or not MODE.SubRoles then return end
+
+	for subRoleId, info in pairs(MODE.SubRoles) do
+		local name = TL.GetSubRoleLabel(subRoleId)
+		if name then info.Name = name end
+		local desc = TL.GetSubRoleDescription(subRoleId)
+		if desc then info.Description = desc end
+		local obj = TL.GetSubRoleObjective(subRoleId)
+		if obj then info.Objective = obj end
+	end
+end
+
+hook.Add("InitPostEntity", "TL_ApplySubRoleLocales", function()
+	TL.ApplySubRoleLocales()
+end)
 
 if CLIENT then
 	if not ConVarExists(TL.ConVarName) then
