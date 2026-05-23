@@ -51,7 +51,7 @@ hook.Add("HUDPaint", "HMCD_SubRoles_Abilities", function()
 	
 	if(ply:Alive())then
 		if(ply.isTraitor)then
-			if(ply.SubRole == "traitor_infiltrator" or ply.SubRole == "traitor_infiltrator_soe")then
+			if(ply.SubRole == "traitor_infiltrator" or ply.SubRole == "traitor_infiltrator_soe" or ply.SubRole == "traitor_martial_artist" or ply.SubRole == "traitor_martial_artist_soe")then
 				local text = "(HOLD)[ALT + E] Break Neck"
 				local tw, th = surface.GetTextSize(text)
 				local cx, cy = trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y
@@ -83,7 +83,7 @@ hook.Add("HUDPaint", "HMCD_SubRoles_Abilities", function()
 				end
 			end
 			
-			if(ply.SubRole == "traitor_assasin" or ply.SubRole == "traitor_assasin_soe" or ply.PlayerClassName == "sc_infiltrator")then
+			if(ply.SubRole == "traitor_assasin" or ply.SubRole == "traitor_assasin_soe" or ply.SubRole == "traitor_martial_artist" or ply.SubRole == "traitor_martial_artist_soe" or ply.PlayerClassName == "sc_infiltrator")then
 				local aim_ent, other_ply, trace = MODE.GetPlayerTraceToOther(ply, nil, MODE.DisarmReach)
 				local text = "(HOLD)[ALT + E] Disarm"
 				local tw, th = surface.GetTextSize(text)

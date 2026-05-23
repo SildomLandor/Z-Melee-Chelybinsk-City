@@ -25,7 +25,7 @@ util.AddNetworkString("HMCD_UpdateChemicalResistance")
 hook.Add("PlayerPostThink", "HMCD_SubRoles_Abilities", function(ply)
 	if(MODE.RoleChooseRoundTypes[MODE.Type])then
 		if(ply:Alive() and ply.organism and not ply.organism.otrub)then
-			if(ply.SubRole == "traitor_infiltrator" or ply.SubRole == "traitor_infiltrator_soe")then
+			if(ply.SubRole == "traitor_infiltrator" or ply.SubRole == "traitor_infiltrator_soe" or ply.SubRole == "traitor_martial_artist" or ply.SubRole == "traitor_martial_artist_soe")then
 				if(ply:KeyDown(IN_WALK))then
 					if(ply:KeyPressed(IN_RELOAD))then
 						local aim_ent, other_ply = hg.eyeTrace(ply,85).Entity
@@ -86,7 +86,7 @@ hook.Add("PlayerPostThink", "HMCD_SubRoles_Abilities", function(ply)
 				end
 			end
 			
-			if(ply.SubRole == "traitor_assasin" or ply.SubRole == "traitor_assasin_soe")then
+			if(ply.SubRole == "traitor_assasin" or ply.SubRole == "traitor_assasin_soe" or ply.SubRole == "traitor_martial_artist" or ply.SubRole == "traitor_martial_artist_soe")then
 				if(ply:KeyDown(IN_WALK))then
 					if(ply:KeyPressed(IN_USE))then
 						local aim_ent, other_ply, trace = MODE.GetPlayerTraceToOther(ply, nil, MODE.DisarmReach)

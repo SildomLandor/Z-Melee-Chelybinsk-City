@@ -1730,91 +1730,23 @@ function PANEL:CreateTraitorMenuPanel()
         end
     end
 
-    local TraitorItems = {
-        ["weapon_pl15"] = {cost = 15, name = "ПЛ-15"},
-        ["weapon_buck200knife"] = {cost = 6, name = "BUCK 200 Нож"},
-        ["weapon_sogknife"] = {cost = 3, name = "SOG Нож"},
-        ["weapon_fiberwire"] = {cost = 3, name = "Удавка"},
-        ["weapon_hg_rgd_tpik"] = {cost = 6, name = "РГД-5"},
-        ["weapon_adrenaline"] = {cost = 4, name = "Эпипен"},
-        ["weapon_pepperspray_tpik"] = {cost = 4, name = "Перцовый балончик"},
-        ["weapon_hg_shuriken"] = {cost = 2, name = "Сюрикен"},
-        ["weapon_hg_smokenade_tpik"] = {cost = 3, name = "Дымовая граната"},
-        ["weapon_traitor_ied"] = {cost = 6, name = "СВУ (Бомба)"},
-        ["weapon_traitor_poison1"] = {cost = 3, name = "Шприц с тетродотоксином"},
-        ["weapon_traitor_poison2"] = {cost = 2, name = "Ампула с Ви-Икс"},
-        ["weapon_traitor_poison4"] = {cost = 3, name = "Ампула с Кураре"},
-        ["weapon_traitor_poison3"] = {cost = 6, name = "Баночка Цианида"},
-        ["weapon_traitor_suit"] = {cost = 5, name = "Маскировачный костюм"},
-        ["weapon_hg_jam"] = {cost = 1, name = "Блокиратор двери"},
-        ["weapon_p22"] = {cost = 8, name = "Walter П22"},
-        ["weapon_taser"] = {cost = 8, name = "Электрошокер"},
-        ["weapon_beartrap_homigrad"] = {cost = 8, name = "Капкан"},
-	}
-    local TraitorAddons = {
-        ["weapon_p22_extra_mag"] = {cost = 2, name = "П22 Дополнительный магазин", parent = "weapon_p22"},
-        ["weapon_p22_silencer"] = {cost = 2, name = "П22 Глушитель", parent = "weapon_p22"},
-        ["weapon_pl15_extra_mag"] = {cost = 3, name = "ПЛ-15 Дополнительный магазин", parent = "weapon_pl15"},
-        ["weapon_pl15_silencer"] = {cost = 2, name = "ПЛ-15 Глушитель", parent = "weapon_pl15"},
-    }
-    local WeaponAddonOrder = {
-        ["weapon_p22"] = {"weapon_p22_extra_mag", "weapon_p22_silencer"},
-        ["weapon_pl15"] = {"weapon_pl15_extra_mag", "weapon_pl15_silencer"},
-    }
-
-    local Skillsets = {
-        ["none"] = {cost = 0, name = "Мокрушник", desc = "Без особых навыков."},
-        ["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов."},
-        ["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе."},
-        ["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе."},
-        ["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика."}
-    }
-
-    local maxPoints = 30
-    local currentPoints = 0
-    local currentLoadout = {weapons = {}, skillset = "none"}
-    local WeaponExclusions = {
-        ["weapon_buck200knife"] = {
-            ["weapon_sogknife"] = true,
-        },
-        ["weapon_sogknife"] = {
-            ["weapon_buck200knife"] = true,
-        },
-    }
-
-    local function HasWeaponConflict(selectedWeapons, weaponId)
-        local exclusions = WeaponExclusions[weaponId]
-        if exclusions then
-            for _, selectedId in ipairs(selectedWeapons) do
-                if selectedId ~= weaponId and exclusions[selectedId] then
-                    return true
-                end
-            end
-        end
-
-        for _, selectedId in ipairs(selectedWeapons) do
-            if selectedId ~= weaponId then
-                local selectedExclusions = WeaponExclusions[selectedId]
-                if selectedExclusions and selectedExclusions[weaponId] then
-                    return true
-                end
-            end
-        end
-
-        return false
-    end
+    local TL = hg.TraitorLoadout
+    local TraitorItems = TL.Items
+    local TraitorAddons = TL.Addons
+    local WeaponAddonOrder = TL.WeaponAddonOrder
+    local Skillsets = TL.Skillsets
+    local maxPoints = TL.MaxPoints
+    local HasWeaponConflict = TL.HasWeaponConflict
+    local SanitizeLoadout = TL.Sanitize
 
     local function GetSortedIdsByCost(sourceTable)
         local ids = {}
         for id in pairs(sourceTable) do
-            table.insert(ids, id)
+            ids[#ids + 1] = id
         end
         table.sort(ids, function(a, b)
-            local aInfo = sourceTable[a]
-            local bInfo = sourceTable[b]
-            if aInfo.cost == bInfo.cost then
-                return aInfo.name < bInfo.name
-            end
+            local aInfo, bInfo = sourceTable[a], sourceTable[b]
+            if aInfo.cost == bInfo.cost then return aInfo.name < bInfo.name end
             return aInfo.cost > bInfo.cost
         end)
         return ids
@@ -1822,80 +1754,11 @@ function PANEL:CreateTraitorMenuPanel()
 
     local skillsetOrder = GetSortedIdsByCost(Skillsets)
     local itemOrder = GetSortedIdsByCost(TraitorItems)
-
-    local function SanitizeLoadout(rawLoadout)
-        local normalizedLoadout = {weapons = {}, skillset = "none"}
-        if type(rawLoadout) ~= "table" then
-            rawLoadout = {}
-        end
-
-        if type(rawLoadout.skillset) == "string" and Skillsets[rawLoadout.skillset] then
-            normalizedLoadout.skillset = rawLoadout.skillset
-        end
-
-        local totalPoints = Skillsets[normalizedLoadout.skillset].cost
-        local usedWeapons = {}
-        local rawWeaponIds = {}
-        if type(rawLoadout.weapons) == "table" then
-            for k, v in pairs(rawLoadout.weapons) do
-                local weaponId
-                if type(v) == "string" then
-                    weaponId = v
-                elseif type(k) == "string" and v == true then
-                    weaponId = k
-                end
-
-                if weaponId and not usedWeapons[weaponId] and (TraitorItems[weaponId] or TraitorAddons[weaponId]) then
-                    usedWeapons[weaponId] = true
-                    table.insert(rawWeaponIds, weaponId)
-                end
-            end
-        end
-
-        usedWeapons = {}
-        for _, weaponId in ipairs(rawWeaponIds) do
-            local baseInfo = TraitorItems[weaponId]
-            if baseInfo and not usedWeapons[weaponId] and not HasWeaponConflict(normalizedLoadout.weapons, weaponId) then
-                local weaponCost = baseInfo.cost
-                if totalPoints + weaponCost <= maxPoints then
-                    usedWeapons[weaponId] = true
-                    table.insert(normalizedLoadout.weapons, weaponId)
-                    totalPoints = totalPoints + weaponCost
-                end
-            end
-        end
-
-        for _, weaponId in ipairs(rawWeaponIds) do
-            local addonInfo = TraitorAddons[weaponId]
-            if addonInfo and not usedWeapons[weaponId] and usedWeapons[addonInfo.parent] then
-                local weaponCost = addonInfo.cost
-                if totalPoints + weaponCost <= maxPoints then
-                    usedWeapons[weaponId] = true
-                    table.insert(normalizedLoadout.weapons, weaponId)
-                    totalPoints = totalPoints + weaponCost
-                end
-            end
-        end
-
-        return normalizedLoadout
-    end
-
-    currentLoadout = SanitizeLoadout(parsedLoadout or {})
-
-    local function EncodeLoadout(loadoutData)
-        local dataStr = util.TableToJSON(loadoutData)
-        if not isstring(dataStr) or dataStr == "" then
-            dataStr = "{\"weapons\":[],\"skillset\":\"none\"}"
-        end
-        return dataStr
-    end
+    local currentPoints = 0
+    local currentLoadout = SanitizeLoadout(parsedLoadout or {})
 
     local function SaveLoadout()
-        currentLoadout = SanitizeLoadout(currentLoadout)
-        local dataStr = EncodeLoadout(currentLoadout)
-        file.Write("meleecity_traitor_loadout.txt", dataStr)
-        local cv = GetConVar("hmcd_traitor_loadout")
-        if cv then cv:SetString(dataStr) end
+        currentLoadout = TL.SaveLocal(currentLoadout)
     end
 
     SaveLoadout()
@@ -1906,7 +1769,7 @@ function PANEL:CreateTraitorMenuPanel()
 
     local lblInfoTitle = vgui.Create("DLabel", infoContent)
     lblInfoTitle:Dock(TOP)
-    lblInfoTitle:SetText("ВЫБРАНЫЙ ПРЕДМЕТ")
+    lblInfoTitle:SetText("ПРЕДПРОСМОТР")
     lblInfoTitle:SetFont("ZCity_Veteran")
     lblInfoTitle:SetTextColor(Color(255, 255, 255))
     lblInfoTitle:SetContentAlignment(5)
@@ -1947,7 +1810,7 @@ function PANEL:CreateTraitorMenuPanel()
     lblPreviewName:SetFont("ZCity_Veteran")
     lblPreviewName:SetTextColor(Color(255, 255, 255))
     lblPreviewName:SetContentAlignment(5)
-    lblPreviewName:SetText("None")
+    lblPreviewName:SetText("—")
     lblPreviewName:SizeToContentsY()
 
     local lblPreviewCost = vgui.Create("DLabel", infoContent)
@@ -1965,7 +1828,7 @@ function PANEL:CreateTraitorMenuPanel()
     lblPreviewDescTitle:SetFont("ZCity_Veteran")
     lblPreviewDescTitle:SetTextColor(Color(220, 220, 220))
     lblPreviewDescTitle:SetContentAlignment(5)
-    lblPreviewDescTitle:SetText("DESCRIPTION")
+    lblPreviewDescTitle:SetText("ОПИСАНИЕ")
     lblPreviewDescTitle:SizeToContentsY()
 
     local previewDescScroll = vgui.Create("DScrollPanel", infoContent)
@@ -1982,65 +1845,158 @@ function PANEL:CreateTraitorMenuPanel()
     lblPreviewDesc:SetTextColor(Color(200, 200, 200))
     lblPreviewDesc:SetWrap(true)
     lblPreviewDesc:SetAutoStretchVertical(true)
-    lblPreviewDesc:SetText("None")
+    lblPreviewDesc:SetText("Наведи на предмет или способность.")
 
-    local previewWeaponId = nil
-    local function ResolvePreviewWeaponId()
-        if previewWeaponId and TraitorItems[previewWeaponId] then
-            return previewWeaponId
+    local previewKind, previewId = nil, nil
+
+    local function WepIconMat(class)
+        local swep = weapons.GetStored(class)
+        if not swep then return end
+        local ref = swep.WepSelectIcon
+        if isstring(ref) and ref ~= "" then
+            local m = Material(ref)
+            if not m:IsError() then return m end
+        elseif ref then
+            return ref
         end
-        for _, weaponId in ipairs(currentLoadout.weapons) do
-            if TraitorItems[weaponId] then
-                return weaponId
-            end
+        if isstring(swep.IconOverride) and swep.IconOverride ~= "" then
+            local m = Material(swep.IconOverride)
+            if not m:IsError() then return m end
         end
-        return nil
     end
 
-    local function UpdatePreviewPanel()
-        local weaponId = ResolvePreviewWeaponId()
-        local itemInfo = weaponId and TraitorItems[weaponId] or nil
-        local swep = weaponId and weapons.GetStored(weaponId) or nil
-        local iconMat = nil
-        local instructions = "None"
+    local UpdatePreviewPanel
 
-        if itemInfo then
-            lblPreviewName:SetText(itemInfo.name)
-            lblPreviewCost:SetText(itemInfo.cost .. " очков")
-            if swep then
-                if isstring(swep.Instructions) and swep.Instructions ~= "" then
-                    instructions = swep.Instructions
-                end
-                if swep.WepSelectIcon then
-                    if isstring(swep.WepSelectIcon) and swep.WepSelectIcon ~= "" then
-                        iconMat = Material(swep.WepSelectIcon)
-                    elseif type(swep.WepSelectIcon) == "IMaterial" then
-                        iconMat = swep.WepSelectIcon
-                    end
-                end
-                if not iconMat and isstring(swep.IconOverride) and swep.IconOverride ~= "" then
-                    iconMat = Material(swep.IconOverride)
+    local function SetPreview(kind, id)
+        previewKind, previewId = kind, id
+        UpdatePreviewPanel()
+    end
+
+    local function HoverPreview(btn, kind, id)
+        btn.OnCursorEntered = function()
+            SetPreview(kind, id)
+        end
+    end
+
+    UpdatePreviewPanel = function()
+        local kind, id = previewKind, previewId
+        if not kind or not id then
+            for _, weaponId in ipairs(currentLoadout.weapons) do
+                if TraitorItems[weaponId] then
+                    kind, id = "weapon", weaponId
+                    break
                 end
             end
-        else
-            lblPreviewName:SetText("None")
-            lblPreviewCost:SetText("")
+            if not id and Skillsets[currentLoadout.skillset] then
+                kind, id = "skillset", currentLoadout.skillset
+            end
         end
 
+        local name, costTxt, desc, iconMat = "—", "", "Наведи на предмет или способность.", nil
+
+        if kind == "weapon" and TraitorItems[id] then
+            local info = TraitorItems[id]
+            name = info.name
+            costTxt = info.cost .. " очков"
+            local swep = weapons.GetStored(id)
+            if swep and isstring(swep.Instructions) and swep.Instructions ~= "" then
+                desc = swep.Instructions
+            end
+            iconMat = WepIconMat(id)
+        elseif kind == "addon" and TraitorAddons[id] then
+            local info = TraitorAddons[id]
+            name = info.name
+            costTxt = info.cost .. " очков"
+            desc = "Дополнение."
+            local parentName = TraitorItems[info.parent] and TraitorItems[info.parent].name
+            if parentName then desc = "К " .. parentName .. "." end
+            iconMat = WepIconMat(id) or WepIconMat(info.parent)
+        elseif kind == "skillset" and Skillsets[id] then
+            local info = Skillsets[id]
+            name = info.name
+            costTxt = info.cost .. " очков"
+            desc = info.desc or desc
+        end
+
+        lblPreviewName:SetText(name)
+        lblPreviewCost:SetText(costTxt)
         lblPreviewName:SizeToContentsY()
         lblPreviewCost:SizeToContentsY()
-        lblPreviewDesc:SetText(instructions)
+        lblPreviewDesc:SetText(desc)
         lblPreviewDesc:SetWide(math.max(previewDescScroll:GetWide() - ScreenScale(20), ScreenScale(120)))
         lblPreviewDesc:InvalidateLayout(true)
-
-        if iconMat and not iconMat:IsError() then
-            previewIconMat = iconMat
-        else
-            previewIconMat = nil
-        end
+        previewIconMat = iconMat
     end
 
     local RefreshLoadoutUI
+
+    local bottomPanel = vgui.Create("DPanel", rightPanel)
+    bottomPanel:Dock(BOTTOM)
+    bottomPanel:SetTall(ScreenScale(30))
+    bottomPanel.Paint = function() end
+
+    local btnReturn = vgui.Create("DButton", bottomPanel)
+    btnReturn:Dock(RIGHT)
+    btnReturn:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
+    btnReturn:SetText("НАЗАД")
+    btnReturn:SetFont("ZCity_Veteran")
+    btnReturn:SetTextColor(Color(255, 255, 255))
+    btnReturn:SizeToContentsX()
+    btnReturn:SetWide(btnReturn:GetWide() + ScreenScale(20))
+    btnReturn.Paint = function(s, w, h)
+        local bgColor = s:IsHovered() and Color(150, 150, 150, 150) or Color(50, 50, 50, 150)
+        draw.RoundedBox(0, 0, 0, w, h, bgColor)
+        surface.SetDrawColor(200, 200, 200, 100)
+        surface.DrawOutlinedRect(0, 0, w, h)
+    end
+    btnReturn.DoClick = function()
+        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+        self:SwitchToMain()
+    end
+
+    local btnClear = vgui.Create("DButton", bottomPanel)
+    btnClear:Dock(RIGHT)
+    btnClear:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
+    btnClear:SetText("ОЧИСТИТЬ")
+    btnClear:SetFont("ZCity_Veteran")
+    btnClear:SetTextColor(Color(255, 150, 150))
+    btnClear:SizeToContentsX()
+    btnClear:SetWide(btnClear:GetWide() + ScreenScale(20))
+    btnClear.Paint = function(s, w, h)
+        local bgColor = s:IsHovered() and Color(150, 50, 50, 150) or Color(50, 50, 50, 150)
+        draw.RoundedBox(0, 0, 0, w, h, bgColor)
+        surface.SetDrawColor(200, 100, 100, 100)
+        surface.DrawOutlinedRect(0, 0, w, h)
+    end
+    btnClear.DoClick = function()
+        currentLoadout.weapons = {}
+        currentLoadout.skillset = "none"
+        previewKind, previewId = nil, nil
+        SaveLoadout()
+        RefreshLoadoutUI()
+        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+    end
+
+    local btnGoToPresets = vgui.Create("DButton", bottomPanel)
+    btnGoToPresets:Dock(RIGHT)
+    btnGoToPresets:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
+    btnGoToPresets:SetText("ПРЕСЕТЫ")
+    btnGoToPresets:SetFont("ZCity_Veteran")
+    btnGoToPresets:SetTextColor(Color(255, 255, 255))
+    btnGoToPresets:SizeToContentsX()
+    btnGoToPresets:SetWide(btnGoToPresets:GetWide() + ScreenScale(20))
+    btnGoToPresets.Paint = function(s, w, h)
+        local bgColor = s:IsHovered() and Color(150, 150, 150, 150) or Color(50, 50, 50, 150)
+        draw.RoundedBox(0, 0, 0, w, h, bgColor)
+        surface.SetDrawColor(200, 200, 200, 100)
+        surface.DrawOutlinedRect(0, 0, w, h)
+    end
+    btnGoToPresets.DoClick = function()
+        if self.LastSwitchTime and CurTime() - self.LastSwitchTime < 1 then return end
+        self.LastSwitchTime = CurTime()
+        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+        self:SwitchToTraitorPresets()
+    end
 
     -- === LEFT PANEL: PRESETS ===
     local presetsBottomPanel = vgui.Create("DPanel", leftPanel)
@@ -2051,7 +2007,7 @@ function PANEL:CreateTraitorMenuPanel()
     local btnPresetsReturn = vgui.Create("DButton", presetsBottomPanel)
     btnPresetsReturn:Dock(RIGHT)
     btnPresetsReturn:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
-    btnPresetsReturn:SetText("RETURN")
+    btnPresetsReturn:SetText("НАЗАД")
     btnPresetsReturn:SetFont("ZCity_Veteran")
     btnPresetsReturn:SetTextColor(Color(255, 255, 255))
     btnPresetsReturn:SizeToContentsX()
@@ -2070,7 +2026,7 @@ function PANEL:CreateTraitorMenuPanel()
     local btnGoToLoadout = vgui.Create("DButton", presetsBottomPanel)
     btnGoToLoadout:Dock(RIGHT)
     btnGoToLoadout:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
-    btnGoToLoadout:SetText("LOADOUT")
+    btnGoToLoadout:SetText("СНАРЯЖЕНИЕ")
     btnGoToLoadout:SetFont("ZCity_Veteran")
     btnGoToLoadout:SetTextColor(Color(255, 255, 255))
     btnGoToLoadout:SizeToContentsX()
@@ -2107,7 +2063,9 @@ function PANEL:CreateTraitorMenuPanel()
 
     local function LoadPresets()
         local data = file.Read("meleecity_traitor_presets.txt", "DATA")
-        if data then return util.JSONToTable(data) or {} end
+        if not isstring(data) or data == "" then return {} end
+        local ok, tbl = pcall(util.JSONToTable, data)
+        if ok and istable(tbl) then return tbl end
         return {}
     end
     local function SavePresets(presets)
@@ -2187,10 +2145,11 @@ function PANEL:CreateTraitorMenuPanel()
             end
             btnLoad.DoClick = function()
                 currentLoadout = SanitizeLoadout(table.Copy(preset.loadout or {}))
-                previewWeaponId = nil
+                previewKind, previewId = nil, nil
                 SaveLoadout()
                 RefreshLoadoutUI()
                 sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+                self:SwitchToTraitorMenu()
             end
         end
     end
@@ -2280,6 +2239,7 @@ function PANEL:CreateTraitorMenuPanel()
                     draw.SimpleText("+", "ZCity_Veteran", w - ScreenScale(5), h / 2, Color(255, 70, 70), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
                 end
             end
+            HoverPreview(btn, "skillset", id)
             btn.DoClick = function()
                 local oldSkillset = currentLoadout.skillset
                 local costDiff = info.cost - (Skillsets[oldSkillset] and Skillsets[oldSkillset].cost or 0)
@@ -2288,6 +2248,7 @@ function PANEL:CreateTraitorMenuPanel()
                     return
                 end
                 currentLoadout.skillset = id
+                SetPreview("skillset", id)
                 SaveLoadout()
                 RefreshLoadoutUI()
                 sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
@@ -2318,11 +2279,7 @@ function PANEL:CreateTraitorMenuPanel()
                     draw.SimpleText("+", "ZCity_Veteran", w - ScreenScale(5), h / 2, Color(255, 70, 70), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
                 end
             end
-            btn.DoRightClick = function()
-                previewWeaponId = id
-                UpdatePreviewPanel()
-                sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-            end
+            HoverPreview(btn, "weapon", id)
             btn.DoClick = function()
                 local isDisabled = not table.HasValue(currentLoadout.weapons, id) and HasWeaponConflict(currentLoadout.weapons, id)
                 if isDisabled then
@@ -2337,8 +2294,8 @@ function PANEL:CreateTraitorMenuPanel()
                             table.RemoveByValue(currentLoadout.weapons, addonId)
                         end
                     end
-                    if previewWeaponId == id then
-                        previewWeaponId = nil
+                    if previewKind == "weapon" and previewId == id then
+                        previewKind, previewId = nil, nil
                     end
                 else
                     if currentPoints + info.cost > maxPoints then
@@ -2346,7 +2303,7 @@ function PANEL:CreateTraitorMenuPanel()
                         return
                     end
                     table.insert(currentLoadout.weapons, id)
-                    previewWeaponId = id
+                    SetPreview("weapon", id)
                 end
                 SaveLoadout()
                 RefreshLoadoutUI()
@@ -2375,6 +2332,7 @@ function PANEL:CreateTraitorMenuPanel()
                                 draw.SimpleText("+", "ZCity_Veteran", w - ScreenScale(5), h / 2, Color(255, 70, 70), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
                             end
                         end
+                        HoverPreview(addonBtn, "addon", addonId)
                         addonBtn.DoClick = function()
                             if not table.HasValue(currentLoadout.weapons, id) then
                                 surface.PlaySound("buttons/button10.wav")
@@ -2389,7 +2347,7 @@ function PANEL:CreateTraitorMenuPanel()
                                 end
                                 table.insert(currentLoadout.weapons, addonId)
                             end
-                            previewWeaponId = id
+                            SetPreview("addon", addonId)
                             SaveLoadout()
                             RefreshLoadoutUI()
                             sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
@@ -2400,74 +2358,6 @@ function PANEL:CreateTraitorMenuPanel()
         end
     end
     RefreshLoadoutUI()
-
-    local bottomPanel = vgui.Create("DPanel", rightPanel)
-    bottomPanel:Dock(BOTTOM)
-    bottomPanel:SetTall(ScreenScale(30))
-    bottomPanel.Paint = function() end
-
-    local btnReturn = vgui.Create("DButton", bottomPanel)
-    btnReturn:Dock(RIGHT)
-    btnReturn:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
-    btnReturn:SetText("НАЗАД")
-    btnReturn:SetFont("ZCity_Veteran")
-    btnReturn:SetTextColor(Color(255, 255, 255))
-    btnReturn:SizeToContentsX()
-    btnReturn:SetWide(btnReturn:GetWide() + ScreenScale(20))
-    btnReturn.Paint = function(s, w, h)
-        local bgColor = s:IsHovered() and Color(150, 150, 150, 150) or Color(50, 50, 50, 150)
-        draw.RoundedBox(0, 0, 0, w, h, bgColor)
-        surface.SetDrawColor(200, 200, 200, 100)
-        surface.DrawOutlinedRect(0, 0, w, h)
-    end
-    btnReturn.DoClick = function()
-        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-        self:SwitchToMain()
-    end
-
-    local btnClear = vgui.Create("DButton", bottomPanel)
-    btnClear:Dock(RIGHT)
-    btnClear:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
-    btnClear:SetText("ОЧИСТИТЬ")
-    btnClear:SetFont("ZCity_Veteran")
-    btnClear:SetTextColor(Color(255, 150, 150))
-    btnClear:SizeToContentsX()
-    btnClear:SetWide(btnClear:GetWide() + ScreenScale(20))
-    btnClear.Paint = function(s, w, h)
-        local bgColor = s:IsHovered() and Color(150, 50, 50, 150) or Color(50, 50, 50, 150)
-        draw.RoundedBox(0, 0, 0, w, h, bgColor)
-        surface.SetDrawColor(200, 100, 100, 100)
-        surface.DrawOutlinedRect(0, 0, w, h)
-    end
-    btnClear.DoClick = function()
-        currentLoadout.weapons = {}
-        currentLoadout.skillset = "none"
-        previewWeaponId = nil
-        SaveLoadout()
-        RefreshLoadoutUI()
-        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-    end
-
-    local btnGoToPresets = vgui.Create("DButton", bottomPanel)
-    btnGoToPresets:Dock(RIGHT)
-    btnGoToPresets:DockMargin(0, ScreenScale(5), ScreenScale(10), ScreenScale(5))
-    btnGoToPresets:SetText("ПРЕСЕТЫ")
-    btnGoToPresets:SetFont("ZCity_Veteran")
-    btnGoToPresets:SetTextColor(Color(255, 255, 255))
-    btnGoToPresets:SizeToContentsX()
-    btnGoToPresets:SetWide(btnGoToPresets:GetWide() + ScreenScale(20))
-    btnGoToPresets.Paint = function(s, w, h)
-        local bgColor = s:IsHovered() and Color(150, 150, 150, 150) or Color(50, 50, 50, 150)
-        draw.RoundedBox(0, 0, 0, w, h, bgColor)
-        surface.SetDrawColor(200, 200, 200, 100)
-        surface.DrawOutlinedRect(0, 0, w, h)
-    end
-    btnGoToPresets.DoClick = function()
-        if self.LastSwitchTime and CurTime() - self.LastSwitchTime < 1 then return end
-        self.LastSwitchTime = CurTime()
-        sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-        self:SwitchToTraitorPresets()
-    end
 end
 
 function PANEL:CreateAppearancePanel()

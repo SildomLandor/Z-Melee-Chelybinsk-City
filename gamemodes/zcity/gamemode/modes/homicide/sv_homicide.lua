@@ -1604,37 +1604,21 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                 MODE.Types.supermario.CustomJump(current_ply)
             end
 
-            local sub_role = nil
             if(spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type])then
-                if(current_ply.isTraitor)then
-                    local sub_role_id = MODE.Type == "soe" and (current_ply:GetInfo(MODE.ConVarName_SubRole_Traitor_SOE) or "traitor_default_soe") or (current_ply:GetInfo(MODE.ConVarName_SubRole_Traitor) or "traitor_default")
-					sub_role = sub_role_id
-                end
-
                 if(current_ply.isGunner)then
                     MODE.Types[MODE.Type].GunManLoot(current_ply)
                 end
 
-                if(sub_role)then
-                    if(current_ply.isGunner)then
-
-                    elseif(current_ply.isTraitor)then
-                        local role_info = MODE.SubRoles[sub_role]
-                        if(!role_info or !MODE.RoleChooseRoundTypes[MODE.Type].Traitor[sub_role])then
-                            sub_role = MODE.RoleChooseRoundTypes[MODE.Type].TraitorDefaultRole or "traitor_default"
-                            role_info = MODE.SubRoles[sub_role]
-                        end
-
-                        if(current_ply.MainTraitor)then
-                            local spawn_func = role_info.SpawnFunction
-                            current_ply.SubRole = sub_role
-                            spawn_func(current_ply)
-                        end
-                    end
+                if(current_ply.isTraitor and current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
+                    MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
                 end
             else
                 if(current_ply.isTraitor)then
-                    MODE.Types[MODE.Type].TraitorLoot(current_ply)
+                    if(current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
+                        MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
+                    else
+                        MODE.Types[MODE.Type].TraitorLoot(current_ply)
+                    end
                 end
 
                 if(current_ply.isGunner)then
