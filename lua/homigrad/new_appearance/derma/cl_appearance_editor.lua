@@ -15,6 +15,60 @@ colors.scrollbarGripHover = Color(100, 100, 130, 255)
 colors.scrollbarBorder = Color(100, 100, 120, 200)
 
 local presetsDir = "zcity/appearances/presets/"
+local menuBtnPadding = ScreenScale(4)
+
+local function PaintMenuLabel(s, w, h)
+	local font = s:GetFont()
+	local text = s:GetText()
+	surface.SetFont(font)
+	local tw = surface.GetTextSize(text)
+	local totalW = tw + menuBtnPadding * 2
+
+	if s:IsHovered() then
+		if not s.HoveredSoundPlayed then
+			sound.PlayFile("sound/hover.ogg", "noblock", function(station) if IsValid(station) then station:Play() end end)
+			s.HoveredSoundPlayed = true
+		end
+
+		local alpha = 255
+		if math.random() > 0.9 then alpha = math.random(50, 200) end
+
+		surface.SetDrawColor(255, 255, 255, alpha)
+		surface.DrawRect(0, 0, totalW, h)
+		s:SetTextColor(Color(0, 0, 0, alpha))
+	else
+		s.HoveredSoundPlayed = false
+		s:SetTextColor(Color(255, 255, 255))
+	end
+
+	local offX, offY = 0, 0
+	if math.random() > 0.9 then
+		offX = math.random(-2, 2)
+		offY = math.random(-2, 2)
+	end
+
+	draw.SimpleText(text, font, menuBtnPadding + offX, h / 2 + offY, s:GetTextColor(), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+	if s:IsHovered() and math.random() > 0.7 then
+		draw.SimpleText(text, font, menuBtnPadding + math.random(-5, 5), h / 2 + math.random(-2, 2), Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+	end
+
+	return true
+end
+
+local function WireMenuLabel(btn, onClick)
+	btn:SetMouseInputEnabled(true)
+	btn:SetCursor("hand")
+
+	function btn:DoClick()
+		sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
+		if onClick then onClick() end
+	end
+
+	function btn:OnMousePressed(mc)
+		if mc == MOUSE_LEFT then self:DoClick() end
+	end
+end
 
 local function SavePreset(strName, tblAppearance)
 	file.CreateDir(presetsDir)
@@ -136,13 +190,13 @@ local function CreateStyledListMenu(title)
         draw.SimpleText(string.upper(title or ""), "ZCity_Veteran", ScreenScale(4), ScreenScale(8), Color(220, 220, 220), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
 
-    local closeBtn = vgui.Create("DButton", menu)
+    local closeBtn = vgui.Create("DLabel", menu)
     closeBtn:SetSize(ScreenScale(12), ScreenScale(12))
     closeBtn:SetPos(menu:GetWide() - ScreenScale(12), 0)
     closeBtn:SetText("X")
     closeBtn:SetFont("ZCity_Tiny")
     closeBtn:SetTextColor(Color(200, 200, 200))
-    closeBtn.DoClick = function() menu:Remove() end
+    closeBtn:SetContentAlignment(5)
     closeBtn.Paint = function(s, w, h)
         if s:IsHovered() then
             surface.SetDrawColor(255, 0, 0, 255)
@@ -151,46 +205,33 @@ local function CreateStyledListMenu(title)
         else
             s:SetTextColor(Color(200, 200, 200))
         end
+        draw.SimpleText("X", s:GetFont(), w / 2, h / 2, s:GetTextColor(), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        return true
     end
+    WireMenuLabel(closeBtn, function() menu:Remove() end)
 
     local scroll = CreateStyledScrollPanel(menu)
     scroll:Dock(FILL)
     scroll:DockMargin(ScreenScale(10), ScreenScale(16), ScreenScale(10), ScreenScale(10))
+    scroll:SetMouseInputEnabled(true)
     menu.ScrollPanel = scroll
 
     function menu:AddOption(text, onClick)
-        local btn = vgui.Create("DButton", self.ScrollPanel)
+        local btn = vgui.Create("DLabel", self.ScrollPanel)
         btn:SetText(text)
         btn:SetFont("ZCity_Veteran")
-        btn:SetTall(ScreenScale(16))
+        btn:SetTextColor(Color(255, 255, 255))
+        btn:SetContentAlignment(4)
         btn:Dock(TOP)
         btn:DockMargin(0, 0, 0, ScreenScale(4))
-        btn:SetTextColor(Color(255, 255, 255))
-        btn.DoClick = function()
+        btn:SizeToContents()
+        btn:SetWide(btn:GetWide() + ScreenScale(8))
+        btn:SetTall(math.max(ScreenScale(16), btn:GetTall()))
+        btn.Paint = PaintMenuLabel
+        WireMenuLabel(btn, function()
             if onClick then onClick() end
-            surface.PlaySound("player/weapon_draw_0"..math.random(2, 5)..".wav")
             if IsValid(menu) then menu:Remove() end
-        end
-        btn.Paint = function(s, w, h)
-            s.HoverLerp = LerpFT(0.2, s.HoverLerp or 0, s:IsHovered() and 1 or 0)
-            local slideOffset = s.HoverLerp * ScreenScale(6)
-            if s:IsHovered() then
-                surface.SetDrawColor(255, 255, 255, 255)
-                surface.DrawRect(slideOffset, 0, w, h)
-                s:SetTextColor(Color(0, 0, 0))
-            else
-                s:SetTextColor(Color(255, 255, 255))
-            end
-            s:SetTextColor(Color(0,0,0,0))
-            local textColor = s:IsHovered() and Color(0,0,0) or Color(255,255,255)
-            draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2), h/2, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            if s:IsHovered() and math.random() > 0.7 then
-                local offsetX = math.random(-2, 2)
-                local offsetY = math.random(-2, 2)
-                draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2) + offsetX, h/2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            end
-            return true
-        end
+        end)
         return btn
     end
 
@@ -220,13 +261,13 @@ local function CreateStyledAccessoryMenu(parent, title)
 		draw.SimpleText(string.upper(title or ""), "ZCity_Veteran", ScreenScale(4), ScreenScale(8), Color(220, 220, 220), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 	end
 
-	local closeBtn = vgui.Create("DButton", menu)
+	local closeBtn = vgui.Create("DLabel", menu)
 	closeBtn:SetSize(ScreenScale(12), ScreenScale(12))
 	closeBtn:SetPos(menu:GetWide() - ScreenScale(12), 0)
 	closeBtn:SetText("X")
 	closeBtn:SetFont("ZCity_Tiny")
 	closeBtn:SetTextColor(Color(200, 200, 200))
-	closeBtn.DoClick = function() menu:Remove() end
+	closeBtn:SetContentAlignment(5)
 	closeBtn.Paint = function(s, w, h)
 		if s:IsHovered() then
 			surface.SetDrawColor(255, 0, 0, 255)
@@ -235,7 +276,10 @@ local function CreateStyledAccessoryMenu(parent, title)
 		else
 			s:SetTextColor(Color(200, 200, 200))
 		end
+		draw.SimpleText("X", s:GetFont(), w / 2, h / 2, s:GetTextColor(), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		return true
 	end
+	WireMenuLabel(closeBtn, function() menu:Remove() end)
 
 	local scroll = CreateStyledScrollPanel(menu)
 	scroll:Dock(FILL)
@@ -474,6 +518,65 @@ function PANEL:PostInit()
 		end
 	end
 
+	local function getCurMdl()
+		return APmodule.PlayerModels[1][main.AppearanceTable.AModel] or APmodule.PlayerModels[2][main.AppearanceTable.AModel]
+	end
+
+	local function OpenStyledTextMenu(title, posID, build)
+		main.modelPosID = posID
+		CloseAllOpenMenus()
+		local menu = CreateStyledListMenu(title)
+		if build then build(menu) end
+		bindMenuClose(menu)
+	end
+
+	local function OpenBodygroupMenu(title, bgKey, posID)
+		OpenStyledTextMenu(title, posID, function(menu)
+			local mdl = getCurMdl()
+			if not mdl then
+				menu:AddOption("Нет модели", function() end)
+				return
+			end
+
+			local sexTable = hg.Appearance.Bodygroups[bgKey] and hg.Appearance.Bodygroups[bgKey][mdl.sex and 2 or 1]
+			if not sexTable or not next(sexTable) then
+				menu:AddOption("Нет вариантов", function() end)
+				return
+			end
+
+			for name, _ in SortedPairs(sexTable) do
+				menu:AddOption(name, function()
+					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
+					main.AppearanceTable.ABodygroups[bgKey] = name
+				end)
+			end
+		end)
+	end
+
+	local function OpenClothesMenu(title, slot, posID)
+		OpenStyledTextMenu(title, posID, function(menu)
+			local mdl = getCurMdl()
+			if not mdl then
+				menu:AddOption("Нет модели", function() end)
+				return
+			end
+
+			local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
+			if not clothes then
+				menu:AddOption("Нет вариантов", function() end)
+				return
+			end
+
+			for k, _ in SortedPairs(clothes) do
+				local clothName = string.NiceName(string.Replace(k, "_", " "))
+				menu:AddOption(clothName, function()
+					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
+					main.AppearanceTable.AClothes[slot] = k
+				end)
+			end
+		end)
+	end
+
 	local tMdl = APmodule.PlayerModels[1][self.AppearanceTable.AModel] or APmodule.PlayerModels[2][self.AppearanceTable.AModel]
 	if not tMdl then
 		local fallbackName, fallbackMdl = table.Random(APmodule.PlayerModels[1])
@@ -484,7 +587,9 @@ function PANEL:PostInit()
 	-- Fullscreen Model Viewer
 	local viewer = vgui.Create("DModelPanel", self)
 	viewer:Dock(FILL)
+	viewer:SetZPos(0)
 	viewer:SetMouseInputEnabled(false)
+	viewer:SetKeyboardInputEnabled(false)
 	viewer:SetModel(util.IsValidModel(tostring(tMdl.mdl)) and tostring(tMdl.mdl) or "models/player/group01/female_01.mdl")
 	viewer:SetFOV(60)
 	viewer:SetLookAng(Angle(11, 180, 0))
@@ -502,6 +607,8 @@ function PANEL:PostInit()
 	local controlsTop = ScreenScale(60)
 	controls:SetSize(ScreenScale(140), ScrH() - controlsTop)
 	controls:SetPos(ScreenScale(20), controlsTop)
+	controls:SetZPos(20)
+	controls:SetMouseInputEnabled(true)
 	controls.Paint = function(_, w, h)
 		surface.SetDrawColor(0, 0, 0, 170)
 		surface.DrawRect(0, 0, w, h)
@@ -510,6 +617,7 @@ function PANEL:PostInit()
 	local content = vgui.Create("DScrollPanel", controls)
 	content:Dock(FILL)
 	content:DockMargin(0, ScreenScale(20), 0, ScreenScale(40))
+	content:SetMouseInputEnabled(true)
 	local sbar = content:GetVBar()
 	sbar:SetWide(0)
 
@@ -517,6 +625,8 @@ function PANEL:PostInit()
 	local presetControls = vgui.Create("DPanel", self)
 	presetControls:SetSize(ScreenScale(140), ScrH() - controlsTop)
 	presetControls:SetPos(ScrW() - ScreenScale(160), controlsTop)
+	presetControls:SetZPos(20)
+	presetControls:SetMouseInputEnabled(true)
 	presetControls.Paint = function(_, w, h)
 		surface.SetDrawColor(0, 0, 0, 170)
 		surface.DrawRect(0, 0, w, h)
@@ -525,6 +635,7 @@ function PANEL:PostInit()
 	local presetContent = vgui.Create("DScrollPanel", presetControls)
 	presetContent:Dock(FILL)
 	presetContent:DockMargin(0, ScreenScale(20), 0, ScreenScale(40))
+	presetContent:SetMouseInputEnabled(true)
 	local psbar = presetContent:GetVBar()
 	psbar:SetWide(0)
 
@@ -627,53 +738,19 @@ function PANEL:PostInit()
 
 	function viewer.Entity:GetPlayerColor() return end
 
-	-- Control button creator
 	local function CreateControlBtn(text, func, parent)
-		local btn = vgui.Create("DButton", parent or content)
+		local btn = vgui.Create("DLabel", parent or content)
 		btn:SetText(text)
 		btn:SetFont("ZCity_Veteran")
-		btn:Dock(TOP)
-		btn:DockMargin(0, 0, 0, ScreenScale(6))
-		btn:SetTall(ScreenScale(18))
 		btn:SetTextColor(Color(255, 255, 255))
 		btn:SetContentAlignment(4)
-		btn.DoClick = func
-		btn.HoverLerp = 0
-
-		btn.Paint = function(s, w, h)
-			s.HoverLerp = LerpFT(0.2, s.HoverLerp or 0, s:IsHovered() and 1 or 0)
-			local slideOffset = s.HoverLerp * ScreenScale(10)
-
-			surface.SetDrawColor(25, 25, 30, 200)
-			surface.DrawRect(0, 0, w, h)
-
-			if s:IsHovered() then
-				if not s.HoveredSoundPlayed then
-					sound.PlayFile("sound/hover.ogg", "noblock", function(station) if IsValid(station) then station:Play() end end)
-					s.HoveredSoundPlayed = true
-				end
-
-				surface.SetDrawColor(255, 255, 255, 255)
-				surface.DrawRect(slideOffset, 0, w, h)
-				s:SetTextColor(Color(0, 0, 0))
-			else
-				s.HoveredSoundPlayed = false
-				s:SetTextColor(Color(255, 255, 255))
-			end
-
-			s:SetTextColor(Color(0, 0, 0, 0))
-			local textColor = s:IsHovered() and Color(0, 0, 0) or Color(255, 255, 255)
-			draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2), h / 2, textColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-
-			if s:IsHovered() and math.random() > 0.7 then
-				local offsetX = math.random(-2, 2)
-				local offsetY = math.random(-2, 2)
-				draw.SimpleText(text, s:GetFont(), slideOffset + ScreenScale(2) + offsetX, h / 2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-			end
-
-			return true
-		end
-
+		btn:Dock(TOP)
+		btn:DockMargin(0, 0, 0, ScreenScale(6))
+		btn:SizeToContents()
+		btn:SetWide(btn:GetWide() + ScreenScale(8))
+		btn:SetTall(math.max(ScreenScale(18), btn:GetTall()))
+		btn.Paint = PaintMenuLabel
+		WireMenuLabel(btn, func)
 		return btn
 	end
 
@@ -782,164 +859,84 @@ function PANEL:PostInit()
 
 	-- Torso Bodygroup
 	CreateControlBtn("ТОРС", function()
-		main.modelPosID = "Torso"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-		local bgKey = "TORSO"
-		local sexTable = hg.Appearance.Bodygroups[bgKey] and hg.Appearance.Bodygroups[bgKey][tMdl.sex and 2 or 1]
-		if sexTable then
-			for name, data in SortedPairs(sexTable) do
-				menu:AddOption(name, function()
-					surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
-					main.AppearanceTable.ABodygroups[bgKey] = name
-				end)
-			end
-		else
-			menu:AddOption("No options", function() end):SetEnabled(false)
-		end
-		menu:Open()
-		bindMenuClose(menu)
+		OpenBodygroupMenu("Торс", "TORSO", "Torso")
 	end)
 
 	-- Legs/Boots Bodygroup
 	CreateControlBtn("НОГИ", function()
-		main.modelPosID = "Legs"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-		local bgKey = "LEGS"
-		local sexTable = hg.Appearance.Bodygroups[bgKey] and hg.Appearance.Bodygroups[bgKey][tMdl.sex and 2 or 1]
-		if sexTable then
-			for name, data in SortedPairs(sexTable) do
-				menu:AddOption(name, function()
-					surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
-					main.AppearanceTable.ABodygroups[bgKey] = name
-				end)
-			end
-		else
-			menu:AddOption("No options", function() end):SetEnabled(false)
-		end
-		menu:Open()
-		bindMenuClose(menu)
+		OpenBodygroupMenu("Ноги", "LEGS", "Legs")
 	end)
 
 	-- Gloves (HANDS Bodygroup)
 	CreateControlBtn("ПЕРЧАТКИ", function()
-		main.modelPosID = "Hands"
-		CloseAllOpenMenus()
-		local menu = CreateStyledAccessoryMenu(nil, "Gloves")
-		local tModel = APmodule.PlayerModels[1][main.AppearanceTable.AModel] or APmodule.PlayerModels[2][main.AppearanceTable.AModel]
-		local sexIndex = tModel and (tModel.sex and 2 or 1) or 1
-		local bodygroups = hg.Appearance.Bodygroups and hg.Appearance.Bodygroups.HANDS and hg.Appearance.Bodygroups.HANDS[sexIndex]
-		if bodygroups then
-			for name, data in SortedPairs(bodygroups) do
-				local itemData = hg.PointShop and hg.PointShop.Items[data.ID]
-				if itemData then
-					menu:AddAccessoryIcon(itemData.Model or "models/zcity/gloves/degloves.mdl", name, nil, function(key)
-						main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
-						main.AppearanceTable.ABodygroups.HANDS = key
-					end)
-				end
-			end
-		end
-		bindMenuClose(menu)
+		OpenBodygroupMenu("Перчатки", "HANDS", "Hands")
 	end)
 
 	-- Facemap
 	CreateControlBtn("ЛИЦО (текстура)", function()
-		main.modelPosID = "Face"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-		local facemaps = hg.Appearance.FacemapsSlots and hg.Appearance.FacemapsModels and hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {}
-		for k, v in SortedPairs(facemaps) do
-			menu:AddOption(k, function()
-				surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-				main.AppearanceTable.AFacemap = k
-			end)
-		end
-		menu:Open()
-		bindMenuClose(menu)
+		OpenStyledTextMenu("Лицо (текстура)", "Face", function(menu)
+			local mdl = getCurMdl()
+			if not mdl then
+				menu:AddOption("Нет модели", function() end)
+				return
+			end
+
+			local facemapKey = hg.Appearance.FacemapsModels and hg.Appearance.FacemapsModels[mdl.mdl]
+			local facemaps = facemapKey and hg.Appearance.FacemapsSlots and hg.Appearance.FacemapsSlots[facemapKey] or {}
+			if not next(facemaps) then
+				menu:AddOption("Нет вариантов", function() end)
+				return
+			end
+
+			for k, _ in SortedPairs(facemaps) do
+				menu:AddOption(k, function()
+					main.AppearanceTable.AFacemap = k
+				end)
+			end
+		end)
 	end)
 
 	-- Jacket (main clothes)
 	CreateControlBtn("ВЕРХ", function()
-		main.modelPosID = "Torso"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-		local colorSelector = vgui.Create("DColorCombo", menu)
-
-		function colorSelector:OnValueChanged(clr)
-			main.AppearanceTable.AColor = clr
-		end
-
-		colorSelector:SetColor(main.AppearanceTable.AColor)
-		menu:AddPanel(colorSelector)
-
-		for k, v in pairs(hg.Appearance.Clothes[tMdl.sex and 2 or 1]) do
-			local clothName = string.NiceName(string.Replace(k, "_", " "))
-			local mater = menu:AddOption(clothName, function()
-				surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-				main.AppearanceTable.AClothes.main = k
-			end)
-
-			if hg.Appearance.ClothesDesc and hg.Appearance.ClothesDesc[k] then
-				mater:SetTooltip(hg.Appearance.ClothesDesc[k].desc or "")
-				if hg.Appearance.ClothesDesc[k].link then
-					function mater:DoRightClick()
-						gui.OpenURL(hg.Appearance.ClothesDesc[k].link)
-					end
-				end
+		OpenStyledTextMenu("Верх", "Torso", function(menu)
+			local colorSelector = vgui.Create("DColorCombo")
+			colorSelector:SetTall(ScreenScale(20))
+			function colorSelector:OnValueChanged(clr)
+				main.AppearanceTable.AColor = clr
 			end
-		end
+			colorSelector:SetColor(main.AppearanceTable.AColor)
+			menu:AddPanel(colorSelector)
 
-		menu:Open()
-		bindMenuClose(menu)
+			local mdl = getCurMdl()
+			if not mdl then
+				menu:AddOption("Нет модели", function() end)
+				return
+			end
+
+			local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
+			if not clothes then
+				menu:AddOption("Нет вариантов", function() end)
+				return
+			end
+
+			for k, _ in SortedPairs(clothes) do
+				local clothName = string.NiceName(string.Replace(k, "_", " "))
+				menu:AddOption(clothName, function()
+					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
+					main.AppearanceTable.AClothes.main = k
+				end)
+			end
+		end)
 	end)
 
 	-- Pants
 	CreateControlBtn("НИЗ", function()
-		main.modelPosID = "Legs"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-
-		for k, v in pairs(hg.Appearance.Clothes[tMdl.sex and 2 or 1]) do
-			local clothName = string.NiceName(string.Replace(k, "_", " "))
-			local mater = menu:AddOption(clothName, function()
-				surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-				main.AppearanceTable.AClothes.pants = k
-			end)
-
-			if hg.Appearance.ClothesDesc and hg.Appearance.ClothesDesc[k] then
-				mater:SetTooltip(hg.Appearance.ClothesDesc[k].desc or "")
-				if hg.Appearance.ClothesDesc[k].link then
-					function mater:DoRightClick()
-						gui.OpenURL(hg.Appearance.ClothesDesc[k].link)
-					end
-				end
-			end
-		end
-
-		menu:Open()
-		bindMenuClose(menu)
+		OpenClothesMenu("Низ", "pants", "Legs")
 	end)
 
 	-- Boots
 	CreateControlBtn("ОБУВЬ", function()
-		main.modelPosID = "Boots"
-		CloseAllOpenMenus()
-		local menu = DermaMenu()
-
-		for k, v in pairs(hg.Appearance.Clothes[tMdl.sex and 2 or 1]) do
-			local clothName = string.NiceName(string.Replace(k, "_", " "))
-			local mater = menu:AddOption(clothName, function()
-				surface.PlaySound("player/weapon_draw_0" .. math.random(2, 5) .. ".wav")
-				main.AppearanceTable.AClothes.boots = k
-			end)
-		end
-
-		menu:Open()
-		bindMenuClose(menu)
+		OpenClothesMenu("Обувь", "boots", "Boots")
 	end)
 
 	-- Spacer
@@ -951,63 +948,22 @@ function PANEL:PostInit()
 	-- Return Button
 	local returnBtn = vgui.Create("DLabel", self)
 	returnBtn:SetText("назад")
-	returnBtn:SetMouseInputEnabled(true)
 	returnBtn:SetFont("ZCity_Veteran")
-	returnBtn:SetTall(ScreenScale(18))
-	returnBtn:SizeToContents()
-	local padding = ScreenScale(4)
-	returnBtn:SetWide(returnBtn:GetWide() + padding * 2)
-	returnBtn:SetPos(ScreenScale(20), ScrH() - ScreenScale(40))
 	returnBtn:SetTextColor(Color(255, 255, 255))
-
-	returnBtn.DoClick = function()
+	returnBtn:SetContentAlignment(4)
+	returnBtn:SizeToContents()
+	returnBtn:SetWide(returnBtn:GetWide() + ScreenScale(8))
+	returnBtn:SetTall(math.max(ScreenScale(18), returnBtn:GetTall()))
+	returnBtn:SetPos(ScreenScale(20), ScrH() - ScreenScale(40))
+	returnBtn:SetZPos(30)
+	returnBtn.Paint = PaintMenuLabel
+	WireMenuLabel(returnBtn, function()
 		CloseAllOpenMenus()
 		if main.Close then main:Close() end
-		sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
-	end
+	end)
 
 	function main:OnRemove()
 		CloseAllOpenMenus()
-	end
-
-	returnBtn.Paint = function(self, w, h)
-		local font = self:GetFont()
-		local text = self:GetText()
-		surface.SetFont(font)
-		local tw, th = surface.GetTextSize(text)
-
-		if self:IsHovered() then
-			if not self.HoveredSoundPlayed then
-				sound.PlayFile("sound/hover.ogg", "noblock", function(station) if IsValid(station) then station:Play() end end)
-				self.HoveredSoundPlayed = true
-			end
-
-			local alpha = 255
-			if math.random() > 0.9 then alpha = math.random(50, 200) end
-
-			surface.SetDrawColor(255, 255, 255, alpha)
-			surface.DrawRect(padding, 0, tw, h)
-			self:SetTextColor(Color(0, 0, 0, alpha))
-		else
-			self.HoveredSoundPlayed = false
-			self:SetTextColor(Color(255, 255, 255))
-		end
-
-		local offX, offY = 0, 0
-		if math.random() > 0.9 then
-			offX = math.random(-2, 2)
-			offY = math.random(-2, 2)
-		end
-
-		draw.SimpleText(text, font, padding + offX, h / 2 + offY, self:GetTextColor(), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-
-		if self:IsHovered() and math.random() > 0.7 then
-			local offsetX = math.random(-5, 5)
-			local offsetY = math.random(-2, 2)
-			draw.SimpleText(text, font, padding + offsetX, h / 2 + offsetY, Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-		end
-
-		return true
 	end
 
 	-- Presets (Right Side)
@@ -1105,9 +1061,9 @@ function PANEL:PostInit()
 		end
 	end, presetContent)
 
+	returnBtn:MoveToFront()
 	controls:MoveToFront()
 	presetControls:MoveToFront()
-	returnBtn:MoveToFront()
 
 	self:CallbackAppearance()
 end
