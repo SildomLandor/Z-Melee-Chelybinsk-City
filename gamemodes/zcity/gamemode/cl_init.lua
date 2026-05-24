@@ -1397,6 +1397,7 @@ function GM:ScoreboardShow()
 		for _, ply in player.Iterator() do
 			local mode = CurrentRound()
 			if mode and mode.name == "fear" and not ply:Alive() then continue end
+			if zb.ROUND_STATE == 1 and lply:Alive() and not ply:Alive() and ply:Team() ~= TEAM_SPECTATOR then continue end
 			if disappearance and ply ~= lply then continue end
 			if ply:Team() == TEAM_SPECTATOR then
 				specs[#specs + 1] = ply

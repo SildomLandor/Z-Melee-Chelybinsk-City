@@ -43,7 +43,7 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		hg.approach_vector = approach_vector
 	--//
 
-	local hg_movement_stamina_debuff = CreateConVar("hg_movement_stamina_debuff", "0.25", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply movement debuff when having low stamina", 0, 1)
+	local hg_movement_stamina_debuff = CreateConVar("hg_movement_stamina_debuff", "0.45", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply movement debuff when having low stamina", 0, 1)
 	local hg_inertiamul = CreateConVar("hg_inertiamul", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply inertia for player movement", 0.01, 5)
 	local hg_inertiaenabled = CreateConVar("hg_inertiaenabled", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Enable inertia", 0, 1)
 	local hg_divejump = CreateConVar("hg_divejump", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Toggle dive jumps on crouch jump", 0, 1)
@@ -281,22 +281,16 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 
 		ply.MovementInertia = ply.MovementInertia or vel
 
-		--\\ Side & back running debuffs
+		--\\ backpedal only (strafe no longer eats a third of speed)
 			fm = fm / math.abs(fm ~= 0 and fm or 1)
 			sm = sm / math.abs(sm ~= 0 and sm or 1)
-			local movement_penalty = math.abs(sm * (runnin and 1.15 or 1.5))
+			local movement_penalty = 1
 
-			if(movement_penalty == 0)then
-				movement_penalty = 1
+			if fm < 0 then
+				movement_penalty = runnin and 1.12 or 1.28
 			end
 
-			if(fm < 0)then
-				movement_penalty = math.max(movement_penalty, runnin and 1.25 or 1.6)
-			end
-
-			--if(CLIENT)then
-				speed = speed / movement_penalty
-			--end
+			speed = speed / movement_penalty
 		--//
 
 		local inertia_to = calc_forward_side_moves_to_vector2d(fm, sm, ply_angles) * speed
@@ -379,7 +373,7 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		k = k * math.Clamp(consmul, 0.7, 1)
 		k = k * math.Clamp((org.temperature and (1 - (org.temperature - 38) * 0.25) or 1), 0.5, 1)
 		k = k * math.Clamp((org.temperature and ((org.temperature - 35) * 0.25 + 1) or 1), 0.5, 1)
-		k = k * math.Clamp((org.stamina and org.stamina[1] or 180) / (org.stamina and org.stamina.max or 180), hg_movement_stamina_debuff:GetFloat(), 1)
+		k = k * math.Clamp((org.stamina and org.stamina[1] or 240) / (org.stamina and org.stamina.max or 240), hg_movement_stamina_debuff:GetFloat(), 1)
 		k = k * math.Clamp(5 / ((org.immobilization or 0) + 1), 0.25, 1)
 		k = k * math.Clamp((org.blood or 0) / 5000, 0, 1)
 		k = k * math.Clamp(10 / ((org.shock or 0) + 1), 0.25, 1)

@@ -28,6 +28,7 @@ function MODE:Intermission()
 	game.CleanUpMap()
 
 	for i, ply in player.Iterator() do
+		ply.zb_tdm_loadout = nil
 		ply:SetupTeam(ply:Team())
 		
 		ply:SetNWInt( "TDM_Money", self.StartMoney )
@@ -47,9 +48,18 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:RoundStart()
-	for k,ply in player.Iterator() do
+	for _, ply in player.Iterator() do
 		ply:Freeze(false)
+		ply.zb_tdm_loadout = nil
 	end
+
+	timer.Simple(0, function()
+		local mode = CurrentRound()
+		if not mode or mode.name ~= "tdm" then return end
+		for _, ply in player.Iterator() do
+			mode:EquipPlayer(ply)
+		end
+	end)
 end
 
 local tblweps = {
@@ -79,67 +89,81 @@ local tblarmors = {
 	},
 }
 
--- local giveweapons = CreateConVar("zb_tdm_giveweapon","1",FCVAR_LUA_SERVER,"TDMSPAWNS",0,1)
-
 function MODE:GetPlySpawn(ply)
 end
 
-function MODE:GiveEquipment()
-	timer.Simple(0.1,function()
-		local mrand = math.random(#tblweps[0])
+function MODE:EquipPlayer(ply)
+	if not IsValid(ply) or not ply:Alive() then return false end
+	if ply:Team() == TEAM_SPECTATOR then return false end
 
-		for _, ply in player.Iterator() do
-			if not ply:Alive() then continue end
-			
-			local inv = ply:GetNetVar("Inventory")
-			inv["Weapons"]["hg_sling"] = true
-			ply:SetNetVar("Inventory",inv)
+	local roundTag = zb.ROUND_BEGIN or 0
+	if ply.zb_tdm_loadout == roundTag then return true end
 
-			ply:SetSuppressPickupNotices(true)
-			ply.noSound = true
+	local inv = ply:GetNetVar("Inventory", {}) or {}
+	inv.Weapons = inv.Weapons or {}
+	inv.Weapons["hg_sling"] = true
+	ply:SetNetVar("Inventory", inv)
 
-			if ply:Team() == 1 then
-				ply:SetPlayerClass("swat")
-				zb.GiveRole(ply, "Counter Terrorist", Color(0,0,190))
-			else
-				ply:SetPlayerClass("terrorist")
-				zb.GiveRole(ply, "Terrorist", Color(190,0,0))
-			end
+	ply:SetSuppressPickupNotices(true)
+	ply.noSound = true
 
-			--[[if giveweapons:GetBool() then
-				local gun = ply:Give(tblweps[ply:Team()][mrand])
-				ply:GiveAmmo(gun:GetMaxClip1() * 3,gun:GetPrimaryAmmoType(),true)
-				
-				hg.AddAttachmentForce(ply,gun,tblatts[ply:Team()][mrand])
-				hg.AddArmor(ply, tblarmors[ply:Team()][mrand])
+	if ply:Team() == 1 then
+		ply:SetPlayerClass("swat")
+		zb.GiveRole(ply, "Counter Terrorist", Color(0,0,190))
+	else
+		ply:SetPlayerClass("terrorist")
+		zb.GiveRole(ply, "Terrorist", Color(190,0,0))
+	end
 
+	ply:Give("weapon_melee")
+	ply:Give("weapon_bandage_sh")
+	ply:Give("weapon_tourniquet")
+	if ply.organism then ply.organism.allowholster = true end
 
-				ply:Give("weapon_hg_rgd_tpik")
-				ply:Give("weapon_walkie_talkie")
-				ply:Give("weapon_bandage_sh")
-				ply:Give("weapon_tourniquet")
-			end--]]
+	local Radio = ply:Give("weapon_walkie_talkie")
+	if IsValid(Radio) then
+		Radio.Frequency = (ply:Team() == 1 and math.Round(math.Rand(88,95),1)) or math.Round(math.Rand(100,108),1)
+	end
 
-			//ply:Give("weapon_melee")
+	ply:Give("weapon_hands_sh")
+	ply:SelectWeapon("weapon_hands_sh")
 
-			ply:Give("weapon_melee")
-			ply:Give("weapon_bandage_sh")
-			ply:Give("weapon_tourniquet")
-			ply.organism.allowholster = true
+	ply.zb_tdm_loadout = roundTag
 
-			local Radio = ply:Give("weapon_walkie_talkie")
-			Radio.Frequency = (ply:Team() == 1 and math.Round(math.Rand(88,95),1)) or math.Round(math.Rand(100,108),1)
-			local hands = ply:Give("weapon_hands_sh")
-			ply:SelectWeapon("weapon_hands_sh")
-
-			timer.Simple(0.1,function()
-				ply.noSound = false
-			end)
-
-			ply:SetSuppressPickupNotices(false)
-		end
+	timer.Simple(0.1, function()
+		if not IsValid(ply) then return end
+		ply.noSound = false
+		ply:SetSuppressPickupNotices(false)
 	end)
+
+	return true
 end
+
+function MODE:GiveEquipment()
+	local mode = self
+
+	local function tryAll()
+		if CurrentRound() ~= mode then return end
+		for _, ply in player.Iterator() do
+			mode:EquipPlayer(ply)
+		end
+	end
+
+	timer.Simple(0, tryAll)
+	timer.Simple(0.15, tryAll)
+	timer.Simple(0.35, tryAll)
+end
+
+hook.Add("PlayerSpawn", "ZB_TDM_Loadout", function(ply)
+	local mode = CurrentRound()
+	if not mode or mode.name ~= "tdm" or zb.ROUND_STATE ~= 1 then return end
+
+	timer.Simple(0, function()
+		if not IsValid(ply) then return end
+		local m = CurrentRound()
+		if m and m.EquipPlayer then m:EquipPlayer(ply) end
+	end)
+end)
 
 function MODE:RoundThink()
 end

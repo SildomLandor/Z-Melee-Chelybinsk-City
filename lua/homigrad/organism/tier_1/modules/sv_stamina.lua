@@ -10,12 +10,12 @@ module[1] = function(org)
 	org.adrenalineStorage = 5
 
 	org.stamina = {
-		range = 60 * 3,
+		range = 60 * 4,
 		regen = 1,
 		sub = 0,
 		subadd = 0,
 		weight = 0,
-		max = 60 * 3,
+		max = 60 * 4,
 	}
 
 	org.energy = 0
@@ -81,7 +81,7 @@ module[2] = function(owner, org, timeValue)
 	stamina.sub = stamina.sub + stamina.sub * stamina.weight * (muffed and 2 or 1)
 	org.hungry = org.hungry or 0
 	stamina.max = (org.superfighter and 2 or 1) * ((stamina.range * (1 - (org.pneumothorax) / 2) + org.adrenaline * 20 ) * math.max(1 - org.hemotransfusionshock,0.2)) * math.max(1 - (org.hungry/100),0.65)
-	stamina[1] = max(stamina[1] - stamina.sub * timeValue * 17 * (2 - (org.o2[1] / org.o2.range)), 0)
+	stamina[1] = max(stamina[1] - stamina.sub * timeValue * 14 * (2 - (org.o2[1] / org.o2.range)), 0)
 	//org.o2[1] = org.o2[1] - min(stamina.sub * timeValue, org.o2.regen * timeValue)
 	
 	//local old = stamina[1]
@@ -132,6 +132,6 @@ hook.Add("FinishMove", "!homigrad-organism", function(ply, move)
 
 	if !ply.organism then return end
 
-	if vel ~= vecZero then ply.organism.stamina[1] = max(ply.organism.stamina[1] - ply:GetJumpPower() / 10,0) end
+	if vel ~= vecZero then ply.organism.stamina[1] = max(ply.organism.stamina[1] - ply:GetJumpPower() / 18, 0) end
 	ply.organism.moveMaxSpeed = move:GetMaxSpeed()
 end)
