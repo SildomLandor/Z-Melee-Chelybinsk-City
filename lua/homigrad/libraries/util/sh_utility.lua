@@ -1823,3 +1823,222 @@ end
 --\\
 	hg_suppression_viewpunch = CreateConVar("hg_suppression_viewpunch", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Enable viewpunching when you on suppressed", 0, 1)
 --//
+
+
+--\\ Timer to restart the server
+if SERVER then
+	util.AddNetworkString("erhy4yhgerhbgeTREHFH")
+	util.AddNetworkString("FSDGSDGSDGSDGSD")
+
+	hg = hg or {}
+	hg.pending_restart = false
+	hg.restart_time = nil
+
+	local function rt_do_restart()
+		RunConsoleCommand("host_writeconfig")
+		local map = game.GetMap()
+
+		if game.IsDedicated() then
+			engine.CloseServer()
+			timer.Simple(1, function()
+				RunConsoleCommand("map", map)
+			end)
+			return
+		end
+
+		RunConsoleCommand("map", map)
+	end
+
+	local function rt_net_timer(ply)
+		net.Start("erhy4yhgerhbgeTREHFH")
+			net.WriteFloat(hg.restart_time or 0)
+		if IsValid(ply) then net.Send(ply) else net.Broadcast() end
+	end
+
+	local function rt_net_pending(ply)
+		net.Start("FSDGSDGSDGSDGSD")
+			net.WriteBool(hg.pending_restart)
+		if IsValid(ply) then net.Send(ply) else net.Broadcast() end
+	end
+
+	local function rt_clear_countdown()
+		timer.Remove("HG_RTRestart_Countdown")
+		hg.restart_time = nil
+		rt_net_timer()
+	end
+
+	local function rt_sync(ply)
+		if hg.restart_time and hg.restart_time > CurTime() then
+			rt_net_timer(ply)
+		end
+		if hg.pending_restart then
+			rt_net_pending(ply)
+		end
+	end
+
+	concommand.Add("hg_trestart", function(ply, cmd, args)
+		if IsValid(ply) and not ply:IsAdmin() then return end
+		local delay = tonumber(args[1]) or 30
+		delay = math.Clamp(delay, 5, 3600)
+
+		hg.pending_restart = false
+		hg.restart_time = CurTime() + delay
+		rt_net_timer()
+		rt_net_pending()
+
+		timer.Create("HG_RTRestart_Countdown", delay, 1, function()
+			hg.restart_time = nil
+			rt_do_restart()
+		end)
+
+		for _, v in ipairs(player.GetAll()) do
+			if IsValid(v) then
+				v:ChatPrint("Запрошен рестарт сервера!")
+			end
+		end
+	end)
+
+	concommand.Add("hg_rtrestart", function(ply, cmd, args)
+		if IsValid(ply) and not ply:IsAdmin() then return end
+
+		rt_clear_countdown()
+		hg.pending_restart = true
+		rt_net_pending()
+
+		for _, v in ipairs(player.GetAll()) do
+			if IsValid(v) then
+				v:ChatPrint("Сервер будет перезапущен после окончания следующего раунда.")
+			end
+		end
+	end)
+
+	hook.Add("ZB_EndRound", "HG_RTRestart_RoundEnd", function()
+		if not hg.pending_restart then return end
+
+		hg.pending_restart = false
+		rt_clear_countdown()
+		rt_net_pending()
+
+		timer.Simple(3, function()
+			rt_do_restart()
+		end)
+	end)
+
+	hook.Add("PlayerInitialSpawn", "HG_RTRestart_Sync", function(ply)
+		timer.Simple(0, function()
+			if IsValid(ply) then rt_sync(ply) end
+		end)
+	end)
+else
+	hg = hg or {}
+	hg.restart_time = 0
+	hg.timer_active = false
+	hg.pending_restart = false
+
+	net.Receive("erhy4yhgerhbgeTREHFH", function()
+		local t = net.ReadFloat()
+		if t <= 0 then
+			hg.restart_time = 0
+			hg.timer_active = false
+		else
+			hg.restart_time = t
+			hg.timer_active = true
+			hg.pending_restart = false
+		end
+	end)
+
+	net.Receive("FSDGSDGSDGSDGSD", function()
+		hg.pending_restart = net.ReadBool()
+	end)
+
+	function hg.RestartTimeLeft()
+		if not hg.timer_active or not hg.restart_time or hg.restart_time <= 0 then return false end
+		local left = hg.restart_time - CurTime()
+		if left <= 0 then
+			hg.timer_active = false
+			return false
+		end
+		return left
+	end
+
+	function hg.IsRTRestartPending()
+		return hg.pending_restart
+	end
+
+	local rt_col = {
+		frameBG     = Color(10, 10, 19, 238),
+		frameBorder = Color(90, 90, 95, 120),
+		panelBorder = Color(255, 255, 255, 25),
+		separator   = Color(255, 255, 255, 12),
+		text        = Color(200, 200, 200, 255),
+	}
+	local rt_noise = Material("vgui/noisevhs")
+	if rt_noise:IsError() then rt_noise = Material("vgui/white") end
+	local rt_margin = ScreenScale(10)
+	local rt_pad = ScreenScale(6)
+	local rt_lerp = 0
+
+	local function rt_format_time(sec)
+		sec = math.max(math.ceil(sec), 0)
+		return string.format("%d:%02d", math.floor(sec / 60), sec % 60)
+	end
+
+	local function rt_paint_frame(x, y, w, h, a)
+		surface.SetDrawColor(rt_col.frameBG.r, rt_col.frameBG.g, rt_col.frameBG.b, math.floor(rt_col.frameBG.a * a))
+		surface.DrawRect(x, y, w, h)
+
+		if not rt_noise:IsError() then
+			surface.SetMaterial(rt_noise)
+			surface.SetDrawColor(255, 255, 255, math.floor(6 * a))
+			local nx, ny = math.random(0, 512), math.random(0, 512)
+			surface.DrawTexturedRectUV(x, y, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+		end
+
+		for ly = y, y + h, 3 do
+			surface.SetDrawColor(0, 0, 0, math.floor(12 * a))
+			surface.DrawRect(x, ly, w, 1)
+		end
+
+		surface.SetDrawColor(rt_col.frameBorder.r, rt_col.frameBorder.g, rt_col.frameBorder.b, math.floor(rt_col.frameBorder.a * a))
+		surface.DrawOutlinedRect(x, y, w, h, 1)
+		surface.SetDrawColor(rt_col.panelBorder.r, rt_col.panelBorder.g, rt_col.panelBorder.b, math.floor(rt_col.panelBorder.a * a))
+		surface.DrawOutlinedRect(x + 1, y + 1, w - 2, h - 2, 1)
+	end
+
+	hook.Add("HUDPaint", "HG_RestartTimerHUD", function()
+		local pending = hg.IsRTRestartPending()
+		local left = hg.RestartTimeLeft()
+		local show = pending or left ~= false
+
+		rt_lerp = Lerp(FrameTime() * 12, rt_lerp, show and 1 or 0)
+		if rt_lerp < 0.02 then return end
+
+		local title = "РЕСТАРТ"
+		local sub = pending and "после раунда" or rt_format_time(left or 0)
+		local fontTitle, fontSub = "ZCity_Veteran", "ZCity_Veteran"
+
+		surface.SetFont(fontTitle)
+		local tw1 = surface.GetTextSize(title)
+		surface.SetFont(fontSub)
+		local tw2, th2 = surface.GetTextSize(sub)
+
+		local w = math.max(tw1, tw2) + rt_pad * 5
+		local headerH = ScreenScaleH(14)
+		local h = headerH + th2 + rt_pad
+		local x = ScrW() - w - rt_margin
+		local y = rt_margin
+		local cx = x + w * 0.5
+		local a = rt_lerp
+
+		rt_paint_frame(x, y, w, h, a)
+
+		draw.SimpleText(title, fontTitle, cx + 1, y + rt_pad - 13, Color(90, 8, 6, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, fontTitle, cx, y + rt_pad - 13, Color(140, 15, 12, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+
+		local pulse = pending and (math.sin(CurTime() * 2.5) * 0.2 + 0.8) or 1
+		draw.SimpleText(sub, fontSub, cx + 1, y + headerH + rt_pad - 6, Color(0, 0, 0, 120 * a * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(sub, fontSub, cx, y + headerH + rt_pad - 6, Color(rt_col.text.r, rt_col.text.g, rt_col.text.b, 255 * a * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+	end)
+end
+
+--//

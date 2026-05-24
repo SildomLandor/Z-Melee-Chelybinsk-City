@@ -592,10 +592,8 @@ players : 1 humans, 0 bots (20 max)
 		end
 		table_Add(entities, cachedPlayers)
 
-		local orgents = {}
 		for ent in pairs(hg.organism_ents) do
-			if !IsValid(ent) then hg.organism_ents[ent] = nil continue end
-
+			if not IsValid(ent) then hg.organism_ents[ent] = nil continue end
 			table.insert(entities, ent)
 		end
 
@@ -609,7 +607,9 @@ players : 1 humans, 0 bots (20 max)
 		local angles = view.angles
 
 		for i = 1, #entities do
-			v = entities[i]
+			local v = entities[i]
+			if not IsValid(v) then continue end -- SAFETY: skip NULLs
+
 			if v.shouldTransmit then
 				hg.seenents2[#hg.seenents2 + 1] = v
 			end
@@ -622,14 +622,17 @@ players : 1 humans, 0 bots (20 max)
 				continue
 			end
 
-			local min,max = v:GetModelBounds()
+			-- Defensive: Some entities might not have a model (should not happen, but paranoia)
+			local ok, min, max = pcall(function() return v:GetModelBounds() end)
+			if not ok or not min or not max then v.NotSeen = true if v == lply then LocalPlayerSeen = false end continue end
+
 			local len = (max - min):Length()
 			local vPos = v:GetPos()
 			local _, point, _ = util_DistanceToLine(origin, origin + angles:Forward() * 9999, vPos)
 			local vSize = (point - vPos):GetNormalized() * len
 			local diff = (vPos + vSize - origin):GetNormalized()
 
-			if !v.shouldTransmit or (angles:Forward():Dot(diff) <= math_cos(math_rad(hg_fov:GetInt()))) then
+			if not v.shouldTransmit or (angles:Forward():Dot(diff) <= math_cos(math_rad(hg_fov:GetInt()))) then
 				if not nochange then v.NotSeen = true end
 				if v == lply then LocalPlayerSeen = false end
 			else

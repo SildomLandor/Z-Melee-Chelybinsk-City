@@ -328,138 +328,6 @@ MODE.Types.standard = {
 		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
 	end
 }
-MODE.Types.wildwest = {
-	Chance = 0.05,
-	ChanceFunction = function() return (zb.GetWorldSize() < ZBATTLE_BIGMAP) and (zb.ModesChances["wildwest"] or zb.modes["hmcd"].Types.wildwest.Chance) or 0 end,
-	LootTable = MODE.LootTableStandard,
-	Messages = {
-		[3] = "Мёртвая тишина нависла над пустым городом...",
-		[1] = "Город попал в руки преступников.",
-		[0] = "Закон восторжествовал. Подонок",
-	},
-	Message = "Преступник — ",
-	TraitorLoot = function(ply)
-		ply:Give("weapon_sogknife")
-		ply:Give("weapon_hg_type59_tpik")
-		ply:Give("weapon_adrenaline")
-		local revolver = ply:Give(math.random(2) == 2 and "weapon_winchester" or "weapon_revolver2")
-		ply:GiveAmmo(revolver:GetMaxClip1() * 1,revolver:GetPrimaryAmmoType(),true)
-		ply:Give("weapon_traitor_ied")
-		ply:Give("weapon_hg_molotov_tpik")
-		ply:Give("weapon_hg_smokenade_tpik")
-
-		ply.organism.recoilmul = 1.0
-		ply.organism.stamina.range = 220
-
-
-		local inv = ply:GetNetVar("Inventory")
-		inv["Weapons"]["hg_sling"] = true
-		ply:SetNetVar("Inventory",inv)
-	end,
-    /*local tMdl = APmodule.PlayerModels[1][tbl.AModel] or APmodule.PlayerModels[2][tbl.AModel] or tbl.AModel
-    ply:SetModel(istable(tMdl) and tMdl.mdl or tMdl)
-
-    local clr = tbl.AColor
-    if ply.SetPlayerColor then
-        ply:SetPlayerColor(Vector(clr.r / 255,clr.g / 255,clr.b / 255))
-    end
-    ply:SetNWVector( "PlayerColor", Vector(clr.r / 255,clr.g / 255,clr.b / 255) )
-
-    ply:SetSubMaterial()
-
-    local mats = ply:GetMaterials()
-    if istable(tMdl) then
-        for k, v in pairs(tMdl.submatSlots) do
-            local slot = 1
-            for i = 1, #mats do
-                if mats[i] == v then slot = i-1 break end
-            end
-            ply:SetSubMaterial(slot, hg.Appearance.Clothes[tMdl.sex and 2 or 1][tbl.AClothes[k]] )*/
-
-	GunManLoot = function(ply)
-		for k,v in player.Iterator() do
-			timer.Simple(1,function()
-				local Appearance = v:GetNetVar("Accessories",{"none"})
-				if istable(Appearance) then
-					Appearance[1] = "stetson"
-				else
-					Appearance = "stetson"
-				end
-				v:SetNetVar("Accessories", Appearance)
-				local sex = ThatPlyIsFemale(v) and 2 or 1
-				local tbl = v.CurAppearance
-				tbl.AClothes["main"] = "formal"
-				tbl.AClothes["pants"] = "formal"
-				tbl.AClothes["boots"] = "formal"
-				tbl.AColor = Color(1 * 255,0.690196 * 255,0.537255 * 255)
-				hg.Appearance.ForceApplyAppearance(v,tbl)
-				--v:SetSubMaterial(table.Flip(v:GetMaterials())[hg.Appearance.FuckYouModels[sex][v:GetModel()].submatSlots.main] - 1, hg.Appearance.Clothes[sex]["formal"])
-				--v:SetPlayerColor(Vector(1,0.690196,0.537255))
-			end)
-			if v.isTraitor then continue end
-			if v.isGunner then
-				v:Give("weapon_winchester")
-				v:Give("weapon_revolver357")
-				v:Give("weapon_handcuffs")
-				v:Give("weapon_handcuffs_key")
-			else
-				local guns = {
-					"weapon_winchester",
-					"weapon_revolver2",
-					"weapon_doublebarrel",
-					"weapon_doublebarrel_short"
-				}
-
-				local weapon = v:Give(guns[math.random(#guns)], true)
-				weapon:SetClip1(weapon:GetMaxClip1())
-			end
-
-
-			local inv = v:GetNetVar("Inventory")
-			inv["Weapons"] = inv["Weapons"] or {}
-			inv["Weapons"]["hg_sling"] = true
-			v:SetNetVar("Inventory",inv)
-		end
-	end,
-	PoliceTime = 220,
-	PoliceAllowed = false,
-	SkillIssue = 3,
-	PoliceEquipment = function(ply)
-		ply:SetPlayerClass("police")
-		local glock = ply:Give("weapon_glock17")
-		ply:GiveAmmo(glock:GetMaxClip1() * 3,glock:GetPrimaryAmmoType(),true)
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,gun,"holo16")
-		end
-
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,gun,"laser3")
-		end
-
-		ply:Give("weapon_medkit_sh")
-		ply:Give("weapon_walkie_talkie")
-		ply:Give("weapon_naloxone")
-		ply:Give("weapon_painkillers")
-		ply:Give("weapon_handcuffs")
-		ply:Give("weapon_handcuffs_key")
-		ply:Give("weapon_hg_tonfa")
-
-		local gun = ply:Give("weapon_taser")
-		ply:GiveAmmo(gun:GetMaxClip1() * 3,gun:GetPrimaryAmmoType(),true)
-
-		hg.AddArmor(ply, {"vest2"})
-
-		local hands = ply:Give("weapon_hands_sh")
-		ply:SetActiveWeapon( hands )
-
-		local inv = ply:GetNetVar("Inventory")
-		inv["Weapons"]["hg_flashlight"] = true
-		ply:SetNetVar("Inventory",inv)
-
-
-		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
-	end
-}
 
 MODE.Types.gunfreezone = {
 	Chance = 0.05,
@@ -625,7 +493,6 @@ MODE.Types.soe = {
 local modes = {
 	"soe",
 	"standard",
-	"wildwest",
 	"gunfreezone",
 }
 
@@ -639,6 +506,110 @@ function MODE:SubModes()
 end
 
 local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Homicide Only: Determine how many traitors should innocents face in homicide.", 1, 20)
+
+function MODE.AssignGunner()
+	for _, ply in RandomPairs(player.GetAll()) do
+		if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
+		if math.random(100) > (ply.Karma or 100) then continue end
+
+		ply.isGunner = true
+		return
+	end
+
+	for _, ply in RandomPairs(player.GetAll()) do
+		if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
+
+		ply.isGunner = true
+		return
+	end
+end
+
+function MODE.SendRoundStartHUD(ply, screen_time_is_default)
+	if not IsValid(ply) or ply:Team() == TEAM_SPECTATOR then return end
+
+	local traitor_amt = 0
+	local traitor_assistants = {}
+
+	if ply.isTraitor then
+		for _, other_ply in player.Iterator() do
+			if not other_ply.isTraitor then continue end
+
+			traitor_amt = traitor_amt + 1
+
+			if ply.MainTraitor and other_ply ~= ply and other_ply.CurAppearance then
+				local Appearance = other_ply.CurAppearance
+				local color = Appearance.AColor or color_white
+
+				if not IsColor(color) then
+					color = Color(color.r, color.g, color.b)
+				end
+
+				traitor_assistants[#traitor_assistants + 1] = {
+					color,
+					Appearance.AName or "error",
+					other_ply:SteamID() or "",
+				}
+			end
+		end
+	end
+
+	net.Start("HMCD_RoundStart")
+		net.WriteBool(ply.isTraitor)
+		net.WriteBool(ply.isGunner)
+		net.WriteString(MODE.Type)
+		net.WriteBool(screen_time_is_default)
+		net.WriteString(ply.SubRole or "")
+		net.WriteBool(ply.MainTraitor == true)
+
+		if ply.isTraitor then
+			net.WriteString(MODE.TraitorWord)
+			net.WriteString(MODE.TraitorWordSecond)
+			net.WriteUInt(traitor_amt, MODE.TraitorExpectedAmtBits)
+
+			if screen_time_is_default then
+				ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
+				ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
+			end
+		else
+			net.WriteString("")
+			net.WriteString("")
+			net.WriteUInt(0, MODE.TraitorExpectedAmtBits)
+		end
+
+		if ply.MainTraitor then
+			for _, traitor_info in ipairs(traitor_assistants) do
+				net.WriteColor(traitor_info[1], false)
+				net.WriteString(traitor_info[2])
+			end
+		end
+
+		net.WriteString(ply.Profession or "")
+	net.Send(ply)
+
+	if screen_time_is_default and ply.MainTraitor and #traitor_assistants > 0 then
+		timer.Simple(0.5, function()
+			if not IsValid(ply) or not ply.isTraitor or not ply.MainTraitor then return end
+
+			net.Start("HMCD_UpdateTraitorAssistants")
+				net.WriteUInt(#traitor_assistants, 8)
+
+				for _, info in ipairs(traitor_assistants) do
+					net.WriteColor(info[1])
+					net.WriteString(info[2])
+					net.WriteString(info[3])
+				end
+			net.Send(ply)
+		end)
+	end
+
+	if screen_time_is_default then
+		local role = MODE.Roles[MODE.Type][(ply.isTraitor and "traitor") or (ply.isGunner and "gunner") or "innocent"]
+
+		if role then
+			zb.GiveRole(ply, role.name, role.color)
+		end
+	end
+end
 
 function MODE:Intermission()
 	game.CleanUpMap()
@@ -758,33 +729,10 @@ function MODE:Intermission()
 		end
 	end
 
-	for k, ply in player.Iterator() do
-		if(MODE.ShouldStartRoleRound())then
-			net.Start("HMCD_RoundStart")	--; TODO Structure description
-				net.WriteBool(ply.isTraitor)	--; Is Traitor
-				net.WriteBool(ply.isGunner)	--; Is Gunner
-				net.WriteString(self.Type)	--; Round Type
-				net.WriteBool(false)	--; Round Started
-				net.WriteString("")	--; SubRole
-				net.WriteBool(ply.MainTraitor == true)	--; MainTraitor
+	MODE.AssignGunner()
 
-				if(ply.isTraitor)then
-					net.WriteString(MODE.TraitorWord)
-					net.WriteString(MODE.TraitorWordSecond)
-					net.WriteUInt(MODE.TraitorExpectedAmt, MODE.TraitorExpectedAmtBits)
-				else
-					net.WriteString("")
-					net.WriteString("")
-					net.WriteUInt(0, MODE.TraitorExpectedAmtBits)
-				end
-				
-				net.WriteString("")	--; Profession
-			net.Send(ply)
-
-			local role = self.Roles[self.Type][(ply.isTraitor and "traitor") or (ply.isGunner and "gunner") or "innocent"]
-
-			zb.GiveRole(ply, role.name, role.color)
-		end
+	for _, ply in player.Iterator() do
+		MODE.SendRoundStartHUD(ply, false)
 	end
 
 	--local pts = zb.GetMapPoints( "RandomSpawns" )
@@ -841,29 +789,6 @@ function MODE:Intermission()
 		
 		phys:SetMass(hg.IdealMassPlayer[ent:GetBoneName(bone)] or 4)
 		phys:SetPos(ent:GetPos() + VectorRand(-32, 32))
-	end
-
-	if self.Type == "wildwest" then
-		local Appearance = ent:GetNetVar("Accessories", {"none"})
-
-		if istable(Appearance) then
-			Appearance[1] = "stetson"
-		else
-			Appearance = "stetson"
-		end
-	
-		ent:SetNetVar("Accessories", Appearance)
-		local sex = ThatPlyIsFemale(ent) and 2 or 1
-		local tbl = ent.CurAppearance
-		tbl.AClothes["main"] = "formal"
-		tbl.AClothes["pants"] = "formal"
-		tbl.AClothes["boots"] = "formal"
-		tbl.AColor = Color(1 * 255,0.690196 * 255,0.537255 * 255)
-		hg.Appearance.ForceApplyAppearance(ent, tbl)
-
-		for i = 1, 5 do
-			hg.organism.AddWoundManual(ent, 50, vector_origin, angle_zero,"ValveBiped.Bip01_Head1", CurTime() + 2)
-		end
 	end
 end
 
@@ -1520,25 +1445,7 @@ end)
 util.AddNetworkString("HMCD_UpdateTraitorAssistants")
 
 function MODE.SpawnPlayers(spawn_with_subroles)
-    local gunner_found = false
-
-    for i, ply in RandomPairs(player.GetAll()) do
-        if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
-        if math.random(100) > (ply.Karma or 100) then continue end
-
-        ply.isGunner = true
-        gunner_found = true
-        break
-    end
-
-    if(not gunner_found)then
-        for i,ply in RandomPairs(player.GetAll()) do
-            if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
-
-            ply.isGunner = true
-            break
-        end
-    end
+    MODE.AssignGunner()
 
     local player_count = 0
     for i, ply in player.Iterator() do
@@ -1610,10 +1517,6 @@ function MODE.SpawnPlayers(spawn_with_subroles)
             current_ply:SetSuppressPickupNotices(true)
             current_ply.noSound = true
 
-            if(MODE.Type == "supermario")then
-                MODE.Types.supermario.CustomJump(current_ply)
-            end
-
             if(spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type])then
                 if(current_ply.isGunner)then
                     MODE.Types[MODE.Type].GunManLoot(current_ply)
@@ -1667,84 +1570,10 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                 end
             end)
 
-            timer.Simple(0.2 * idx, function()
+            timer.Simple(0, function()
                 if not IsValid(this_player) then return end
 
-                local traitor_amt = 0
-                local traitor_assistants = {}
-                
-                if (this_player.isTraitor) then
-                    for _, other_ply in player.Iterator() do
-                        if (other_ply.isTraitor) then
-                            traitor_amt = traitor_amt + 1
-                            
-
-                            if this_player.MainTraitor and other_ply.CurAppearance then
-                                local Appearance = other_ply.CurAppearance
-                                local color = Appearance.AColor or color_white
-                                local name = Appearance.AName or "error"
-                                local steamID = other_ply:SteamID() or ""
-                                
-                                if not IsColor(color) then
-                                    color = Color(color.r, color.g, color.b)
-                                end
-                                
-                                table.insert(traitor_assistants, {color, name, steamID})
-                            end
-                        end
-                    end
-                end
-                
-
-                net.Start("HMCD_RoundStart")
-                    net.WriteBool(this_player.isTraitor)
-                    net.WriteBool(this_player.isGunner)
-                    net.WriteString(MODE.Type)
-                    net.WriteBool(true)
-                    net.WriteString(this_player.SubRole or "")
-                    net.WriteBool(this_player.MainTraitor == true)
-                    
-                    if (this_player.isTraitor) then
-                        net.WriteString(MODE.TraitorWord)
-                        net.WriteString(MODE.TraitorWordSecond)
-                        net.WriteUInt(traitor_amt, MODE.TraitorExpectedAmtBits)
-                        this_player:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
-                        this_player:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
-                    else
-                        net.WriteString("")
-                        net.WriteString("")
-                        net.WriteUInt(0, MODE.TraitorExpectedAmtBits)
-                    end
-                    
-                    if (this_player.MainTraitor) then
-
-                        for _, traitor_info in ipairs(traitor_assistants) do
-                            net.WriteColor(traitor_info[1], false)
-                            net.WriteString(traitor_info[2])
-                        end
-
-                        timer.Simple(0.5, function()
-                            if IsValid(this_player) and this_player.isTraitor and this_player.MainTraitor then
-                                net.Start("HMCD_UpdateTraitorAssistants")
-                                    net.WriteUInt(#traitor_assistants, 8)
-                                    
-                                    for _, info in ipairs(traitor_assistants) do
-                                        net.WriteColor(info[1])
-                                        net.WriteString(info[2])
-                                        net.WriteString(info[3])
-                                    end
-                                net.Send(this_player)
-                            end
-                        end)
-                    end
-                    
-                    net.WriteString(this_player.Profession or "")
-                net.Send(this_player)
-                
-                local role = MODE.Roles[MODE.Type][(this_player.isTraitor and "traitor") or (this_player.isGunner and "gunner") or "innocent"]
-                if role then
-                    zb.GiveRole(this_player, role.name, role.color)
-                end
+                MODE.SendRoundStartHUD(this_player, true)
             end)
         end
     end

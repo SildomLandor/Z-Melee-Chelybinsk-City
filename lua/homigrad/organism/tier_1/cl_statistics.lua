@@ -1,5 +1,23 @@
 hg.organism_ents = hg.organism_ents or {}
 
+local function syncRagOrganism(ply)
+	if not IsValid(ply) then return end
+	local org, newOrg = ply.organism, ply.new_organism
+	local rags = {
+		ply:GetNWEntity("FakeRagdoll"),
+		ply:GetNWEntity("RagdollDeath"),
+		ply.FakeRagdoll,
+	}
+	for i = 1, #rags do
+		local rag = rags[i]
+		if IsValid(rag) then
+			rag.organism = org
+			rag.new_organism = newOrg
+		end
+	end
+end
+hg.syncRagOrganism = syncRagOrganism
+
 net.Receive("organism_send", function()
 	local org = net.ReadTable()
 	local force = net.ReadBool()
@@ -7,7 +25,9 @@ net.Receive("organism_send", function()
 	local moreinfopls = net.ReadBool()
 	local add = net.ReadBool()
 	local ply = org.owner
-	
+
+	if not IsValid(ply) then return end
+
 	if ply:IsNPC() then
 		hg.organism_ents[ply] = true
 	end
@@ -17,34 +37,29 @@ net.Receive("organism_send", function()
 		
 		table.Merge(org.owner.organism, org, true)
 		table.Merge(org.owner.new_organism, org, true)
+
+		syncRagOrganism(org.owner)
 		
 		return 
 	end
 
 	if ply.is_lookedat and not moreinfopls then return end
-	if !IsValid(ply) then return end
 	if spectatov_ne_trogaem and (ply == LocalPlayer():GetNWEntity("spect",nil)) and not LocalPlayer():Alive() then return end
-	
-	local old_org = table.Copy(ply.organism)
-	ply.organism = old_org
 
+	local old_org = ply.organism and table.Copy(ply.organism) or nil
 	ply.new_organism = org
 
-	--print(org.owner,org.blood)
-	
-	if not ply.organism or force then
+	if not old_org or force then
 		ply.organism = org
+	else
+		ply.organism = old_org
 	end
 
 	if ply:IsPlayer() and ply:Alive() then
 		org.health = ply:Health()
 	end
-	
-	local rag = ply:GetNWEntity("FakeRagdoll")
-	if IsValid(rag) then
-		rag.organism = old_org
-		rag.new_organism = org
-	end
+
+	syncRagOrganism(ply)
 
 	--[[jit.on()
 	jit.collectgarbage()--]]
@@ -188,6 +203,7 @@ local red, green = Color(255, 0, 0), Color(0, 255, 0)
 local function getTextTable(org)
 	local textList = {}
 	for i, v in pairs(list) do
+		if v == 0 or v == false then continue end
 		local text1, text2 = "", ""
 		local value
 		local r, g, b
@@ -240,7 +256,8 @@ end
 
 local function LerpVariables(lerp,org_source,org_target)
 	if not org_source or not org_target then return end
-	for i, v in ipairs(list) do		
+	for i, v in ipairs(list) do
+		if v == 0 or v == false then continue end
 		if type(v) == "table" then
 			if type(v[1]) == "table" then
 				if not org_source[v[1][2]] then continue end
@@ -412,9 +429,11 @@ local function startPlayingHit(i)
 	csmodel:SetModel(model)
 	csmodel.armors = hg.hits[i].armors or {}
 	organs = hg.organism.GetHitBoxOrgans(model, csmodel)
-	
-	boxs,pos,sphere = hg.organism.ShootMatrix(csmodel, organs)
-	if boxs == nil then return end
+	boxs, pos, sphere = hg.organism.ShootMatrix(csmodel, organs)
+	if not boxs then return end
+
+	hg.hits[i].organs = organs
+	hg.hits[i].boxs = boxs
 
 	hitorgans = {}
 	for i = 1,#boxs do
@@ -633,7 +652,7 @@ hook.Add("HUDPaint","homigrad-wound-debug",function()
 			if not attpressed then
 				local next_ = iter + 1
 				iter = next_ > #hg.hits and 1 or next_
-				startPlayingHit(i)
+				startPlayingHit(iter)
 				attpressed = true
 			end
 		else
@@ -644,7 +663,7 @@ hook.Add("HUDPaint","homigrad-wound-debug",function()
 			if not attpressed2 then
 				local next_ = iter - 1
 				iter = next_ < 1 and #hg.hits or next_
-				startPlayingHit(i)
+				startPlayingHit(iter)
 				attpressed2 = true
 			end
 		else
@@ -725,11 +744,6 @@ hook.Add("HUDPaint","homigrad-wound-debug",function()
 					surface.DrawTexturedRect(0,0,ScrW(),ScrH(),0)
 				cam.End2D()
 
-				organs = hg.organism.GetHitBoxOrgans(model, csmodel)
-				boxs,pos,sphere = hg.organism.ShootMatrix(csmodel, organs)
-
-				--local endPos, hitBoxs2, inputHole, outputHole = hg.organism.Trace(point1, point2 - point1, boxs, pos, sphere, organs, nil, hg.organism.Trace_Bullet, organs)
-				
 				for i = 1,#boxs do
 					local box = boxs[i]
 					local organ = box[6] and organs[box[6]][box[7]]

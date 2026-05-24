@@ -201,8 +201,8 @@ OpenMenu = function(tbl)
 	close_guilt_menu()
 
 	local sw, sh = ScrW(), ScrH()
-	local sizeX = math.Clamp(math.floor(sw * 0.44), 340, 720)
-	local sizeY = math.Clamp(math.floor(sh * 0.48), 260, 460)
+	local sizeX = math.Clamp(math.floor(sw * 0.44), 480, 720)
+	local sizeY = math.Clamp(math.floor(sh * 0.48), 260, 720)
 	local posX = math.floor(sw * 0.5 - sizeX * 0.5)
 	local posY = math.floor(sh * 0.44 - sizeY * 0.5)
 

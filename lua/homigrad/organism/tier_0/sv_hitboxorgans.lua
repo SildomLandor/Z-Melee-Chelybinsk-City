@@ -22,13 +22,14 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 	local inBody, hitSomething
 	local box
 	local stepDis = 1 / stepDiv
-	local distance = math_ceil(dir:Length())
+	local traceDir = Vector(dir)
+	local distance = math_ceil(traceDir:Length())
 	local dirSub = 0
 	local ricocheted
 	local ricochetAng
 	distance = math.Clamp(distance, 0, 50)
-	dir:Normalize()
-	dir = dir * stepDis
+	traceDir:Normalize()
+	traceDir = traceDir * stepDis
 	
 	local distancereal = distance
 	
@@ -39,7 +40,7 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 		
 		if maxpen ~= 0 and passing >= maxpen then break end
 
-		dir:Normalize()
+		traceDir:Normalize()
 
 		local frac = 1
 		local iHit
@@ -52,8 +53,8 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 			
 			if not organs[box[6]] then continue end
 			
-			local startpos = tracePos - dir * 0
-			local endpos = dir * 100
+			local startpos = tracePos - traceDir * 0
+			local endpos = traceDir * 100
 
 			local hit_, normal_, frac_ = util_IntersectRayWithOBB(startpos, endpos, box[1], box[2], box[3], box[4])
 			
@@ -71,7 +72,7 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 		
 		frac = math.max(frac, 0.001)
 
-		dir = dir:GetNormalized() * frac * 100
+		traceDir = traceDir:GetNormalized() * frac * 100
 		
 		if iHit then
 			hitBoxs[iHit] = true
@@ -84,7 +85,7 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 				local prot = (organs[box[6]] and organs[box[6]][box[7]][8] or 0) / distance
 
 				normal:Rotate(box[2])
-				ricochetAng = math.deg(math.acos(math.abs(normal:Dot(dir:GetNormalized()))))
+				ricochetAng = math.deg(math.acos(math.abs(normal:Dot(traceDir:GetNormalized()))))
 
 				local randomness = math.random(100) <= math.max(ricochetAng - 70,10) / 30 * 100
 				ricocheted = ((bonemul >= 0.5 and randomness) or prot >= 1)
@@ -92,10 +93,10 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 
 				if ricocheted then
 					if ricochetAng > 60 then
-						local NewVec = dir:Angle()
+						local NewVec = traceDir:Angle()
 						NewVec:RotateAroundAxis(normal,180)
-						NewVec = LerpAngle(math.Rand(0, 1), NewVec, (-dir):Angle())
-						dir = -NewVec:Forward() * frac * 100
+						NewVec = LerpAngle(math.Rand(0, 1), NewVec, (-traceDir):Angle())
+						traceDir = -NewVec:Forward() * frac * 100
 					end
 				end
 			end*/
@@ -124,7 +125,7 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 		if hit then
 			tracePos = hit
 		else
-			//tracePos:Add(dir)
+			tracePos:Add(traceDir)
 		end
 		
 		tracePoses[#tracePoses + 1] = Vector(tracePos[1], tracePos[2], tracePos[3])
@@ -140,26 +141,26 @@ function hg.organism.Trace(pos, dir, size, maxpen, boxs, center, endDis, organs,
 		outputHole[1] = Vector(tracePos[1], tracePos[2], tracePos[3])
 	end
 
-	dir:Normalize()
+	traceDir:Normalize()
 
-	return tracePos, hitBoxs, inputHole, outputHole, dir, distance, tracePoses
+	return tracePos, hitBoxs, inputHole, outputHole, traceDir, distance, tracePoses
 end
 
 function hg.organism.BlastTrace(pos, size, dmg, boxs, organs, funcInput, ...)
 	local box
 	local center
+	local blastSize = size
 	
-	local size = size
 	for i = 1, #boxs do
 		box = boxs[i]
 		center = box[1]
 
 		local dist = pos:Distance(center)
 		--size = size * 999
-		local amt = dmg / dist * (1 - (organs[box[6]] and organs[box[6]][box[7]][2] or 0)) / size
+		local amt = dmg / dist * (1 - (organs[box[6]] and organs[box[6]][box[7]][2] or 0)) / blastSize
 		
 		local dirSub = funcInput(box, amt, ...)
 		
-		size = size * (dirSub * 0.01 + 1)
+		blastSize = blastSize * (dirSub * 0.01 + 1)
 	end
 end

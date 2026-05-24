@@ -47,18 +47,21 @@ function hg.organism.ShootMatrix(ent, organs)
 
 	for nameBone, organs in pairs(organs) do
 		local bone = ent:LookupBone(nameBone)
-		--if not bone then continue end
+		if not bone then continue end
 		matrix = ent:GetBoneMatrix(bone)
 		if not matrix then continue end
 		pos = matrix:GetTranslation()
 		ang = matrix:GetAngles()
 		for key, organ in pairs(organs) do
-			--print(key,organ[1])
 			local additional = organ[7]
 			if additional then
-				local ent = ent:IsPlayer() and ent or ent:IsRagdoll() and IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
-				if ent and ent.armors and not table.HasValue(ent.armors,organ[1]) then
-					continue
+				local armorEnt = ent:IsPlayer() and ent or ent:IsRagdoll() and IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
+				if armorEnt and armorEnt.armors then
+					local wearing
+					for _, id in pairs(armorEnt.armors) do
+						if id == organ[1] then wearing = true break end
+					end
+					if not wearing then continue end
 				end
 			end
 			mins = -organ[5]
@@ -81,8 +84,8 @@ local math_ceil = math.ceil
 local stepDiv = 1
 local tracePos = Vector(0, 0, 0)
 
-function hg.organism.Trace_Bullet(organs)
-	local organ = box[6] and organs[box[6]][box[7]]
+function hg.organism.Trace_Bullet(hitbox, tracePos, ricocheted, org, organs)
+	local organ = hitbox[6] and organs[hitbox[6]][hitbox[7]]
 	return organ and organ[2] or 0
 end
 
@@ -115,7 +118,7 @@ hook.Add("PostDrawTranslucentRenderables", "homigrad-organism", function()
 		if GetViewEntity() == ply then continue end
 		ply = hg.GetCurrentCharacter(ply)
 		local organs = hg.organism.GetHitBoxOrgans(ply:GetModel(), ply)
-		if not organs then return end
+		if not organs then continue end
 		local boxs, pos, sphere = hg.organism.ShootMatrix(ply, organs)
 		if hg_show_hitbox_dir:GetFloat() > 0 and hg.organism.Trace then
 			local dir = Vector(hg_show_hitbox_dir:GetFloat(), 0, 0)

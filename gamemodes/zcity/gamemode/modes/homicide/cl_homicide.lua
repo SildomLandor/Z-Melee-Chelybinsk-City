@@ -12,11 +12,9 @@ MODE.TypeSounds = {
 	["soe"] = "snd_jack_hmcd_disaster.mp3",
 	["gunfreezone"] = "snd_jack_hmcd_panic.mp3" ,
 	["suicidelunatic"] = "zbattle/jihadmode.mp3",
-	["wildwest"] = "snd_jack_hmcd_wildwest.mp3",
-	["supermario"] = "snd_jack_hmcd_psycho.mp3"
 }
 
-local fade = 0
+local StartTime = 0
 local fadeFX = {
 	noiseMat = Material("vgui/noisevhs"),
 	shakeX = 0,
@@ -208,7 +206,6 @@ net.Receive("HMCD_RoundStart",function()
 		end
 	end
 
-	fade = 0
 	fadeFX.shakeX = 0
 	fadeFX.shakeY = 0
 	fadeFX.targetShakeX = math.Rand(-4, 4)
@@ -221,8 +218,6 @@ MODE.TypeNames = {
 	["soe"] = "Чрезвычайное положение",
 	["gunfreezone"] = "Gun Free Zone",
 	["suicidelunatic"] = "Suicide Lunatic",
-	["wildwest"] = "Wild west",
-	["supermario"] = "Super Mario"
 }
 
 surface.CreateFont("ZB_HomicideSmall", {
@@ -305,29 +300,6 @@ MODE.TypeObjectives.standard = {
 	},
 }
 
-MODE.TypeObjectives.wildwest = {
-	traitor = {
-		objective = "Этот город слишком мал для нас всех. Убей остальных и стань единственным выжившим.",
-		name = "Убийца",
-		color1 = Color(190,0,0),
-		color2 = Color(190,0,0)
-	},
-
-	gunner = {
-		objective = "Ты — шериф этого городка. Найди и уничтожь негодяя, нарушившего закон.",
-		name = "Шериф",
-		color1 = Color(0,120,190),
-		color2 = Color(158,0,190)
-	},
-
-	innocent = {
-		objective = "Закон должен восторжествовать. В этом городе произошли убийства — будь осторожен и помоги найти преступника.",
-		name = "Ковбой",
-		color1 = Color(0,120,190),
-		color2 = Color(158,0,190)
-	},
-}
-
 MODE.TypeObjectives.gunfreezone = {
 	traitor = {
 		objective = "У тебя есть всё необходимое: предметы, яды, взрывчатка и оружие спрятаны по карманам. Убей здесь всех.",
@@ -370,29 +342,6 @@ MODE.TypeObjectives.suicidelunatic = {
 	},
 }
 
-
-MODE.TypeObjectives.supermario = {
-	traitor = {
-		objective = "Ты злой Марио! Прыгай по карте и устрани всех остальных.",
-		name = "Предатель Марио",
-		color1 = Color(190,0,0),
-		color2 = Color(190,0,0)
-	},
-
-	gunner = {
-		objective = "Ты герой Марио! Используй свои прыжки, чтобы остановить предателя.",
-		name = "Герой Марио",
-		color1 = Color(158,0,190),
-		color2 = Color(158,0,190)
-	},
-
-	innocent = {
-		objective = "Ты мирный Марио — выживай и избегай ловушек предателя!",
-		name = "Мирный Марио",
-		color1 = Color(0,120,190)
-	},
-}
-
 function MODE:RenderScreenspaceEffects()
 	local overlay = MODE.GetRoundFadeOverlay()
 	if overlay <= 0 then return end
@@ -413,14 +362,20 @@ function MODE:HUDPaint()
 	if not MODE.Type or not MODE.TypeObjectives[MODE.Type] then return end
 	local lply = LocalPlayer()
 	if not IsValid(lply) or lply:Team() == TEAM_SPECTATOR then return end
-	if StartTime + 12 < CurTime() then return end
+
+	if StartTime <= 0 then
+		StartTime = zb.ROUND_BEGIN or CurTime()
+	end
+
+	local introLen = (MODE.DefaultRoundStartTime or 6) + (MODE.FadeScreenTime or 1.5)
+	if CurTime() > StartTime + introLen + 2 then return end
 
 	local sw, sh = ScrW(), ScrH()
 	local overlay = MODE.GetRoundFadeOverlay()
 	UpdateFadeShake(math.max(overlay, 0.35))
 
-	fade = Lerp(FrameTime() * 1, fade, math.Clamp(StartTime + 5 - CurTime(), -2, 2))
-	local textFade = math.Clamp(fade, 0, 1)
+	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((StartTime + introLen - CurTime()) / introLen, 0, 1)
+	if textFade <= 0 then return end
 
 	local titleStr = "Хомисайд | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно")
 	local titleCol = Color(0, 162, 255, 255 * textFade)

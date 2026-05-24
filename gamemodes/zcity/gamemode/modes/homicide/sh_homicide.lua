@@ -441,24 +441,6 @@ MODE.Roles.standard = {
 	},
 }
 
-MODE.Roles.wildwest = {
-	traitor = {
-		objective = "В этом городе всем не хватит места. Убей всех.",
-		name = "убийца",
-		color = Color(190,0,0)
-	},
-
-	gunner = {
-		name = "свидетель",
-		color = Color(159,85,0)
-	},
-
-	innocent = {
-		name = "свидетель",
-		color = Color(159,85,0)
-	},
-}
-
 MODE.Roles.gunfreezone = {
 	traitor = {
 		name = "убийца",
@@ -472,26 +454,6 @@ MODE.Roles.gunfreezone = {
 
 	innocent = {
 		name = "невиновный",
-		color = Color(0,120,190)
-	},
-}
-
-MODE.Roles.supermario = {
-	traitor = {
-		objective = "Ты злой Марио! Прыгай и валите всех.",
-		name = "злой Марио",
-		color = Color(190,0,0)
-	},
-
-	gunner = {
-		objective = "Ты герой Марио! Прыгай и останови предателя.",
-		name = "герой Марио",
-		color = Color(158,0,190)
-	},
-
-	innocent = {
-		objective = "Обычный Марио — выживи и не попадай в ловушки.",
-		name = "Марио",
 		color = Color(0,120,190)
 	},
 }
