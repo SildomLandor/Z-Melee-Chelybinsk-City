@@ -56,7 +56,7 @@ end
 local addtiveLayer = postprs.addtiveLayer
 
 local h = {
-	["$pp_colour_addr"] = 0,
+	["$pp_colour_addr"] = 0.01, -- лол кек
 	["$pp_colour_addg"] = 0.006,
 	["$pp_colour_addb"] = 0.006,
 	["$pp_colour_brightness"] = 0,
