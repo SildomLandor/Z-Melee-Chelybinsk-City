@@ -1009,22 +1009,29 @@ function GM:ScoreboardShow()
 
 	local function SortPlayers(list, sortState)
 		table.sort(list, function(a, b)
+			if not IsValid(a) then return false end
+			if not IsValid(b) then return true end
+
 			local av, bv
 			if sortState.key == "name" then
 				av = string.lower(a:Name() or "")
 				bv = string.lower(b:Name() or "")
 			elseif sortState.key == "ping" then
-				av = a:Ping()
-				bv = b:Ping()
+				av = a:Ping() or 0
+				bv = b:Ping() or 0
 			elseif sortState.key == "xp" then
 				av = math.floor(a.exp or 0)
 				bv = math.floor(b.exp or 0)
 			else
-				av = a:Frags()
-				bv = b:Frags()
+				av = a:Frags() or 0
+				bv = b:Frags() or 0
 			end
-			if av == bv then return a:UserID() < b:UserID() end
-			return sortState.desc and av > bv or av < bv
+
+			if av ~= bv then
+				return sortState.desc and av > bv or av < bv
+			end
+
+			return (a:UserID() or 0) < (b:UserID() or 0)
 		end)
 	end
 
