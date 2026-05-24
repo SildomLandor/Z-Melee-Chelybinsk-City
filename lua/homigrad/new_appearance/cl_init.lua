@@ -1,91 +1,96 @@
 hg.Appearance = hg.Appearance or {}
-local A = hg.Appearance
-local appDir = "zcity/appearances/"
 
-A.SelectedAppearance = ConVarExists("hg_appearance_selected") and GetConVar("hg_appearance_selected") or CreateClientConVar("hg_appearance_selected", "main", true, false, "appearance json")
-A.ForcedRandom = ConVarExists("hg_appearance_force_random") and GetConVar("hg_appearance_force_random") or CreateClientConVar("hg_appearance_force_random", "0", true, false, "rand appearance", 0, 1)
-A.MaxRenderDist = ConVarExists("hg_appearance_max_render_dist") and GetConVar("hg_appearance_max_render_dist") or CreateClientConVar("hg_appearance_max_render_dist", "750", true, false, "acc render dist", 0, 5000)
+-- File manager
 
-function A.CreateAppearanceFile(nm, tbl)
-	file.CreateDir(appDir)
-	file.Write(appDir .. nm .. ".json", util.TableToJSON(tbl, true))
+hg.Appearance.SelectedAppearance = ConVarExists("hg_appearance_selected") and GetConVar("hg_appearance_selected") or CreateClientConVar("hg_appearance_selected","main",true,false,"name of selected appearance json file")
+hg.Appearance.ForcedRandom = ConVarExists("hg_appearance_force_random") and GetConVar("hg_appearance_force_random") or CreateClientConVar("hg_appearance_force_random","0",true,false,"forced appearance random",0,1)
+hg.Appearance.MaxRenderDist = ConVarExists("hg_appearance_max_render_dist") and GetConVar("hg_appearance_max_render_dist") or CreateClientConVar("hg_appearance_max_render_dist", "750", true, false, "Maximum distance to render accessories", 0, 5000)
+local dir = "zcity/appearances/"
+function hg.Appearance.CreateAppearanceFile(strFile_name, tblAppearance)
+	file.CreateDir(dir)
+	file.Write(dir .. strFile_name .. ".json", util.TableToJSON(tblAppearance, true) )
 end
 
-local function fixAtt(t)
-	t.AAttachments = t.AAttachments or {}
+function hg.Appearance.LoadAppearanceFile(strFile_name)
+	if not file.Exists(dir .. strFile_name .. ".json", "DATA") then return false, "no file [data/zcity/appearances/" .. strFile_name .. ".json]" end
+	local tblAppearance = util.JSONToTable(file.Read(dir .. strFile_name .. ".json"))
+
+	if not hg.Appearance.AppearanceValidater(tblAppearance) then return false, "file is damaged [data/zcity/appearances/" .. strFile_name .. ".json]"  end
+
+	if tblAppearance.AColor and not IsColor(tblAppearance.AColor) then
+		tblAppearance.AColor = Color(tblAppearance.AColor.r or 180, tblAppearance.AColor.g or 0, tblAppearance.AColor.b or 0, tblAppearance.AColor.a or 255)
+	end
+
+	tblAppearance.AAttachments = tblAppearance.AAttachments or {}
 	for i = 1, 3 do
-		if not t.AAttachments[i] or t.AAttachments[i] == "" then t.AAttachments[i] = "none" end
-	end
-end
-
-local function fixClr(t)
-	if t.AColor and not IsColor(t.AColor) then
-		t.AColor = Color(t.AColor.r or 180, t.AColor.g or 0, t.AColor.b or 0, t.AColor.a or 255)
-	end
-end
-
-function A.LoadAppearanceFile(nm)
-	if not file.Exists(appDir .. nm .. ".json", "DATA") then
-		return false, "нет файла [data/zcity/appearances/" .. nm .. ".json]"
+		if not tblAppearance.AAttachments[i] or tblAppearance.AAttachments[i] == "" then
+			tblAppearance.AAttachments[i] = "none"
+		end
 	end
 
-	local t = util.JSONToTable(file.Read(appDir .. nm .. ".json"))
-	if not A.AppearanceValidater(t) then return false, "битый json " .. nm end
-
-	A.NormalizeAppearance(t)
-	fixClr(t)
-	fixAtt(t)
-	return t
+	return tblAppearance
 end
 
-function A.GetAppearanceList()
-	return file.Find(appDir .. "*.json")
+function hg.Appearance.GetAppearanceList()
+	local files = file.Find( dir .. "*.json" )
+	return files
 end
 
-local function sndApp()
-	local rnd = A.ForcedRandom:GetBool()
-	local t, why
+-- Send from client...
+net.Receive("Get_Appearance", function()
+    local forced_random = hg.Appearance.ForcedRandom:GetBool()
+    net.Start("Get_Appearance")
+        local tbl, reason
 
-	if not rnd then
-		t, why = A.LoadAppearanceFile(A.SelectedAppearance:GetString())
-	end
+        if not forced_random then
+            tbl, reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
+        end
 
-	if t then fixClr(t) end
+        if tbl and tbl.AColor and not IsColor(tbl.AColor) then
+            tbl.AColor = Color(tbl.AColor.r, tbl.AColor.g, tbl.AColor.b, tbl.AColor.a or 255)
+        end
 
-	net.Start("Get_Appearance")
-		net.WriteTable(t or {})
-		net.WriteBool(not t)
-	net.SendToServer()
+        net.WriteTable(tbl and tbl or {})
+        net.WriteBool(not tbl)
+    net.SendToServer()
 
-	if not t and not rnd then
-		LocalPlayer():ChatPrint("[Внешность] хуйня с файлом — " .. (why or "?"))
-	end
+    if not tbl and not forced_random then lply:ChatPrint("[Appearance] file load failed - " .. reason) end
+end)
+
+local function OnlyGetAppearance()
+    local forced_random = hg.Appearance.ForcedRandom:GetBool()
+    net.Start("OnlyGet_Appearance")
+        local tbl, reason
+
+        if not forced_random then
+            tbl, reason = hg.Appearance.LoadAppearanceFile(hg.Appearance.SelectedAppearance:GetString())
+        end
+        if tbl and tbl.AColor and not IsColor(tbl.AColor) then
+            tbl.AColor = Color(tbl.AColor.r, tbl.AColor.g, tbl.AColor.b, tbl.AColor.a or 255)
+        end
+
+        net.WriteTable(tbl or {})
+    net.SendToServer()
+
+    if not tbl and not forced_random then 
+        LocalPlayer():ChatPrint("[Appearance] file load failed - " .. reason) 
+    end
 end
 
-net.Receive("Get_Appearance", sndApp)
+net.Receive("OnlyGet_Appearance", OnlyGetAppearance)
 
-local function sndAppOnly()
-	local rnd = A.ForcedRandom:GetBool()
-	local t, why
+-- Render things
 
-	if not rnd then t, why = A.LoadAppearanceFile(A.SelectedAppearance:GetString()) end
-	if t then fixClr(t) end
-
-	net.Start("OnlyGet_Appearance")
-		net.WriteTable(t or {})
-	net.SendToServer()
-
-	if not t and not rnd then LocalPlayer():ChatPrint("[Внешность] — " .. (why or "?")) end
-end
-
-net.Receive("OnlyGet_Appearance", sndAppOnly)
-
-local wl = {
-	weapon_physgun = true, gmod_tool = true, gmod_camera = true,
-	weapon_crowbar = true, weapon_pistol = true, weapon_crossbow = true,
+local whitelist = {
+    weapon_physgun = true,
+    gmod_tool = true,
+    gmod_camera = true,
+    weapon_crowbar = true,
+    weapon_pistol = true,
+    weapon_crossbow = true
 }
 
-local me
+local islply
 
 local hg_firstperson_death = ConVarExists("hg_firstperson_death") and GetConVar("hg_firstperson_death") or CreateClientConVar("hg_firstperson_death", "0", "first person death", true, false, 0, 1)
 
@@ -96,7 +101,7 @@ function RenderAccessories(ply, accessories, setup)
 	if ply ~= viewer then
 		local entPos = (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply):GetPos()
 		local dist = viewer:GetPos():Distance(entPos)
-		local maxDist = A.MaxRenderDist:GetFloat()
+		local maxDist = hg.Appearance.MaxRenderDist:GetFloat()
 		if dist > maxDist then
 			if ply.modelAccess then
 				for k, v in pairs(ply.modelAccess) do
@@ -112,13 +117,12 @@ function RenderAccessories(ply, accessories, setup)
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	ent = IsValid(ply.OldRagdoll) and ply.OldRagdoll:IsRagdoll() and ply.OldRagdoll or ent
 
-	me = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect", LocalPlayer()))
-		and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect", LocalPlayer()))
-
+	islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer())) and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer()))
+	
 	local fountains = GetNetVar("fountains") or {}
-	if ent == follow and hg_firstperson_death:GetBool() and !fountains[ent] then me = true end
+	if ent == follow and hg_firstperson_death:GetBool() and !fountains[ent] then islply = true end
 
-	if me and IsValid(wep) and wl[wep:GetClass()] then
+	if islply and IsValid(wep) and whitelist[wep:GetClass()] then
 		if not ent.modelAccess then return end
 		for k,v in ipairs(ent.modelAccess) do
 			if IsValid(v) then
@@ -147,19 +151,19 @@ function RenderAccessories(ply, accessories, setup)
 			if not accessData then continue end
 			if accessData.needcoolRender then continue end
 
-			DrawAccesories(ply, ent, accessoriess, accessData, me, nil, setup)
+			DrawAccesories(ply, ent, accessoriess, accessData, islply, nil, setup)
 		end
 	else
 		local accessData = hg.Accessories[accessories]
 		if not accessData then return end
 		if accessData.needcoolRender then return end
 
-		DrawAccesories(ply, ent, accessories, accessData, me, nil, setup)
+		DrawAccesories(ply, ent, accessories, accessData, islply, nil, setup)
 	end
 end
 
 local huy_addvec = Vector(0.4,0,0.4)
-function DrawAccesories(ply, ent, accessories, accessData, isMe, force, setup)
+function DrawAccesories(ply, ent, accessories,accessData, islply, force, setup)
 	if not accessories then return end
 	if not accessData then return end
 
@@ -250,7 +254,7 @@ function DrawAccesories(ply, ent, accessories, accessData, isMe, force, setup)
 	end
 
 	if model:GetParent() != ent then model:SetParent(ent, bone) end
-	if !(isMe and accessData.norender) and (!setup or accessData.bonemerge) then
+	if !(islply and accessData.norender) and (!setup or accessData.bonemerge) then
 		if accessData["bSetColor"] then
 			local colorDraw = accessData["vecColorOveride"] or ( ply.GetPlayerColor and ply:GetPlayerColor() or ply:GetNWVector("PlayerColor",Vector(1,1,1)) )
 			render.SetColorModulation( colorDraw[1],colorDraw[2],colorDraw[3] )
@@ -426,10 +430,9 @@ function CoolRenderAccessories(ply, accessories)
 
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 
-	me = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect", LocalPlayer()))
-		and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect", LocalPlayer()))
+	islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer())) and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer()))
 
-	if me and IsValid(wep) and wl[wep:GetClass()] then
+	if islply and IsValid(wep) and whitelist[wep:GetClass()] then
 		if not ent.modelAccess then return end
 		for k,v in ipairs(ent.modelAccess) do
 			if IsValid(v) then
@@ -458,14 +461,14 @@ function CoolRenderAccessories(ply, accessories)
 			if not accessData then continue end
 			if not accessData.needcoolRender then continue end
 
-			DrawAccesories(ply, ent, accessoriess, accessData, me)
+			DrawAccesories(ply,ent,accessoriess,accessData,islply)
 		end
 	else
 		local accessData = hg.Accessories[accessories]
 		if not accessData then return end
 		if not accessData.needcoolRender then return end
 
-		DrawAccesories(ply, ent, accessories, accessData, me)
+		DrawAccesories(ply,ent,accessories,accessData,islply)
 	end
 end
 
