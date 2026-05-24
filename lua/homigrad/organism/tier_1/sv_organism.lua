@@ -274,26 +274,26 @@ function META2:IsStimulated()
 end
 
 local numerical = {
-	"One.",
-	"Two.",
-	"Three.",
-	"Four.",
-	"Five.",
-	"Six.",
-	"Seven.",
-	"Eight.",
-	"Nine.",
-	"Ten.",
-	"Eleven.",
-	"Twelve.",
-	"Thirteen.",
-	"Fourteen.",
-	"Fifteen.",
-	"Sixteen.",
-	"Seventeen.",
-	"Eighteen.",
-	"Nineteen.",
-	"Twenty."
+"Один",
+"Два",
+"Три",
+"Четыре",
+"Пять",
+"Шесть",
+"Семь",
+"Восемь",
+"Девять",
+"Десять",
+"Одиннадцать",
+"Двенадцать",
+"Тринадцать",
+"Четырнадцать",
+"Пятнадцать",
+"Шестнадцать",
+"Семнадцать",
+"Восемнадцать",
+"Девятнадцать",
+"Двадцать"
 }
 
 hook.Add("HomigradDamage", "Berserk", function(ply, dmgInfo, hitgroup, ent)
@@ -766,17 +766,17 @@ hook.Add("HG_OnOtrub", "fearful", function( plya )// ЧЕ
 end)
 
 local unlucky_dislocations = {
-	"Why can't I fix this goddamn dislocation...",
-	"Please... why is it so hard.",
-	"Just go back in place already...",
-	"This is irritating",
-	"I should try again",
+	"Почему... Я не могу вправить эту ебанную кость...",
+	"Пожалуйста... Почему это так сложно",
+	"Просто... Встань на место",
+	"Что-то хрустнуло... Надеюсь я не сделал хуже",
+	"Я... Я смогу... Просто надо попытаться еще раз...",
 }
 
 local finally_fixed = {
-	"Finally.",
-	"That was harder than I thought",
-	"One dislocation away.",
+	"Кость кажется встала на место",
+	"Я СМОГ! Я ВПРАВИЛ ЕЁ!",
+	"Наконец-то, я... Смог",
 }
 
 local function fixlimb(org, key, fixer)

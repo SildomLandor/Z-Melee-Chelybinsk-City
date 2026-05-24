@@ -141,7 +141,7 @@ MODE.SubRoles = {
 Опытен в стрельбе.
 +80 к выносливости.
 Рация.]],
-		Objective = "Разоружай стрелка и бей его же оружием.",
+		Objective = "Разоружи стрелка и убей его, его-же оружием.",
 		SpawnFunction = function(ply)
 			-- ply:Give("weapon_sogknife")	
 			-- ply:Give("weapon_adrenaline")
@@ -163,7 +163,7 @@ MODE.SubRoles = {
 Опытен в стрельбе.
 +80 к выносливости.
 Нож, эпипен, фонарик.]],
-		Objective = "Разоружай стрелка и бей его же оружием.",
+		Objective = "Разоружи стрелка и убей его, его-же оружием.",
 		SpawnFunction = function(ply)
 			ply:Give("weapon_sogknife")	
 			ply:Give("weapon_adrenaline")
