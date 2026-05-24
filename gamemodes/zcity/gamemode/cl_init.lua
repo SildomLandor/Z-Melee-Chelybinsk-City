@@ -850,7 +850,7 @@ function GM:ScoreboardShow()
 	local function PlayersHash()
 		local parts = {}
 		for _, ply in player.Iterator() do
-			parts[#parts + 1] = ply:SteamID() .. ply:Team() .. tostring(ply:Alive()) .. ply:Frags() .. ply:Ping()
+			parts[#parts + 1] = ply:SteamID() .. ply:Team() .. tostring(ply:Alive()) .. ply:Frags() .. ply:Ping() .. math.floor(tonumber(ply.exp) or 0) .. (ply:Name() or "")
 		end
 		return table.concat(parts, "|")
 	end
@@ -1007,31 +1007,28 @@ function GM:ScoreboardShow()
 	local playerSort = { key = "frags", desc = true }
 	local spectatorSort = { key = "name", desc = false }
 
+	local sortGetters = {
+		name = function(ply) return string.lower(ply:Name() or "") end,
+		frags = function(ply) return ply:Frags() or 0 end,
+		xp = function(ply) return math.floor(tonumber(ply.exp) or 0) end,
+		ping = function(ply) return ply:Ping() or 0 end,
+	}
+
 	local function SortPlayers(list, sortState)
+		local getVal = sortGetters[sortState.key] or sortGetters.frags
 		table.sort(list, function(a, b)
 			if not IsValid(a) then return false end
 			if not IsValid(b) then return true end
 
-			local av, bv
-			if sortState.key == "name" then
-				av = string.lower(a:Name() or "")
-				bv = string.lower(b:Name() or "")
-			elseif sortState.key == "ping" then
-				av = a:Ping() or 0
-				bv = b:Ping() or 0
-			elseif sortState.key == "xp" then
-				av = math.floor(a.exp or 0)
-				bv = math.floor(b.exp or 0)
-			else
-				av = a:Frags() or 0
-				bv = b:Frags() or 0
-			end
-
+			local av, bv = getVal(a), getVal(b)
 			if av ~= bv then
-				return sortState.desc and av > bv or av < bv
+				if sortState.desc then return av > bv end
+				return av < bv
 			end
 
-			return (a:UserID() or 0) < (b:UserID() or 0)
+			local auid, buid = a:UserID() or 0, b:UserID() or 0
+			if auid ~= buid then return auid < buid end
+			return a:EntIndex() < b:EntIndex()
 		end)
 	end
 
