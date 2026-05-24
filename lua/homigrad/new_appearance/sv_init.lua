@@ -20,12 +20,12 @@ local function CheckAttachments(ply,tbl)
         local uid = tbl.AAttachments[i]
         if PSmodule.Items[uid] and (!HasItem(ply, uid) and ply:IsPlayer()) then
             tbl.AAttachments[i] = ""
-            ply:ChatPrint(uid .. " - not bought, removed")
+            ply:ChatPrint(uid .. " — не куплено, снято")
         end
 
         if hg.Accessories[uid] and hg.Accessories[uid].disallowinappearance then
             tbl.AAttachments[i] = ""
-            if ply.ChatPrint then ply:ChatPrint(uid .. " - is disallowed in default appearance, removed") end
+            if ply.ChatPrint then ply:ChatPrint(uid .. " — недоступно в редакторе, снято") end
         end
     end
 
@@ -42,7 +42,7 @@ local function CheckAttachments(ply,tbl)
         --print(bodygroup[2],uid,PSmodule.Items[uid],ply:PS_HasItem(uid))
         if bodygroup[2] and uid and PSmodule.Items[uid] and (!HasItem(ply, uid) and ply:IsPlayer()) then
             tbl.ABodygroups[k] = nil
-            ply:ChatPrint(v .. " - not bought, removed")
+            ply:ChatPrint(v .. " — не куплено, снято")
         end
     end
 
@@ -50,6 +50,9 @@ local function CheckAttachments(ply,tbl)
 end
 
 local function ForceApplyAppearance(ply, tbl, noModelChange)
+    APmodule.NormalizeAppearance(tbl)
+    tbl.AModel = APmodule.ResolveModelName(tbl.AModel)
+
     local tMdl = APmodule.PlayerModels[1][tbl.AModel] or APmodule.PlayerModels[2][tbl.AModel] or tbl.AModel
     local mdl = istable(tMdl) and tMdl.mdl or tMdl
     if mdl ~= ply:GetModel() and !noModelChange then

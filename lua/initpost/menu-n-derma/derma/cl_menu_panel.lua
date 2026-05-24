@@ -1176,6 +1176,10 @@ function PANEL:OpenSkinsPanel()
 end
 
 function PANEL:SwitchToMain()
+    if IsValid(self.AppearancePanel) and hg.Appearance and hg.Appearance.PurgePopups then
+        hg.Appearance.PurgePopups(self.AppearancePanel)
+    end
+
     self.TargetState = "Main"
     self.TransitionProgress = 0
     self:CloseSkinsPanel()
@@ -2261,7 +2265,10 @@ function PANEL:CreateAppearancePanel()
     -- Override Close to switch back to main
     local oldClose = self.AppearancePanel.Close
     self.AppearancePanel.Close = function(pnl)
-        -- Save appearance to file
+        if hg.Appearance and hg.Appearance.PurgePopups then
+            hg.Appearance.PurgePopups(pnl)
+        end
+
         local currentAppearance = self.AppearancePanel.AppearanceTable
         if currentAppearance and hg.Appearance then
              local fileName = hg.Appearance.SelectedAppearance and hg.Appearance.SelectedAppearance:GetString() or "main"

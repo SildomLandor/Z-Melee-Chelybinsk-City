@@ -29,29 +29,15 @@ local allowed = {
 }
 
 local function IsInvalidName(name)
-	local trimmedName = string.Trim(name)
-	if trimmedName == "" then return true end
-	if #trimmedName < 2 then return true end
+	local trimmed = string.Trim(name)
+	if trimmed == "" or #trimmed < 2 then return true end
 	if utf8.len(name) > 25 then return true end
 
-	local symblos = utf8.len(name)
-	for k = 1, symblos do
+	for k = 1, utf8.len(name) do
 		if not table.HasValue(allowed, utf8.GetChar(name, k)) then return true end
 	end
 
-   local trimmedName = string.Trim(name)
-   
-   if trimmedName == "" then return true end
-   if #trimmedName < 2 then return true end
-   if utf8.len(name) > 25 then return true end
-
-   local symblos = utf8.len( name )
-
-   for k = 1, symblos do
-	   if !table.HasValue(allowed, utf8.GetChar(name,k) ) then return true end
-   end
-
-   return false
+	return false
 end
 
 hg.Appearance.IsInvalidName = IsInvalidName
@@ -67,29 +53,16 @@ end
 hg.Appearance.GenerateRandomName = GenerateRandomName
 
 
--- Check access to all
-local access = {}
---["STEAM_0:1:163575696"] = true -- distac our custom model creator
+local access = {
+	--["STEAM_0:1:163575696"] = true,
+}
 local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 1, {FCVAR_REPLICATED, FCVAR_NEVER_AS_STRING, FCVAR_ARCHIVE}, "Toggle free items in appearance for everyone", 0, 1)
 
 if SERVER then
-	cvars.AddChangeCallback("hg_appearance_access_for_all", function(convarName, valueOld, valueNew)
+	cvars.AddChangeCallback("hg_appearance_access_for_all", function(_, _, _)
 		SetGlobalBool("hg_appearance_access_for_all", hg_appearance_access_for_all:GetBool())
 	end)
 	SetGlobalBool("hg_appearance_access_for_all", hg_appearance_access_for_all:GetBool())
-end
-
--- Check access to all
-local access = {
-	--["STEAM_0:1:163575696"] = true -- distac our custom model creator
-}
-local hg_appearance_access_for_all = ConVarExists("hg_appearance_access_for_all") and GetConVar("hg_appearance_access_for_all") or CreateConVar("hg_appearance_access_for_all", 1, {FCVAR_REPLICATED,FCVAR_NEVER_AS_STRING,FCVAR_ARCHIVE}, "Toggle free items in appearance for everyone", 0, 1)
-if SERVER then
-	cvars.AddChangeCallback("hg_appearance_access_for_all", function(convar_name, value_old, value_new)
-		SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
-	end)
-
-	SetGlobalBool("hg_appearance_access_for_all",hg_appearance_access_for_all:GetBool())
 end
 local function GetAccessToAll(ply)
 	return GetGlobalBool("hg_appearance_access_for_all") or (ply:IsSuperAdmin() or ply:IsAdmin() or access[ply:SteamID()])
@@ -112,126 +85,27 @@ local function AppAddModel(strName, strMdl, bFemale, tSubmaterialSlots)
 	}
 end
 
-AppAddModel("Male 01", "models/zcity/m/male_01.mdl", false, {
+local maleSlots = {
 	main = "models/humans/male/group01/players_sheet",
 	pants = "distac/gloves/pants",
 	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 02", "models/zcity/m/male_02.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 03", "models/zcity/m/male_03.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 04", "models/zcity/m/male_04.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 05", "models/zcity/m/male_05.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 06", "models/zcity/m/male_06.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 07", "models/zcity/m/male_07.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 08", "models/zcity/m/male_08.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Male 09", "models/zcity/m/male_09.mdl", false, {
-	main = "models/humans/male/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Female 01", "models/zcity/f/female_01.mdl", true, {
+	hands = "distac/gloves/hands",
+}
+local femaleSlots = {
 	main = "models/humans/female/group01/players_sheet",
 	pants = "distac/gloves/pants",
 	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
+	hands = "distac/gloves/hands",
+}
 
-AppAddModel("Female 02", "models/zcity/f/female_02.mdl", true, {
-	main = "models/humans/female/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
+for i = 1, 9 do
+	AppAddModel("Мужчина " .. string.format("%02d", i), "models/zcity/m/male_" .. string.format("%02d", i) .. ".mdl", false, maleSlots)
+end
 
-AppAddModel("Female 03", "models/zcity/f/female_03.mdl", true, {
-	main = "models/humans/female/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Female 04", "models/zcity/f/female_04.mdl", true, {
-	main = "models/humans/female/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Female 05", "models/zcity/f/female_07.mdl", true, {
-	main = "models/humans/female/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-
-AppAddModel("Female 06", "models/zcity/f/female_06.mdl", true, {
-	main = "models/humans/female/group01/players_sheet",
-	pants = "distac/gloves/pants",
-	boots = "distac/gloves/cross",
-	hands = "distac/gloves/hands"
-})
-AppAddModel( "Мужчина 01", "models/zcity/m/male_01.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"}) -- сделал бы автоматом если бы слоты не отличались...
-AppAddModel( "Мужчина 02", "models/zcity/m/male_02.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"}) -- забудьте я просто шизик, сделал более удобную штуку
-AppAddModel( "Мужчина 03", "models/zcity/m/male_03.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 04", "models/zcity/m/male_04.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 05", "models/zcity/m/male_05.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 06", "models/zcity/m/male_06.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 07", "models/zcity/m/male_07.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 08", "models/zcity/m/male_08.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Мужчина 09", "models/zcity/m/male_09.mdl", false, {main = "models/humans/male/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-
-AppAddModel( "Женщина 01", "models/zcity/f/female_01.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Женщина 02", "models/zcity/f/female_02.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Женщина 03", "models/zcity/f/female_03.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Женщина 04", "models/zcity/f/female_04.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Женщина 05", "models/zcity/f/female_07.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
-AppAddModel( "Женщина 06", "models/zcity/f/female_06.mdl", true, {main = "models/humans/female/group01/players_sheet", pants = "distac/gloves/pants", boots = "distac/gloves/cross", hands = "distac/gloves/hands"})
+for i = 1, 6 do
+	local mdl = i == 5 and "models/zcity/f/female_07.mdl" or ("models/zcity/f/female_" .. string.format("%02d", i) .. ".mdl")
+	AppAddModel("Женщина " .. string.format("%02d", i), mdl, true, femaleSlots)
+end
 
 hg.Appearance.PlayerModels = PlayerModels
 
@@ -473,10 +347,19 @@ hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
 }
 
 local function AppAddBodygroup(strBodyGroup, strName, strStringID, bFemale, bPointShop, bDonateOnly, fCost, psModel, psBodygroups, psSubmats, psStrNameOveride)
-	local pointShopID = "Standard_BodyGroups_" .. ( psStrNameOveride or strName )
+	local sex = bFemale and 2 or 1
+	local bg = hg.Appearance.Bodygroups[strBodyGroup]
+	if not bg then return end
 
-	if PLUGIN.CreateItem then
-		PLUGIN:CreateItem(pointShopID, string.NiceName(strName), psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0, 0, 0), fCost, bDonateOnly, psSubmats or {})
+	local pointShopID = bPointShop and ("Standard_BodyGroups_" .. (psStrNameOveride or strName)) or false
+	bg[sex][strName] = {strStringID, bPointShop and true or false, ID = pointShopID}
+
+	if bPointShop and PLUGIN.CreateItem then
+		hg.Appearance._psBodyItems = hg.Appearance._psBodyItems or {}
+		if not hg.Appearance._psBodyItems[pointShopID] then
+			hg.Appearance._psBodyItems[pointShopID] = true
+			PLUGIN:CreateItem(pointShopID, string.NiceName(strName), psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0, 0, 0), fCost, bDonateOnly, psSubmats or {})
+		end
 	end
 end
 
@@ -529,15 +412,54 @@ local function AddBodygroupsFunc()
 	AppAddBodygroup("LEGS", "Boots", "female_reference_boots.smd", true, false, false, 0, nil, 0)
 end
 
+AddBodygroupsFunc()
 hook.Add("ZPointshopLoaded", "AddBodygroups", AddBodygroupsFunc)
+
+function hg.Appearance.NormalizeAppearance(tbl)
+	if not istable(tbl) then return tbl end
+
+	if istable(tbl.AModel) then
+		local bad = tbl.AModel
+		tbl.AModel = nil
+		for sex = 1, 2 do
+			for nm, dat in pairs(PlayerModels[sex]) do
+				if dat == bad or (istable(dat) and dat.mdl == bad.mdl) then
+					tbl.AModel = nm
+					break
+				end
+			end
+			if tbl.AModel then break end
+		end
+	end
+	if not isstring(tbl.AModel) or tbl.AModel == "" then
+		tbl.AModel = hg.Appearance.SkeletonAppearanceTable.AModel
+	end
+	tbl.AModel = hg.Appearance.ResolveModelName(tbl.AModel)
+	tbl.AClothes = tbl.AClothes or {}
+	tbl.AClothes.main = tbl.AClothes.main or "normal"
+	tbl.AClothes.pants = tbl.AClothes.pants or tbl.AClothes.main
+	tbl.AClothes.boots = tbl.AClothes.boots or tbl.AClothes.main
+	tbl.AFacemap = tbl.AFacemap or "Default"
+	tbl.AAttachments = tbl.AAttachments or {"none", "none", "none"}
+
+	for i = 1, 3 do
+		if not tbl.AAttachments[i] or tbl.AAttachments[i] == "" then
+			tbl.AAttachments[i] = "none"
+		end
+	end
+
+	return tbl
+end
 
 -- SkeletonTable
 hg.Appearance.SkeletonAppearanceTable = {
-	AModel = "Male 07",
+	AModel = "Мужчина 07",
 	AClothes = {
-		main = "normal"
+		main = "normal",
+		pants = "normal",
+		boots = "normal",
 	},
-	AName = "John Z-City",
+	AName = "Гражданин Z-City",
 	AColor = Color(180, 0, 0),
 	AAttachments = {"none", "none", "none"},
 	ABodygroups = {},
@@ -563,8 +485,10 @@ function hg.Appearance.GetRandomAppearance()
 			end
 		end
 
-		local _, str = table.Random(hg.Appearance.Clothes[iSex])
-		randomAppearance.AClothes = {main = str, pants = str, boots = str}
+		local _, mainStr = table.Random(hg.Appearance.Clothes[iSex])
+		local _, pantsStr = table.Random(hg.Appearance.Clothes[iSex])
+		local _, bootsStr = table.Random(hg.Appearance.Clothes[iSex])
+		randomAppearance.AClothes = {main = mainStr, pants = pantsStr, boots = bootsStr}
 	end
 
 	local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {})
@@ -576,6 +500,7 @@ end
 hg.Appearance.ValidateFunctions = {
 	AModel = function(str)
 		if not isstring(str) then return false end
+		str = hg.Appearance.ResolveModelName(str)
 		if not PlayerModels[1][str] and not PlayerModels[2][str] then return false end
 		return true
 	end,
@@ -621,6 +546,9 @@ hg.Appearance.ValidateFunctions = {
 }
 
 local function AppearanceValidater(tblAppearance)
+	if not istable(tblAppearance) then return false end
+	hg.Appearance.NormalizeAppearance(tblAppearance)
+
 	local VaildFuncs = hg.Appearance.ValidateFunctions
 	local bValidAModel = VaildFuncs.AModel(tblAppearance.AModel)
 	local bValidAClothes = VaildFuncs.AClothes(tblAppearance.AClothes)

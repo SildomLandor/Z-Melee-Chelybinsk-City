@@ -41,9 +41,9 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		end
 
 		hg.approach_vector = approach_vector
-	--//	
-		-- хззззззз
-	local hg_movement_stamina_debuff = CreateConVar("hg_movement_stamina_debuff", "0.52", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply movement debuff when having low stamina", 0, 1)
+	--//
+
+	local hg_movement_stamina_debuff = CreateConVar("hg_movement_stamina_debuff", "0.45", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply movement debuff when having low stamina", 0, 1)
 	local hg_inertiamul = CreateConVar("hg_inertiamul", "1", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Multiply inertia for player movement", 0.01, 5)
 	local hg_inertiaenabled = CreateConVar("hg_inertiaenabled", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Enable inertia", 0, 1)
 	local hg_divejump = CreateConVar("hg_divejump", "0", {FCVAR_REPLICATED,FCVAR_ARCHIVE,FCVAR_NOTIFY}, "Toggle dive jumps on crouch jump", 0, 1)
@@ -181,81 +181,20 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 			if ply == lply then ViewPunch(vomitVPAng) end
 		end
 
-		local ply_angles = cmd:GetViewAngles()
-
-		local consciousness = 1
-		if ply.organism and ply.organism.consciousness then
-			consciousness = consciousness * ply.organism.consciousness
-			consciousness = consciousness * math.Clamp(ply.organism.blood / 4000, 0.5, 1)
-		end
-		local consmul = math.Clamp(((consciousness - 1) * 4 + 1), 0.1, 1)
-
-		local k = weightmul
-		k = k * math.Clamp(consmul, 0.7, 1)
-		k = k * math.Clamp((org.temperature and (1 - (org.temperature - 38) * 0.25) or 1), 0.5, 1)
-		k = k * math.Clamp((org.temperature and ((org.temperature - 35) * 0.25 + 1) or 1), 0.5, 1)
-		k = k * math.Clamp((org.stamina and org.stamina[1] or 180) / (org.stamina and org.stamina.max or 180), hg_movement_stamina_debuff:GetFloat(), 1)
-		k = k * math.Clamp(5 / ((org.immobilization or 0) + 1), 0.25, 1)
-		k = k * math.Clamp((org.blood or 0) / 5000, 0, 1)
-		k = k * math.Clamp(10 / ((org.shock or 0) + 1), 0.25, 1)
-		k = k * (math.min(math.Round((org.adrenaline or 0), 1) / 24, 0.3) + 1)
-		k = k * math.Clamp((org.lleg and org.lleg >= 0.5 and math.max(1 - org.lleg, 0.6) or 1) * (org.lleg and org.rleg >= 0.5 and math.max(1 - org.rleg, 0.6) or 1) * ((org.analgesia * 1 + 1)), 0, 1)
-		k = k * (org.llegdislocation and 0.75 or 1) * (org.rlegdislocation and 0.75 or 1)
-		k = k * (org.pelvis == 1 and 0.4 or 1)
-		k = k * ((IsValid(ply:GetNetVar("carryent")) or IsValid(ply:GetNetVar("carryent2"))) and math.Clamp(50 / math.max(ply:GetNetVar("carrymass", 0) + ply:GetNetVar("carrymass2", 0), 1), 0.5, 1) or 1)
-		k = k * math.Clamp(20 / ((org.pain or 0) + 1), 0.01, 1)
-
-		local slwdwn = ply:GetNetVar("slowDown", 0)
-		if slwdwn > 0 then
-			k = k * math.Clamp((250 - slwdwn) / 250, 0.75, 1)
-		end
-
-		k = math.max(k, 20 / 200)
-
-		if ply:GetNetVar("vomiting", 0) > (CurTime() - 3) then
-			k = k * 0.25
-		end
-
-		local carryent = IsValid(ply:GetNetVar("carryent")) and ply:GetNetVar("carryent") or IsValid(ply:GetNetVar("carryent2")) and ply:GetNetVar("carryent2")
-		if IsValid(carryent) then
-			local bon = ply:GetNetVar("carrybone", 0) ~= 0 and ply:GetNetVar("carrybone", 0) or ply:GetNetVar("carrybone2", 0)
-			local bone = carryent:TranslatePhysBoneToBone(bon)
-			local mat = carryent:GetBoneMatrix(bone)
-			local pos = mat and mat:GetTranslation() or carryent:GetPos()
-			local lpos = ply:GetNetVar("carrypos", nil) or ply:GetNetVar("carrypos2", nil)
-
-			if lpos then
-				if not carryent:IsRagdoll() then
-					pos = carryent:LocalToWorld(lpos)
-				else
-					pos = LocalToWorld(lpos, angle_zero, mat:GetTranslation(), mat:GetAngles())
-				end
-			end
-
-			local eyetr = hg.eyeTrace(ply)
-			local reachdist = weapons.GetStored("weapon_hands_sh").ReachDistance + 30
-			if pos:DistToSqr(eyetr.StartPos) > reachdist * reachdist then
-				local moving_to = calc_forward_side_moves_to_vector2d(fm, sm, ply_angles)
-				k = k * moving_to:Dot((pos - eyetr.StartPos):GetNormalized())
-			end
-		end
-
-		ply.move = ply:GetRunSpeed() * k
-
 		--\\ Running
 		ply.CurrentSpeed = ply.CurrentSpeed or walk_speed
 		ply.CurrentFrictionMul = ply.CurrentFrictionMul or 1
 		ply.FrictionGainMul = 0.01
 		ply.FrictionLoseMul = 0.2
 
-		ply.SpeedGainMul = (runnin and 205 or 65) * weightmul * (ply.organism.superfighter and 5 or 1) * (ply:GetNWInt("SpeedGainClassMul", 1) or 1)
+		ply.SpeedGainMul = (runnin and 175 or 65) * weightmul * (ply.organism.superfighter and 5 or 1) * (ply:GetNWInt("SpeedGainClassMul", 1) or 1)
 		ply.SpeedGainMul = ply.SpeedGainMul * hg_movement_speed_gain_mul:GetFloat()
 
 		ply.SpeedLoseMul = 10000
 		ply.SpeedLoseMul = ply.SpeedLoseMul * hg_movement_speed_lose_mul:GetFloat()
 
 		ply.SpeedSharpLoseMul = runnin and 0.008 or 0.015
-		ply.InertiaBlend = (runnin and 1450 or 780) * weightmul * (ply.organism.superfighter and 100 or 1)
+		ply.InertiaBlend = (runnin and 1200 or 780) * weightmul * (ply.organism.superfighter and 100 or 1)
 		ply.DuckingSlowdown = ply.DuckingSlowdown or 0
 		-- ply.InertiaBlend = 15 * weightmul * ply.CurrentFrictionMul
 		local inertia_blend_mul = 1
@@ -281,7 +220,7 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 
 		hook.Run("HG_MovementCalc", vel, velLen, weightmul, ply, cmd, mv)
 
-		local mul = {1}
+		local mul = {(ply.move or ply.CurrentSpeed) / ply:GetRunSpeed()}
 
 		hook.Run("HG_MovementCalc_2", mul, ply, cmd, mv)
 
@@ -293,17 +232,17 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 
 		mul = mul * (ply:GetNWBool("TauntStopMoving", false) and 0.01 or 1)
 
-		if runnin and velLen >= 10 then
-			ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, ply.move * mul, delta_time * ply.SpeedGainMul)
+		if(runnin and velLen >= 10)then
+			ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, (ply.move or ply:GetRunSpeed()) * mul, delta_time * ply.SpeedGainMul)
 		else
-			if ply:Crouching() then
-				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, crouch_walk_speed * k * mul, delta_time * ply.SpeedLoseMul)
-			elseif slow_walking then
-				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * k * mul, delta_time * ply.SpeedLoseMul)
-			elseif aiming then
-				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * k * mul, delta_time * ply.SpeedLoseMul)
+			if(ply:Crouching())then
+				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, crouch_walk_speed * mul, delta_time * ply.SpeedLoseMul)
+			elseif(slow_walking)then
+				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * mul, delta_time * ply.SpeedLoseMul)
+			elseif(aiming)then
+				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * mul, delta_time * ply.SpeedLoseMul)
 			else
-				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, walk_speed * k * mul, delta_time * ply.SpeedLoseMul)
+				ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, walk_speed * mul, delta_time * ply.SpeedLoseMul)
 			end
 		end
 		--//
@@ -331,15 +270,18 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		local change_mul = math.abs(ply.CurrentSpeed - slow_walk_speed)
 
 		ply.LastChangeVelocity = change
-		ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * k * mul, delta_time * change * change_mul * ply.SpeedSharpLoseMul * 0.25 * 200)
+		ply.CurrentSpeed = math.Approach(ply.CurrentSpeed, slow_walk_speed * mul, delta_time * change * change_mul * ply.SpeedSharpLoseMul * 0.25 * 200)
 		ply.LastVelocity = vel
 		ply.LastVelocityLen = velLen
 		--//
 
 		local speed = ply.CurrentSpeed
 		--\\ Inertia
+		local ply_angles = cmd:GetViewAngles()
+
 		ply.MovementInertia = ply.MovementInertia or vel
-			-- у меня проблемы
+
+		--\\ Side & back running debuffs
 			fm = fm / math.abs(fm ~= 0 and fm or 1)
 			sm = sm / math.abs(sm ~= 0 and sm or 1)
 			local movement_penalty = 1
@@ -380,13 +322,22 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 		--//
 
 		--\\ Friction
+			local consciousness = 1
+
+			if ply.organism and ply.organism.consciousness then
+				consciousness = consciousness * ply.organism.consciousness
+				consciousness = consciousness * math.Clamp(ply.organism.blood / 4000, 0.5, 1)
+			end
+
+			local consmul = math.Clamp(((consciousness - 1) * 4 + 1), 0.1, 1)
+
 			//if(water_level > 0)then
 			//	ply.CurrentFrictionMul = math.Approach(ply.CurrentFrictionMul, 0.2, delta_time * ply.FrictionLoseMul * water_level)
 			//else
 				// ply.CurrentFrictionMul = math.Approach(ply.CurrentFrictionMul, consmul, delta_time * ply.FrictionGainMul * (consmul < ply.CurrentFrictionMul and 100 or 10))
 			//end
 
-			ply.CurrentFrictionMul = (runnin and 0.48 or 0.32) / hg_inertiamul:GetFloat()
+			ply.CurrentFrictionMul = (runnin and 0.55 or 0.32) / hg_inertiamul:GetFloat()
 			ply.InertiaBlend = ply.InertiaBlend * ply.CurrentFrictionMul
 
 			-- local new_inertia = LerpVector(0.5^(delta_time * ply.InertiaBlend), ply.MovementInertia, inertia_to)
@@ -417,6 +368,39 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 			end
 		--//
 
+		local move = ply:GetRunSpeed()
+		k = 1 * weightmul
+		k = k * math.Clamp(consmul, 0.7, 1)
+		k = k * math.Clamp((org.temperature and (1 - (org.temperature - 38) * 0.25) or 1), 0.5, 1)
+		k = k * math.Clamp((org.temperature and ((org.temperature - 35) * 0.25 + 1) or 1), 0.5, 1)
+		k = k * math.Clamp((org.stamina and org.stamina[1] or 240) / (org.stamina and org.stamina.max or 240), hg_movement_stamina_debuff:GetFloat(), 1)
+		k = k * math.Clamp(5 / ((org.immobilization or 0) + 1), 0.25, 1)
+		k = k * math.Clamp((org.blood or 0) / 5000, 0, 1)
+		k = k * math.Clamp(10 / ((org.shock or 0) + 1), 0.25, 1)
+		k = k * (math.min(math.Round((org.adrenaline or 0), 1) / 24, 0.3) + 1)
+		k = k * math.Clamp((org.lleg and org.lleg >= 0.5 and math.max(1 - org.lleg, 0.6) or 1) * (org.lleg and org.rleg >= 0.5 and math.max(1 - org.rleg, 0.6) or 1) * ((org.analgesia * 1 + 1)), 0, 1)
+		k = k * (org.llegdislocation and 0.75 or 1) * (org.rlegdislocation and 0.75 or 1)
+		k = k * (org.pelvis == 1 and 0.4 or 1)
+		k = k * ((IsValid(ply:GetNetVar("carryent")) or IsValid(ply:GetNetVar("carryent2"))) and math.Clamp(50 / math.max(ply:GetNetVar("carrymass", 0) + ply:GetNetVar("carrymass2", 0), 1), 0.5, 1) or 1)
+		k = k * math.Clamp(20 / ((org.pain or 0) + 1), 0.01, 1)
+		//k = k * (ishgweapon(wep) and not wep:IsPistolHoldType() and not wep:ReadyStance() and 0.75 or 1)
+
+		local slwdwn = ply:GetNetVar("slowDown", 0)
+		if(slwdwn > 0)then
+			//if(SERVER)then
+				//ply:SetNetVar("slowDown", math.Approach(slwdwn, 0, delta_time * 250))
+			//end
+			k = k * math.Clamp((250 - slwdwn) / 250, 0.75, 1)
+		end
+
+		k = math.max(k, 20 / 200)
+
+		if ply:GetNetVar("vomiting", 0) > (CurTime() - 3) then
+			k = k * 0.25
+		end
+
+		local ent = IsValid(ply:GetNetVar("carryent")) and ply:GetNetVar("carryent") or IsValid(ply:GetNetVar("carryent2")) and ply:GetNetVar("carryent2")
+
 		if SERVER and inertia_len > 5 and runnin then
 			local mul = math.Clamp(inertia_len / 200, 0.5, 1) * 5 * (ply:Crouching() and 0.01 or 1)
 			if ply == rag then
@@ -432,6 +416,34 @@ local Angle, Vector, AngleRand, VectorRand, math, hook, util, game = Angle, Vect
 				end
 			end
 		end
+
+		if IsValid(ent) then
+			local bon = ply:GetNetVar("carrybone",0) ~= 0 and ply:GetNetVar("carrybone",0) or ply:GetNetVar("carrybone2",0)
+			local bone = ent:TranslatePhysBoneToBone(bon)
+			local mat = ent:GetBoneMatrix(bone)
+			local pos = mat and mat:GetTranslation() or ent:GetPos()
+			local lpos = IsValid(ent) and ply:GetNetVar("carrypos",nil) or ply:GetNetVar("carrypos2",nil)
+
+			if lpos then
+				if not ent:IsRagdoll()then
+					pos = ent:LocalToWorld(lpos)
+				else
+					pos = LocalToWorld(lpos, angle_zero, mat:GetTranslation(), mat:GetAngles())
+				end
+			end
+
+			local eyetr = hg.eyeTrace(ply)
+			local dist = pos:DistToSqr(eyetr.StartPos)
+			local reachdist = weapons.GetStored("weapon_hands_sh").ReachDistance + 30
+			if dist > reachdist*reachdist then
+				local moving_to = calc_forward_side_moves_to_vector2d(fm, sm, ply_angles)
+				local dot = moving_to:Dot((pos - eyetr.StartPos):GetNormalized())
+				k = k * dot
+			end
+		end
+
+		move = move * k
+		ply.move = move
 
 		if SERVER and not IsValid(ply.FakeRagdoll) then
 			ply.eyeAnglesOld = ply.eyeAnglesOld or ply:EyeAngles()
