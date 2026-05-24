@@ -15,6 +15,7 @@ hook.Add("Org Clear", "Main", function(org)
 	module.liver[1](org)
 	module.metabolism[1](org)
 	module.random_events[1](org)
+	module.coma[1](org)
 	org.brain = 0
 	org.consciousness = 1
 	org.disorientation = 0
@@ -173,6 +174,10 @@ local function send_organism(org, ply)
 	sendtable.noradrenalineActive = org.noradrenalineActive
 	sendtable.lastPepperHit = org.lastPepperHit
 	sendtable.superfighter = org.superfighter
+	sendtable.coma = org.coma
+	sendtable.coma_depth = org.coma_depth
+	sendtable.coma_gcs = org.coma_gcs
+	sendtable.coma_flicker = org.coma_flicker
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
 	net.WriteTable(not hg_developer:GetBool() and sendtable or org)
@@ -366,6 +371,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	end
 	module.pulse[2](owner, org, timeValue)
 	module.pepper[2](owner, org, timeValue)
+	module.coma[2](owner, org, timeValue)
 
 	if org.owner.PlayerClassName == "furry" then
 		org.assimilated = 0
@@ -456,7 +462,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	end
 
 	local just_went_uncon = not org.otrub and org.needotrub
-	local just_woke_up = not org.needotrub and org.otrub and (org.uncon_timer or 0) > 6
+	local just_woke_up = not org.needotrub and org.otrub and (org.uncon_timer or 0) > 6 and not org.coma
 	if isPly and just_went_uncon then hook.Run("HG_OnOtrub", owner); hook.Run("PlayerDropWeapon", owner) end
 	if isPly and just_woke_up then hook.Run("HG_OnWakeOtrub", owner) end
 
@@ -468,7 +474,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	local just_went_uncon = not org.otrub and org.needotrub
 
-	if org.posturing then //-- the decerebrate one
+	if org.posturing or org.coma then //-- decerebrate / coma posturing
 		local ent = hg.GetCurrentCharacter(org.owner)
 
 		local rleg = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_R_Foot")))

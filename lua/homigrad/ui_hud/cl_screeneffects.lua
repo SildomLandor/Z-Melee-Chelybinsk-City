@@ -56,12 +56,12 @@ end
 local addtiveLayer = postprs.addtiveLayer
 
 local h = {
-	["$pp_colour_addr"] = 0.012,
-	["$pp_colour_addg"] = -0.006,
-	["$pp_colour_addb"] = 0.018,
-	["$pp_colour_brightness"] = -0.045,
-	["$pp_colour_contrast"] = 1.12,
-	["$pp_colour_colour"] = 0.28,
+	["$pp_colour_addr"] = 0,
+	["$pp_colour_addg"] = 0,
+	["$pp_colour_addb"] = 0.06,
+	["$pp_colour_brightness"] = -0.04,
+	["$pp_colour_contrast"] = 1.1,
+	["$pp_colour_colour"] = 0.9,
 	["$pp_colour_mulr"] = 0,
 	["$pp_colour_mulg"] = 0,
 	["$pp_colour_mulb"] = 0,
@@ -676,17 +676,9 @@ hook.Add("Post Post Processing", "HorrorMood", function()
 	updScreen()
 
 	vignetteMat:SetFloat("$c2_x", ct + 10000)
-	vignetteMat:SetFloat("$c0_z", 0.55)
-	vignetteMat:SetFloat("$c1_y", 0.55)
+	vignetteMat:SetFloat("$c0_z", 0.38)
+	vignetteMat:SetFloat("$c1_y", 0.38)
 	render.SetMaterial(vignetteMat)
-	render.DrawScreenQuad()
-
-	painMat:SetFloat("$c2_x", ct + 10000)
-	painMat:SetFloat("$c0_y", 0.8)
-	painMat:SetFloat("$c0_z", 1)
-	painMat:SetFloat("$c1_x", 0.07)
-	painMat:SetFloat("$c1_y", 0.07)
-	render.SetMaterial(painMat)
 	render.DrawScreenQuad()
 end)
 

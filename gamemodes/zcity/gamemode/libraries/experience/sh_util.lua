@@ -257,8 +257,9 @@ else
         local dataType = net.ReadFloat()
         ent.SvDB = ent.SvDB or {}
         ent.SvDB[dataName] = dataType
-        if zb.Experience.OpenedAccount then
+        if IsValid(zb.Experience.OpenedAccount) and isfunction(zb.Experience.OpenedAccount.Update) then
             zb.Experience.OpenedAccount:Update(ent)
         end
+   
     end)
 end

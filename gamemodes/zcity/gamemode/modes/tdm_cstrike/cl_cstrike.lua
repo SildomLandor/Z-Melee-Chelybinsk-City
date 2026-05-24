@@ -19,8 +19,8 @@ function MODE:AddHudPaint()
                 surface.SetDrawColor(122,0,0,255)
                 surface.DrawRect(tscr.x - w / 2, 0, w, h * 2)
         
-                local txt = "You're on site!"
-                surface.SetFont( "ZB_InterfaceMedium" )
+                local txt = "Вы на зоне!"
+                surface.SetFont( "ZCity_Veteran" )
                 surface.SetTextColor(color_white:Unpack())
                 local lx, ly = surface.GetTextSize(txt)
                 surface.SetTextPos(tscr.x - lx / 2, h / 2 + ly / 2)
@@ -30,8 +30,8 @@ function MODE:AddHudPaint()
             surface.SetDrawColor(clr:Unpack())
             surface.DrawRect(tscr.x - w / 2, 0, w, h)
         
-            local txt = "SITE A: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." meters"
-            surface.SetFont( "ZB_InterfaceMedium" )
+            local txt = "ЗОНА A: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." м"
+            surface.SetFont( "ZCity_Veteran" )
             surface.SetTextColor(color_white:Unpack())
             local lx, ly = surface.GetTextSize(txt)
             surface.SetTextPos(tscr.x - lx / 2, h / 2 - ly / 2)
@@ -51,8 +51,8 @@ function MODE:AddHudPaint()
                 surface.SetDrawColor(122,0,0,255)
                 surface.DrawRect(tscr.x - w / 2, 0, w, h * 2)
         
-                local txt = "You're on site!"
-                surface.SetFont( "ZB_InterfaceMedium" )
+                local txt = "Вы на зоне!"
+                surface.SetFont( "ZCity_Veteran" )
                 surface.SetTextColor(color_white:Unpack())
                 local lx, ly = surface.GetTextSize(txt)
                 surface.SetTextPos(tscr.x - lx / 2, h / 2 + ly / 2)
@@ -62,8 +62,8 @@ function MODE:AddHudPaint()
             surface.SetDrawColor(clr:Unpack())
             surface.DrawRect(tscr.x - w / 2, 0, w, h)
         
-            local txt = "SITE B: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." meters"
-            surface.SetFont( "ZB_InterfaceMedium" )
+            local txt = "ЗОНА B: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." м"
+            surface.SetFont( "ZCity_Veteran" )
             surface.SetTextColor(color_white:Unpack())
             local lx, ly = surface.GetTextSize(txt)
             surface.SetTextPos(tscr.x - lx / 2, h / 2 - ly / 2)
@@ -82,8 +82,8 @@ function MODE:AddHudPaint()
         surface.SetDrawColor(clr:Unpack())
         surface.DrawRect(tscr.x - w * 1.15, 0, w * 1.15 * 2, h)
     
-        local txt = "HOSTAGE DELIVERY ZONE: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." meters"
-        surface.SetFont( "ZB_InterfaceMedium" )
+        local txt = "ЗОНА ДОСТАВКИ ЗАЛОЖНИКОВ: "..math.Round(pos:Distance(LocalPlayer():EyePos()) * 0.0254,0).." м"
+        surface.SetFont( "ZCity_Veteran" )
         surface.SetTextColor(color_white:Unpack())
         local lx, ly = surface.GetTextSize(txt)
         surface.SetTextPos(tscr.x - lx / 2, h / 2 - ly / 2)
