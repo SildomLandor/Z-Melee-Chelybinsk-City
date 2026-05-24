@@ -427,8 +427,8 @@ hg.ConVars = hg.ConVars or {}
 		timer.Simple(0, function()
 			if not IsValid(ply) then return end
 
-			ply:SetWalkSpeed(190)
-			ply:SetRunSpeed(360)
+			ply:SetWalkSpeed(100)
+			ply:SetRunSpeed(380)
 
 			ply:SetJumpPower(DEFAULT_JUMP_POWER)
 
@@ -437,9 +437,9 @@ hg.ConVars = hg.ConVars or {}
 			ply:SetViewOffset(ViewOffset)
 			ply:SetViewOffsetDucked(ViewOffsetDucked)
 
-			ply:SetSlowWalkSpeed(115)
+			ply:SetSlowWalkSpeed(60)
 			ply:SetLadderClimbSpeed(150)
-			ply:SetCrouchedWalkSpeed(115)
+			ply:SetCrouchedWalkSpeed(60)
 			ply:SetDuckSpeed(0.4)
 			ply:SetUnDuckSpeed(0.4)
 			ply:AddEFlags(EFL_NO_DAMAGE_FORCES)

@@ -57,14 +57,14 @@ local addtiveLayer = postprs.addtiveLayer
 
 local h = {
 	["$pp_colour_addr"] = 0,
-	["$pp_colour_addg"] = 0,
-	["$pp_colour_addb"] = 0.06,
-	["$pp_colour_brightness"] = -0.04,
-	["$pp_colour_contrast"] = 1.1,
+	["$pp_colour_addg"] = 0.006,
+	["$pp_colour_addb"] = 0.006,
+	["$pp_colour_brightness"] = 0,
+	["$pp_colour_contrast"] = 0.6,
 	["$pp_colour_colour"] = 0.9,
-	["$pp_colour_mulr"] = 0,
-	["$pp_colour_mulg"] = 0,
-	["$pp_colour_mulb"] = 0,
+	["$pp_colour_mulr"] = -0.01,
+	["$pp_colour_mulg"] = -0.01,
+	["$pp_colour_mulb"] = -0.01,
 }
 
 local tab = table.Copy(h)
