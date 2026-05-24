@@ -1,19 +1,10 @@
-local function IncluderFunc(fileName, deferList)
-	if deferList and fileName:find("cl_") then
-		deferList[#deferList + 1] = fileName
-		if SERVER then
-			AddCSLuaFile(fileName)
-		end
-		return
-	end
-
+local function IncluderFunc(fileName)
 	if fileName:find("sv_") then
 		include(fileName)
 	elseif fileName:find("shared.lua") or fileName:find("sh_") then
 		if SERVER then
 			AddCSLuaFile(fileName)
 		end
-
 		include(fileName)
 	elseif fileName:find("cl_") then
 		if SERVER then
@@ -24,50 +15,22 @@ local function IncluderFunc(fileName, deferList)
 	end
 end
 
-local function LoadFromDir(directory, deferList)
+local function LoadFromDir(directory)
 	local files, folders = file.Find(directory .. "/*", "LUA")
 
 	for _, v in ipairs(folders) do
-		LoadFromDir(directory .. "/" .. v, deferList)
+		LoadFromDir(directory .. "/" .. v)
 	end
 
 	for _, v in ipairs(files) do
-		IncluderFunc(directory .. "/" .. v, deferList)
+		IncluderFunc(directory .. "/" .. v)
 	end
-end
-
-local function LazyModeCl()
-	return CLIENT and GetConVar("hg_lazy_mode_cl") and GetConVar("hg_lazy_mode_cl"):GetBool()
-end
-
-if CLIENT then
-	CreateClientConVar("hg_lazy_mode_cl", "1", true, false, "Defer gamemode cl_ mode files until after map spawn", 0, 1)
 end
 
 LoadFromDir("zcity/gamemode/libraries")
 
 zb.modesHooks = {}
 zb.modes = zb.modes or {}
-zb.deferredByMode = zb.deferredByMode or {}
-
-local function addModeHook(MODE, hookName, func)
-	zb.modesHooks[MODE.name] = zb.modesHooks[MODE.name] or {}
-	zb.modesHooks[MODE.name][hookName] = func
-
-	hook.Add(hookName, "zb_modehook_" .. hookName, function(...)
-		local Current = zb.CROUND_MAIN or zb.CROUND or "tdm"
-
-		local modeHooks = zb.modesHooks[Current]
-		if modeHooks and modeHooks[hookName] then
-			local ModeTable = zb.modes[Current]
-			local a, b, c, d, e, f = modeHooks[hookName](ModeTable, ...)
-
-			if a ~= nil then
-				return a, b, c, d, e, f
-			end
-		end
-	end)
-end
 
 local function CollectModeFunctions(mode)
 	local fns = {}
@@ -87,16 +50,27 @@ local function CollectModeFunctions(mode)
 	return fns
 end
 
-local function UpdateModeHooks(MODE)
+local function addModeHook(MODE, hookName, func)
 	zb.modesHooks[MODE.name] = zb.modesHooks[MODE.name] or {}
-	for k, v2 in pairs(CollectModeFunctions(MODE)) do
-		zb.modesHooks[MODE.name][k] = v2
-	end
+	zb.modesHooks[MODE.name][hookName] = func
+
+	hook.Add(hookName, "zb_modehook_" .. hookName, function(...)
+		local current = zb.CROUND_MAIN or zb.CROUND or "tdm"
+		local modeHooks = zb.modesHooks[current]
+		if not modeHooks or not modeHooks[hookName] then return end
+
+		local modeTable = zb.modes[current]
+		local a, b, c, d, e, f = modeHooks[hookName](modeTable, ...)
+
+		if a ~= nil then
+			return a, b, c, d, e, f
+		end
+	end)
 end
 
 local function RegisterModeHooks(MODE)
-	for k, v2 in pairs(CollectModeFunctions(MODE)) do
-		addModeHook(MODE, k, v2)
+	for hookName, func in pairs(CollectModeFunctions(MODE)) do
+		addModeHook(MODE, hookName, func)
 	end
 end
 
@@ -108,6 +82,7 @@ local function InitMode()
 		ErrorNoHalt("[zcity] mode has no MODE.name\n")
 		return
 	end
+
 	local saved = zb.modes[name] and zb.modes[name].saved or {}
 
 	if MODE.base then
@@ -168,7 +143,6 @@ end
 local function LoadModes()
 	local directory = "zcity/gamemode/modes"
 	local files, folders = file.Find(directory .. "/*", "LUA")
-	local deferCl = LazyModeCl()
 
 	if SERVER then
 		zb.ModesChances = util.JSONToTable(file.Read(chancesfile, "DATA") or "") or {}
@@ -183,13 +157,8 @@ local function LoadModes()
 
 	for _, v in ipairs(folders) do
 		MODE = {}
-		local deferred = deferCl and {} or nil
-		LoadFromDir(directory .. "/" .. v, deferred)
-		local modeName = MODE.name
+		LoadFromDir(directory .. "/" .. v)
 		InitMode()
-		if deferred and modeName and #deferred > 0 then
-			zb.deferredByMode[modeName] = deferred
-		end
 		MODE = nil
 	end
 
@@ -199,25 +168,5 @@ local function LoadModes()
 end
 
 LoadModes()
-
-if CLIENT then
-	hook.Add("InitPostEntity", "zb_lazy_mode_cl", function()
-		if table.IsEmpty(zb.deferredByMode) then return end
-
-		for modeName, paths in pairs(zb.deferredByMode) do
-			MODE = zb.modes[modeName]
-			if not MODE then continue end
-
-			for i = 1, #paths do
-				include(paths[i])
-			end
-
-			UpdateModeHooks(MODE)
-			MODE = nil
-		end
-
-		zb.deferredByMode = {}
-	end)
-end
 
 print("Z-City modes loaded!")

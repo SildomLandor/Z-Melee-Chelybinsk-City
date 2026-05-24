@@ -7,7 +7,10 @@ if not ConVarExists("hg_newspectate") then
 end
 
 function CurrentRound()
-	return zb.modes[zb.CROUND]
+	local name = zb.CROUND
+	if not name or name == "" then return end
+	local main = zb.GetMode and zb:GetMode(name) or name
+	return zb.modes[main or name]
 end
 
 zb.ROUND_STATE = 0
@@ -266,10 +269,33 @@ hook.Add("RenderScreenspaceEffects", "huyhuyUwU", function()
 end)
 
 zb.ROUND_STATE = 0
+
+local function zbClientModeCleanup(rnd)
+	local ply = LocalPlayer()
+	if IsValid(ply) then
+		ply.isTraitor = false
+		ply.isGunner = false
+		ply.MainTraitor = false
+		ply.HMCD_TraitorWord = nil
+		ply.HMCD_TraitorWordSecond = nil
+	end
+	gui.EnableScreenClicker(false)
+	if IsValid(TDM_OpenedBuyMenu) then
+		TDM_OpenedBuyMenu:Remove()
+		TDM_OpenedBuyMenu = nil
+	end
+	hook.Run("zbClientModeCleanup", rnd)
+end
+
 net.Receive("RoundInfo", function()
 	local rnd = net.ReadString()
-	
+	local prev = zb.CROUND
+
 	hook.Run("RoundInfoCalled", rnd)
+
+	if prev and prev ~= rnd then
+		zbClientModeCleanup(rnd)
+	end
 
 	if zb.CROUND ~= rnd then
 		if hg.DynaMusic then
@@ -278,6 +304,7 @@ net.Receive("RoundInfo", function()
 	end
 
 	zb.CROUND = rnd
+	zb.CROUND_MAIN = zb:GetMode(rnd) or rnd
 
 	zb.ROUND_STATE = net.ReadInt(4)
 	
@@ -1406,8 +1433,23 @@ function GM:ScoreboardHide()
 end
 
 local function zbF3UsesBuyMenu()
+	local ply = LocalPlayer()
+	if not IsValid(ply) or not ply:Alive() then return false end
 	local rnd = CurrentRound and CurrentRound()
-	return rnd and rnd.buymenu and IsValid(LocalPlayer()) and LocalPlayer():Alive()
+	if rnd and rnd.buymenu then return true end
+	local mode = zb.modes and zb.CROUND and zb.modes[zb.CROUND]
+	return mode and mode.buymenu
+end
+
+local function zbTryOpenBuyMenu()
+	if zb.OpenBuyMenu then
+		zb.OpenBuyMenu()
+		return
+	end
+	hook.Run("zbOpenBuyMenu")
+	if zb.OpenBuyMenu then return end
+	net.Start("tdm_request_buymenu")
+	net.SendToServer()
 end
 
 local function zbToggleF3Cursor()
@@ -1418,7 +1460,7 @@ end
 
 function GM:ShowSpare1()
 	if zbF3UsesBuyMenu() then
-		hook.Run("zbOpenBuyMenu")
+		zbTryOpenBuyMenu()
 		return
 	end
 	zbToggleF3Cursor()
@@ -1427,12 +1469,12 @@ end
 hook.Add("PlayerBindPress", "zb_f3_cursor", function(ply, bind, pressed)
 	if ply ~= LocalPlayer() or not pressed or bind ~= "gm_showspare1" then return end
 	if zbF3UsesBuyMenu() then
-		hook.Run("zbOpenBuyMenu")
+		zbTryOpenBuyMenu()
 		return true
 	end
 	zbToggleF3Cursor()
 	return true
-end)
+end, HOOK_HIGH)
 
 local AdminShowVoiceChat = CreateClientConVar("zb_admin_show_voicechat","0",false,false,"Show voicechat panels for admins",0,1)
 hook.Add("PlayerStartVoice", "showVoicePanels", function(ply)

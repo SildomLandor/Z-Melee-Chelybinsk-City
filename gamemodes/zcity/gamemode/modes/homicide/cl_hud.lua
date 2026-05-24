@@ -497,18 +497,26 @@ hook.Add("HUDPaint", "DrawTraitorPanel", function()
 end)
 
 
+local function resetTraitorPanel()
+	traitor_panel.dead_anim = {}
+	traitor_panel.smooth_toggle = traitor_panel.width + 40
+	traitor_panel.visible = false
+	for _, avatar in pairs(traitor_panel.assistant_avatars) do
+		if IsValid(avatar) then
+			avatar:SetVisible(false)
+		end
+	end
+end
+
+hook.Add("zbClientModeCleanup", "HMCD_ResetTraitorPanel", function(rnd)
+	if rnd == "hmcd" then return end
+	resetTraitorPanel()
+end)
+
 hook.Add("PostPlayerDeath", "ClearTraitorPanel", function(ply)
-    if ply == LocalPlayer() then
-        traitor_panel.dead_anim = {}
-        traitor_panel.smooth_toggle = 0
-        traitor_panel.visible = false
-        
-        for steamid, avatar in pairs(traitor_panel.assistant_avatars) do
-            if IsValid(avatar) then
-                avatar:SetVisible(false)
-            end
-        end
-    end
+	if ply == LocalPlayer() then
+		resetTraitorPanel()
+	end
 end)
 
 

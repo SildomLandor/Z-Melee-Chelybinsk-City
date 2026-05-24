@@ -75,6 +75,16 @@ end
 
 local team_GetAllTeams = team.GetAllTeams
 
+function zb:GetMode(round)
+	if zb.modes and zb.modes[round] then return round end
+	if not zb.modes then return round end
+	for name, mode in pairs(zb.modes) do
+		if mode.Types and mode.Types[round] then
+			return name
+		end
+	end
+end
+
 function zb:CheckTeams()
 	local tbl = {}
 	for i, info in pairs(team_GetAllTeams()) do

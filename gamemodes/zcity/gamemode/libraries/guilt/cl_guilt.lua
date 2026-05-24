@@ -136,6 +136,11 @@ local function close_guilt_menu()
 	gui.EnableScreenClicker(false)
 end
 
+hook.Add("zbClientModeCleanup", "guilt_close_on_mode_change", function()
+	close_guilt_menu()
+	showstuff = 0
+end)
+
 local function guiltRowsFromPayload(tbl)
 	local rows = {}
 	for _, row in ipairs(tbl or {}) do

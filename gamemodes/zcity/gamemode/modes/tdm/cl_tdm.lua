@@ -508,6 +508,10 @@ net.Receive("tdm_open_buymenu", function()
 	OpenBuyMenu()
 end)
 
+function zb.OpenBuyMenu()
+	OpenBuyMenu()
+end
+
 hook.Add("zbOpenBuyMenu", "tdm", function()
 	OpenBuyMenu()
 end)

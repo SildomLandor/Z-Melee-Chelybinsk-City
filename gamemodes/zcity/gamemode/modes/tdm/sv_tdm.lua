@@ -173,11 +173,21 @@ end
 function MODE:PlayerDeath(ply)
 end
 util.AddNetworkString( "tdm_open_buymenu" )
+util.AddNetworkString( "tdm_request_buymenu" )
+
 function MODE:ShowSpare1(ply ) -- OpenMenu
 	if not ply:Alive() then return end
 	net.Start( "tdm_open_buymenu" )
 	net.Send( ply )
 end
+
+net.Receive("tdm_request_buymenu", function(_, ply)
+	if not IsValid(ply) or not ply:Alive() then return end
+	local rnd = CurrentRound()
+	if not rnd or not rnd.buymenu then return end
+	net.Start("tdm_open_buymenu")
+	net.Send(ply)
+end)
 
 util.AddNetworkString( "tdm_buyitem" )
 

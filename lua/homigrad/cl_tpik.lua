@@ -1754,10 +1754,13 @@ local meta = FindMetaTable("Entity")
 function meta:PullLHTowards(towards, timetopull, mdl, offsets, callback)
 
     local ply = hg.RagdollOwner(self) or self
+    local wep = IsValid(ply) and ply:GetActiveWeapon() or nil
 
     timer.Simple(timetopull, function()
-        if !IsValid(ply) or !IsValid(ply:GetActiveWeapon()) or !callback then return end
-        callback(ply:GetActiveWeapon())
+        if not IsValid(ply) or not IsValid(wep) or not callback then return end
+        local wm = wep.GetWM and wep:GetWM()
+        if not IsValid(wm) then return end
+        callback(wep)
     end)
 
     do return end
