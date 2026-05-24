@@ -318,7 +318,7 @@ hook.Add("HomigradDamage", "Berserk", function(ply, dmgInfo, hitgroup, ent)
 end)
 
 hook.Add("Org Think", "Main", function(owner, org, timeValue)
-	if not IsValid(owner) then
+	if not isentity(owner) or not IsValid(owner) then
 		hg.organism.list[owner] = nil
 		return
 	end

@@ -858,13 +858,25 @@ function hg.FakeUp(ply, forced, instant)
 end
 
 function hg.GetCurrentCharacter(ply)
-	if not IsValid(ply) then return false end
-	local rag = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or IsValid(ply:GetNWEntity("FakeRagdoll",NULL)) and ply:GetNWEntity("FakeRagdoll",NULL)
-	return (IsValid(rag) and rag) or ply
+	if not hg.ValidEnt(ply) then return false end
+
+	local rag = ply.FakeRagdoll
+	if rag ~= nil and not isentity(rag) then
+		ply.FakeRagdoll = nil
+		rag = nil
+	end
+	if hg.ValidEnt(rag) then return rag end
+
+	rag = ply:GetNWEntity("FakeRagdoll", NULL)
+	if hg.ValidEnt(rag) then return rag end
+
+	return ply
 end
 
 hook.Add("PlayerDisconnected", "Fake", function(ply) hg.ragdollFake[ply] = nil end)
-hook.Add("PlayerFootstep", "CustomFootstep", function(ply) if IsValid(ply.FakeRagdoll) then return true end end)
+hook.Add("PlayerFootstep", "CustomFootstep", function(ply)
+	if hg.ValidEnt(ply.FakeRagdoll) then return true end
+end)
 function hg.RagdollOwner(ragdoll)
 	if not IsValid(ragdoll) then return end
 	local ply = ragdoll.ply

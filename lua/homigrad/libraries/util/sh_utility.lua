@@ -55,6 +55,10 @@ hg.ConVars = hg.ConVars or {}
 	function hg.IsValidPlayer(ply)
 		return IsValid(ply) and ply:IsPlayer() and ply:Alive() and ply.organism
 	end
+
+	function hg.ValidEnt(ent)
+		return isentity(ent) and IsValid(ent)
+	end
 --//
 --\\ string funcs
 	local function replace_by_index(str, index, char)
@@ -474,7 +478,7 @@ hg.ConVars = hg.ConVars or {}
 			local p,a = self:GetBonePosition(1)
 			if not p or p:IsEqualTol(self:GetPos(), 0.01) then return end
 			local ent = self.FakeRagdoll
-			if IsValid(ent) then return end
+			if hg.ValidEnt(ent) then return end
 
 			hg.renderOverride(self, ent, flags)
 		end
@@ -543,9 +547,128 @@ hg.ConVars = hg.ConVars or {}
 					if not IsValid(ent) or not ent.AddEntityRelationship then continue end
 					ent:AddEntityRelationship(bull, ent:Disposition(ply))
 				end
+
+				if ply:GetMoveType() == MOVETYPE_NOCLIP and hg.SetNoclipNPCStealth then
+					hg.SetNoclipNPCStealth(ply, true)
+				end
 			end)
 		end
 	end)
+
+	if SERVER then
+		local function hg_ply_noclip(ply)
+			return ply:GetMoveType() == MOVETYPE_NOCLIP
+		end
+
+		local function hg_npc_stealth_targets()
+			local list = ents.FindByClass("npc_*")
+			for _, ent in ipairs(ents.FindByClass("terminator_*")) do
+				list[#list + 1] = ent
+			end
+			return list
+		end
+
+		local function hg_npc_stealth_one(npc, ply, on)
+			if not IsValid(npc) or not npc.AddEntityRelationship then return end
+
+			ply.noclip_npc_save = ply.noclip_npc_save or {}
+			local key = npc:EntIndex()
+
+			if on then
+				if not ply.noclip_npc_save[key] then
+					ply.noclip_npc_save[key] = {
+						ply = npc:Disposition(ply),
+						bull = IsValid(ply.bull) and npc:Disposition(ply.bull) or nil,
+					}
+				end
+
+				npc:AddEntityRelationship(ply, D_NU, 99)
+				if IsValid(ply.bull) then
+					npc:AddEntityRelationship(ply.bull, D_NU, 99)
+				end
+
+				local enemy = npc:GetEnemy()
+				if enemy == ply or enemy == ply.bull then
+					npc:SetEnemy(NULL)
+					if npc.ClearEnemyMemory then npc:ClearEnemyMemory() end
+				end
+				return
+			end
+
+			local saved = ply.noclip_npc_save[key]
+			ply.noclip_npc_save[key] = nil
+
+			if saved then
+				npc:AddEntityRelationship(ply, saved.ply, 99)
+				if IsValid(ply.bull) and saved.bull then
+					npc:AddEntityRelationship(ply.bull, saved.bull, 99)
+				end
+			elseif IsValid(ply.bull) then
+				local disp = npc:Disposition(ply)
+				if disp == D_NU then disp = D_HT end
+				npc:AddEntityRelationship(ply.bull, disp, 99)
+			end
+		end
+
+		function hg.SetNoclipNPCStealth(ply, on)
+			if not IsValid(ply) or not ply:IsPlayer() then return end
+
+			if on then
+				ply:AddFlags(FL_NOTARGET)
+				if IsValid(ply.bull) then ply.bull:AddFlags(FL_NOTARGET) end
+			else
+				ply:RemoveFlags(FL_NOTARGET)
+				if IsValid(ply.bull) then ply.bull:RemoveFlags(FL_NOTARGET) end
+			end
+
+			for _, npc in ipairs(hg_npc_stealth_targets()) do
+				hg_npc_stealth_one(npc, ply, on)
+			end
+
+			if not on and ply.noclip_npc_save and table.IsEmpty(ply.noclip_npc_save) then
+				ply.noclip_npc_save = nil
+			end
+		end
+
+		hook.Add("Player Think", "hg_noclip_npc_stealth", function(ply)
+			if not ply:Alive() then return end
+			local on = hg_ply_noclip(ply)
+			if not hg.IsChanged(on, "noclip_npc", ply) then return end
+			hg.SetNoclipNPCStealth(ply, on)
+		end)
+
+		hook.Add("PlayerNoClip", "hg_noclip_npc_stealth", function(ply)
+			timer.Simple(0, function()
+				if not IsValid(ply) then return end
+				hg.SetNoclipNPCStealth(ply, hg_ply_noclip(ply))
+			end)
+		end)
+
+		hook.Add("OnEntityCreated", "hg_noclip_npc_stealth", function(ent)
+			timer.Simple(0, function()
+				if not IsValid(ent) or not ent:IsNPC() or not ent.AddEntityRelationship then return end
+				for _, ply in player.Iterator() do
+					if ply:Alive() and hg_ply_noclip(ply) then
+						hg_npc_stealth_one(ent, ply, true)
+					end
+				end
+			end)
+		end)
+
+		hook.Add("PlayerFootstep", "hg_noclip_npc_stealth", function(ply)
+			if hg_ply_noclip(ply) then return true end
+		end)
+
+		hook.Add("EntityEmitSound", "hg_noclip_npc_stealth", function(data)
+			local ent = data.Entity
+			if not IsValid(ent) then return end
+
+			local owner = ent:IsPlayer() and ent or ent:GetOwner()
+			if IsValid(owner) and owner:IsPlayer() and hg_ply_noclip(owner) then
+				return false
+			end
+		end)
+	end
 --//
 --\\ addbonecallback
 	function hg.addbonecallback(ent)

@@ -169,6 +169,7 @@ module[2] = function(owner, org, timeValue)
 	org.losing_oxy = losing_oxy
 	o2[1] = max(o2[1] - losing_oxy, 0)
 	local ent = hg.GetCurrentCharacter(owner)
+	if not ent then return end
 	local bone = ent:LookupBone("ValveBiped.Bip01_Head1")
 
 	if (not bone) or (bone < 0) then bone = 6 end

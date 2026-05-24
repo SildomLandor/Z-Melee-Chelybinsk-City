@@ -46,7 +46,7 @@ local function UpdateFadeShake(intensity)
 	local t = CurTime()
 	if t >= fadeFX.nextShake then
 		fadeFX.nextShake = t + 0.035
-		local s = 1.5 + intensity * 5.5
+		local s = 0.55 + intensity * 2.2
 		fadeFX.targetShakeX = math.Rand(-s, s)
 		fadeFX.targetShakeY = math.Rand(-s * 0.65, s * 0.65)
 	end
@@ -86,12 +86,13 @@ end
 
 local function DrawFadeText(text, font, cx, cy, col, ax, ay, shakeMul)
 	shakeMul = shakeMul or 1
+	shakeMul = shakeMul * 0.425
 	local sx = fadeFX.shakeX * shakeMul
 	local sy = fadeFX.shakeY * shakeMul
 
-	if shakeMul >= 1.4 and math.random() > 0.9 then
-		sx = sx + math.random(-4, 4)
-		sy = sy + math.random(-2, 2)
+	if shakeMul >= 0.8 and math.random() > 0.93 then
+		sx = sx + math.random(-1, 1)
+		sy = sy + math.random(-1, 1)
 	end
 
 	draw.SimpleText(text, font, cx + sx, cy + sy, col, ax, ay)
@@ -99,12 +100,12 @@ end
 
 local function DrawFadeTitle(text, cx, cy, col, alpha)
 	local font = "ZCity_Veteran_big"
-	local sx = fadeFX.shakeX * 2.2
-	local sy = fadeFX.shakeY * 2.2
+	local sx = fadeFX.shakeX * 0.85
+	local sy = fadeFX.shakeY * 0.85
 
-	if math.random() > 0.88 then
-		sx = sx + math.random(-5, 5)
-		sy = sy + math.random(-3, 3)
+	if math.random() > 0.96 then
+		sx = sx + math.random(-2, 2)
+		sy = sy + math.random(-1, 1)
 	end
 
 	surface.SetFont(font)
@@ -116,8 +117,8 @@ local function DrawFadeTitle(text, cx, cy, col, alpha)
 	draw.SimpleText(text, font, bx + 1, by + 1, Color(90, 8, 6, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
 	draw.SimpleText(text, font, bx, by, Color(col.r * pulse, col.g * pulse, col.b * pulse, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
 
-	if math.random() > 0.94 then
-		draw.SimpleText(text, font, bx + math.random(-3, 3), by + math.random(-2, 2), Color(180, 20, 15, alpha * 0.45), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	if math.random() > 0.985 then
+		draw.SimpleText(text, font, bx + math.random(-1, 1), by + math.random(-1, 1), Color(180, 20, 15, alpha * 0.45), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
 	end
 end
 
@@ -208,8 +209,8 @@ net.Receive("HMCD_RoundStart",function()
 
 	fadeFX.shakeX = 0
 	fadeFX.shakeY = 0
-	fadeFX.targetShakeX = math.Rand(-4, 4)
-	fadeFX.targetShakeY = math.Rand(-3, 3)
+	fadeFX.targetShakeX = math.Rand(-2, 2)
+	fadeFX.targetShakeY = math.Rand(-1.5, 1.5)
 	fadeFX.nextShake = 0
 end)
 
@@ -377,8 +378,8 @@ function MODE:HUDPaint()
 	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((StartTime + introLen - CurTime()) / introLen, 0, 1)
 	if textFade <= 0 then return end
 
-	local titleStr = "Хомисайд | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно")
-	local titleCol = Color(0, 162, 255, 255 * textFade)
+	local titleStr = "Мокруха | " .. (MODE.TypeNames[MODE.Type] or "Неизвестно")
+	local titleCol = Color(160, 0, 0, 255 * textFade)
 	DrawFadeTitle(titleStr, sw * 0.5, sh * 0.1, titleCol, 255 * textFade)
 
 	local Rolename = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.name ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.name ) or MODE.TypeObjectives[MODE.Type].innocent.name
@@ -391,29 +392,24 @@ function MODE:HUDPaint()
 	local color_white_faded = Color(255, 255, 255, 255 * textFade)
 	color_white_faded.a = 255 * textFade
 
-	DrawFadeText("Вы - " .. Rolename, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.25)
-
-
+	DrawFadeText("Вы - " .. Rolename, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
 
 	local cur_y = sh * 0.5
 
-	-- local ColorRole = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color1 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color1 ) or MODE.TypeObjectives[MODE.Type].innocent.color1
-	-- ColorRole.a = 255 * fade
 	if(lply.SubRole and lply.SubRole != "")then
 		cur_y = cur_y + ScreenScale(20)
 
 		local subName = (hg.TraitorLoadout and hg.TraitorLoadout.GetSubRoleLabel(lply.SubRole))
 			or (MODE.SubRoles[lply.SubRole] and MODE.SubRoles[lply.SubRole].Name)
 			or lply.SubRole
-		DrawFadeText(subName, "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
+		DrawFadeText(subName, "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 	end
 
 	if(!lply.MainTraitor and lply.isTraitor)then
 		cur_y = cur_y + ScreenScale(20)
 
-		DrawFadeText("Помощник", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
+		DrawFadeText("Помощник", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 	end
-
 
 	if(lply.isTraitor)then
 		cur_y = cur_y + ScreenScale(20)
@@ -422,38 +418,38 @@ function MODE:HUDPaint()
 			MODE.TraitorsLocal = MODE.TraitorsLocal or {}
 
 			if(#MODE.TraitorsLocal > 1)then
-				DrawFadeText("Traitors list:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
+				DrawFadeText("Traitors list:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 
 				for _, traitor_info in ipairs(MODE.TraitorsLocal) do
 					local traitor_color = Color(traitor_info[1].r, traitor_info[1].g, traitor_info[1].b, 255 * textFade)
 					cur_y = cur_y + ScreenScale(15)
 
-					DrawFadeText(traitor_info[2], "ZCity_Veteran_big", sw * 0.5, cur_y, traitor_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
+					DrawFadeText(traitor_info[2], "ZCity_Veteran_big", sw * 0.5, cur_y, traitor_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.05)
 				end
 			end
 		else
-			DrawFadeText("Traitor secret words:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
+			DrawFadeText("Traitor secret words:", "ZCity_Veteran_big", sw * 0.5, cur_y, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 
 			cur_y = cur_y + ScreenScale(15)
 
-			DrawFadeText("\"" .. MODE.TraitorWord .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.15)
+			DrawFadeText("\"" .. MODE.TraitorWord .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.15)
 
 			cur_y = cur_y + ScreenScale(15)
 
-			DrawFadeText("\"" .. MODE.TraitorWordSecond .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.15)
+			DrawFadeText("\"" .. MODE.TraitorWordSecond .. "\"", "ZCity_Veteran_big", sw * 0.5, cur_y, color_white_faded, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.15)
 		end
 	end
 
 	if(lply.Profession and lply.Profession != "")then
 		cur_y = cur_y + ScreenScale(20)
 
-		DrawFadeText("Профессия: " .. ((MODE.Professions[lply.Profession] and MODE.Professions[lply.Profession].Name or lply.Profession) or lply.Profession), "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
+		DrawFadeText("Профессия: " .. ((MODE.Professions[lply.Profession] and MODE.Professions[lply.Profession].Name or lply.Profession) or lply.Profession), "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.05)
 	end
 	
 	if(handicap[lply:GetLocalVar("karma_sickness", 0)])then
 		cur_y = cur_y + ScreenScale(20)
 
-		DrawFadeText(handicap[lply:GetLocalVar("karma_sickness", 0)], "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.05)
+		DrawFadeText(handicap[lply:GetLocalVar("karma_sickness", 0)], "ZCity_Veteran_big", sw * 0.5, cur_y, color_role_innocent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.05)
 	end
 
 	local Objective = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.objective ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.objective ) or MODE.TypeObjectives[MODE.Type].innocent.objective
@@ -474,7 +470,7 @@ function MODE:HUDPaint()
 
 	local ColorObj = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color2 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color2 ) or MODE.TypeObjectives[MODE.Type].innocent.color2 or Color(255,255,255)
 	ColorObj.a = 255 * textFade
-	DrawFadeText(Objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 1.1)
+	DrawFadeText(Objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 end
 
 net.Receive("HMCD(SetSubRole)", function(len, ply)

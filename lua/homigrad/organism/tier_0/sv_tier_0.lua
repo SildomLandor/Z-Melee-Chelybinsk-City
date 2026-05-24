@@ -3,6 +3,8 @@ hg.organism = hg.organism or {}
 hg.organism.list = hg.organism.list or {}
 local hook_Run = hook.Run
 function hg.organism.Add(ent)
+	if not isentity(ent) then return end
+
 	ent.organism = {
 		owner = ent
 	}
@@ -75,6 +77,10 @@ hook.Add("Think", "homigrad-organism", function()
 
 	start = SysTime()
 	for owner, org in pairs(hg.organism.list) do -- теперь ясно почему от трупов лагает...
+		if not isentity(owner) or not IsValid(owner) then
+			hg.organism.list[owner] = nil
+			continue
+		end
 		if org.godmode then continue end
 		hook_Run("Org Think", owner, org, mulTime)
 	end
