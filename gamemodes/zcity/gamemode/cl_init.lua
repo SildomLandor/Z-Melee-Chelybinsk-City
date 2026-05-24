@@ -1407,7 +1407,7 @@ end
 
 local function zbF3UsesBuyMenu()
 	local rnd = CurrentRound and CurrentRound()
-	return rnd and rnd.name == "tdm" and IsValid(LocalPlayer()) and LocalPlayer():Alive()
+	return rnd and rnd.buymenu and IsValid(LocalPlayer()) and LocalPlayer():Alive()
 end
 
 local function zbToggleF3Cursor()
@@ -1417,13 +1417,19 @@ local function zbToggleF3Cursor()
 end
 
 function GM:ShowSpare1()
-	if zbF3UsesBuyMenu() then return end
+	if zbF3UsesBuyMenu() then
+		hook.Run("zbOpenBuyMenu")
+		return
+	end
 	zbToggleF3Cursor()
 end
 
 hook.Add("PlayerBindPress", "zb_f3_cursor", function(ply, bind, pressed)
 	if ply ~= LocalPlayer() or not pressed or bind ~= "gm_showspare1" then return end
-	if zbF3UsesBuyMenu() then return end
+	if zbF3UsesBuyMenu() then
+		hook.Run("zbOpenBuyMenu")
+		return true
+	end
 	zbToggleF3Cursor()
 	return true
 end)

@@ -1,6 +1,7 @@
 local MODE = MODE
 
 MODE.base = "tdm"
+MODE.buymenu = true
 
 MODE.PrintName = "Counter-Strike"
 MODE.name = "cstrike"

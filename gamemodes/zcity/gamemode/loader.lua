@@ -69,20 +69,34 @@ local function addModeHook(MODE, hookName, func)
 	end)
 end
 
-local function UpdateModeHooks(MODE)
-	for k, v2 in pairs(MODE) do
-		if isfunction(v2) then
-			zb.modesHooks[MODE.name] = zb.modesHooks[MODE.name] or {}
-			zb.modesHooks[MODE.name][k] = v2
+local function CollectModeFunctions(mode)
+	local fns = {}
+	local function walk(tbl)
+		if not tbl then return end
+		local mt = getmetatable(tbl)
+		if mt and mt.__index and istable(mt.__index) then
+			walk(mt.__index)
 		end
+		for k, v in pairs(tbl) do
+			if isfunction(v) then
+				fns[k] = v
+			end
+		end
+	end
+	walk(mode)
+	return fns
+end
+
+local function UpdateModeHooks(MODE)
+	zb.modesHooks[MODE.name] = zb.modesHooks[MODE.name] or {}
+	for k, v2 in pairs(CollectModeFunctions(MODE)) do
+		zb.modesHooks[MODE.name][k] = v2
 	end
 end
 
 local function RegisterModeHooks(MODE)
-	for k, v2 in pairs(MODE) do
-		if isfunction(v2) then
-			addModeHook(MODE, k, v2)
-		end
+	for k, v2 in pairs(CollectModeFunctions(MODE)) do
+		addModeHook(MODE, k, v2)
 	end
 end
 

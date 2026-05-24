@@ -26,7 +26,7 @@ local teams = {
 
 hook.Add( "StartCommand", "TDM_DisallowMoveOrShoting", function( ply, mv )
 	--; BLYAT NY NAXUA PISAT VSE V ODNY LINIY BLYAAA
-	if zb.CROUND == "tdm" and (zb.ROUND_START or 0) + 20 > CurTime() then 
+	if (zb.CROUND == "tdm" or zb.CROUND == "cstrike") and (zb.ROUND_START or 0) + 20 > CurTime() then 
 		mv:RemoveKey(IN_ATTACK)
 		mv:RemoveKey(IN_ATTACK2)
 		mv:RemoveKey(IN_FORWARD)
@@ -343,7 +343,7 @@ local function OpenBuyMenu()
 	Sheet:SetFadeTime(0.1)
 
 	for k,category in SortedPairsByMemberValue(MODE.BuyItems, "Priority") do
-		local CategoryPanel = vgui.Create( "DScrollPanel", sheet )
+		local CategoryPanel = vgui.Create( "DScrollPanel", Sheet )
 		--CategoryPanel:Dock()
 		CategoryPanel.Paint = function() end
 		for n,Item in pairs(category) do
@@ -504,5 +504,12 @@ local function OpenBuyMenu()
 
 end
 
-net.Receive("tdm_open_buymenu",function() OpenBuyMenu() end)
+net.Receive("tdm_open_buymenu", function()
+	OpenBuyMenu()
+end)
+
+hook.Add("zbOpenBuyMenu", "tdm", function()
+	OpenBuyMenu()
+end)
+
 TDM_OpenedBuyMenu = TDM_OpenedBuyMenu or nil
