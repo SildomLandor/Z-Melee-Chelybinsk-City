@@ -2273,13 +2273,18 @@ function PANEL:CreateAppearancePanel()
         if currentAppearance and hg.Appearance then
              local fileName = hg.Appearance.SelectedAppearance and hg.Appearance.SelectedAppearance:GetString() or "main"
              if fileName == "" then fileName = "main" end
-             
-             hg.Appearance.CreateAppearanceFile(fileName, currentAppearance)
 
-             -- Send to server to apply immediately
+             local copy = table.Copy(currentAppearance)
+             if hg.Appearance.NormalizeAppearance then hg.Appearance.NormalizeAppearance(copy) end
+             if copy.AColor and not IsColor(copy.AColor) then
+                 copy.AColor = Color(copy.AColor.r or 180, copy.AColor.g or 0, copy.AColor.b or 0, copy.AColor.a or 255)
+             end
+
+             hg.Appearance.CreateAppearanceFile(fileName, copy)
+
              net.Start("Get_Appearance")
-                 net.WriteTable(currentAppearance)
-                 net.WriteBool(false) -- Not random
+                 net.WriteTable(copy)
+                 net.WriteBool(false)
              net.SendToServer()
         end
 
