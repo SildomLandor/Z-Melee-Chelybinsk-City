@@ -4,7 +4,6 @@ hg.TraitorLoadout = TL
 
 TL.MaxPoints = 30
 TL.ConVarName = "hmcd_traitor_loadout"
-TL.NetCooldown = 0.35
 
 TL.Items = {
 	["weapon_pl15"] = {cost = 15, name = "ПЛ-15"},
@@ -45,7 +44,7 @@ TL.Skillsets = {
 	["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов.", objective = "Эксперт по диверсиям. Действуй тихо, убирай по одному."},
 	["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе.", objective = "Разоружай стрелка и бей его же оружием."},
 	["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе.", objective = "Отравляй всё, что движется."},
-	["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика.", objective = "Твоё тело — оружие. Убей всех."},
+	["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика.", objective = "Твоё тело — оружие. Убей всех.", exclusive = true},
 }
 
 TL.WeaponExclusions = {
@@ -176,7 +175,12 @@ function TL.Sanitize(raw)
 		out.skillset = raw.skillset
 	end
 
-	local pts = TL.Skillsets[out.skillset].cost
+	local skillInfo = TL.Skillsets[out.skillset]
+	if skillInfo.exclusive then
+		return out
+	end
+
+	local pts = skillInfo.cost
 	local used = {}
 	local order = {}
 
@@ -292,56 +296,39 @@ function TL.ApplyWeapons(ply, weaponList)
 	end
 end
 
+function TL.WantsDefaultLoot(loadout)
+	loadout = loadout or {}
+	local skillInfo = TL.Skillsets[loadout.skillset or "none"]
+	if skillInfo and skillInfo.exclusive then return false end
+	return #(loadout.weapons or {}) == 0
+end
+
 function TL.ApplyToTraitor(ply, loadout, modeType)
 	if not IsValid(ply) then return end
 	loadout = TL.Sanitize(loadout or {})
 	TL.ApplySkillset(ply, loadout.skillset, modeType)
-	TL.ApplyWeapons(ply, loadout.weapons)
+	if not TL.Skillsets[loadout.skillset].exclusive then
+		TL.ApplyWeapons(ply, loadout.weapons)
+	end
 	return loadout
 end
 
 if CLIENT then
-	function TL.PushToServer()
-		local cv = GetConVar(TL.ConVarName)
-		local str = cv and cv:GetString() or ""
-		if not isstring(str) then str = "" end
-		if #str > 4096 then return end
-
-		net.Start("HMCD_TraitorLoadout")
-			net.WriteString(str)
-		net.SendToServer()
-	end
-
 	function TL.SaveLocal(loadout)
 		loadout = TL.Sanitize(loadout)
 		local dataStr = TL.Encode(loadout)
 		file.Write("meleecity_traitor_loadout.txt", dataStr)
 		local cv = GetConVar(TL.ConVarName)
 		if cv then cv:SetString(dataStr) end
-		TL.PushToServer()
 		return loadout
 	end
-
-	hook.Add("InitPostEntity", "HMCD_TraitorLoadoutSync", function()
-		timer.Simple(1, function()
-			if hg and hg.TraitorLoadout then hg.TraitorLoadout.PushToServer() end
-		end)
-	end)
-
-	hook.Add("RoundStateChange", "HMCD_TraitorLoadoutSync", function(_, new)
-		if new ~= "round" then return end
-		TL.PushToServer()
-	end)
 end
 
-if SERVER then
-	function TL.GetPlayerLoadout(ply)
-		if not IsValid(ply) then return TL.Sanitize({}) end
-		if ply.HMCD_TraitorLoadout then return TL.Sanitize(ply.HMCD_TraitorLoadout) end
-
-		local str = ply:GetInfo(TL.ConVarName)
-		local loadout = TL.Sanitize(TL.Parse(str))
-		ply.HMCD_TraitorLoadout = loadout
-		return loadout
+function TL.GetPlayerLoadout(ply)
+	if not IsValid(ply) then return TL.Sanitize({}) end
+	if CLIENT then
+		local cv = GetConVar(TL.ConVarName)
+		return TL.Sanitize(TL.Parse(cv and cv:GetString() or ""))
 	end
+	return TL.Sanitize(TL.Parse(ply:GetInfo(TL.ConVarName)))
 end

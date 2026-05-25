@@ -671,85 +671,10 @@ function MODE:Intermission()
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
-	local main_traitor = nil
-	local traitors = {}
-
-	-- local players = {}
-	-- for i, ply in player.Iterator() do
-	-- 	if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-
-	-- 	players[#players + 1] = {ply, ply.Karma}
-	-- end
-	
-	-- -- potom
-	
-	for i, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-		if math.random(100) > (ply.Karma or 100) then continue end
-
-		if traitors_needed > 0 then
-			ply.isTraitor = true
-			traitors_needed = traitors_needed - 1
-			traitors[#traitors + 1] = ply
-
-			main_traitor = ply
-			ply.MainTraitor = true
-		end
-	end
-
-	//MODE.NextRoundMainTraitors = MODE.NextRoundMainTraitors or {}
-	for i, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-		//if not MODE.NextRoundMainTraitors[ply:SteamID()] then continue end
-
-		if traitors_needed > 0 then
-			ply.isTraitor = true
-			traitors_needed = traitors_needed - 1
-			traitors[#traitors + 1] = ply
-			
-			if not main_traitor then
-				main_traitor = ply
-				ply.MainTraitor = true
-			end
-		end
-	end
-
-	if traitors_needed > 0 then
-		for i, ply in RandomPairs(player.GetAll()) do
-			if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-
-			if traitors_needed > 0 then
-				ply.isTraitor = true
-				traitors_needed = traitors_needed - 1
-				traitors[#traitors + 1] = ply
-
-				if not main_traitor then
-					main_traitor = ply
-					ply.MainTraitor = true
-				end
-			end
-		end
-	end
 
 	self.saved.PoliceTime = CurTime() + math.min(self.Types[self.Type].PoliceTime * (#player.GetAll() / 4),self.Types[self.Type].PoliceTime * 2.2)
 	self.PoliceSpawned = false
 	self.PoliceAllowed = self.Types[self.Type].PoliceAllowed
-
-	for _, traitor_ply in player.Iterator() do
-		if traitor_ply.isTraitor then
-			traitor_ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
-			traitor_ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
-		else
-			traitor_ply:SetNWString("HMCD_TraitorWord", "")
-			traitor_ply:SetNWString("HMCD_TraitorWord2", "")
-		end
-	end
-
-	MODE.AssignGunner()
-
-	for _, ply in player.Iterator() do
-		MODE.SendRoundStartHUD(ply, false)
-	end
 
 	--local pts = zb.GetMapPoints( "RandomSpawns" )
 	
@@ -1180,6 +1105,59 @@ function MODE:ShouldRoundEnd()
 	end
 end
 
+function MODE.AssignTraitors()
+	local player_count = 0
+	for _, ply in player.Iterator() do
+		if ply:Team() ~= TEAM_SPECTATOR then
+			player_count = player_count + 1
+		end
+	end
+
+	local traitors_needed = math.min(player_count - 1, homicide_traitoramount:GetInt())
+	if MODE.ShouldStartRoleRound() then
+		traitors_needed = math.ceil(player_count / 9)
+		if player_count > 8 and math.random(1, 8) == 1 then
+			traitors_needed = traitors_needed + 1
+		end
+	end
+
+	MODE.TraitorExpectedAmt = traitors_needed
+	local main_traitor = nil
+
+	for _, ply in RandomPairs(player.GetAll()) do
+		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
+		if math.random(100) > (ply.Karma or 100) then continue end
+		if traitors_needed <= 0 then break end
+
+		ply.isTraitor = true
+		traitors_needed = traitors_needed - 1
+		main_traitor = ply
+		ply.MainTraitor = true
+	end
+
+	for _, ply in RandomPairs(player.GetAll()) do
+		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
+		if traitors_needed <= 0 then break end
+
+		ply.isTraitor = true
+		traitors_needed = traitors_needed - 1
+		if not main_traitor then
+			main_traitor = ply
+			ply.MainTraitor = true
+		end
+	end
+
+	for _, traitor_ply in player.Iterator() do
+		if traitor_ply.isTraitor then
+			traitor_ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
+			traitor_ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
+		else
+			traitor_ply:SetNWString("HMCD_TraitorWord", "")
+			traitor_ply:SetNWString("HMCD_TraitorWord2", "")
+		end
+	end
+end
+
 function MODE:RoundStart()
 	local roles_choose = MODE.ShouldStartRoleRound()
 	MODE.StartRoundTime = CurTime()
@@ -1195,6 +1173,9 @@ function MODE:RoundStart()
 	
 
 	timer.Remove("HMCDSpawnSWAT")
+
+	MODE.AssignTraitors()
+	MODE.AssignGunner()
 	
 	if(roles_choose)then
 		MODE.StartPlayersRoleSelection()
@@ -1459,8 +1440,6 @@ end)
 util.AddNetworkString("HMCD_UpdateTraitorAssistants")
 
 function MODE.SpawnPlayers(spawn_with_subroles)
-    MODE.AssignGunner()
-
     local player_count = 0
     for i, ply in player.Iterator() do
         if(ply:Team() != TEAM_SPECTATOR)then
@@ -1553,15 +1532,19 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                     if this_player.isTraitor then
                         if this_player.MainTraitor and MODE.ApplyTraitorLoadout then
                             MODE.ApplyTraitorLoadout(this_player, MODE.Type)
-                        elseif typeTbl and typeTbl.TraitorLoot then
-                            typeTbl.TraitorLoot(this_player)
+                        else
+                            if typeTbl and typeTbl.TraitorLoot then
+                                typeTbl.TraitorLoot(this_player)
+                            end
+                            MODE.ApplySubRoleSpawn(this_player)
                         end
-                        MODE.ApplySubRoleSpawn(this_player)
                     end
                     if this_player.isGunner and typeTbl and typeTbl.GunManLoot then
                         typeTbl.GunManLoot(this_player)
                     end
                 end
+
+                MODE.SendRoundStartHUD(this_player, true)
             end)
 
             if(MODE.Type == "soe")then
@@ -1594,12 +1577,6 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                     this_player.noSound = false
                     this_player:SetSuppressPickupNotices(false)
                 end
-            end)
-
-            timer.Simple(0, function()
-                if not IsValid(this_player) then return end
-
-                MODE.SendRoundStartHUD(this_player, true)
             end)
         end
     end

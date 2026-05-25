@@ -1543,7 +1543,7 @@ function PANEL:CreateTraitorMenuPanel()
         ["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов."},
         ["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе."},
         ["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе."},
-        ["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика."}
+        ["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика.", exclusive = true},
     }
 
     local maxPoints = 30
@@ -1609,6 +1609,10 @@ function PANEL:CreateTraitorMenuPanel()
             normalizedLoadout.skillset = rawLoadout.skillset
         end
 
+        if Skillsets[normalizedLoadout.skillset].exclusive then
+            return normalizedLoadout
+        end
+
         local totalPoints = Skillsets[normalizedLoadout.skillset].cost
         local usedWeapons = {}
         local rawWeaponIds = {}
@@ -1668,10 +1672,9 @@ function PANEL:CreateTraitorMenuPanel()
 
     local function SaveLoadout()
         currentLoadout = SanitizeLoadout(currentLoadout)
-        local dataStr = EncodeLoadout(currentLoadout)
-        file.Write("meleecity_traitor_loadout.txt", dataStr)
-        local cv = GetConVar("hmcd_traitor_loadout")
-        if cv then cv:SetString(dataStr) end
+        if hg.TraitorLoadout then
+            currentLoadout = hg.TraitorLoadout.SaveLocal(currentLoadout)
+        end
     end
 
     SaveLoadout()
@@ -2064,6 +2067,9 @@ function PANEL:CreateTraitorMenuPanel()
                     return
                 end
                 currentLoadout.skillset = id
+                if info.exclusive then
+                    currentLoadout.weapons = {}
+                end
                 SaveLoadout()
                 RefreshLoadoutUI()
                 sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)

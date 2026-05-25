@@ -132,13 +132,7 @@ end
 
 net.Receive("HMCD_RoundStart",function()
 	local lply = LocalPlayer()
-
-	for i, ply in player.Iterator() do
-		ply.isTraitor = false
-		ply.isGunner = false
-		ply.HMCD_TraitorWord = nil
-		ply.HMCD_TraitorWordSecond = nil
-	end
+	lply.role = false
 
 	lply.isTraitor = net.ReadBool()
 	lply.isGunner = net.ReadBool()
@@ -189,7 +183,15 @@ net.Receive("HMCD_RoundStart",function()
 	end
 
 	lply.Profession = net.ReadString()
-	--//
+
+	for i, ply in player.Iterator() do
+		if ply == lply then continue end
+		ply.isTraitor = false
+		ply.isGunner = false
+		ply.MainTraitor = false
+		ply.HMCD_TraitorWord = nil
+		ply.HMCD_TraitorWordSecond = nil
+	end
 
 	if(MODE.RoleChooseRoundTypes[MODE.Type] and !screen_time_is_default)then
 		MODE.DynamicFadeScreenEndTime = CurTime() + MODE.RoleChooseRoundStartTime
@@ -197,14 +199,24 @@ net.Receive("HMCD_RoundStart",function()
 		MODE.DynamicFadeScreenEndTime = CurTime() + MODE.DefaultRoundStartTime
 	end
 
-	MODE.RoleEndedChosingState = screen_time_is_default
+	timer.Remove("HMCD_RoundRoleReveal")
 
-	if(screen_time_is_default)then
+	local function playRoundStartSound()
 		if istable(MODE.TypeSounds[MODE.Type]) then
 			surface.PlaySound(table.Random(MODE.TypeSounds[MODE.Type]))
-		else
+		elseif MODE.TypeSounds[MODE.Type] then
 			surface.PlaySound(MODE.TypeSounds[MODE.Type])
 		end
+	end
+
+	if screen_time_is_default then
+		MODE.RoleEndedChosingState = false
+		timer.Create("HMCD_RoundRoleReveal", MODE.RoundPreludeTime or 1, 1, function()
+			MODE.RoleEndedChosingState = true
+			playRoundStartSound()
+		end)
+	else
+		MODE.RoleEndedChosingState = false
 	end
 
 	fadeFX.shakeX = 0
@@ -465,7 +477,7 @@ function MODE:HUDPaint()
 	end
 
 	if(!MODE.RoleEndedChosingState)then
-		Objective = "Раунд начинается..."
+		Objective = "Раунд запускается..."
 	end
 
 	local ColorObj = ( lply.isTraitor and MODE.TypeObjectives[MODE.Type].traitor.color2 ) or ( lply.isGunner and MODE.TypeObjectives[MODE.Type].gunner.color2 ) or MODE.TypeObjectives[MODE.Type].innocent.color2 or Color(255,255,255)

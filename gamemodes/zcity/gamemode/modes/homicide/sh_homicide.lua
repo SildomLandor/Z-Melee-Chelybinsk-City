@@ -344,6 +344,7 @@ MODE.Professions = {
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6
 MODE.RoleChooseRoundStartTime = 10
+MODE.RoundPreludeTime = 1
 
 MODE.RoleChooseRoundTypes = {
 	["standard"] = {

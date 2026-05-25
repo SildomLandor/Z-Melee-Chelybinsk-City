@@ -1,19 +1,6 @@
 local MODE = MODE
 local TL = hg.TraitorLoadout
 
-util.AddNetworkString("HMCD_TraitorLoadout")
-
-net.Receive("HMCD_TraitorLoadout", function(_, ply)
-	if not IsValid(ply) then return end
-	if ply.HMCD_TraitorLoadoutNext and ply.HMCD_TraitorLoadoutNext > CurTime() then return end
-	ply.HMCD_TraitorLoadoutNext = CurTime() + TL.NetCooldown
-
-	local str = net.ReadString()
-	if not isstring(str) or #str > 4096 then return end
-
-	ply.HMCD_TraitorLoadout = TL.Sanitize(TL.Parse(str))
-end)
-
 function MODE.ApplyTraitorLoadout(ply, modeType)
 	if not IsValid(ply) or not ply.isTraitor or not ply.MainTraitor then return end
 	if not hg or not hg.TraitorLoadout then return end
@@ -34,14 +21,10 @@ function MODE.ApplyTraitorLoadout(ply, modeType)
 	ply.SubRole = sub_role
 	loadout = TL.ApplyToTraitor(ply, loadout, modeType) or loadout
 
-	if #(loadout.weapons or {}) == 0 then
+	if TL.WantsDefaultLoot(loadout) then
 		local t = MODE.Types[modeType]
 		if t and t.TraitorLoot then
 			t.TraitorLoot(ply)
 		end
-	end
-
-	if MODE.ApplySubRoleSpawn then
-		MODE.ApplySubRoleSpawn(ply)
 	end
 end
