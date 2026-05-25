@@ -165,7 +165,7 @@ function EndMenu.Open(opts)
 
 		if isstring(subtitle) and subtitle ~= "" then
 			local subY = ty + th + ScreenScaleH(2)
-			draw.SimpleText(subtitle, "ZCity_Veteran", w * 0.5 + shakeX * 0.5, subY, opts.subtitleColor or col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+			draw.SimpleText(subtitle, "ZCity_Veteran", w * 0.5 - 30 + shakeX * 0.5, subY, opts.subtitleColor or col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 		end
 
 		surface.SetDrawColor(col.separator)
@@ -335,7 +335,7 @@ concommand.Add("zb_test_endmenu", function()
 
 	zb.EndMenu.Open({
 		title = title,
-		subtitle = "тесттесттесттест",
+		subtitle = "Предатели выиграли в этом раунде",
 		subtitleColor = Color(217, 201, 99),
 		sound = false,
 		statusText = function(ply)
