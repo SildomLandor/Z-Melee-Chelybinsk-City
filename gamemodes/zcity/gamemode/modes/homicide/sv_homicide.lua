@@ -523,6 +523,66 @@ end
 
 local homicide_traitoramount = ConVarExists("homicide_traitoramount") and GetConVar("homicide_traitoramount") or CreateConVar("homicide_traitoramount", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Homicide Only: Determine how many traitors should innocents face in homicide.", 1, 20)
 
+function MODE.GetPlayingPlayers()
+	local plys = {}
+	for _, ply in player.Iterator() do
+		if ply:Team() ~= TEAM_SPECTATOR then
+			plys[#plys + 1] = ply
+		end
+	end
+	return plys
+end
+
+function MODE.SyncTraitorNWStrings()
+	for _, ply in player.Iterator() do
+		if ply.isTraitor then
+			ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
+			ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
+		else
+			ply:SetNWString("HMCD_TraitorWord", "")
+			ply:SetNWString("HMCD_TraitorWord2", "")
+		end
+	end
+end
+
+function MODE.EnsureDuelRoles()
+	local plys = MODE.GetPlayingPlayers()
+	if #plys ~= 2 then return end
+
+	local traitor, gunner
+	for _, ply in ipairs(plys) do
+		if ply.isTraitor then traitor = ply end
+		if ply.isGunner and ply ~= traitor then gunner = ply end
+	end
+
+	if IsValid(traitor) and IsValid(gunner) then
+		traitor.MainTraitor = true
+		MODE.TraitorExpectedAmt = 1
+		MODE.SyncTraitorNWStrings()
+		return
+	end
+
+	for _, ply in ipairs(plys) do
+		ply.isTraitor = false
+		ply.isGunner = false
+		ply.MainTraitor = false
+	end
+
+	traitor = plys[math.random(2)]
+	traitor.isTraitor = true
+	traitor.MainTraitor = true
+
+	for _, ply in ipairs(plys) do
+		if ply ~= traitor then
+			ply.isGunner = true
+			break
+		end
+	end
+
+	MODE.TraitorExpectedAmt = 1
+	MODE.SyncTraitorNWStrings()
+end
+
 function MODE.AssignGunner()
 	for _, ply in RandomPairs(player.GetAll()) do
 		if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
@@ -660,14 +720,18 @@ function MODE:Intermission()
 	MODE.TraitorWord = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 	MODE.TraitorWordSecond = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 
-	local traitors_needed = math.min(player_count - 1, homicide_traitoramount:GetInt())
-	
-	if(MODE.ShouldStartRoleRound())then
+	local traitors_needed
+	if player_count == 2 then
+		traitors_needed = 1
+	elseif player_count < 2 then
+		traitors_needed = 0
+	elseif MODE.ShouldStartRoleRound() then
 		traitors_needed = math.ceil(player_count / 9)
-		
-		if(player_count > 8 and math.random(1, 8) == 1)then
+		if player_count > 8 and math.random(1, 8) == 1 then
 			traitors_needed = traitors_needed + 1
 		end
+	else
+		traitors_needed = math.min(player_count - 1, homicide_traitoramount:GetInt())
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
@@ -1113,12 +1177,18 @@ function MODE.AssignTraitors()
 		end
 	end
 
-	local traitors_needed = math.min(player_count - 1, homicide_traitoramount:GetInt())
-	if MODE.ShouldStartRoleRound() then
+	local traitors_needed
+	if player_count == 2 then
+		traitors_needed = 1
+	elseif player_count < 2 then
+		traitors_needed = 0
+	elseif MODE.ShouldStartRoleRound() then
 		traitors_needed = math.ceil(player_count / 9)
 		if player_count > 8 and math.random(1, 8) == 1 then
 			traitors_needed = traitors_needed + 1
 		end
+	else
+		traitors_needed = math.min(player_count - 1, homicide_traitoramount:GetInt())
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
@@ -1147,15 +1217,8 @@ function MODE.AssignTraitors()
 		end
 	end
 
-	for _, traitor_ply in player.Iterator() do
-		if traitor_ply.isTraitor then
-			traitor_ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
-			traitor_ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
-		else
-			traitor_ply:SetNWString("HMCD_TraitorWord", "")
-			traitor_ply:SetNWString("HMCD_TraitorWord2", "")
-		end
-	end
+	MODE.SyncTraitorNWStrings()
+	MODE.EnsureDuelRoles()
 end
 
 function MODE:RoundStart()
@@ -1517,6 +1580,8 @@ function MODE.SpawnPlayers(spawn_with_subroles)
             timer.Simple(0, function()
                 if not IsValid(this_player) or not this_player:Alive() then return end
 
+                local duel = player_count == 2
+
                 if role_pick then
                     if this_player.isGunner and typeTbl and typeTbl.GunManLoot then
                         typeTbl.GunManLoot(this_player)
@@ -1537,6 +1602,10 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                                 typeTbl.TraitorLoot(this_player)
                             end
                             MODE.ApplySubRoleSpawn(this_player)
+                        end
+
+                        if duel and typeTbl and typeTbl.TraitorLoot and not this_player:HasWeapon("weapon_buck200knife") then
+                            typeTbl.TraitorLoot(this_player)
                         end
                     end
                     if this_player.isGunner and typeTbl and typeTbl.GunManLoot then
