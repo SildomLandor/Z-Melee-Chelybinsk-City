@@ -1103,7 +1103,7 @@ function SWEP:PlayEffects(trace, attacktype)
 
         if self.DamageType == DMG_SLASH then
             util.Decal( "Blood", trace.HitPos + trace.HitNormal * 15, trace.HitPos - trace.HitNormal * 15, owner )
-            util.Decal( "Blood", trace.HitPos + trace.HitNormal * 2, owner:GetPos(), trace.Entity )
+            util.Decal( "Blood", trace.HitPos + trace.HitNormal * 2, trace.HitPos - trace.HitNormal * 15, trace.Entity )
         end
     elseif not self.AttackHitPlayed then
         self.AttackHitPlayed = true

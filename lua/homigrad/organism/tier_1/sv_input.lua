@@ -584,11 +584,16 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	local organs = hg.organism.GetHitBoxOrgans(ent:GetModel(), ent)
 	local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs)
 	local dmgPos = dmgInfo:GetDamagePosition()
-	local tr = util.QuickTrace(dmgPos, dir:GetNormalized() * 100)
+	local dmgTraceFilter
+	if IsValid(attacker) and attacker ~= ent then
+		dmgTraceFilter = {attacker}
+		if IsValid(attacker.FakeRagdoll) then dmgTraceFilter[#dmgTraceFilter + 1] = attacker.FakeRagdoll end
+	end
+	local tr = util.TraceLine({start = dmgPos, endpos = dmgPos + dir:GetNormalized() * 100, filter = dmgTraceFilter})
 	if tr.Hit and tr.Entity == ent then
 		dmgPos = tr.HitPos
 	else
-		tr = util.QuickTrace(dmgPos, -(dmgPos - (ent:GetPos() + ent:OBBCenter())))
+		tr = util.TraceLine({start = dmgPos, endpos = dmgPos - (dmgPos - (ent:GetPos() + ent:OBBCenter())), filter = dmgTraceFilter})
 		if tr.Hit and tr.Entity == ent then
 			dir = tr.Normal * pen
 			dmgPos = tr.HitPos
@@ -714,8 +719,8 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	local bone = tr.Entity == ent and tr.PhysicsBone
 	if not bone then
 		local dir = -(dmgPos - (ent:GetPos() + ent:OBBCenter())):GetNormalized()
-		local tr = util.QuickTrace(dmgPos, dir * 100)
-		bone = tr.PhysicsBone
+		local trBone = util.TraceLine({start = dmgPos, endpos = dmgPos + dir * 100, filter = dmgTraceFilter})
+		bone = trBone.PhysicsBone
 	end
 
 	-- if tracePoses then
@@ -747,7 +752,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	
 	local dmgPos = dmgInfo:GetDamagePosition()
 	local dirCool = dmgInfo:GetDamageForce():GetNormalized()
-	local tr = util.QuickTrace(dmgPos, dirCool * 100)
+	local tr = util.TraceLine({start = dmgPos, endpos = dmgPos + dirCool * 100, filter = dmgTraceFilter})
 	local len = math.abs(dmgInfo:GetDamageForce():Length())
 
 	local bonename = ent:GetBoneName(ent:TranslatePhysBoneToBone(bone))

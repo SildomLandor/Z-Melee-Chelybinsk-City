@@ -1,264 +1,216 @@
+local MODE = MODE
 MODE.name = "hl2dm"
 
-local MODE = MODE
+local roundStartSynced = 0
 
-net.Receive("hl2dm_start",function()
-    surface.PlaySound("hl2mode1.wav")
+local fadeFX = {
+	noiseMat = Material("vgui/noisevhs"),
+	shakeX = 0,
+	shakeY = 0,
+	targetShakeX = 0,
+	targetShakeY = 0,
+	nextShake = 0,
+}
+
+if fadeFX.noiseMat:IsError() then
+	fadeFX.noiseMat = Material("vgui/white")
+end
+
+function MODE.GetRoundFadeOverlay()
+	local diff = (MODE.DynamicFadeScreenEndTime or 0) - CurTime()
+	if diff <= 0 then return 0 end
+	return math.min(diff / (MODE.FadeScreenTime or 1.5), 1)
+end
+
+local function UpdateFadeShake(intensity)
+	intensity = math.Clamp(intensity, 0, 1)
+	if intensity <= 0.01 then
+		local calm = math.Clamp(FrameTime() * 10, 0, 1)
+		fadeFX.shakeX = Lerp(calm, fadeFX.shakeX, 0)
+		fadeFX.shakeY = Lerp(calm, fadeFX.shakeY, 0)
+		return
+	end
+
+	local t = CurTime()
+	if t >= fadeFX.nextShake then
+		fadeFX.nextShake = t + 0.035
+		local s = 0.55 + intensity * 2.2
+		fadeFX.targetShakeX = math.Rand(-s, s)
+		fadeFX.targetShakeY = math.Rand(-s * 0.65, s * 0.65)
+	end
+
+	local rate = math.Clamp(FrameTime() * 22, 0, 1)
+	fadeFX.shakeX = Lerp(rate, fadeFX.shakeX, fadeFX.targetShakeX)
+	fadeFX.shakeY = Lerp(rate, fadeFX.shakeY, fadeFX.targetShakeY)
+end
+
+local function PaintRoundFadeBG(overlay)
+	local w, h = ScrW(), ScrH()
+	local a = math.floor(255 * overlay)
+
+	draw.RoundedBox(0, 0, 0, w, h, Color(10, 10, 19, a))
+
+	local mat = fadeFX.noiseMat
+	if not mat:IsError() then
+		surface.SetMaterial(mat)
+		surface.SetDrawColor(255, 255, 255, math.floor(10 + 14 * overlay))
+		local nx, ny = math.random(0, 512), math.random(0, 512)
+		surface.DrawTexturedRectUV(0, 0, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
+	end
+
+	for y = 0, h, 3 do
+		surface.SetDrawColor(0, 0, 0, math.floor(8 + 10 * overlay))
+		surface.DrawRect(0, y, w, 1)
+	end
+
+	if math.random() > 0.55 then
+		surface.SetDrawColor(180, 20, 15, math.floor(6 * overlay))
+		surface.DrawRect(math.random(0, w), math.random(0, h), math.random(w * 0.2, w * 0.5), 1)
+	end
+
+	surface.SetDrawColor(90, 90, 95, math.floor(40 * overlay))
+	surface.DrawOutlinedRect(0, 0, w, h, 1)
+end
+
+local function DrawFadeText(text, font, cx, cy, col, ax, ay, shakeMul)
+	shakeMul = (shakeMul or 1) * 0.425
+	local sx = fadeFX.shakeX * shakeMul
+	local sy = fadeFX.shakeY * shakeMul
+
+	if shakeMul >= 0.8 and math.random() > 0.93 then
+		sx = sx + math.random(-1, 1)
+		sy = sy + math.random(-1, 1)
+	end
+
+	draw.SimpleText(text, font, cx + sx, cy + sy, col, ax, ay)
+end
+
+local function DrawFadeTitle(text, cx, cy, col, alpha)
+	local font = "ZCity_Veteran_big"
+	local sx = fadeFX.shakeX * 0.85
+	local sy = fadeFX.shakeY * 0.85
+
+	if math.random() > 0.96 then
+		sx = sx + math.random(-2, 2)
+		sy = sy + math.random(-1, 1)
+	end
+
+	surface.SetFont(font)
+	local tw, th = surface.GetTextSize(text)
+	local bx, by = cx + sx - tw * 0.5, cy + sy - th * 0.5
+	local pulse = math.sin(CurTime() * 1.5) * 0.15 + 0.85
+
+	draw.SimpleText(text, font, bx + 2, by + 2, Color(40, 4, 2, alpha * 0.75), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx + 1, by + 1, Color(90, 8, 6, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	draw.SimpleText(text, font, bx, by, Color(col.r * pulse, col.g * pulse, col.b * pulse, alpha), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+
+	if math.random() > 0.985 then
+		draw.SimpleText(text, font, bx + math.random(-1, 1), by + math.random(-1, 1), Color(180, 20, 15, alpha * 0.45), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+	end
+end
+
+local function SyncRoundFade()
+	if roundStartSynced == zb.ROUND_START then return end
+	roundStartSynced = zb.ROUND_START
+
+	MODE.DynamicFadeScreenEndTime = zb.ROUND_START + (MODE.DefaultRoundStartTime or 6)
+	fadeFX.shakeX = 0
+	fadeFX.shakeY = 0
+	fadeFX.targetShakeX = math.Rand(-2, 2)
+	fadeFX.targetShakeY = math.Rand(-1.5, 1.5)
+	fadeFX.nextShake = 0
+end
+
+net.Receive("hl2dm_start", function()
+	surface.PlaySound("hl2mode1.wav")
 	zb.RemoveFade()
-	hg.DynaMusic:Start( "hl_coop" )
+	hg.DynaMusic:Start("hl_coop")
 end)
 
 local teams = {
 	[0] = {
-		objective = "Kill all combines and survive.",
-		name = "a Rebel",
-		name_refugee = "the Refugee",
-		color1 = Color(230,100,5),
-		color2 = Color(210,80,0),
-		color3 = Color(25, 110, 25),
-        color4 = Color(5, 90, 5),
-		color_subrole = Color(180, 15, 15),
+		objective = "Убей всех солдат Combine и выживи.",
+		name = "повстанец",
+		color1 = Color(230, 100, 5),
+		color2 = Color(210, 80, 0),
 	},
 	[1] = {
-        objective = "Destroy all rebel forces.",
-        name = "a Combine Soldier",
-        name_elite = "the Elite Combine Soldier",
-        name_shotgunner = "the Combine Shotgunner",
-        color1 = Color(0, 200, 220), -- самый
-        color2 = Color(0, 180, 200),
-        color3 = Color(180, 15, 15),
-		color4 = Color(160, 0, 0),
-        color5 = Color(190, 185, 185),
-		color6 = Color(170, 175, 175),
+		objective = "Уничтожь всех повстанцев.",
+		name = "солдат Combine",
+		name_elite = "элитный солдат Combine",
+		name_shotgunner = "солдат Combine с дробовиком",
+		color1 = Color(0, 200, 220),
+		color2 = Color(0, 180, 200),
 	},
 }
 
-function MODE:RenderScreenspaceEffects()
-    if zb.ROUND_START + 7.5 < CurTime() then return end
-    local fade = math.Clamp(zb.ROUND_START + 7.5 - CurTime(),0,1)
-
-    surface.SetDrawColor(0,0,0,255 * fade)
-    surface.DrawRect(-1,-1,ScrW() + 1,ScrH() + 1)
+local function GetRoleName(team_id, playerRole)
+	local t = teams[team_id]
+	if not t then return "?" end
+	if team_id == 1 then
+		if playerRole == "Elite" then return t.name_elite end
+		if playerRole == "Shotgunner" then return t.name_shotgunner end
+	end
+	return t.name
 end
 
---// Ну вроде сделал его чуточку читаемым 
+function MODE:RenderScreenspaceEffects()
+	SyncRoundFade()
+	local overlay = MODE.GetRoundFadeOverlay()
+	if overlay <= 0 then return end
+
+	zb.RemoveFade()
+	UpdateFadeShake(overlay)
+	PaintRoundFadeBG(overlay)
+end
+
 function MODE:HUDPaint()
-    if zb.ROUND_START + 8.5 < CurTime() then return end
-     
-    if not lply:Alive() then return end
-    zb.RemoveFade()
+	SyncRoundFade()
 
-    local fade = math.Clamp(zb.ROUND_START + 8 - CurTime(), 0, 1)
-    local team_id = lply:Team()
-    local role = lply:GetNWString("PlayerRole")
-    local team_data = teams[team_id]
+	if not IsValid(lply) or not lply:Alive() or lply:Team() == TEAM_SPECTATOR then return end
 
-    draw.SimpleText("ZBattle | Half-Life 2 Deathmatch", "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local introLen = (MODE.DefaultRoundStartTime or 6) + (MODE.FadeScreenTime or 1.5)
+	if CurTime() > zb.ROUND_START + introLen + 2 then return end
 
-	--; Любимое ООП шарика
-    local role_data = {
-        name = team_data.name,
-        color = team_data.color1,
-        objective = team_data.objective
-    }
-    
-    role_data.color.a = 255 * fade
+	zb.RemoveFade()
+	local overlay = MODE.GetRoundFadeOverlay()
+	UpdateFadeShake(math.max(overlay, 0.35))
 
-    draw.SimpleText("You are " .. role_data.name, "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.5, role_data.color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((zb.ROUND_START + introLen - CurTime()) / introLen, 0, 1)
+	if textFade <= 0 then return end
 
-    local objective_color = team_data.color2
+	local sw, sh = ScrW(), ScrH()
+	local team_id = lply:Team()
+	local team_data = teams[team_id]
+	if not team_data then return end
 
-    objective_color.a = 255 * fade
+	DrawFadeTitle("ZBattle | HL2 Мокруха", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
-    draw.SimpleText(role_data.objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, objective_color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local colRole = Color(team_data.color1.r, team_data.color1.g, team_data.color1.b, 255 * textFade)
+	DrawFadeText("Вы — " .. GetRoleName(team_id, lply:GetNWString("PlayerRole")), "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
+
+	local colObj = Color(team_data.color2.r, team_data.color2.g, team_data.color2.b, 255 * textFade)
+	DrawFadeText(team_data.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 end
 
 hook.Add("radialOptions", "CMB_Airstrike", function()
-     
 	local org = lply.organism
-	
-    if lply:GetNWString("PlayerRole") == "Elite" and not org.otrub then -- that's a feature apparently
-		local tbl = {
-			function()
-				net.Start("ZB_RequestAirStrike") 
-				net.SendToServer()
-			end,
-			"Request Airstrike"
-		}
-		hg.radialOptions[#hg.radialOptions + 1] = tbl
-    end
-end)
+	if lply:GetNWString("PlayerRole") ~= "Elite" or not org or org.otrub then return end
 
-local CreateEndMenu
-local winnersounds = {
-	[0] = { -- rebel wins
-		"vo/episode_1/npc/male01/cit_kill04.wav",
-		"vo/episode_1/npc/male01/cit_kill01.wav",
-		"vo/episode_1/npc/male01/cit_kill09.wav",
-		"vo/episode_1/npc/male01/cit_kill14.wav"
-	},
-	[1] = { -- combine wins
-		"vo/episode_1/npc/male01/cit_buddykilled11.wav",
-		"vo/episode_1/npc/male01/cit_buddykilled07.wav",
-		"vo/episode_1/npc/male01/cit_buddykilled10.wav",
-		"vo/episode_1/npc/male01/cit_buddykilled04.wav"
-	},
-	[2] = {"npc/combine_soldier/vo/overwatchtargetcontained.wav"}, -- draw
-	[3] = {"npc/combine_soldier/vo/overwatchsectoroverrun.wav"} -- everybody died
-}
+	hg.radialOptions[#hg.radialOptions + 1] = {
+		function()
+			net.Start("ZB_RequestAirStrike")
+			net.SendToServer()
+		end,
+		"Запросить авиаудар",
+	}
+end)
 
 net.Receive("hl2dm_roundend", function()
-	local winnerteam = net.ReadInt(3)
-
-	surface.PlaySound("ambient/alarms/warningbell1.wav")
-
-    CreateEndMenu()
+	net.ReadInt(3)
+	zb.EndMenu.Open({ title = "HL2 Мокруха" })
 end)
 
-local colGray = Color(85,85,85,255)
-local colRed = Color(130,10,10)
-local colRedUp = Color(160,30,30)
-
-local colBlue = Color(10,10,160)
-local colBlueUp = Color(40,40,160)
-local col = Color(255,255,255,255)
-
-local colSpect1 = Color(75,75,75,255)
-local colSpect2 = Color(255,255,255)
-
-local colorBG = Color(55,55,55,255)
-local colorBGBlacky = Color(40,40,40,255)
-
-local blurMat = Material("pp/blurscreen")
-local Dynamic = 0
-
-BlurBackground = BlurBackground or hg.DrawBlur
-
-if IsValid(hmcdEndMenu) then
-    hmcdEndMenu:Remove()
-    hmcdEndMenu = nil
-end
-
-CreateEndMenu = function()
-	if IsValid(hmcdEndMenu) then
-		hmcdEndMenu:Remove()
-		hmcdEndMenu = nil
-	end
-	Dynamic = 0
-	hmcdEndMenu = vgui.Create("ZFrame")
-
-	local sizeX,sizeY = ScrW() / 2.5 ,ScrH() / 1.2
-	local posX,posY = ScrW() / 1.3 - sizeX / 2,ScrH() / 2 - sizeY / 2
-
-	hmcdEndMenu:SetPos(posX,posY)
-	hmcdEndMenu:SetSize(sizeX,sizeY)
-	--hmcdEndMenu:SetBackgroundColor(colGray)
-	hmcdEndMenu:MakePopup()
-	hmcdEndMenu:SetKeyboardInputEnabled(false)
-	hmcdEndMenu:ShowCloseButton(false)
-
-	local closebutton = vgui.Create("DButton",hmcdEndMenu)
-	closebutton:SetPos(5,5)
-	closebutton:SetSize(ScrW() / 20,ScrH() / 30)
-	closebutton:SetText("")
-	
-	closebutton.DoClick = function()
-		if IsValid(hmcdEndMenu) then
-			hmcdEndMenu:Close()
-			hmcdEndMenu = nil
-		end
-	end
-
-	closebutton.Paint = function(self,w,h)
-		surface.SetDrawColor( 122, 122, 122, 255)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-		surface.SetFont( "ZB_InterfaceMedium" )
-		surface.SetTextColor(col.r,col.g,col.b,col.a)
-		local lengthX, lengthY = surface.GetTextSize("Close")
-		surface.SetTextPos( lengthX - lengthX/1.1, 4)
-		surface.DrawText("Close")
-	end
-
-    hmcdEndMenu.Paint = function(self,w,h)
-		BlurBackground(self)
-
-		surface.SetFont( "ZB_InterfaceMediumLarge" )
-		surface.SetTextColor(col.r,col.g,col.b,col.a)
-		local lengthX, lengthY = surface.GetTextSize("Players:")
-		surface.SetTextPos(w / 2 - lengthX/2,20)
-		surface.DrawText("Players:")
-
-		surface.SetDrawColor( 255, 0, 0, 128)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-	end
-	-- PLAYERS
-	local DScrollPanel = vgui.Create("DScrollPanel", hmcdEndMenu)
-	DScrollPanel:SetPos(10, 80)
-	DScrollPanel:SetSize(sizeX - 20, sizeY - 90)
-	function DScrollPanel:Paint( w, h )
-		BlurBackground(self)
-
-		surface.SetDrawColor( 255, 0, 0, 128)
-        surface.DrawOutlinedRect( 0, 0, w, h, 2.5 )
-	end
-
-	for i,ply in player.Iterator() do
-		if ply:Team() == TEAM_SPECTATOR then continue end
-		local but = vgui.Create("DButton",DScrollPanel)
-		but:SetSize(100,50)
-		but:Dock(TOP)
-		but:DockMargin( 8, 6, 8, -1 )
-		but:SetText("")
-		but.Paint = function(self,w,h)
-            local col1 = (IsValid(ply) and ply:Alive() and colRed) or colGray
-       
-            local col2 = (IsValid(ply) and ply:Alive() and colRedUp) or colSpect1
-			surface.SetDrawColor(col1.r,col1.g,col1.b,col1.a)
-			surface.DrawRect(0,0,w,h)
-			surface.SetDrawColor(col2.r,col2.g,col2.b,col2.a)
-			surface.DrawRect(0,h/2,w,h/2)
-
-            local col = ply:GetPlayerColor():ToColor()
-			surface.SetFont( "ZB_InterfaceMediumLarge" )
-			local lengthX, lengthY = surface.GetTextSize( ply:GetPlayerName() or "He quited..." )
-			
-			surface.SetTextColor(0,0,0,255)
-			surface.SetTextPos(w / 2 + 1,h/2 - lengthY/2 + 1)
-			surface.DrawText(ply:GetPlayerName() or "He quited...")
-
-			surface.SetTextColor(col.r,col.g,col.b,col.a)
-			surface.SetTextPos(w / 2,h/2 - lengthY/2)
-			surface.DrawText(ply:GetPlayerName() or "He quited...")
-
-            
-			local col = colSpect2
-			surface.SetFont( "ZB_InterfaceMediumLarge" )
-			surface.SetTextColor(col.r,col.g,col.b,col.a)
-			local lengthX, lengthY = surface.GetTextSize( ply:GetPlayerName() or "He quited..." )
-			surface.SetTextPos(15,h/2 - lengthY/2)
-			surface.DrawText((ply:Name() .. (not ply:Alive() and " - died" or "")) or "He quited...")
-
-			surface.SetFont( "ZB_InterfaceMediumLarge" )
-			surface.SetTextColor(col.r,col.g,col.b,col.a)
-			local lengthX, lengthY = surface.GetTextSize( ply:Frags() or "He quited..." )
-			surface.SetTextPos(w - lengthX -15,h/2 - lengthY/2)
-			surface.DrawText(ply:Frags() or "He quited...")
-		end
-
-		function but:DoClick()
-			if ply:IsBot() then chat.AddText(Color(255,0,0), "no, you can't") return end
-			gui.OpenURL("https://steamcommunity.com/profiles/"..ply:SteamID64())
-		end
-
-		DScrollPanel:AddItem(but)
-	end
-
-	return true
-end
-
 function MODE:RoundStart()
-    if IsValid(hmcdEndMenu) then
-        hmcdEndMenu:Remove()
-        hmcdEndMenu = nil
-    end
+	zb.EndMenu.Close()
 end

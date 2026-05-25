@@ -1,130 +1,12 @@
-MODE.name = "gwars"
 local MODE = MODE
+MODE.name = "gwars"
 
 local playstart
 local ended
+local roundStartSynced = 0
 
 local MusicVolume = GetConVar("snd_musicvolume")
 
-net.Receive("gwars_start", function()
-	surface.PlaySound("zbattle/nigshit.mp3")
-	zb.RemoveFade()
-	playstart = true
-	ended = nil
-
-	sound.PlayFile("sound/music_themes/ghetto_loop.wav", "noblock noplay", function(station)
-		if IsValid(station) then
-			GWARS_LoopStation = station
-			station:SetVolume(1 * MusicVolume:GetFloat())
-			station:EnableLooping(true)
-		end
-	end)
-
-	sound.PlayFile("sound/music_themes/ghetto_police.wav", "noblock noplay", function(station)
-		if IsValid(station) then
-			GWARS_LoopStation2 = station
-			station:SetVolume(1 * MusicVolume:GetFloat())
-			station:EnableLooping(true)
-		end
-	end)
-
-	//music_themes/ghetto_loop.wav
-	//music_themes/ghetto_start.wav
-	
-end)
-
-local teams = {
-	[0] = {
-		objective = "Убейте зелёных ниггеров",
-		name = "Член Блудз",
-		color1 = Color(180, 0, 0),
-		color2 = Color(180, 0, 0)
-	},
-	[1] = {
-		objective = "Убейте красных ниггеров",
-		name = "Члег Грув",
-		color1 = Color(0, 180, 0),
-		color2 = Color(0, 180, 0)
-	},
-}
-local lerpsnd = 0.3
-function MODE:RenderScreenspaceEffects()
-	if zb.ROUND_START + 7.5 < CurTime() then return end
-	local fade = math.Clamp(zb.ROUND_START + 7.5 - CurTime(), 0, 1)
-	surface.SetDrawColor(0, 0, 0, 255 * fade)
-	surface.DrawRect(-1, -1, ScrW() + 1, ScrH() + 1)
-end
-
-surface.CreateFont("timer_Font2", {
-	font = "Bahnschrift", 
-	size = ScreenScale(12), 
-	extended = true, 
-	weight = 650,
-	antialias = true,
-	italic = false
-})
-
-function MODE:HUDPaint()
-	//if !lply.organism or !lply.organism.fear then return end
-
-	local timeBeforeSWAT = (zb.ROUND_START - CurTime() + 120)
-	if timeBeforeSWAT > 0 and zb.ROUND_START + 10.5 < CurTime() then
-		local time = string.FormattedTime(timeBeforeSWAT, "%02i:%02i:%02i")
-		local text = "00:00:00"
-		surface.SetFont("timer_Font2")
-		surface.SetDrawColor(255, 255, 255, 255)
-		local w, h = surface.GetTextSize(text)
-		local w2, h2 = surface.GetTextSize("11:11:11 До прибытия СОБР")
-		surface.SetTextPos(sw * 0.5 - w2 / 2, sh * 0.05)
-		surface.DrawText(time)
-		surface.SetTextPos(sw * 0.5 - w2 / 2 + w, sh * 0.05)
-		surface.DrawText("До прибытия СОБР")
-		//draw.SimpleText(" left before SWAT arrives!", "timer_Font2", sw * 0.432, sh * 0.05, Color(255, 255, 255, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-		//draw.SimpleText(time, "timer_Font2", sw * 0.36, sh * 0.05, Color(255, 255, 255, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-	end
-
-	if zb.ROUND_START + 8 < CurTime() then
-		if playstart then
-			sound.PlayFile("sound/music_themes/ghetto_start.wav", "noblock noplay", function(station)
-				if IsValid(station) then
-					station:SetVolume(0.3 * MusicVolume:GetFloat())
-					station:Play()
-				end
-			end)
-
-			playstart = nil
-		end
-
-		lerpsnd = LerpFT(0.01, lerpsnd, !ended and (lply:Alive() and lply.organism and !lply.organism.otrub and lply.organism.fear and math.Clamp(lply.organism.fear + 0.3 + (timeBeforeSWAT <= 0 and 2 or 0), 0, 1) or 0.3) or 0)
-		
-		if zb.ROUND_START + 12 < CurTime() then
-			if IsValid(GWARS_LoopStation) then
-				GWARS_LoopStation:SetVolume(lerpsnd * MusicVolume:GetFloat())
-				GWARS_LoopStation:Play()
-				
-				if IsValid(GWARS_LoopStation2) then
-					GWARS_LoopStation2:SetVolume(0)
-					GWARS_LoopStation2:Play()
-				end
-			end
-		end
-
-		if IsValid(GWARS_LoopStation) and GWARS_LoopStation:GetState() == GMOD_CHANNEL_PLAYING then
-			GWARS_LoopStation:SetVolume(lerpsnd * MusicVolume:GetFloat())
-		end
-	
-		if timeBeforeSWAT <= 0 then
-			if IsValid(GWARS_LoopStation2) then
-				GWARS_LoopStation2:SetVolume(lerpsnd * MusicVolume:GetFloat())
-			end
-			
-			if IsValid(GWARS_LoopStation) then
-				GWARS_LoopStation:SetVolume(0)
-			end
-		end
-	end
-end
-	local StartTime = 0
 local fadeFX = {
 	noiseMat = Material("vgui/noisevhs"),
 	shakeX = 0,
@@ -195,8 +77,7 @@ local function PaintRoundFadeBG(overlay)
 end
 
 local function DrawFadeText(text, font, cx, cy, col, ax, ay, shakeMul)
-	shakeMul = shakeMul or 1
-	shakeMul = shakeMul * 0.425
+	shakeMul = (shakeMul or 1) * 0.425
 	local sx = fadeFX.shakeX * shakeMul
 	local sy = fadeFX.shakeY * shakeMul
 
@@ -232,122 +113,149 @@ local function DrawFadeTitle(text, cx, cy, col, alpha)
 	end
 end
 
-local CreateEndMenu
-net.Receive("gwars_roundend", function()
-	ended = true
-	CreateEndMenu()
+local function SyncRoundFade()
+	if roundStartSynced == zb.ROUND_START then return end
+	roundStartSynced = zb.ROUND_START
+
+	MODE.DynamicFadeScreenEndTime = zb.ROUND_START + (MODE.DefaultRoundStartTime or 6)
+	fadeFX.shakeX = 0
+	fadeFX.shakeY = 0
+	fadeFX.targetShakeX = math.Rand(-2, 2)
+	fadeFX.targetShakeY = math.Rand(-1.5, 1.5)
+	fadeFX.nextShake = 0
+end
+
+net.Receive("gwars_start", function()
+	surface.PlaySound("zbattle/nigshit.mp3")
+	zb.RemoveFade()
+	playstart = true
+	ended = nil
+
+	sound.PlayFile("sound/music_themes/ghetto_loop.wav", "noblock noplay", function(station)
+		if not IsValid(station) then return end
+		GWARS_LoopStation = station
+		station:SetVolume(1 * MusicVolume:GetFloat())
+		station:EnableLooping(true)
+	end)
+
+	sound.PlayFile("sound/music_themes/ghetto_police.wav", "noblock noplay", function(station)
+		if not IsValid(station) then return end
+		GWARS_LoopStation2 = station
+		station:SetVolume(1 * MusicVolume:GetFloat())
+		station:EnableLooping(true)
+	end)
 end)
 
-local colGray = Color(85, 85, 85, 255)
-local colRed = Color(130, 10, 10)
-local colRedUp = Color(160, 30, 30)
-local colBlue = Color(10, 10, 160)
-local colBlueUp = Color(40, 40, 160)
-local col = Color(255, 255, 255, 255)
-local colSpect1 = Color(75, 75, 75, 255)
-local colSpect2 = Color(255, 255, 255)
-local colorBG = Color(55, 55, 55, 255)
-local colorBGBlacky = Color(40, 40, 40, 255)
-local blurMat = Material("pp/blurscreen")
-local Dynamic = 0
-BlurBackground = BlurBackground or hg.DrawBlur
+local teams = {
+	[0] = {
+		objective = "Убей всех из Grove Street.",
+		name = "бандит Bloodz",
+		color1 = Color(180, 0, 0),
+		color2 = Color(180, 0, 0),
+	},
+	[1] = {
+		objective = "Убей всех из Bloodz.",
+		name = "бандит Grove",
+		color1 = Color(0, 180, 0),
+		color2 = Color(0, 180, 0),
+	},
+}
 
-if IsValid(hmcdEndMenu) then
-	hmcdEndMenu:Remove()
-	hmcdEndMenu = nil
+local lerpsnd = 0.3
+
+function MODE:RenderScreenspaceEffects()
+	SyncRoundFade()
+	local overlay = MODE.GetRoundFadeOverlay()
+	if overlay <= 0 then return end
+
+	zb.RemoveFade()
+	UpdateFadeShake(overlay)
+	PaintRoundFadeBG(overlay)
 end
 
-CreateEndMenu = function()
-	if IsValid(hmcdEndMenu) then
-		hmcdEndMenu:Remove()
-		hmcdEndMenu = nil
+surface.CreateFont("timer_Font2", {
+	font = "Bahnschrift",
+	size = ScreenScale(12),
+	extended = true,
+	weight = 650,
+	antialias = true,
+	italic = false,
+})
+
+function MODE:HUDPaint()
+	SyncRoundFade()
+
+	local sw, sh = ScrW(), ScrH()
+	local timeBeforeSWAT = zb.ROUND_START - CurTime() + 120
+
+	if timeBeforeSWAT > 0 and zb.ROUND_START + 10.5 < CurTime() then
+		local time = string.FormattedTime(timeBeforeSWAT, "%02i:%02i:%02i")
+		local suffix = " до прибытия СОБР"
+		surface.SetFont("timer_Font2")
+		surface.SetDrawColor(255, 255, 255, 255)
+		local w, _ = surface.GetTextSize(time)
+		local w2, _ = surface.GetTextSize("11:11:11" .. suffix)
+		surface.SetTextPos(sw * 0.5 - w2 / 2, sh * 0.05)
+		surface.DrawText(time)
+		surface.SetTextPos(sw * 0.5 - w2 / 2 + w, sh * 0.05)
+		surface.DrawText(suffix)
 	end
 
-	Dynamic = 0
-	hmcdEndMenu = vgui.Create("ZFrame")
-	surface.PlaySound("ambient/alarms/warningbell1.wav")
-	local sizeX, sizeY = ScrW() / 2.5, ScrH() / 1.2
-	local posX, posY = ScrW() / 1.3 - sizeX / 2, ScrH() / 2 - sizeY / 2
-	hmcdEndMenu:SetPos(posX, posY)
-	hmcdEndMenu:SetSize(sizeX, sizeY)
-	--hmcdEndMenu:SetBackgroundColor(colGray)
-	hmcdEndMenu:MakePopup()
-	hmcdEndMenu:SetKeyboardInputEnabled(false)
-	
-	hmcdEndMenu.Paint = function(self, w, h)
-		BlurBackground(self)
-		surface.SetFont("ZB_InterfaceMediumLarge")
-		surface.SetTextColor(col.r, col.g, col.b, col.a)
-		local lengthX, lengthY = surface.GetTextSize("Players:")
-		surface.SetTextPos(w / 2 - lengthX / 2, 20)
-		surface.DrawText("Players:")
-		surface.SetDrawColor(255, 0, 0, 128)
-		surface.DrawOutlinedRect(0, 0, w, h, 2.5)
-	end
-
-	-- PLAYERS
-	local DScrollPanel = vgui.Create("DScrollPanel", hmcdEndMenu)
-	DScrollPanel:SetPos(10, 80)
-	DScrollPanel:SetSize(sizeX - 20, sizeY - 90)
-	function DScrollPanel:Paint(w, h)
-		BlurBackground(self)
-		surface.SetDrawColor(255, 0, 0, 128)
-		surface.DrawOutlinedRect(0, 0, w, h, 2.5)
-	end
-
-	for i, ply in player.Iterator() do
-		if ply:Team() == TEAM_SPECTATOR then continue end
-		local but = vgui.Create("DButton", DScrollPanel)
-		but:SetSize(100, 50)
-		but:Dock(TOP)
-		but:DockMargin(8, 6, 8, -1)
-		but:SetText("")
-		but.Paint = function(self, w, h)
-			local col1 = (ply:Alive() and colRed) or colGray
-			local col2 = (ply:Alive() and colRedUp) or colSpect1
-			surface.SetDrawColor(col1.r, col1.g, col1.b, col1.a)
-			surface.DrawRect(0, 0, w, h)
-			surface.SetDrawColor(col2.r, col2.g, col2.b, col2.a)
-			surface.DrawRect(0, h / 2, w, h / 2)
-			local col = ply:GetPlayerColor():ToColor()
-			surface.SetFont("ZB_InterfaceMediumLarge")
-			local lengthX, lengthY = surface.GetTextSize(ply:GetPlayerName() or "He quited...")
-			surface.SetTextColor(0, 0, 0, 255)
-			surface.SetTextPos(w / 2 + 1, h / 2 - lengthY / 2 + 1)
-			surface.DrawText(ply:GetPlayerName() or "He quited...")
-			surface.SetTextColor(col.r, col.g, col.b, col.a)
-			surface.SetTextPos(w / 2, h / 2 - lengthY / 2)
-			surface.DrawText(ply:GetPlayerName() or "He quited...")
-			local col = colSpect2
-			surface.SetFont("ZB_InterfaceMediumLarge")
-			surface.SetTextColor(col.r, col.g, col.b, col.a)
-			local lengthX, lengthY = surface.GetTextSize(ply:GetPlayerName() or "He quited...")
-			surface.SetTextPos(15, h / 2 - lengthY / 2)
-			surface.DrawText((ply:Name() .. (not ply:Alive() and " - died" or "")) or "He quited...")
-			surface.SetFont("ZB_InterfaceMediumLarge")
-			surface.SetTextColor(col.r, col.g, col.b, col.a)
-			local lengthX, lengthY = surface.GetTextSize(ply:Frags() or "He quited...")
-			surface.SetTextPos(w - lengthX - 15, h / 2 - lengthY / 2)
-			surface.DrawText(ply:Frags() or "He quited...")
+	if zb.ROUND_START + 8 < CurTime() then
+		if playstart then
+			sound.PlayFile("sound/music_themes/ghetto_start.wav", "noblock noplay", function(station)
+				if not IsValid(station) then return end
+				station:SetVolume(0.3 * MusicVolume:GetFloat())
+				station:Play()
+			end)
+			playstart = nil
 		end
 
-		function but:DoClick()
-			if ply:IsBot() then
-				chat.AddText(Color(255, 0, 0), "no, you can't")
-				return
+		lerpsnd = LerpFT(0.01, lerpsnd, not ended and (lply:Alive() and lply.organism and not lply.organism.otrub and lply.organism.fear and math.Clamp(lply.organism.fear + 0.3 + (timeBeforeSWAT <= 0 and 2 or 0), 0, 1) or 0.3) or 0)
+
+		if zb.ROUND_START + 12 < CurTime() and IsValid(GWARS_LoopStation) then
+			GWARS_LoopStation:SetVolume(lerpsnd * MusicVolume:GetFloat())
+			GWARS_LoopStation:Play()
+			if IsValid(GWARS_LoopStation2) then
+				GWARS_LoopStation2:SetVolume(0)
+				GWARS_LoopStation2:Play()
 			end
-
-			gui.OpenURL("https://steamcommunity.com/profiles/" .. ply:SteamID64())
 		end
 
-		DScrollPanel:AddItem(but)
-	end
-	return true
-end
+		if IsValid(GWARS_LoopStation) and GWARS_LoopStation:GetState() == GMOD_CHANNEL_PLAYING then
+			GWARS_LoopStation:SetVolume(lerpsnd * MusicVolume:GetFloat())
+		end
 
-function MODE:RoundStart()
-	if IsValid(hmcdEndMenu) then
-		hmcdEndMenu:Remove()
-		hmcdEndMenu = nil
+		if timeBeforeSWAT <= 0 then
+			if IsValid(GWARS_LoopStation2) then
+				GWARS_LoopStation2:SetVolume(lerpsnd * MusicVolume:GetFloat())
+			end
+			if IsValid(GWARS_LoopStation) then
+				GWARS_LoopStation:SetVolume(0)
+			end
+		end
 	end
+
+	if not IsValid(lply) or not lply:Alive() or lply:Team() == TEAM_SPECTATOR then return end
+
+	local introLen = (MODE.DefaultRoundStartTime or 6) + (MODE.FadeScreenTime or 1.5)
+	if CurTime() > zb.ROUND_START + introLen + 2 then return end
+
+	zb.RemoveFade()
+	local overlay = MODE.GetRoundFadeOverlay()
+	UpdateFadeShake(math.max(overlay, 0.35))
+
+	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((zb.ROUND_START + introLen - CurTime()) / introLen, 0, 1)
+	if textFade <= 0 then return end
+
+	local teamInfo = teams[lply:Team()]
+	if not teamInfo then return end
+
+	DrawFadeTitle("ZBattle | Война банд", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+
+	local colRole = Color(teamInfo.color1.r, teamInfo.color1.g, teamInfo.color1.b, 255 * textFade)
+	DrawFadeText("Вы - " .. teamInfo.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
+
+	local colObj = Color(teamInfo.color2.r, teamInfo.color2.g, teamInfo.color2.b, 255 * textFade)
+	DrawFadeText(teamInfo.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 end

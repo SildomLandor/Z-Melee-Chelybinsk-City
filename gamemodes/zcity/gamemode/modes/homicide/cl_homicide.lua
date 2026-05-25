@@ -130,7 +130,9 @@ local function StoreTraitorWords(ply, w1, w2)
 	ply.HMCD_TraitorWordSecond = w2
 end
 
-net.Receive("HMCD_RoundStart",function()
+net.Receive("HMCD_RoundStart", function()
+	zb.EndMenu.Close()
+
 	local lply = LocalPlayer()
 	lply.role = false
 
@@ -488,6 +490,82 @@ end
 net.Receive("HMCD(SetSubRole)", function(len, ply)
 	lply.SubRole = net.ReadString()
 end)
---//
 
---CreateEndMenu()
+local traitorBar = Color(190, 0, 0)
+local gunnerBar = Color(158, 0, 190)
+
+local function ReadRoundEndRoster()
+	local bits = MODE.TraitorExpectedAmtBits or 13
+	local traitors, gunners = {}, {}
+	local tAmt = net.ReadUInt(bits)
+
+	for _ = 1, tAmt do
+		local ent = net.ReadEntity()
+		if IsValid(ent) then traitors[#traitors + 1] = ent end
+	end
+
+	local gAmt = net.ReadUInt(bits)
+	for _ = 1, gAmt do
+		local ent = net.ReadEntity()
+		if IsValid(ent) then gunners[#gunners + 1] = ent end
+	end
+
+	return traitors, gunners
+end
+
+local function HomicideEndSubtitle(traitorSet)
+	local aliveTraitors, aliveOthers = 0, 0
+
+	for _, ply in player.Iterator() do
+		if ply:Team() == TEAM_SPECTATOR or not ply:Alive() then continue end
+		if traitorSet[ply] then
+			aliveTraitors = aliveTraitors + 1
+		else
+			aliveOthers = aliveOthers + 1
+		end
+	end
+
+	if aliveTraitors > 0 and aliveOthers == 0 then
+		return "Победа предателей"
+	end
+	if aliveTraitors == 0 then
+		return "Предатели нейтрализованы"
+	end
+	return "Раунд окончен"
+end
+
+net.Receive("hmcd_roundend", function()
+	local traitors, gunners = ReadRoundEndRoster()
+	local traitorSet, gunnerSet = {}, {}
+
+	for _, ply in ipairs(traitors) do
+		traitorSet[ply] = true
+	end
+	for _, ply in ipairs(gunners) do
+		gunnerSet[ply] = true
+	end
+
+	zb.EndMenu.Open({
+		title = "Мокруха | " .. (MODE.TypeNames[MODE.Type] or "Хомисайд"),
+		subtitle = HomicideEndSubtitle(traitorSet),
+		rowStyle = function(ply)
+			if traitorSet[ply] then
+				return { bar = traitorBar, nameCol = ply:Alive() and traitorBar or nil }
+			end
+			if gunnerSet[ply] then
+				return { bar = gunnerBar }
+			end
+		end,
+		statusText = function(ply)
+			if traitorSet[ply] then
+				return ply:Alive() and " — предатель" or " — предатель, мёртв"
+			end
+			if gunnerSet[ply] then
+				return ply:Alive() and " — свидетель" or " — свидетель, мёртв"
+			end
+			if not ply:Alive() then return " — мёртв" end
+			return ""
+		end,
+	})
+end)
+

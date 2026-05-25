@@ -1,6 +1,9 @@
 local MODE = MODE
 MODE.name = "hl2dm"
 
+MODE.FadeScreenTime = 1.5
+MODE.DefaultRoundStartTime = 6
+
 zb = zb or {}
 
 --[[ Идеи

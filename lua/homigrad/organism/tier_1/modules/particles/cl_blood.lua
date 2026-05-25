@@ -5,6 +5,19 @@ local tr = {
 	//filter = function(ent) return not ent:IsPlayer() and not ent:IsRagdoll() end
 }
 
+local function bloodPartIgnoresEnt(ent, owner)
+	if ent == lply then
+		return not IsValid(owner) or owner ~= lply
+	end
+
+	local rag = IsValid(lply) and lply.FakeRagdoll
+	if IsValid(rag) and ent == rag then
+		return not IsValid(owner) or (owner ~= rag and owner ~= lply)
+	end
+
+	return false
+end
+
 local col_red_darker = Color(122,0,0)
 local col_red = Color(200,0,0)
 local vecDown = Vector(0, 0, -40)
@@ -179,6 +192,7 @@ bloodparticles_hook[2] = function(mul)
 		tr.start = posSet
 		tr.endpos = tr.start + part[3] * mul
 		tr.collisiongroup = part.kishki and COLLISION_GROUP_WORLD or COLLISION_GROUP_NONE
+		tr.filter = function(ent) return not bloodPartIgnoresEnt(ent, part.owner) end
 
 		result = util_TraceLine(tr)
 		local hitPos = result.HitPos
