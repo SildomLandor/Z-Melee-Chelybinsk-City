@@ -555,17 +555,156 @@ hg.ConVars = hg.ConVars or {}
 		end
 	end)
 
+	hg.NPCFactionLists = {
+		combine = {
+			"npc_combine_s", "npc_strider", "npc_metropolice", "npc_hunter",
+			"npc_rollermine", "npc_cscanner", "npc_combinegunship", "npc_combinedropship",
+			"npc_clawscanner", "npc_manhack", "npc_combine_camera", "npc_turret_ceiling",
+			"npc_turret_floor",
+		},
+		rebel = {
+			"npc_alyx", "npc_barney", "npc_citizen", "npc_eli", "npc_fisherman",
+			"npc_kleiner", "npc_magnusson", "npc_mossman", "npc_odessa",
+			"npc_rollermine_hacked", "npc_turret_floor_resistance", "npc_vortigaunt",
+		},
+	}
+
+	function hg.GetNPCFactionRelation(faction, npcClass)
+		if not faction or faction == "" or faction == "none" then return end
+		if faction == "all" then return D_NU end
+		if faction == "combine" then
+			if table.HasValue(hg.NPCFactionLists.combine, npcClass) then return D_LI end
+			if table.HasValue(hg.NPCFactionLists.rebel, npcClass) then return D_HT end
+		elseif faction == "rebel" then
+			if table.HasValue(hg.NPCFactionLists.rebel, npcClass) then return D_LI end
+			if table.HasValue(hg.NPCFactionLists.combine, npcClass) then return D_HT end
+		end
+	end
+
 	if SERVER then
 		local function hg_ply_noclip(ply)
 			return ply:GetMoveType() == MOVETYPE_NOCLIP
 		end
 
-		local function hg_npc_stealth_targets()
+		local function hg_npc_targets()
 			local list = ents.FindByClass("npc_*")
 			for _, ent in ipairs(ents.FindByClass("terminator_*")) do
 				list[#list + 1] = ent
 			end
 			return list
+		end
+
+		local function hg_get_ply_faction(ply)
+			return ply:GetNWString("hg_npc_faction", "")
+		end
+
+		local function hg_npc_faction_ally(ply, npcClass)
+			local faction = hg_get_ply_faction(ply)
+			if faction == "all" then return true end
+			return hg.GetNPCFactionRelation(faction, npcClass) == D_LI
+		end
+
+		local function hg_sync_faction_notarget(ply, faction)
+			if faction == "all" then
+				ply:AddFlags(FL_NOTARGET)
+				if IsValid(ply.bull) then ply.bull:AddFlags(FL_NOTARGET) end
+			elseif not hg_ply_noclip(ply) then
+				ply:RemoveFlags(FL_NOTARGET)
+				if IsValid(ply.bull) then ply.bull:RemoveFlags(FL_NOTARGET) end
+			end
+		end
+
+		local function hg_relate_npc_to_ply(npc, ply, disp)
+			if not IsValid(npc) or not IsValid(ply) or not disp or not npc.AddEntityRelationship then return end
+
+			npc:AddEntityRelationship(ply, disp, 99)
+			if IsValid(ply.bull) then
+				npc:AddEntityRelationship(ply.bull, disp, 99)
+			end
+
+			local enemy = npc:GetEnemy()
+			if (enemy == ply or enemy == ply.bull) and (disp == D_LI or disp == D_NU) then
+				npc:SetEnemy(NULL)
+				if npc.ClearEnemyMemory then npc:ClearEnemyMemory() end
+			end
+		end
+
+		local function hg_reset_ply_faction_npcs(ply)
+			for _, npc in ipairs(hg_npc_targets()) do
+				local cls = npc:GetClass()
+				if table.HasValue(hg.NPCFactionLists.combine, cls) or table.HasValue(hg.NPCFactionLists.rebel, cls) then
+					hg_relate_npc_to_ply(npc, ply, D_NU)
+				end
+			end
+		end
+
+		local function hg_apply_ply_faction_to_npc(npc, ply, faction)
+			local disp = hg.GetNPCFactionRelation(faction, npc:GetClass())
+			if disp then hg_relate_npc_to_ply(npc, ply, disp) end
+		end
+
+		function hg.ApplyPlayerNPCFaction(ply)
+			if not IsValid(ply) or not ply:IsPlayer() then return end
+
+			local faction = hg_get_ply_faction(ply)
+			local hookName = "hg_npc_faction_" .. ply:EntIndex()
+			hook.Remove("OnEntityCreated", hookName)
+
+			if faction == "" or faction == "none" then
+				hg_reset_ply_faction_npcs(ply)
+				hg_sync_faction_notarget(ply, faction)
+				return
+			end
+
+			hg_sync_faction_notarget(ply, faction)
+
+			for _, npc in ipairs(hg_npc_targets()) do
+				hg_apply_ply_faction_to_npc(npc, ply, faction)
+			end
+
+			hook.Add("OnEntityCreated", hookName, function(ent)
+				if not IsValid(ply) then
+					hook.Remove("OnEntityCreated", hookName)
+					return
+				end
+
+				timer.Simple(0, function()
+					if not IsValid(ent) or not ent:IsNPC() or not ent.AddEntityRelationship then return end
+					hg_apply_ply_faction_to_npc(ent, ply, faction)
+				end)
+			end)
+		end
+
+		function hg.SetPlayerNPCFaction(ply, faction)
+			if not IsValid(ply) or not ply:IsPlayer() then return end
+
+			faction = faction or "none"
+			ply:SetNWString("hg_npc_faction", faction)
+			hg.ApplyPlayerNPCFaction(ply)
+
+			if hg_ply_noclip(ply) then
+				hg.SetNoclipNPCStealth(ply, true)
+			end
+		end
+
+		local function hg_restore_npc_relation(npc, ply, saved)
+			if saved then
+				npc:AddEntityRelationship(ply, saved.ply, 99)
+				if IsValid(ply.bull) and saved.bull then
+					npc:AddEntityRelationship(ply.bull, saved.bull, 99)
+				end
+				return
+			end
+
+			local faction = hg_get_ply_faction(ply)
+			local disp = hg.GetNPCFactionRelation(faction, npc:GetClass())
+			if disp then
+				hg_relate_npc_to_ply(npc, ply, disp)
+			elseif IsValid(ply.bull) then
+				local cur = npc:Disposition(ply)
+				if cur == D_NU then cur = D_HT end
+				npc:AddEntityRelationship(ply.bull, cur, 99)
+			end
 		end
 
 		local function hg_npc_stealth_one(npc, ply, on)
@@ -575,6 +714,11 @@ hg.ConVars = hg.ConVars or {}
 			local key = npc:EntIndex()
 
 			if on then
+				if hg_npc_faction_ally(ply, npc:GetClass()) then
+					hg_apply_ply_faction_to_npc(npc, ply, hg_get_ply_faction(ply))
+					return
+				end
+
 				if not ply.noclip_npc_save[key] then
 					ply.noclip_npc_save[key] = {
 						ply = npc:Disposition(ply),
@@ -597,17 +741,7 @@ hg.ConVars = hg.ConVars or {}
 
 			local saved = ply.noclip_npc_save[key]
 			ply.noclip_npc_save[key] = nil
-
-			if saved then
-				npc:AddEntityRelationship(ply, saved.ply, 99)
-				if IsValid(ply.bull) and saved.bull then
-					npc:AddEntityRelationship(ply.bull, saved.bull, 99)
-				end
-			elseif IsValid(ply.bull) then
-				local disp = npc:Disposition(ply)
-				if disp == D_NU then disp = D_HT end
-				npc:AddEntityRelationship(ply.bull, disp, 99)
-			end
+			hg_restore_npc_relation(npc, ply, saved)
 		end
 
 		function hg.SetNoclipNPCStealth(ply, on)
@@ -616,12 +750,12 @@ hg.ConVars = hg.ConVars or {}
 			if on then
 				ply:AddFlags(FL_NOTARGET)
 				if IsValid(ply.bull) then ply.bull:AddFlags(FL_NOTARGET) end
-			else
+			elseif hg_get_ply_faction(ply) ~= "all" then
 				ply:RemoveFlags(FL_NOTARGET)
 				if IsValid(ply.bull) then ply.bull:RemoveFlags(FL_NOTARGET) end
 			end
 
-			for _, npc in ipairs(hg_npc_stealth_targets()) do
+			for _, npc in ipairs(hg_npc_targets()) do
 				hg_npc_stealth_one(npc, ply, on)
 			end
 
@@ -647,12 +781,24 @@ hg.ConVars = hg.ConVars or {}
 		hook.Add("OnEntityCreated", "hg_noclip_npc_stealth", function(ent)
 			timer.Simple(0, function()
 				if not IsValid(ent) or not ent:IsNPC() or not ent.AddEntityRelationship then return end
+
 				for _, ply in player.Iterator() do
-					if ply:Alive() and hg_ply_noclip(ply) then
+					if not ply:Alive() then continue end
+
+					local faction = hg_get_ply_faction(ply)
+					if faction ~= "" and faction ~= "none" then
+						hg_apply_ply_faction_to_npc(ent, ply, faction)
+					end
+
+					if hg_ply_noclip(ply) then
 						hg_npc_stealth_one(ent, ply, true)
 					end
 				end
 			end)
+		end)
+
+		hook.Add("PlayerDisconnected", "hg_npc_faction", function(ply)
+			hook.Remove("OnEntityCreated", "hg_npc_faction_" .. ply:EntIndex())
 		end)
 
 		hook.Add("PlayerFootstep", "hg_noclip_npc_stealth", function(ply)
