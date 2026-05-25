@@ -32,5 +32,16 @@ function MODE.ApplyTraitorLoadout(ply, modeType)
 	end
 
 	ply.SubRole = sub_role
-	TL.ApplyToTraitor(ply, loadout, modeType)
+	loadout = TL.ApplyToTraitor(ply, loadout, modeType) or loadout
+
+	if #(loadout.weapons or {}) == 0 then
+		local t = MODE.Types[modeType]
+		if t and t.TraitorLoot then
+			t.TraitorLoot(ply)
+		end
+	end
+
+	if MODE.ApplySubRoleSpawn then
+		MODE.ApplySubRoleSpawn(ply)
+	end
 end

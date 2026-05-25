@@ -1,6 +1,24 @@
 local MODE = MODE
 MODE.start_time = 1
 MODE.end_time = 7
+
+local function give_wep(ply, class, magMul)
+	local wep = ply:Give(class)
+	if not IsValid(wep) or not wep.GetMaxClip1 or not wep.GetPrimaryAmmoType then return wep end
+	local clip, ammoType = wep:GetMaxClip1(), wep:GetPrimaryAmmoType()
+	if clip and clip > 0 and ammoType and ammoType >= 0 then
+		ply:GiveAmmo(clip * (magMul or 3), ammoType, true)
+	end
+	return wep
+end
+
+function MODE.ApplySubRoleSpawn(ply)
+	if not IsValid(ply) or not ply.SubRole then return end
+	local role = MODE.SubRoles[ply.SubRole]
+	if role and role.SpawnFunction then
+		role.SpawnFunction(ply)
+	end
+end
  
 MODE.ROUND_TIME = 600
  
@@ -293,14 +311,14 @@ MODE.Types.standard = {
 	PoliceAllowed = true,
 	PoliceEquipment = function(ply)
 		ply:SetPlayerClass("police")
-		local glock = ply:Give("weapon_glock17")
-		ply:GiveAmmo(glock:GetMaxClip1() * 3,glock:GetPrimaryAmmoType(),true)
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,gun,"holo16")
-		end
-
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,gun,"laser3")
+		local glock = give_wep(ply, "weapon_glock17", 3)
+		if IsValid(glock) then
+			if math.random(0, 1) == 1 then
+				hg.AddAttachmentForce(ply, glock, "holo16")
+			end
+			if math.random(0, 1) == 1 then
+				hg.AddAttachmentForce(ply, glock, "laser3")
+			end
 		end
 
 		ply:Give("weapon_medkit_sh")
@@ -311,17 +329,17 @@ MODE.Types.standard = {
 		ply:Give("weapon_handcuffs_key")
 		ply:Give("weapon_hg_tonfa")
 		
-		local gun = ply:Give("weapon_taser")
-		ply:GiveAmmo(gun:GetMaxClip1() * 3,gun:GetPrimaryAmmoType(),true)
+		give_wep(ply, "weapon_taser", 3)
 
 		hg.AddArmor(ply, {"vest2"})
 
 		local hands = ply:Give("weapon_hands_sh")
 		ply:SetActiveWeapon( hands )
 
-		local inv = ply:GetNetVar("Inventory")
+		local inv = ply:GetNetVar("Inventory") or {}
+		inv["Weapons"] = inv["Weapons"] or {}
 		inv["Weapons"]["hg_flashlight"] = true
-		ply:SetNetVar("Inventory",inv)
+		ply:SetNetVar("Inventory", inv)
 		ply.organism.recoilmul = 0.8
 
 
@@ -455,12 +473,11 @@ MODE.Types.soe = {
 		ply:SetNetVar("Inventory", inv)
 	
 		ply:SetPlayerClass("nationalguard")
-		local gun = ply:Give("weapon_fn45")
-		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
-	
-		gun = ply:Give("weapon_hk416")
-		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
-		hg.AddAttachmentForce(ply, gun, {"holo14", "laser3", "grip3"})
+		give_wep(ply, "weapon_fn45", 3)
+		local gun = give_wep(ply, "weapon_hk416", 3)
+		if IsValid(gun) then
+			hg.AddAttachmentForce(ply, gun, {"holo14", "laser3", "grip3"})
+		end
 	
 		ply:Give("weapon_hg_grenade_tpik")
 		ply:Give("weapon_melee")
@@ -476,8 +493,7 @@ MODE.Types.soe = {
 		ply:Give("weapon_handcuffs")
 		ply:Give("weapon_handcuffs_key")
 	
-		gun = ply:Give("weapon_taser")
-		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
+		give_wep(ply, "weapon_taser", 3)
 	
 		hg.AddArmor(ply, {"vest4", "helmet1"})
 	
@@ -935,13 +951,17 @@ function MODE:SpawnForce(teamtype, count)
 			hg.tpPlayer(basepos, ply, i)
 		end
 
-        if teamtype == "police" then
-            self.Types[self.Type].PoliceEquipment(ply)
-        elseif teamtype == "swat" then
-            self:EquipSWAT(ply, spawned + 1)
-        elseif teamtype == "nationalguard" then
-            self:EquipNationalGuard(ply, spawned + 1)
-        end
+        local idx = spawned + 1
+        timer.Simple(0, function()
+            if not IsValid(ply) or not ply:Alive() then return end
+            if teamtype == "police" then
+                self.Types[self.Type].PoliceEquipment(ply)
+            elseif teamtype == "swat" then
+                self:EquipSWAT(ply, idx)
+            elseif teamtype == "nationalguard" then
+                self:EquipNationalGuard(ply, idx)
+            end
+        end)
 
         spawned = spawned + 1
     end
@@ -972,19 +992,16 @@ function MODE:EquipSWAT(ply, index)
         end
     }
 
-    local mainWep = classes[index] and classes[index]() or "weapon_m4a1"
-    local pistol = ply:Give("weapon_glock17")
-	ply:GiveAmmo(pistol:GetMaxClip1() * 3, pistol:GetPrimaryAmmoType(), true)
-    local gun = ply:Give(mainWep)
-    ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
+    local mainClass = classes[index] and classes[index]() or "weapon_m4a1"
+    give_wep(ply, "weapon_glock17", 3)
+    give_wep(ply, mainClass, 3)
 
     ply:Give("weapon_melee")
     ply:Give("weapon_handcuffs")
     ply:Give("weapon_handcuffs_key")
     ply:Give("weapon_hg_flashbang_tpik")
 
-	local gun = ply:Give("weapon_taser")
-	ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(),true)
+	give_wep(ply, "weapon_taser", 3)
 
 	hg.AddArmor(ply, {"helmet6", "vest8", tbl_Random({"mask1", "mask2", "nightvision1"})})
 
@@ -1005,26 +1022,23 @@ end
 
 function MODE:EquipNationalGuard(ply, index)
     ply:SetPlayerClass("nationalguard")
-    local gun
 
     if index == 1 then
-        gun = ply:Give("weapon_m249")
+        if not give_wep(ply, "weapon_m249", 3) then
+            give_wep(ply, "weapon_m4a1", 3)
+        end
     else
-        gun = ply:Give("weapon_m4a1")
+        give_wep(ply, "weapon_m4a1", 3)
     end
 
-    ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
-	local pistol = ply:Give("weapon_m9beretta")
-	ply:GiveAmmo(pistol:GetMaxClip1() * 3, pistol:GetPrimaryAmmoType(), true)
+    give_wep(ply, "weapon_m9beretta", 3)
     ply:Give("weapon_melee")
     ply:Give("weapon_handcuffs")
     ply:Give("weapon_handcuffs_key")
     ply:Give("weapon_walkie_talkie")
     ply:Give("weapon_bandage_sh")
     ply:Give("weapon_medkit_sh")
-
-	local gun = ply:Give("weapon_taser")
-	ply:GiveAmmo(gun:GetMaxClip1() * 3,gun:GetPrimaryAmmoType(),true)
+    give_wep(ply, "weapon_taser", 3)
 
     hg.AddArmor(ply, {"vest4", "helmet1"})
 
@@ -1188,7 +1202,7 @@ function MODE:RoundStart()
 	else
 		MODE.ChoosingPlayersList = {}
 
-		MODE.SpawnPlayers(true)
+		MODE.SpawnPlayers(false)
 	end
 end
 
@@ -1517,36 +1531,50 @@ function MODE.SpawnPlayers(spawn_with_subroles)
             current_ply:SetSuppressPickupNotices(true)
             current_ply.noSound = true
 
-            if(spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type])then
-                if(current_ply.isGunner)then
-                    MODE.Types[MODE.Type].GunManLoot(current_ply)
-                end
+            local this_player = current_ply
+            local typeTbl = MODE.Types[MODE.Type]
+            local role_pick = spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type]
 
-                if(current_ply.isTraitor and current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
-                    MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
-                end
-            else
-                if(current_ply.isTraitor)then
-                    if(current_ply.MainTraitor and MODE.ApplyTraitorLoadout)then
-                        MODE.ApplyTraitorLoadout(current_ply, MODE.Type)
-                    else
-                        MODE.Types[MODE.Type].TraitorLoot(current_ply)
+            timer.Simple(0, function()
+                if not IsValid(this_player) or not this_player:Alive() then return end
+
+                if role_pick then
+                    if this_player.isGunner and typeTbl and typeTbl.GunManLoot then
+                        typeTbl.GunManLoot(this_player)
+                    end
+                    if this_player.isTraitor then
+                        if this_player.MainTraitor and MODE.ApplyTraitorLoadout then
+                            MODE.ApplyTraitorLoadout(this_player, MODE.Type)
+                        elseif typeTbl and typeTbl.TraitorLoot then
+                            typeTbl.TraitorLoot(this_player)
+                        end
+                    end
+                else
+                    if this_player.isTraitor then
+                        if this_player.MainTraitor and MODE.ApplyTraitorLoadout then
+                            MODE.ApplyTraitorLoadout(this_player, MODE.Type)
+                        elseif typeTbl and typeTbl.TraitorLoot then
+                            typeTbl.TraitorLoot(this_player)
+                        end
+                        MODE.ApplySubRoleSpawn(this_player)
+                    end
+                    if this_player.isGunner and typeTbl and typeTbl.GunManLoot then
+                        typeTbl.GunManLoot(this_player)
                     end
                 end
+            end)
 
-                if(current_ply.isGunner)then
-                    MODE.Types[MODE.Type].GunManLoot(current_ply)
-                end
-            end
-            
             if(MODE.Type == "soe")then
                 if(current_ply.isTraitor)then
-                    local walkie_talkie = current_ply:Give("weapon_walkie_talkie")
-					if walkie_talkie.Frequencies then
+                    timer.Simple(0, function()
+                        if not IsValid(this_player) or not this_player:Alive() then return end
+                        local walkie_talkie = this_player:Give("weapon_walkie_talkie")
+					if IsValid(walkie_talkie) and walkie_talkie.Frequencies then
 						MODE.TraitorFrequency = MODE.TraitorFrequency or math.random(1, #walkie_talkie.Frequencies)
 						walkie_talkie.Frequency = MODE.TraitorFrequency
-						current_ply:ChatPrint("Частота рации: " .. walkie_talkie.Frequencies[MODE.TraitorFrequency])
+						this_player:ChatPrint("Частота рации: " .. walkie_talkie.Frequencies[MODE.TraitorFrequency])
 					end
+                    end)
                 end
             end
 
@@ -1560,8 +1588,6 @@ function MODE.SpawnPlayers(spawn_with_subroles)
             local hands = current_ply:Give("weapon_hands_sh")
             current_ply:SetActiveWeapon(hands)
             current_ply:SetNetVar("flashlight", false)
-
-            local this_player = current_ply
             
             timer.Simple(0.1, function() 
                 if IsValid(this_player) then

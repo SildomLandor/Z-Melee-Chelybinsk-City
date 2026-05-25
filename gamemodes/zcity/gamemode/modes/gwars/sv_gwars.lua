@@ -1,3 +1,4 @@
+local MODE = MODE
 MODE.name = "gwars"
 MODE.PrintName = "Gang Wars"
 
@@ -126,50 +127,63 @@ local tblarmors = {
 function MODE:GetPlySpawn(ply)
 end
 
+local function gwars_equip_ply(ply)
+	if not IsValid(ply) or not ply:Alive() then return end
+
+	ply:SetSuppressPickupNotices(true)
+	ply.noSound = true
+
+	if ply:Team() == 0 then
+		ply:SetPlayerClass("bloodz")
+		zb.GiveRole(ply, "Bloodz", Color(190, 0, 0))
+	else
+		ply:SetPlayerClass("groove")
+		zb.GiveRole(ply, "Groove", Color(0, 190, 0))
+	end
+
+	local pool = tblweps[ply:Team()]
+	if pool and #pool > 0 then
+		local wep = ply:Give(pool[math.random(#pool)])
+		if IsValid(wep) and wep.GetMaxClip1 and wep.GetPrimaryAmmoType then
+			local clip, ammoType = wep:GetMaxClip1(), wep:GetPrimaryAmmoType()
+			if clip and clip > 0 and ammoType and ammoType >= 0 then
+				ply:GiveAmmo(clip * 3, ammoType, true)
+			end
+		end
+	end
+
+	ply:Give("weapon_bandage_sh")
+	ply:Give("weapon_tourniquet")
+	ply:Give("weapon_fentanyl")
+
+	local hands = ply:Give("weapon_hands_sh")
+	if IsValid(hands) then
+		ply:SelectWeapon("weapon_hands_sh")
+	end
+
+	timer.Simple(0.1, function()
+		if not IsValid(ply) then return end
+		ply.noSound = false
+		ply:SetSuppressPickupNotices(false)
+	end)
+end
+
 function MODE:GiveEquipment()
 	self.CTPoints = {}
-	table.CopyFromTo(zb.GetMapPoints( "HMCD_TDM_CT" ),self.CTPoints)
+	table.CopyFromTo(zb.GetMapPoints("HMCD_TDM_CT"), self.CTPoints)
 	self.TPoints = {}
-	table.CopyFromTo(zb.GetMapPoints( "HMCD_TDM_T" ),self.TPoints)
-	timer.Simple(0.1,function()
-		local teamArmorCount = { [0] = 0, [1] = 0 } 
+	table.CopyFromTo(zb.GetMapPoints("HMCD_TDM_T"), self.TPoints)
 
+	local function tryAll()
+		if CurrentRound() ~= MODE then return end
 		for _, ply in player.Iterator() do
-			if not ply:Alive() then continue end
-			ply:SetSuppressPickupNotices(true)
-			ply.noSound = true
-
-			if ply:Team() == 0 then
-				ply:SetPlayerClass("bloodz")
-				zb.GiveRole(ply, "Bloodz", Color(190,0,0))
-			else
-				ply:SetPlayerClass("groove")
-				zb.GiveRole(ply, "Groove", Color(0,190,0))
-			end
-
-			local tbl = tblweps[ply:Team()]
-			local wep = ply:Give(tbl[math.random(#tbl)])
-			ply:GiveAmmo(wep:GetMaxClip1() * 3, wep:GetPrimaryAmmoType())
-
-			if wep.SetDeagleSkin then
-				//wep:SetDeagleSkin(4)
-				//wep:SetDeagleBodygroup(1)
-			end
-
-			ply:Give("weapon_bandage_sh")
-			ply:Give("weapon_tourniquet")
-			ply:Give("weapon_fentanyl")
-
-			local hands = ply:Give("weapon_hands_sh")
-			ply:SelectWeapon("weapon_hands_sh")
-
-			timer.Simple(0.1,function()
-				ply.noSound = false
-			end)
-
-			ply:SetSuppressPickupNotices(false)
+			gwars_equip_ply(ply)
 		end
-	end)
+	end
+
+	timer.Simple(0, tryAll)
+	timer.Simple(0.15, tryAll)
+	timer.Simple(0.35, tryAll)
 end
 
 function MODE:RoundThink()
@@ -196,10 +210,12 @@ function MODE:RoundThink()
 					hg.tpPlayer(startpos, ply, i, 0)
 				end
 
-                ply:SetPlayerClass("swat")
-				zb.GiveRole(ply, "SWAT", Color(0,0,122))
+				ply:SetPlayerClass("swat")
+				zb.GiveRole(ply, "SWAT", Color(0, 0, 122))
 				local gun = ply:Give("weapon_ar15")
-                ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
+				if IsValid(gun) and gun.GetMaxClip1 and gun.GetPrimaryAmmoType then
+					ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
+				end
                 ply:Give("weapon_medkit_sh")
                 ply:Give("weapon_tourniquet")
                 ply:Give("weapon_walkie_talkie")
