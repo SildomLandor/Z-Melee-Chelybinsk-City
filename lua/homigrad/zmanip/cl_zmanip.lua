@@ -268,11 +268,12 @@ function hg.DoZManip(ent, ply)
     end
 
 	local lh = ent:LookupBone("ValveBiped.Bip01_L_Hand")
-	local lhmat = ent:GetBoneMatrix(lh)
 	local wmlh = WorldModel:LookupBone("ValveBiped.Bip01_L_Hand")
-	local wmlhmat = WorldModel:GetBoneMatrix(wmlh)
+	if not lh or not wmlh then return end
 
-	local lpos, lang = WorldToLocal(lhmat:GetTranslation(), lhmat:GetAngles(), wmlhmat:GetTranslation(), angle_zero)
+	local lhmat = ent:GetBoneMatrix(lh)
+	local wmlhmat = WorldModel:GetBoneMatrix(wmlh)
+	if not lhmat or not wmlhmat then return end
 
 	if ply.zmanipdrawFunc then
 		ply.zmanipdrawFunc(ent, ply, WorldModel, time)
