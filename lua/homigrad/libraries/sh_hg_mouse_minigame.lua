@@ -15,7 +15,6 @@ if SERVER then
 		local wep = net.ReadEntity()
 		local attackType = net.ReadUInt(2)
 		local target = net.ReadEntity()
-		print("[bandage minigame] recv", ply, wep, attackType, target)
 		if not IsValid(wep) then return end
 		if wep:GetOwner() ~= ply then return end
 		if not bandageCircleClasses[wep:GetClass()] then return end
@@ -27,8 +26,6 @@ if SERVER then
 
 		if wep.DoBandageUse then
 			wep:DoBandageUse(ply, attackType, target, true)
-		else
-			print("[bandage minigame]DoBandageUse:", wep:GetClass())
 		end
 	end)
 
@@ -352,31 +349,6 @@ local function HasBandageMinigameNeed(target)
 	return false
 end
 
-local function HasAnyBandageData(target)
-	if not IsValid(target) then return false end
-	if target.organism then return true end
-	if not target.GetNetVar then return false end
-	if target:GetNetVar("bleed", nil) ~= nil then return true end
-	if target:GetNetVar("wounds", nil) ~= nil then return true end
-	if target:GetNetVar("arterialwounds", nil) ~= nil then return true end
-	return false
-end
-
-local function ShouldAllowBandageMinigame(target, owner)
-	if HasBandageMinigameNeed(target) then return true end
-
-	if IsValid(owner) and hg and hg.GetCurrentCharacter then
-		local chr = hg.GetCurrentCharacter(owner)
-		if IsValid(chr) and chr ~= target then
-			if HasBandageMinigameNeed(chr) then return true end
-			if not HasAnyBandageData(chr) then return true end
-		end
-	end
-
-	if not HasAnyBandageData(target) then return true end
-	return false
-end
-
 local function GetBandageLoopsWithInjuries(wep, attackType)
 	local loops = GetBandageLoops(wep)
 	local target = ResolveBandageTarget(wep, attackType)
@@ -408,7 +380,10 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 	if owner:GetActiveWeapon() ~= wep then return false end
 	local target = ResolveBandageTarget(wep, attackType)
 	if not IsValid(target) then return false end
-	if not ShouldAllowBandageMinigame(target, owner) then return false end
+	if not HasBandageMinigameNeed(target) then
+		owner:Notify("я не думаю что мне это нужно...")
+		return false
+	end
 
 	local sessionId = "bandage_" .. wep:EntIndex()
 	if self:IsActive(sessionId) then

@@ -171,7 +171,6 @@ net.Receive("dm_end", function()
 
 	local winnerName = IsValid(wonply) and wonply:GetPlayerName() or "Никто"
 	zb.EndMenu.Open({
-		title = "Против всех",
 		subtitle = winnerName .. " победил!",
 		subtitleColor = Color(217, 201, 99),
 		statusText = function(ply)

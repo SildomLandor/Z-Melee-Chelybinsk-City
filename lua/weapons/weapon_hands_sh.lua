@@ -2328,12 +2328,12 @@ if SERVER then
 end
 
 function SWEP:LookupBFSAnimSequence(anim)
-	if type(anim) ~= "string" then return anim end
+	if type(anim) ~= "string" then return anim or -1 end
 	local wm = self:GetWM()
 	if not IsValid(wm) then return -1 end
-	local seq = wm:LookupSequence(anim)
+	local seq = wm:LookupSequence(anim) or -1
 	if seq >= 0 or anim ~= "seq_admire" then return seq end
-	return wm:LookupSequence("fists_draw")
+	return wm:LookupSequence("fists_draw") or -1
 end
 
 function SWEP:DoBFSAnimation(anim, time, slowmo, force_local)

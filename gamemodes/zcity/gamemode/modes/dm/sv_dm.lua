@@ -36,22 +36,27 @@ function MODE:Intermission()
 		table.insert(poses, ply:GetPos())
 	end
 
-	local centerpoint = Vector(0, 0, 0)
-	for i, pos in ipairs(poses) do
-		centerpoint:Add(pos)
-	end
-	centerpoint:Div(#poses)
-
-	local dist = 0
-	for i, pos in ipairs(poses) do
-		local dist2 = pos:Distance(centerpoint)
-		if dist < dist2 then
-			dist = dist2
+	if #poses == 0 then
+		zonepoint = zb:GetRandomSpawn() or Vector(0, 0, 0)
+		zonedistance = 2048
+	else
+		local centerpoint = Vector(0, 0, 0)
+		for _, pos in ipairs(poses) do
+			centerpoint:Add(pos)
 		end
-	end
+		centerpoint:Div(#poses)
 
-	zonepoint = centerpoint
-	zonedistance = dist
+		local dist = 0
+		for _, pos in ipairs(poses) do
+			local dist2 = pos:Distance(centerpoint)
+			if dist < dist2 then
+				dist = dist2
+			end
+		end
+
+		zonepoint = centerpoint
+		zonedistance = dist
+	end
 	
 	net.Start("dm_start")
 		net.WriteVector(zonepoint)
@@ -152,17 +157,19 @@ local function MakeDissolver(ent, position, dissolveType)
 end
 
 function MODE:RoundStart()
-	local loadout = loadouts[math.random(#loadouts)]
-	local selectedAttachments = istable(loadout.attachments) and table.Random(loadout.attachments) or loadout.attachments
-
 	for _, ply in player.Iterator() do
 		if not ply:Alive() then continue end
+
+		local loadout = loadouts[math.random(#loadouts)]
+		local selectedAttachments = istable(loadout.attachments) and table.Random(loadout.attachments) or loadout.attachments
+
 		ply:SetSuppressPickupNotices(true)
 		ply.noSound = true
 		ply:Give("weapon_hands_sh")
 
-		local inv = ply:GetNetVar("Inventory")
-		inv["Weapons"]["hg_sling"] = true
+		local inv = ply:GetNetVar("Inventory", {}) or {}
+		inv.Weapons = inv.Weapons or {}
+		inv.Weapons.hg_sling = true
 		ply:SetNetVar("Inventory", inv)
 		
 		local gun = ply:Give(loadout.primary)
@@ -222,7 +229,7 @@ local cooldown = CurTime()
 hook.Add("Think","bober",function(ply)
 	local rnd = CurrentRound()
 	if not rnd or rnd.name != "dm" then return end
-	if (zb.ROUND_START or CurTime()) + 20 > CurTime() then return end
+	if (zb.ROUND_START or 0) + 20 > CurTime() then return end
 	if cooldown > CurTime() then return end
 	if deathmatch_nozone:GetBool() then return end
 	cooldown = CurTime() + 0.5

@@ -2415,7 +2415,7 @@ function SWEP:PlayAnim(anim, data, cycling, callback, reverse, sendtoclient)
 			timer.Create(TimerName, Time * k, 1, function()
 				if not IsValid(self) then return end
 				if seq != self.seq then self:VM_RemoveAllEvents() end
-				v(self, mdl)
+				pcall(v, self, mdl)
 				self.VM_TimerEvents[TimerID] = nil
 			end)
 

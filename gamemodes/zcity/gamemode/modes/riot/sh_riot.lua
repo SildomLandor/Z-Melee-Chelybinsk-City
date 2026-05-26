@@ -1,5 +1,6 @@
 local MODE = MODE
 MODE.name = "riot"
+MODE.EndMenuTitle = "Бунт"
 
 zb = zb or {}
 zb.Points = zb.Points or {}

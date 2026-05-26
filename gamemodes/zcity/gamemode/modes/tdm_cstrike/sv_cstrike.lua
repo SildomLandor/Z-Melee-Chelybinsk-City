@@ -107,6 +107,7 @@ function MODE:Intermission()
     if zb.rtype == "bomb" then
         timer.Simple(3,function()
             local team_t = team.GetPlayers(0)
+            if #team_t == 0 then return end
             local ply = team_t[math.random(#team_t)]
             
             local ent = ents.Create("bomb")
@@ -118,9 +119,10 @@ function MODE:Intermission()
         end)
     elseif zb.rtype == "hostage" then
         timer.Simple(3,function()
-            local ent = ents.Create("prop_ragdoll")
             local team_t = team.GetPlayers(0)
+            if #team_t == 0 then return end
             local ply = team_t[math.random(#team_t)]
+            local ent = ents.Create("prop_ragdoll")
 			--ent:SetModel("models/humans/group01/"..(math.random(2) == 1 and "fe" or "").."male_0"..math.random(9)..".mdl")
             ent:SetModel("models/player/hostage/hostage_0"..math.random(4)..".mdl")
             ent:SetPos(ply:GetPos())
@@ -189,30 +191,18 @@ function MODE:EndRound()
 	local tbl = zb:CheckAliveTeams(true)
 
     if zb.rtype == "bomb" then
-        if not IsValid(zb.bomb) then
-            winner = 1
-        end
-
         if zb.bombexploded then
             winner = 0
             zb.bombexploded = nil
+        elseif not IsValid(zb.bomb) then
+            winner = 1
+        elseif #tbl[1] == 0 and #tbl[0] == 0 and IsValid(zb.bomb) and zb.bomb.active then
+            winner = 0
+        elseif #tbl[1] == 0 and #tbl[0] > 0 then
+            winner = 0
+        elseif #tbl[0] == 0 and (not IsValid(zb.bomb) or not zb.bomb.active) then
+            winner = 1
         else
-            winner = 1
-        end
-
-        if IsValid(zb.bomb) and #tbl[0] == 0 and not zb.bomb.active then
-            winner = 1
-        end
-
-        if IsValid(zb.bomb) and #tbl[1] == 0 and #tbl[0] > 0 then
-            winner = 0
-        end
-
-        if IsValid(zb.bomb) and #tbl[1] == 0 and #tbl[0] == 0 and zb.bomb.active then
-            winner = 0
-        end
-
-        if IsValid(zb.bomb) and #tbl[0] == 0 and #tbl[1] == 0 and not zb.bomb.active then
             winner = 1
         end
     elseif zb.rtype == "hostage" then
@@ -394,20 +384,17 @@ end
 function MODE:RoundThink()
 end
 
-hook.Add("HarmDone", "MoneyGive", function(ply, victim, amt) 
-    if not CurrentRound().KillMoney then return end
+hook.Add("HarmDone", "MoneyGive", function(ply, victim, amt)
+    local rnd = CurrentRound()
+    if not rnd or not rnd.KillMoney then return end
     if not victim:IsPlayer() then return end
     if ply == victim then return end
-    
-    local add = amt * MODE.KillMoney * (ply:Team() == victim:Team() and -1 or 1)
-    
-    add = math.Round(add,0)
 
-    --print(add,ply,ply:GetNWInt("TDM_Money"),victim)
+    local add = math.Round(amt * rnd.KillMoney * (ply:Team() == victim:Team() and -1 or 1), 0)
 
-    ply:SetNWInt( "TDM_Money", math.max(ply:GetNWInt( "TDM_Money" ) + add, 0) )
+    ply:SetNWInt("TDM_Money", math.max(ply:GetNWInt("TDM_Money") + add, 0))
 
-    if (ply:Team() == victim:Team()) and add <= 0 then
-        victim:SetNWInt( "TDM_Money", math.max(victim:GetNWInt( "TDM_Money" ) - add, 0) )
+    if ply:Team() == victim:Team() and add < 0 then
+        victim:SetNWInt("TDM_Money", math.max(victim:GetNWInt("TDM_Money") + add, 0))
     end
 end)

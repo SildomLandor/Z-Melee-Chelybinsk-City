@@ -1,5 +1,6 @@
 local MODE = MODE
 MODE.name = "defense"
+MODE.EndMenuTitle = "Оборона"
 
 zb = zb or {}
 zb.Points = zb.Points or {}

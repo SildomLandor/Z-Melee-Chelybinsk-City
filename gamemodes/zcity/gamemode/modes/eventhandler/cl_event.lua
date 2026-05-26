@@ -80,7 +80,6 @@ net.Receive("event_end", function()
 
 	local winnerName = IsValid(wonply) and wonply:GetPlayerName() or "Никто"
 	zb.EndMenu.Open({
-		title = "Событие",
 		subtitle = winnerName .. " победил!",
 		subtitleColor = Color(217, 201, 99),
 		rowStyle = function(ply)

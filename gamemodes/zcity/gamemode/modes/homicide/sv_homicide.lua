@@ -925,7 +925,7 @@ function MODE:SpawnForce(teamtype, count)
     local basepos = nil
 
     for i, ply in RandomPairs(player.GetAll()) do
-        if ply:Alive() or ply.isTraitor or ply:Team() == TEAM_SPECTATOR or ply.afkTime2 > 60 then continue end
+        if ply:Alive() or ply.isTraitor or ply:Team() == TEAM_SPECTATOR or (ply.afkTime2 or 0) > 60 then continue end
         if spawned >= count then break end
 
         ply.isPolice = true
@@ -1157,6 +1157,7 @@ function MODE:ShouldRoundEnd()
 			net.Start("HMCD(EndPlayersRoleSelection)")
 			net.Broadcast()
 			MODE.SpawnPlayers(true)
+			return false
 		end
 	else
 		local endround, winner = zb:CheckWinner(self:CheckAlivePlayers())

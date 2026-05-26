@@ -76,30 +76,16 @@ local function ShortenTitle(title)
 		:gsub("Чрезвычайное происшествие", "ЧП")
 end
 
-EndMenu.ModeTitles = {
-	gwars = "Война банд",
-	defense = "Оборона",
-	overstimulated = "Передозированный",
-	tdm = "Командный бой",
-	cstrike = "CS",
-	hl2dm = "HL2 Мокруха",
-	criresp = "Кризис",
-	dm = "Против всех",
-	event = "Событие",
-	riot = "Бунт",
-}
-
 function EndMenu.TitleForRound(custom)
 	if isstring(custom) and custom ~= "" then
 		return ShortenTitle(custom)
 	end
-	local key = zb.CROUND
-	if key and EndMenu.ModeTitles[key] then
-		return ShortenTitle(EndMenu.ModeTitles[key])
-	end
 	local mode = CurrentRound and CurrentRound()
-	if mode and isstring(mode.PrintName) and mode.PrintName ~= "" then
-		return ShortenTitle(mode.PrintName)
+	if mode then
+		local title = mode.EndMenuTitle or mode.PrintName or mode.name
+		if isstring(title) and title ~= "" then
+			return ShortenTitle(title)
+		end
 	end
 	return "Конец раунда"
 end
@@ -363,16 +349,7 @@ end
 zb.EndMenu = EndMenu
 
 concommand.Add("zb_test_endmenu", function()
-	local mode = CurrentRound and CurrentRound()
-	local title = "Конец раунда"
-	if mode and mode.PrintName then
-		title = mode.PrintName
-	elseif zb.CROUND then
-		title = zb.CROUND
-	end
-
 	zb.EndMenu.Open({
-		title = title,
 		subtitle = "Предатели выиграли в этом раунде",
 		subtitleColor = Color(217, 201, 99),
 		sound = false,

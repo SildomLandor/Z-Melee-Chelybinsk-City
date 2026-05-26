@@ -79,7 +79,7 @@ end
 end)]]
 
 net.Receive("npc_defense_roundend", function()
-	zb.EndMenu.Open({ title = zb.EndMenu.TitleForRound() })
+	zb.EndMenu.Open()
 end)
 
 function MODE:RoundStart()

@@ -63,7 +63,7 @@ function MODE:HUDPaint()
 end
 
 net.Receive("riot_roundend", function()
-	zb.EndMenu.Open({ title = "Бунт" })
+	zb.EndMenu.Open()
 end)
 
 function MODE:RoundStart()

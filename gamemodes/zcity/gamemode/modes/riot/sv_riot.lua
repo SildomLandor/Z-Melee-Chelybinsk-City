@@ -100,7 +100,12 @@ end
 
 
 function MODE:GiveEquipment()
-    local players = player.GetAll()
+    local players = {}
+    for _, ply in player.Iterator() do
+        if ply:Team() ~= TEAM_SPECTATOR then
+            players[#players + 1] = ply
+        end
+    end
     table.Shuffle(players)
 
     local numPlayers = #players
@@ -156,8 +161,9 @@ function MODE:GiveEquipment()
 
         zb.GiveRole(ply, "Law Enforcement", Color(0, 0, 190))
 
-        local inv = ply:GetNetVar("Inventory")
-        inv["Weapons"]["hg_sling"] = true
+        local inv = ply:GetNetVar("Inventory", {}) or {}
+        inv.Weapons = inv.Weapons or {}
+        inv.Weapons.hg_sling = true
         ply:SetNetVar("Inventory", inv)
 
 

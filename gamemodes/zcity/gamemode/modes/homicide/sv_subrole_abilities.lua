@@ -34,6 +34,7 @@ hook.Add("PlayerPostThink", "HMCD_SubRoles_Abilities", function(ply)
 						if(IsValid(aim_ent) and aim_ent:IsRagdoll())then	--; REDO
 							local other_appearance = aim_ent.CurAppearance
 							local your_appearance = ply.CurAppearance
+							if not other_appearance or not your_appearance then return end
 
 							local aMdl1,aMdl2 = your_appearance.AModel,other_appearance.AModel
 							

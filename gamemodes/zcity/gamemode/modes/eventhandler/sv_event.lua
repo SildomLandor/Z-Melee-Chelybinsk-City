@@ -42,7 +42,11 @@ function MODE:Intermission()
 	end
 
 	local rndpoints = zb.GetMapPoints("RandomSpawns")
-	zonepoint = table.Random(rndpoints)
+	if rndpoints and #rndpoints > 0 then
+		zonepoint = table.Random(rndpoints)
+	else
+		zonepoint = zb:GetRandomSpawn() or Vector(0, 0, 0)
+	end
 
 	net.Start("event_start")
 	net.Broadcast()
@@ -121,10 +125,13 @@ function MODE:RoundStart()
             timer.Remove("EventLootSpawnTimer")
         end
         
-        timer.Create("EventLootSpawnTimer", 5, 0, function() 
-            if MODE.LootEnabled then
-                hook.Run("Boxes Think")
+        timer.Create("EventLootSpawnTimer", 5, 0, function()
+            local rnd = CurrentRound()
+            if not rnd or rnd.name ~= "event" or not MODE.LootEnabled then
+                timer.Remove("EventLootSpawnTimer")
+                return
             end
+            hook.Run("Boxes Think")
         end)
     end
 end
@@ -384,10 +391,13 @@ concommand.Add("zb_event_loot", function(ply, _, _, args)
     MODE.LootSpawn = enabled
     
     if enabled and not timer.Exists("EventLootSpawnTimer") then
-        timer.Create("EventLootSpawnTimer", 5, 0, function() 
-            if MODE.LootEnabled then
-                hook.Run("Boxes Think")
+        timer.Create("EventLootSpawnTimer", 5, 0, function()
+            local rnd = CurrentRound()
+            if not rnd or rnd.name ~= "event" or not MODE.LootEnabled then
+                timer.Remove("EventLootSpawnTimer")
+                return
             end
+            hook.Run("Boxes Think")
         end)
     elseif not enabled and timer.Exists("EventLootSpawnTimer") then
         timer.Remove("EventLootSpawnTimer")
@@ -420,10 +430,13 @@ hook.Add("InitPostEntity", "ZB_EventLootInitCheck", function()
         if MODE.LootEnabled then
             print("[Event Mode] Loot system is enabled")
             if not timer.Exists("EventLootSpawnTimer") then
-                timer.Create("EventLootSpawnTimer", 5, 0, function() 
-                    if MODE.LootEnabled then
-                        hook.Run("Boxes Think")
+                timer.Create("EventLootSpawnTimer", 5, 0, function()
+                    local rnd = CurrentRound()
+                    if not rnd or rnd.name ~= "event" or not MODE.LootEnabled then
+                        timer.Remove("EventLootSpawnTimer")
+                        return
                     end
+                    hook.Run("Boxes Think")
                 end)
             end
         else

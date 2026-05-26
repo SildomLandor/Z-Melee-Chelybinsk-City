@@ -1,6 +1,7 @@
 
 local MODE = MODE
 MODE.name = "dm"
+MODE.EndMenuTitle = "Против всех"
 
 MODE.MapSize = 7500
 MODE.ZoneTimeToShrink = 120

@@ -174,7 +174,7 @@ function ENT:Think()
 	if self.active then
 		if self:GetNetVar("timer") < CurTime() then
 			zb.bombexploded = true
-			util.ScreenShake( selfPos, 95, 500, 4, 1000 )
+			util.ScreenShake(self:GetPos(), 95, 500, 4, 1000)
 			hg.PropExplosion(self, "Fire", 300, 100)
 		end
 

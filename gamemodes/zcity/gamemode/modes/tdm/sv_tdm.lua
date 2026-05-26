@@ -217,14 +217,15 @@ util.AddNetworkString( "tdm_buyitem" )
 
 local AttachmentPrice = 50
 net.Receive("tdm_buyitem",function(len,ply)
-	if !CurrentRound().buymenu then return end
+	local rnd = CurrentRound()
+	if not rnd or not rnd.buymenu then return end
 	if ((zb.ROUND_START or 0) + 40 < CurTime()) then ply:ChatPrint("Time's up!") return end
 	local tItem = net.ReadTable()
 	if not istable(tItem) then return end
 	local category = tItem[1]
 	local index = tItem[2]
 	if not category or not index then return end
-	local buyItems = CurrentRound().BuyItems
+	local buyItems = rnd.BuyItems
 	if not buyItems or not buyItems[category] or not buyItems[category][index] then return end
 	local item = buyItems[category][index]
 
@@ -244,12 +245,16 @@ net.Receive("tdm_buyitem",function(len,ply)
 
 	if ((ply:GetNWInt("TDM_Money",0) - item.Price) < 0) then ply:ChatPrint("Not enough money.") return end
 	local ent = ply:Give(item.ItemClass)
-	
-	if ent.Use and IsValid(ent) then
-		ent:Use( ply )
+	if not IsValid(ent) then
+		ply:ChatPrint("Could not give item.")
+		return
 	end
 
-	if IsValid(ent) and ent:GetClass() == "weapon_bloodbag" then
+	if ent.Use then
+		ent:Use(ply)
+	end
+
+	if ent:GetClass() == "weapon_bloodbag" then
 		ent.bloodtype = "o-"
 		ent.modeValues[1] = 1
 	end

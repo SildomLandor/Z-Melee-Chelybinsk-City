@@ -13,6 +13,7 @@ zb.Points.HMCD_TDM_T.Color = Color(150,95,0)
 zb.Points.HMCD_TDM_T.Name = "HMCD_TDM_T"
 
 MODE.PrintName = "Team Deathmatch"
+MODE.EndMenuTitle = "Командный бой"
 
 --[[
     ["weapon_hk_usp"] = {
@@ -210,7 +211,7 @@ function MODE:HG_MovementCalc_2( mul, ply, cmd, mv )
 end
 
 function MODE:PlayerCanLegAttack( ply )
-	if zb.CROUND == "dm" and (zb.ROUND_START or 0) + 20 > CurTime() then
+	if zb.CROUND == "tdm" and (zb.ROUND_START or 0) + 20 > CurTime() then
 		return false
 	end
 end

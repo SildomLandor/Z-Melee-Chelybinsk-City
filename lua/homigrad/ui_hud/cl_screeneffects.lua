@@ -647,7 +647,7 @@ hook.Add("Post Post Processing", "ItHurts", function()
 
 	if fx.drawBrainImg and fx.lobotomy_index > 0 then
 		local mat = lobotomy_mats[fx.lobotomy_index]
-		if IsValid(mat) and not mat:IsError() then
+		if mat and not isnumber(mat) and not mat:IsError() then
 			local rand = 5
 			surface.SetDrawColor(255, 255, 255, 255)
 			surface.SetMaterial(mat)

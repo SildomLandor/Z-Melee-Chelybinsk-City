@@ -4,6 +4,7 @@ MODE.base = "tdm"
 MODE.buymenu = true
 
 MODE.PrintName = "Counter-Strike"
+MODE.EndMenuTitle = "CS"
 MODE.name = "cstrike"
 
 zb.Points.BOMB_ZONE_A = zb.Points.BOMB_ZONE_A or {}

@@ -261,7 +261,7 @@ function MODE:HUDPaint()
 end
 
 net.Receive("gwars_roundend", function()
-	zb.EndMenu.Open({ title = zb.EndMenu.TitleForRound() })
+	zb.EndMenu.Open()
 end)
 
 function MODE:RoundStart()

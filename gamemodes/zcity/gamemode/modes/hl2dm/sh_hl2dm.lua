@@ -1,5 +1,6 @@
 local MODE = MODE
 MODE.name = "hl2dm"
+MODE.EndMenuTitle = "HL2 Мокруха"
 
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6

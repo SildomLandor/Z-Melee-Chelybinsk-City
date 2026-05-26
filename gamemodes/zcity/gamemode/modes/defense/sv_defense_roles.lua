@@ -92,10 +92,9 @@ function MODE:AssignPlayerRoles()
     local function EquipBaseGear(ply)
         if not ply or not IsValid(ply) then return end
         
-        local inv = ply:GetNetVar("Inventory")
-        if not inv or not inv["Weapons"] then return end
-        
-        inv["Weapons"]["hg_sling"] = true
+        local inv = ply:GetNetVar("Inventory", {}) or {}
+        inv.Weapons = inv.Weapons or {}
+        inv.Weapons.hg_sling = true
         ply:SetNetVar("Inventory", inv)
 
 

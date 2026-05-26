@@ -7,10 +7,21 @@ MODE.LootSpawn = false
 
 MODE.ForBigMaps = true
 
-function MODE:ClearPlayerRoles() -- Щпасибо деке!!
+local ACD_NextAirstrikeTime = 0
+local ACD_MaxStrikes = 2
+local ACD_StrikesLeft = {}
+
+local function resetPlyRoundState(ply)
+    ply.subClass = nil
+    ply.leader = nil
+    ply:SetNWString("PlayerRole", "")
+end
+
+function MODE:ClearPlayerRoles()
     for _, ply in player.Iterator() do
-        ply:SetNWString("PlayerRole", "")
+        resetPlyRoundState(ply)
     end
+    ACD_StrikesLeft = {}
 end
 
 function MODE.GuiltCheck(Attacker, Victim, add, harm, amt)
@@ -21,7 +32,8 @@ util.AddNetworkString("hl2dm_start")
 function MODE:Intermission()
 	game.CleanUpMap()
 
-	for i, ply in player.Iterator() do
+	for _, ply in player.Iterator() do
+        resetPlyRoundState(ply)
 		ply:SetupTeam(ply:Team())
 	end
 
@@ -45,83 +57,117 @@ end
 function MODE:GetPlySpawn(ply)
 end
 
+local function takeRandom(tbl)
+    if #tbl == 0 then return end
+    return table.remove(tbl, math.random(#tbl))
+end
+
+local function tpToMapPoint(ply, pointName)
+    local points = zb.GetMapPoints(pointName)
+    if #points > 0 then
+        ply:SetPos(points[math.random(#points)].pos)
+    end
+end
+
+local function assignHl2dmRoles(players)
+    local combine, rebels = {}, {}
+
+    for _, ply in ipairs(players) do
+        if ply:Team() == 1 then
+            combine[#combine + 1] = ply
+        else
+            rebels[#rebels + 1] = ply
+        end
+    end
+
+    local big = #players > 6
+
+    local elite = takeRandom(combine)
+    if elite then
+        elite.subClass = "elite"
+        elite.leader = true
+        elite:SetNWString("PlayerRole", "Elite")
+    end
+
+    local shotgunner = takeRandom(combine)
+    if shotgunner then
+        shotgunner.subClass = "shotgunner"
+        shotgunner:SetNWString("PlayerRole", "Shotgunner")
+    end
+
+    if big then
+        local sniper = takeRandom(combine)
+        if sniper then
+            sniper.subClass = "sniper"
+            tpToMapPoint(sniper, "HL2DM_SNIPERSPAWN")
+        end
+    end
+
+    local medic = takeRandom(rebels)
+    if medic then
+        medic.subClass = "medic"
+        medic:SetNWString("PlayerRole", "Medic")
+    end
+
+    if big then
+        local grenadier = takeRandom(rebels)
+        if grenadier then
+            grenadier.subClass = "grenadier"
+            grenadier:SetNWString("PlayerRole", "Grenadier")
+        end
+
+        local sniper = takeRandom(rebels)
+        if sniper then
+            sniper.subClass = "sniper"
+            sniper:SetNWString("PlayerRole", "Sniper")
+            tpToMapPoint(sniper, "HL2DM_CROSSBOWSPAWN")
+        end
+    end
+end
+
+function MODE:EquipPlayer(ply)
+    if not IsValid(ply) or not ply:Alive() or ply:Team() == TEAM_SPECTATOR then return false end
+    if CurrentRound() ~= MODE then return false end
+
+    ply:SetSuppressPickupNotices(true)
+    ply.noSound = true
+
+    local inv = ply:GetNetVar("Inventory", {}) or {}
+    inv.Weapons = inv.Weapons or {}
+    inv.Weapons["hg_sling"] = true
+    ply:SetNetVar("Inventory", inv)
+
+    ply:SetPlayerClass(ply:Team() == 1 and "Combine" or "Rebel")
+
+    timer.Simple(0.1, function()
+        if not IsValid(ply) then return end
+        ply.noSound = false
+        ply:SetSuppressPickupNotices(false)
+    end)
+
+    return true
+end
+
 function MODE:GiveEquipment()
-	timer.Simple(0.1, function()
-		local elites = 1
-		local medics = 1
-		local grenadiers = 1
-		local shotgunners = 1
-		local snipersC = 1
-		local snipersR = 1
+    local mode = self
+    local players = zb:CheckPlaying()
 
-		local players_alive = zb:CheckPlaying()
-		local leader = false
-		for _, ply in RandomPairs(players_alive) do
-			ply:SetSuppressPickupNotices(true)
-			ply.noSound = true
+    for _, ply in ipairs(players) do
+        resetPlyRoundState(ply)
+    end
 
-			local hands = ply:Give("weapon_hands_sh")
-			ply:SelectWeapon(hands)
+    assignHl2dmRoles(players)
 
-			if ply:Team() == 1 then
-				if elites > 0 and not ply.subClass then
-					elites = elites - 1
-					ply.subClass = "elite"
-					if not leader then
-						ply.leader = true
-						ply:SetNWString("PlayerRole", "Elite")
-						leader = true
-					end
-				end
+    local function tryAll()
+        if CurrentRound() ~= mode then return end
+        for _, ply in player.Iterator() do
+            mode:EquipPlayer(ply)
+        end
+    end
 
-				if shotgunners > 0 and not ply.subClass then
-					shotgunners = shotgunners - 1
-					ply.subClass = "shotgunner"
-					ply:SetNWString("PlayerRole", "Shotgunner")
-				end
-
-				if snipersC > 0 and (#players_alive > 6) and not ply.subClass then
-					snipersC = snipersC - 1
-					ply.subClass = "sniper"
-					local points = zb.GetMapPoints( "HL2DM_SNIPERSPAWN" )
-					if #points > 0 then
-						ply:SetPos(points[math.random(#points)].pos)
-					end
-				end
-			else
-				if medics > 0 and not ply.subClass then
-					medics = medics - 1
-					ply.subClass = "medic"
-				end
-
-				if grenadiers > 0 and (#players_alive > 6) and not ply.subClass then
-					grenadiers = grenadiers - 1
-					ply.subClass = "grenadier"
-				end
-
-				if snipersR > 0 and (#players_alive > 6) and not ply.subClass then
-					snipersR = snipersR - 1
-					ply.subClass = "sniper"
-					local points = zb.GetMapPoints( "HL2DM_CROSSBOWSPAWN" )
-					if #points > 0 then
-						ply:SetPos(points[math.random(#points)].pos)
-					end
-				end
-			end
-			
-			local inv = ply:GetNetVar("Inventory",{})
-			inv["Weapons"]["hg_sling"] = true
-			ply:SetNetVar("Inventory",inv)
-
-			ply:SetPlayerClass(ply:Team() == 1 and "Combine" or "Rebel")
-
-			timer.Simple(0.1,function()
-				ply.noSound = false
-			end)
-
-			ply:SetSuppressPickupNotices(false)
-		end
-	end)
+    timer.Simple(0, tryAll)
+    timer.Simple(0.15, tryAll)
+    timer.Simple(0.35, tryAll)
 end
 
 function MODE:RoundThink()
@@ -145,18 +191,19 @@ function MODE:EndRound()
 		end
 	end
 	if team0 > team1 then
-		winnerteam = 0 -- rebel wins
+		winnerteam = 0
 	elseif team1 > team0 then
-		winnerteam = 1 -- combine winds
-	elseif team0 == team1 then
-		winnerteam = 2 -- draw
+		winnerteam = 1
 	elseif team0 == 0 and team1 == 0 then
-		winnerteam = 3 -- everybody died
+		winnerteam = 3
+	else
+		winnerteam = 2
 	end
 	--print("Endround winnerteam ", winnerteam)
 	self:ClearPlayerRoles()
-	timer.Simple(2,function()
+	timer.Simple(2, function()
 		net.Start("hl2dm_roundend")
+			net.WriteInt(winnerteam, 3)
 		net.Broadcast()
 	end)
 end
@@ -175,11 +222,6 @@ function MODE:CanLaunch()
 end
 
 util.AddNetworkString("ZB_RequestAirStrike")
-
-local ACD_NextAirstrikeTime = 0 
-local ACD_MaxStrikes = 2 
-local ACD_StrikesLeft = {} 
-
 
 local function FindAccessibleAngle(pos)
     for i = 1, 50 do

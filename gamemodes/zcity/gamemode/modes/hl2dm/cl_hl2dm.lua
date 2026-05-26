@@ -131,6 +131,9 @@ local teams = {
 	[0] = {
 		objective = "Убей всех солдат Combine и выживи.",
 		name = "повстанец",
+		name_medic = "медик повстанцев",
+		name_grenadier = "гренадёр",
+		name_sniper = "снайпер",
 		color1 = Color(230, 100, 5),
 		color2 = Color(210, 80, 0),
 	},
@@ -150,7 +153,11 @@ local function GetRoleName(team_id, playerRole)
 	if team_id == 1 then
 		if playerRole == "Elite" then return t.name_elite end
 		if playerRole == "Shotgunner" then return t.name_shotgunner end
+		return t.name
 	end
+	if playerRole == "Medic" then return t.name_medic end
+	if playerRole == "Grenadier" then return t.name_grenadier end
+	if playerRole == "Sniper" then return t.name_sniper end
 	return t.name
 end
 
@@ -208,7 +215,7 @@ end)
 
 net.Receive("hl2dm_roundend", function()
 	net.ReadInt(3)
-	zb.EndMenu.Open({ title = "HL2 Мокруха" })
+	zb.EndMenu.Open()
 end)
 
 function MODE:RoundStart()

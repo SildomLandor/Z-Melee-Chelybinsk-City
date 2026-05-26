@@ -79,7 +79,6 @@ end
 net.Receive("cri_roundend", function()
 	local whowin = net.ReadBool()
 	zb.EndMenu.Open({
-		title = "Кризис",
 		sound = whowin and "zbattle/criresp/failedSWAT.mp3" or "ambient/alarms/warningbell1.wav",
 		statusText = function(ply)
 			if ply:GetNetVar("handcuffed", false) then return " — обезврежен" end

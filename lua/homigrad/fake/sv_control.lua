@@ -734,6 +734,7 @@ hook.Add("Think", "Fake", function()
 			local head = choking1:GetPhysicsObjectNum(realPhysNum(choking1, 10))
 			--lhand:SetPos(head:GetPos())
 			--rhand:SetPos(head:GetPos())
+			choking1.beingChokedUntil = CurTime() + 0.2
 			local org = choking1.organism
 			if org then
 				org.choking = true
@@ -864,7 +865,9 @@ hook.Add("Think", "Fake", function()
 		end
 		local vel = ragdoll:GetVelocity()
 		local vellen = vel:Length()
-		if org.canmove and vellen > 350 and !ply:InVehicle() then
+		local throatAmt = hg.organism.ThroatClutchAmt and hg.organism.ThroatClutchAmt(org) or 0
+		local throatClutch = throatAmt >= 0.12 or (ragdoll.beingChokedUntil or 0) > CurTime()
+		if org.canmove and vellen > 350 and !ply:InVehicle() and not throatClutch then
 			--[[
 			
 				local defaultBones = {
@@ -924,9 +927,8 @@ hook.Add("Think", "Fake", function()
 			end
 		end*/
 
-		if hg.organism and hg.organism.ThroatClutchAmt and hg.organism.ThroatClutchRagdoll then
-			local amt = hg.organism.ThroatClutchAmt(org)
-			if amt >= 0.12 and not org.choking and not org.otrub then
+		if hg.organism and hg.organism.ThroatClutchRagdoll then
+			if throatClutch and not org.otrub then
 				hg.organism.ThroatClutchRagdoll(ragdoll, org)
 			end
 		end
