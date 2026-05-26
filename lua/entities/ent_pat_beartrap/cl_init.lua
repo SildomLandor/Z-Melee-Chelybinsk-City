@@ -92,9 +92,9 @@ hook.Add("HUDPaint", "pat_beartrap_release", function()
         return
     end
 
-    local limb = PAT_BEARTRAP.LimbFromId(ply:GetNWInt("PAT_BeartrapLimb", 0))
-    local side = limb == "rleg" and "правой" or "левой"
-    local hint = "Alt+E — открыть капкан (" .. side .. " нога)"
+    --local limb = PAT_BEARTRAP.LimbFromId(ply:GetNWInt("PAT_BeartrapLimb", 0))
+    --local side = limb == "rleg" and "правой" or "левой"
+    local hint = "Alt+E — открыть капкан"
 
     draw.SimpleText(hint, "ZCity_Veteran", ScrW() * 0.5, ScrH() * 0.58, Color(190, 180, 160), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
