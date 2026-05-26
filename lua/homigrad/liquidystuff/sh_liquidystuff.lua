@@ -5,188 +5,196 @@ hg.gasolinePath = hg.gasolinePath or {}
 local math_random = math.random
 local math_Round = math.Round
 local math_max = math.max
+local CurTime = CurTime
 
 local vecZero = Vector(0, 0, 0)
 local angZero = Angle(0, 0, 0)
 
-local whitelistModels = {
+local gasModels = {
 	["models/props_c17/oildrum001_explosive.mdl"] = true,
 	["models/props_junk/gascan001a.mdl"] = true,
 	["models/props_junk/metalgascan.mdl"] = true,
 }
 
-hg.gas_models = whitelistModels
+hg.gas_models = gasModels
 
 local vecHole = {
 	["models/props_c17/oildrum001_explosive.mdl"] = Vector(10, 0, 0),
-	--["models/props_junk/gascan001a.mdl"] = Vector(0, -7, 11),
-	--["models/props_junk/metalgascan.mdl"] = Vector(0, -7, 11),
 }
 
 PrecacheParticleSystem("env_fire_medium")
 
-if SERVER then
-	local function addDrum(ent)
-		if not IsValid(ent) then return end
-
-		if whitelistModels[ent:GetModel()] then
-			local maxs, mins = ent:OBBMaxs(), ent:OBBMins()
-			local vec = vecZero
-			local hole = vecHole[ent:GetModel()]
-			local pos
-
-			if hole then
-				vec:Set(hole)
-				pos = maxs + mins + vec
-			end
-
-			hg.drums[ent:EntIndex()] = {
-				Entity = ent,
-				Volume = hole and math_random(1, pos[3]) or maxs[3] * 0.8,
-				high_point = {
-					[1] = hole and {pos, CurTime()} or nil
-				}
-			}
-			table.insert(hg.drums2, ent)
-		end
-	end
-
-	hook.Add("OnEntityCreated", "drum_spawn", function(ent) timer.Simple(0, function() addDrum(ent) end) end)
+local function markGasPathDirty()
+	if SERVER then hg.gasPathDirty = true end
 end
 
 if SERVER then
 	util.AddNetworkString("gas particle")
 	util.AddNetworkString("gasoline_path")
-	
-	local time = CurTime()
-	local CurTime = CurTime
-	hook.Add("Think", "drum_think", function()
-		if time > CurTime() then return end
-		time = time + 0.1
 
-		for i, drum in pairs(hg.drums) do
-			hook.Run("Drum Think", i, drum)
+	local function addDrum(ent)
+		if not IsValid(ent) or not gasModels[ent:GetModel()] then return end
+
+		local maxs, mins = ent:OBBMaxs(), ent:OBBMins()
+		local hole = vecHole[ent:GetModel()]
+		local pos
+
+		if hole then
+			vecZero:Set(hole)
+			pos = maxs + mins + vecZero
+		end
+
+		hg.drums[ent:EntIndex()] = {
+			Entity = ent,
+			Volume = hole and math_random(1, pos[3]) or maxs[3] * 0.8,
+			high_point = {
+				[1] = hole and {pos, CurTime()} or nil
+			}
+		}
+		table.insert(hg.drums2, ent)
+	end
+
+	hook.Add("OnEntityCreated", "drum_spawn", function(ent)
+		timer.Simple(0, function() addDrum(ent) end)
+	end)
+
+	local drumThinkNext = 0
+	hook.Add("Think", "drum_think", function()
+		local t = CurTime()
+		if drumThinkNext > t then return end
+		drumThinkNext = t + 0.1
+
+		for idx, drum in pairs(hg.drums) do
+			hook.Run("Drum Think", idx, drum)
 		end
 	end)
 
-	local time2 = CurTime()
+	local pathThinkNext = 0
 	local ents_FindInSphere = ents.FindInSphere
-	hook.Add("Think", "path_think", function()
-		if time2 > CurTime() then return end
-		time2 = time2 + 1
+	local IGNITE_SPREAD_SQR = 2048
 
-		for i, tbl in ipairs(hg.gasolinePath) do
+	hook.Add("Think", "path_think", function()
+		local t = CurTime()
+		if pathThinkNext > t then return end
+		pathThinkNext = t + 1
+
+		local path = hg.gasolinePath
+		for i = 1, #path do
+			local tbl = path[i]
 			local pos, ignited = tbl[1], tbl[2]
-			
-			if isnumber(ignited) and (ignited + 60) < CurTime() then tbl[2] = true continue end
-			
-			if isnumber(ignited) then
-				local something_ignited = false
-				
-				for i, tbl2 in ipairs(hg.gasolinePath) do
-					if not tbl2[2] and (tbl[1] - tbl2[1]):LengthSqr() < 2048 then
-						tbl2[2] = CurTime()
-						tbl2[3] = tbl[3] or tbl2[3]
-						something_ignited = true
-					end
+
+			if isnumber(ignited) and ignited + 60 < t then
+				tbl[2] = true
+				markGasPathDirty()
+				continue
+			end
+
+			if not isnumber(ignited) then continue end
+
+			for j = 1, #path do
+				if i == j then continue end
+				local other = path[j]
+				if not other[2] and (pos - other[1]):LengthSqr() < IGNITE_SPREAD_SQR then
+					other[2] = t
+					other[3] = tbl[3] or other[3]
+					markGasPathDirty()
 				end
-			
-				for i, obj in ipairs(ents_FindInSphere(pos, 32)) do
-					if obj:GetMoveType() == MOVETYPE_NONE then continue end
-					
-					if IsValid(obj) and (((not obj:IsPlayer()) or (obj:Alive() and obj:GetMoveType() != MOVETYPE_NOCLIP and !IsValid(obj.FakeRagdoll))) and not obj:IsOnFire() and obj:WaterLevel() < 1)  then
-						--obj:Ignite(30 * ((obj.shouldburn or 0) + 1))
-						CreateVFire(obj, obj:GetPos(), -vector_up, 100, tbl[3])
-						--CreateVFire(parent, pos, normal, newFeed, spreader)
-					end
-				end
+			end
+
+			for _, obj in ipairs(ents_FindInSphere(pos, 32)) do
+				if not IsValid(obj) or obj:GetMoveType() == MOVETYPE_NONE then continue end
+				if obj:IsPlayer() and (not obj:Alive() or obj:GetMoveType() == MOVETYPE_NOCLIP or IsValid(obj.FakeRagdoll)) then continue end
+				if obj:IsOnFire() or obj:WaterLevel() >= 1 then continue end
+
+				CreateVFire(obj, obj:GetPos(), -vector_up, 100, tbl[3])
 			end
 		end
 
-		net.Start("gasoline_path")
-		net.WriteTable(hg.gasolinePath)
-		net.Broadcast()
+		if hg.gasPathDirty then
+			hg.gasPathDirty = false
+			net.Start("gasoline_path")
+			net.WriteTable(path)
+			net.Broadcast()
+		end
 	end)
 
-	hook.Add("PostCleanupMap","removetrailsofevidence",function()
+	hook.Add("PostCleanupMap", "removetrailsofevidence", function()
 		hg.drums = {}
 		hg.drums2 = {}
 		hg.gasolinePath = {}
+		hg.gasPathDirty = true
+	end)
+
+	hook.Add("PlayerInitialSpawn", "gasoline_path_sync", function(ply)
+		if #hg.gasolinePath == 0 then return end
+		net.Start("gasoline_path")
+		net.WriteTable(hg.gasolinePath)
+		net.Send(ply)
 	end)
 
 	local vecTemp = Vector(0, 0, 0)
-	
-	hook.Add("Drum Think", "Main", function(i, drum)
+	local leakTr = {}
+
+	hook.Add("Drum Think", "Main", function(idx, drum)
 		local ent = drum.Entity
-
 		if not IsValid(ent) then
-			hg.drums[i] = nil
-
+			hg.drums[idx] = nil
 			return
 		end
 
 		local pos = ent:GetPos()
-		local maxs, mins, center = ent:OBBMaxs(), ent:OBBMins(), ent:OBBCenter()
-		
 		ent.lastvel = ent.lastvel or ent:GetVelocity()
 
 		local diff = ent.lastvel:LengthSqr() - ent:GetVelocity():LengthSqr()
 		if math.abs(diff) > 75 * 75 and drum.Volume > 1 then
 			ent.lastvel = ent:GetVelocity()
-
 			ent:EmitSound("player/footsteps/wade3.wav", 65, math.random(55, 75) * math.Clamp(2 - drum.Volume * 0.1, 1, 2))
-		--elseif diff > 0 then
-			--ent.lastvel = ent:GetVelocity()
 		end
 
-		for i, point in pairs(drum.high_point) do
+		for _, point in pairs(drum.high_point) do
 			ent.Volume = drum.Volume
+
 			local high_point = vecZero
 			high_point:Set(point[1])
 			high_point:Rotate(ent:GetAngles())
 
 			local center = ent:OBBCenter()
 			center:Rotate(ent:GetAngles())
-			
+
 			local dot = math.max(math.abs(vector_up:Dot(ent:GetUp())), 0.99)
 			vecTemp[3] = drum.Volume / dot - ent:OBBCenter()[3]
-			
+
 			local volumePos = center + vecTemp
 			volumePos:Add(ent:GetVelocity() / 8)
-			
+
 			if math_Round(high_point[3], 1) < math_Round(volumePos[3], 1) + 1 then
 				drum.Volume = math_max(drum.Volume - 0.1, 0)
 				drum.leaking = true
-				drum.loopsound = drum.loopsound or CreateSound(ent,"ambient/water/leak_1.wav")
+				drum.loopsound = drum.loopsound or CreateSound(ent, "ambient/water/leak_1.wav")
 				drum.loopsound:Play()
 
-				local tr = {}
-				tr.start = pos + high_point
-				tr.endpos = tr.start + -vector_up * 256
-				tr.filter = ent
+				leakTr.start = pos + high_point
+				leakTr.endpos = leakTr.start - vector_up * 256
+				leakTr.filter = ent
+				local tr = util.TraceLine(leakTr)
 
-				tr = util.TraceLine(tr)
-				
 				if tr.Hit and tr.Entity == Entity(0) then
 					if (drum.lastFireCreated or 0) < CurTime() then
 						drum.lastFireCreated = CurTime() + 0.2
-
-						table.insert(hg.gasolinePath, {tr.HitPos, false})
+						hg.gasolinePath[#hg.gasolinePath + 1] = {tr.HitPos, false}
+						markGasPathDirty()
 					end
 				elseif tr.Entity != Entity(0) then
-					tr.Entity.shouldburn = tr.Entity.shouldburn and tr.Entity.shouldburn + 1 or 1
+					tr.Entity.shouldburn = (tr.Entity.shouldburn or 0) + 1
 				end
 
 				net.Start("gas particle")
 				net.WriteVector(pos + high_point)
-				net.WriteVector(vector_up * 0 + ent:GetVelocity() + VectorRand(-15, 15) + (pos + high_point - (center + ent:GetPos())):GetNormalized() * 60)
+				net.WriteVector(ent:GetVelocity() + VectorRand(-15, 15) + (pos + high_point - (center + ent:GetPos())):GetNormalized() * 60)
 				net.WriteEntity(ent)
 				net.Broadcast()
-			else
-				if drum.loopsound then
-					drum.loopsound:Stop()
-				end
-
+			elseif drum.loopsound then
+				drum.loopsound:Stop()
 				drum.leaking = false
 			end
 
@@ -200,18 +208,15 @@ if SERVER then
 			end
 
 			ent:SetNWBool("EmptyBarrel", true)
-
-			hg.drums[i] = nil
+			hg.drums[idx] = nil
 		end
 	end)
 
 	hook.Add("EntityRemoved", "drum_removed", function(ent)
 		local drum = hg.drums[ent:EntIndex()]
-		if drum then
-			if drum.loopsound then
-				drum.loopsound:Stop()
-				drum.loopsound = nil
-			end
+		if drum and drum.loopsound then
+			drum.loopsound:Stop()
+			drum.loopsound = nil
 		end
 		table.RemoveByValue(hg.drums2, ent)
 	end)
@@ -219,15 +224,14 @@ if SERVER then
 	hook.Add("ExplosivesTakeDamage", "drum_damage", function(ent, dmgInfo)
 		if !hg.drums[ent:EntIndex()] then return end
 		if !(dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) or (dmgInfo:IsDamageType(DMG_SLASH) and dmgInfo:GetDamage() >= 25)) then return end
-		
+
 		local dmgPos = dmgInfo:GetDamagePosition()
-		local tr = util.QuickTrace(dmgPos,(ent:GetPos() + ent:OBBCenter()) - dmgPos)
+		local tr = util.QuickTrace(dmgPos, (ent:GetPos() + ent:OBBCenter()) - dmgPos)
 		if tr.Entity == ent then dmgPos = tr.HitPos end
-		local localPos, localAng = WorldToLocal(dmgPos, angZero, ent:GetPos(), ent:GetAngles())
+
 		local drum = hg.drums[ent:EntIndex()]
-		
 		if #drum.high_point < 5 then
-			drum.high_point[#drum.high_point + 1] = {localPos, CurTime()}
+			drum.high_point[#drum.high_point + 1] = {WorldToLocal(dmgPos, angZero, ent:GetPos(), ent:GetAngles()), CurTime()}
 		end
 	end)
 else
@@ -237,114 +241,42 @@ else
 
 	hg.effparticles = hg.effparticles or {}
 
-	local oldgas = {}
 	net.Receive("gasoline_path", function()
-		table.CopyFromTo(hg.gasolinePath, oldgas)
-
 		hg.gasolinePath = net.ReadTable()
 
 		for i, eff in pairs(hg.effparticles) do
 			if hg.gasolinePath[i] then continue end
-
 			if eff and eff:IsValid() then
 				eff:StopEmissionAndDestroyImmediately()
 			end
 		end
 	end)
-		
-	hook.Add("PreDrawEffects","fireeffects",function()
+
+	hook.Add("PreDrawEffects", "fireeffects", function()
+		local t = CurTime()
 		for i, tbl in ipairs(hg.gasolinePath) do
-			local pos, ignited = tbl[1], tbl[2]
-			
-			local effparticles = hg.effparticles
-			
-			if isnumber(tbl[2]) and (!effparticles[i] or !effparticles[i]:IsValid()) then
-				effparticles[i] = CreateParticleSystemNoEntity("vFire_Base_Medium",tbl[1],AngleRand()*5)
+			local ignited = tbl[2]
+			local eff = hg.effparticles[i]
+
+			if isnumber(ignited) and (!eff or !eff:IsValid()) then
+				hg.effparticles[i] = CreateParticleSystemNoEntity("vFire_Base_Medium", tbl[1], AngleRand() * 5)
+				eff = hg.effparticles[i]
 			end
 
-			if tbl[2] == true then -- do not change to "if tbl[2] then"
-				if effparticles[i] and effparticles[i]:IsValid() then
-					effparticles[i]:StopEmission()
-				end
-			end
+			if not eff or !eff:IsValid() then continue end
 
-			if isnumber(tbl[2]) and (tbl[2] + 60) < CurTime() then
-				if effparticles[i] and effparticles[i]:IsValid() then
-					effparticles[i]:StopEmission()
-				end
+			if ignited == true or (isnumber(ignited) and ignited + 60 < t) then
+				eff:StopEmission()
 			end
 		end
 	end)
 
-	hook.Add("PostCleanupMap","removetrailsofevidence",function()
+	hook.Add("PostCleanupMap", "removetrailsofevidence", function()
 		hg.gasolinePath = {}
-
-		for i, eff in pairs(hg.effparticles) do
+		for _, eff in pairs(hg.effparticles) do
 			if eff and eff:IsValid() then
 				eff:StopEmissionAndDestroyImmediately()
 			end
 		end
 	end)
-
-	hook.Add("HUDPaint","drum_client",function()
-		if true then return end
-		
-        for i, drum in pairs(hg.drums) do
-            local ent = drum.Entity
-			
-            if not IsValid(ent) then
-                hg.drums[i] = nil
-                continue
-            end
-            
-            local pos = ent:GetPos()
-            local maxs, mins, center = ent:OBBMaxs(),ent:OBBMins(),ent:OBBCenter()
-
-            local leaking = false
-            for i, point in pairs(drum.high_point) do
-                local high_point = vecZero
-
-                high_point:Set(point[1])
-                high_point:Rotate(ent:GetAngles())
-
-                --surface.DrawRect(pos:ToScreen().x,pos:ToScreen().y,10,10)
-
-                local center = ent:OBBCenter()
-                center:Rotate(ent:GetAngles())
-
-                local dot = math.max(math.abs(vector_up:Dot(ent:GetUp())),0.99)
-                
-                local volumePos = center + Vector(0,0,(drum.Volume / (dot) - ent:OBBCenter()[3]))
-                volumePos:Add(ent:GetVelocity() / 8)
-                /*
-                local center = ent:OBBCenter()
-                center:Rotate(ent:GetAngles())
-
-                local aa,ab = ent:OBBMaxs(),ent:OBBMins()
-                local min,max = ent:GetRotatedAABB(aa, ab)
-
-                center[3] = max[3]
-                local volumePos = center - Vector(0,0,45 - drum.Volume)
-
-                --слишком сложно
-                */
-                
-
-                surface.DrawRect((pos + volumePos):ToScreen().x,(pos + volumePos):ToScreen().y,10,10)
-                surface.DrawRect((pos + high_point):ToScreen().x,(pos + high_point):ToScreen().y,10,10)
-                
-                /*
-                local aa,ab = ent:OBBMaxs(),ent:OBBMins()
-                local _,max = ent:GetRotatedAABB(aa, ab)
-                surface.DrawRect((pos + a):ToScreen().x,(pos + b):ToScreen().y,10,10)
-				*/
-            end
-        end
-
-		for i,tbl in pairs(hg.gasolinePath) do
-			local pos, ignited = tbl[1], tbl[2]
-			surface.SetDrawColor(255,255,255,255)
-			surface.DrawRect(pos:ToScreen().x,pos:ToScreen().y,10,10)
-		end
-    end)
 end
