@@ -297,6 +297,8 @@ MODE.Types.standard = {
 		timer.Simple(1,function() wep:ApplyAmmoChanges(2) end)
 
 		ply.organism.stamina.range = 220
+		ply.organism.stamina.max = 220
+		ply.organism.stamina[1] = 220
 
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_flashlight"] = true
@@ -374,6 +376,8 @@ MODE.Types.gunfreezone = {
 		timer.Simple(1,function() wep:ApplyAmmoChanges(2) end)
 
 		ply.organism.stamina.range = 220
+		ply.organism.stamina.max = 220
+		ply.organism.stamina[1] = 220
 
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_flashlight"] = true
@@ -446,6 +450,8 @@ MODE.Types.soe = {
 		ply:Give("weapon_traitor_poison_consumable")
 		ply.organism.recoilmul = 1
 		ply.organism.stamina.range = 220
+		ply.organism.stamina.max = 220
+		ply.organism.stamina[1] = 220
 
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_flashlight"] = true
@@ -1605,7 +1611,7 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                             MODE.ApplySubRoleSpawn(this_player)
                         end
 
-                        if duel and typeTbl and typeTbl.TraitorLoot and not this_player:HasWeapon("weapon_buck200knife") then
+                        if duel and not this_player.MainTraitor and typeTbl and typeTbl.TraitorLoot and not this_player:HasWeapon("weapon_buck200knife") then
                             typeTbl.TraitorLoot(this_player)
                         end
                     end

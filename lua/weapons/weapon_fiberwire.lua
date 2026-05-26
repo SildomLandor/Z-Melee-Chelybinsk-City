@@ -932,7 +932,7 @@ function SWEP:CustomThink()
     local allowStruggle = IsValid(ragPly2) and ragPly2:IsPlayer() and ragPly2:Alive() and not knockedOut
     
     if allowStruggle then
-        hg.organism.ThroatClutchRagdoll(rag, ragOrg)
+        hg.organism.ThroatClutchRagdoll(rag, ragOrg, {force = true})
 
         if self._fw_punchshit < CurTime() then 
             -- Only viewpunch if the owner is not fake

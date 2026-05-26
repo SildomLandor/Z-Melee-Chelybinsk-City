@@ -19,12 +19,5 @@ function MODE.ApplyTraitorLoadout(ply, modeType)
 	end
 
 	ply.SubRole = sub_role
-	loadout = TL.ApplyToTraitor(ply, loadout, modeType) or loadout
-
-	if TL.WantsDefaultLoot(loadout) then
-		local t = MODE.Types[modeType]
-		if t and t.TraitorLoot then
-			t.TraitorLoot(ply)
-		end
-	end
+	TL.ApplyToTraitor(ply, loadout, modeType)
 end

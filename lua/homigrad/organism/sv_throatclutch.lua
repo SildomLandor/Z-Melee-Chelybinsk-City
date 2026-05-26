@@ -5,13 +5,19 @@ local function ragIsChokingSomeone(rag)
 	if IsValid(rag.ConsRH) and IsValid(rag.ConsRH.choking) then return true end
 end
 
-function hg.organism.ThroatClutchRagdoll(rag, org)
+function hg.organism.ThroatClutchRagdoll(rag, org, opts)
+	opts = opts or {}
 	if not IsValid(rag) then return end
 	org = org or rag.organism
 	if ragIsChokingSomeone(rag) then return end
 
+	if not opts.force and not hg.organism.ShouldThroatClutchRagdollPose(rag, org) then return end
+
 	local headPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 10))
 	if not IsValid(headPhys) then return end
+
+	local root = rag:GetPhysicsObject()
+	if not opts.force and IsValid(root) and root:GetVelocity():Length() > 100 then return end
 
 	local pos = headPhys:GetPos()
 	local headAng = headPhys:GetAngles()
@@ -21,15 +27,18 @@ function hg.organism.ThroatClutchRagdoll(rag, org)
 
 	local lGrip = pos - right * 4 + forward * 2
 	local rGrip = pos + right * 4 + forward * 2
-	local spd, damp = 5050, 100
+
+	local ss = opts.force and 0.001 or 0.05
+	local foreSpd, foreDamp = opts.force and 1200 or 120, opts.force and 120 or 40
+	local handSpd, handDamp = opts.force and 400 or 60, opts.force and 80 or 30
 
 	if not org or not org.larmamputated then
-		hg.ShadowControl(rag, 4, 0.001, gripAng, 180, 60, lGrip, 1200, 120)
-		hg.ShadowControl(rag, 5, 0.001, gripAng, 0, 0, lGrip, spd, damp)
+		hg.ShadowControl(rag, 4, ss, gripAng, 90, 40, lGrip, foreSpd, foreDamp)
+		hg.ShadowControl(rag, 5, ss, gripAng, 0, 0, lGrip, handSpd, handDamp)
 	end
 	if not org or not org.rarmamputated then
-		hg.ShadowControl(rag, 6, 0.001, gripAng, 180, 60, rGrip, 1200, 120)
-		hg.ShadowControl(rag, 7, 0.001, gripAng, 0, 0, rGrip, spd, damp)
+		hg.ShadowControl(rag, 6, ss, gripAng, 90, 40, rGrip, foreSpd, foreDamp)
+		hg.ShadowControl(rag, 7, ss, gripAng, 0, 0, rGrip, handSpd, handDamp)
 	end
 end
 

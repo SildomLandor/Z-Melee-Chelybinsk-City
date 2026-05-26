@@ -631,6 +631,9 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     if not ply:IsPlayer() then return end
     if not ply.InVehicle then return end
 
+    -- fake ragdoll: physics drives limbs; client IK only in ragdoll-combat mode
+    if ent ~= ply and not hg.RagdollCombatInUse(ply) then return end
+
     local should = hg.ShouldTPIK(ply, ent)
     //print("shouldtpik func: ", SysTime() - systime)
 
@@ -698,7 +701,7 @@ function hg.MainTPIKFunction(ent, ply, wpn)
         //print("DoTPIK: ", SysTime() - systime)
     end
 
-    if ent ~= ply and ent.organism and ent.organism.stamina and ent.organism.stamina[1] then
+    if ent ~= ply and hg.RagdollCombatInUse(ply) and ent.organism and ent.organism.stamina and ent.organism.stamina[1] and not ent.organism.otrub and ent.organism.canmove ~= false then
         local stammul = math_Clamp(1 - ent.organism.stamina[1] / 90, 0, 1)
 
         local holdingrh = ent:GetManipulateBoneAngles(ent:LookupBone("ValveBiped.Bip01_R_Finger11"))[2] < 0
@@ -866,6 +869,8 @@ local function solve(segments, iter, turn)
 end
 
 function hg.DoTPIK(ply, ent)
+    if not ply or not IsValid(ply) then return end
+    if not ent or not IsValid(ent) then return end
     local ply_spine_index = ent:LookupBone("ValveBiped.Bip01_Head1")
     if !ply_spine_index then return end
     local ply_spine_matrix = ent:GetBoneMatrix(ply_spine_index)
@@ -1005,7 +1010,7 @@ function hg.DoTPIK(ply, ent)
     if lerp_rh != 0 then
         local segments = ply.segmentsr
 
-        if shouldrebuild or not segments[3].ready then
+        if shouldrebuild or not segments[3] or not segments[3].ready then
             local old = segments[2] and ((segments[2].Pos - segments[1].Pos):GetNormalized() * 2) or vector_origin
 
             local eyeang = -(-eyeang)
@@ -1057,6 +1062,7 @@ function hg.DoTPIK(ply, ent)
             end
 
             segments = solve(segments, 4)
+            if not segments or not segments[3] then return end
             segments[3].ready = true
 
             --[[if lply:IsSuperAdmin() then
@@ -1146,7 +1152,7 @@ function hg.DoTPIK(ply, ent)
     if lerp_lh != 0 then
         local segments = ply.segmentsl
         
-        if shouldrebuild or not segments[3].ready then
+        if shouldrebuild or not segments[3] or not segments[3].ready then
             local old = segments[2] and ((segments[2].Pos - segments[1].Pos):GetNormalized() * 2) or vector_origin
             local eyeang = -(-eyeang)
             eyeang.p = math.NormalizeAngle(eyeang.p) * 0.5
@@ -1196,6 +1202,7 @@ function hg.DoTPIK(ply, ent)
             end
 
             segments = solve(segments, 4)
+            if not segments or not segments[3] then return end
             segments[3].ready = true
 
             --[[if lply:IsSuperAdmin() then

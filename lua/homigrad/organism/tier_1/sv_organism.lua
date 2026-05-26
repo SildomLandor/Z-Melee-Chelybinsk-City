@@ -804,7 +804,10 @@ local function fixlimb(org, key, fixer)
 			local dmgInfo = DamageInfo()
 			dmgInfo:SetDamage(50)
 			dmgInfo:SetDamageType(DMG_CLUB)
-			hg.organism.input_list[key.."down"](org.owner.organism, 1, 6, dmgInfo, 0, vector_up)
+			local fn = hg.organism.input_list[key.."down"] or hg.organism.input_list[key]
+			if fn then
+				fn(org.owner.organism, 1, 6, dmgInfo, 0, vector_up)
+			end
 		end
 
 		if fixer == org.owner and fixer.tries > 3 and math.random(3) == 1 then

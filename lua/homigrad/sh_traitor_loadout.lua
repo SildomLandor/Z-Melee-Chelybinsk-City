@@ -136,9 +136,40 @@ hook.Add("InitPostEntity", "TL_ApplySubRoleLocales", function()
 	TL.ApplySubRoleLocales()
 end)
 
+if SERVER then
+	util.AddNetworkString("TL_SyncLoadout")
+
+	net.Receive("TL_SyncLoadout", function(_, ply)
+		if not IsValid(ply) then return end
+		local str = net.ReadString()
+		if not isstring(str) or #str > 1024 then return end
+		ply.TL_LoadoutStr = str
+	end)
+end
+
 if CLIENT then
-	if not ConVarExists(TL.ConVarName) then
-		CreateClientConVar(TL.ConVarName, "", true, true)
+	TL.ClientConVar = CreateClientConVar(TL.ConVarName, "", true, true)
+
+	local function TL_PushLoadout(str)
+		if TL.ClientConVar then
+			pcall(TL.ClientConVar.SetString, TL.ClientConVar, str)
+		end
+		if not IsValid(LocalPlayer()) then return end
+		net.Start("TL_SyncLoadout")
+			net.WriteString(str)
+		net.SendToServer()
+	end
+
+	hook.Add("InitPostEntity", "TL_SyncLoadoutOnJoin", function()
+		local data = file.Read("meleecity_traitor_loadout.txt", "DATA")
+		if isstring(data) and data ~= "" then
+			TL_PushLoadout(data)
+		end
+	end)
+
+	function TL.PushLoadout(str)
+		if not isstring(str) then return end
+		TL_PushLoadout(str)
 	end
 end
 
@@ -244,12 +275,18 @@ end
 function TL.ApplySkillset(ply, skillset, modeType)
 	if not IsValid(ply) or not ply.organism then return end
 
-	ply.organism.stamina.max = 220
+	ply.organism.superfighter = false
 	ply.organism.recoilmul = 1
+
+	ply.organism.stamina.range = 220
+	ply.organism.stamina.max = 220
+	ply.organism.stamina[1] = 220
 
 	if skillset == "assassin" then
 		ply.organism.recoilmul = (modeType == "soe") and 0.4 or 0.8
+		ply.organism.stamina.range = 300
 		ply.organism.stamina.max = 300
+		ply.organism.stamina[1] = 300
 		TL.GiveTraitorFlashlight(ply)
 	elseif skillset == "infiltrator" then
 		TL.GiveTraitorFlashlight(ply)
@@ -260,7 +297,9 @@ function TL.ApplySkillset(ply, skillset, modeType)
 		end
 	elseif skillset == "martial_artist" then
 		ply.organism.superfighter = true
+		ply.organism.stamina.range = 154
 		ply.organism.stamina.max = 308
+		ply.organism.stamina[1] = 308
 		ply:Give("weapon_hg_nunchuks")
 	elseif skillset == "none" then
 		TL.GiveTraitorFlashlight(ply)
@@ -318,8 +357,7 @@ if CLIENT then
 		loadout = TL.Sanitize(loadout)
 		local dataStr = TL.Encode(loadout)
 		file.Write("meleecity_traitor_loadout.txt", dataStr)
-		local cv = GetConVar(TL.ConVarName)
-		if cv then cv:SetString(dataStr) end
+		TL.PushLoadout(dataStr)
 		return loadout
 	end
 end
@@ -327,8 +365,15 @@ end
 function TL.GetPlayerLoadout(ply)
 	if not IsValid(ply) then return TL.Sanitize({}) end
 	if CLIENT then
-		local cv = GetConVar(TL.ConVarName)
-		return TL.Sanitize(TL.Parse(cv and cv:GetString() or ""))
+		local str = TL.ClientConVar and TL.ClientConVar:GetString() or ""
+		if str == "" then
+			str = file.Read("meleecity_traitor_loadout.txt", "DATA") or ""
+		end
+		return TL.Sanitize(TL.Parse(str))
 	end
-	return TL.Sanitize(TL.Parse(ply:GetInfo(TL.ConVarName)))
+	local str = ply.TL_LoadoutStr
+	if not isstring(str) or str == "" then
+		str = ply:GetInfo(TL.ConVarName)
+	end
+	return TL.Sanitize(TL.Parse(str))
 end
