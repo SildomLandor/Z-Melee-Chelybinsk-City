@@ -7,11 +7,12 @@ SWEP.Spawnable = true
 SWEP.Primary.Wait = 1
 SWEP.Primary.Next = 0
 SWEP.HoldType = "normal"
-SWEP.ViewModel = ""
-SWEP.WorldModel = "models/morphine_syrette/morphine.mdl"
+SWEP.ViewModel = "models/cof/weapons/syringe/w_syringe.mdl"
+SWEP.WorldModel = "models/cof/weapons/syringe/w_syringe.mdl"
+SWEP.ModelScale = 1.2
 if CLIENT then
-	SWEP.WepSelectIcon = Material("vgui/icons/ico_fent.png")
-	SWEP.IconOverride = "vgui/icons/ico_fent.png"
+	SWEP.WepSelectIcon = Material("cof/vgui/weapons/syringe/640_syringe_slot")
+	SWEP.IconOverride = "cof/vgui/weapons/syringe/640_syringe_slot"
 	SWEP.BounceWeaponIcon = false
 end
 SWEP.AutoSwitchTo = false
@@ -19,8 +20,8 @@ SWEP.AutoSwitchFrom = false
 SWEP.Slot = 5
 SWEP.SlotPos = 1
 SWEP.WorkWithFake = true
-SWEP.offsetVec = Vector(4, -1.5, 0)
-SWEP.offsetAng = Angle(-30, 20, 180)
+SWEP.offsetVec = Vector(2.8, -0.9, -1)
+SWEP.offsetAng = Angle(-30, 30, 180)
 SWEP.modeNames = {
 	[1] = "analgesic"
 }
