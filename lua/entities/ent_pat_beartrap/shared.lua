@@ -12,6 +12,10 @@ function ENT:SetupDataTables()
     self:NetworkVar("Entity", 1, "TrappedPlayer")
     self:NetworkVar("Int", 0, "TrappedLimb")
     self:NetworkVar("Float", 0, "NextRearm")
+
+    if CLIENT then
+        self:NetworkVarNotify("TrappedPlayer", self.OnTrappedPlayerChanged)
+    end
 end
 
 function ENT:HasVictim()

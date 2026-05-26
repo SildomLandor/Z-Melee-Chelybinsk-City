@@ -2,6 +2,38 @@ include("shared.lua")
 
 local holdStart
 
+local function setSequenceSafe(ent, sequenceName)
+    local sequence = ent:LookupSequence(sequenceName)
+    if sequence and sequence >= 0 then
+        ent:SetSequence(sequence)
+        ent:SetCycle(0)
+        ent:SetPlaybackRate(1)
+        ent:ResetSequenceInfo()
+        return sequence
+    end
+end
+
+local function playOpenVisual(trap)
+    if not IsValid(trap) or trap:HasVictim() then return end
+
+    local openSeq = setSequenceSafe(trap, "Open")
+    if not openSeq then
+        setSequenceSafe(trap, "OpenIdle")
+        return
+    end
+
+    timer.Simple(math.max(trap:SequenceDuration(openSeq), 0.05), function()
+        if not IsValid(trap) or trap:HasVictim() then return end
+        setSequenceSafe(trap, "OpenIdle")
+    end)
+end
+
+function ENT:OnTrappedPlayerChanged(name, old, new)
+    if IsValid(old) and not IsValid(new) then
+        playOpenVisual(self)
+    end
+end
+
 local function getMyTrap(ply)
     ply = ply or LocalPlayer()
     if not IsValid(ply) then return end

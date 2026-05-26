@@ -12,29 +12,26 @@ local function setSequenceSafe(ent, sequenceName)
         ent:SetCycle(0)
         ent:SetPlaybackRate(1)
         ent:ResetSequenceInfo()
+        return sequence
     end
 end
 
-local function paintBlood(pos, source)
-    for _ = 1, 5 do
-        local jitter = VectorRand() * 16
-        jitter.z = math.abs(jitter.z) + 4
+local function playOpenVisual(trap, callback)
+    if not IsValid(trap) or trap:HasVictim() then return end
 
-        if util.PaintDown then
-            util.PaintDown(pos + jitter, "Blood", source)
-        else
-            local startPos = pos + jitter
-            local tr = util.TraceLine({
-                start = startPos,
-                endpos = startPos - Vector(0, 0, 96),
-                filter = source
-            })
-
-            if tr.Hit then
-                util.Decal("Blood", tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, source)
-            end
-        end
+    local openSeq = setSequenceSafe(trap, "Open")
+    if not openSeq then
+        setSequenceSafe(trap, "OpenIdle")
+        if callback then callback() end
+        return
     end
+
+    timer.Simple(math.max(trap:SequenceDuration(openSeq), 0.05), function()
+        if not IsValid(trap) or trap:HasVictim() then return end
+
+        setSequenceSafe(trap, "OpenIdle")
+        if callback then callback() end
+    end)
 end
 
 local function getBonePos(ent, boneName)
@@ -112,42 +109,52 @@ local function resolveVictim(ent)
     end
 end
 
-local function makeTrapDmg(trap)
-    local dmg = DamageInfo()
-    dmg:SetDamageType(DMG_SLASH)
-    dmg:SetAttacker(trap)
-    dmg:SetInflictor(trap)
-    return dmg
+local function legWoundBone(victim, limb)
+    local calf = PAT_BEARTRAP.LimbCalf[limb]
+    if not calf then return "ValveBiped.Bip01_L_Calf" end
+
+    local skel = victim:LookupBone(calf)
+    if not skel then return calf end
+
+    return victim:GetBoneName(skel - 1) or calf
+end
+
+local function applyOrganismTrapDamage(victim, limb, heavy)
+    local org = victim.organism
+    if not org then return end
+
+    org.painadd = org.painadd + (heavy and 30 or 20)
+    org.shock = org.shock + (heavy and 12 or 8)
+    org.fearadd = (org.fearadd or 0) + 0.2
+
+    local bone = legWoundBone(victim, limb or "lleg")
+    local amount = heavy and 28 or 14
+    local count = heavy and 3 or 1
+
+    for i = 1, count do
+        hg.organism.AddWoundManual(
+            victim,
+            amount,
+            Vector(6, math.Rand(-1.5, 1.5), 0),
+            Angle(),
+            bone,
+            CurTime() + (heavy and math.Rand(0, 0.4) or 0)
+        )
+    end
 end
 
 local function applyClampWounds(victim, limb, trap)
     local org = victim.organism
     if not org or org[limb .. "amputated"] then return end
 
-    org.painadd = org.painadd + 30
-    org.shock = org.shock + 12
-    org.fearadd = (org.fearadd or 0) + 0.25
-
-    local calf = PAT_BEARTRAP.LimbCalf[limb]
-    local skel = victim:LookupBone(calf)
-    if not skel then return end
-
-    local boneUp = victim:GetBoneName(skel - 1)
-    for _ = 1, 3 do
-        hg.organism.AddWoundManual(victim, 28, Vector(6, math.Rand(-1.5, 1.5), 0), Angle(), boneUp, CurTime() + math.Rand(0, 0.4))
-    end
+    applyOrganismTrapDamage(victim, limb, true)
 end
 
 local function bleedTick(victim, limb, trap)
     if not IsValid(victim) or not victim:Alive() or not victim.organism then return end
     if victim.organism[limb .. "amputated"] then return end
 
-    local calf = PAT_BEARTRAP.LimbCalf[limb]
-    local skel = victim:LookupBone(calf)
-    if not skel then return end
-
-    hg.organism.AddWoundManual(victim, 14, Vector(5, 0, 0), Angle(), victim:GetBoneName(skel - 1), CurTime())
-    paintBlood(trap:GetPos(), PAT_BEARTRAP.GetCharacterEntity(victim))
+    applyOrganismTrapDamage(victim, limb, false)
 end
 
 local function clearPin(ply)
@@ -222,7 +229,11 @@ function ENT:Initialize()
 
     timer.Simple(0.6, function()
         if IsValid(self) and not self:HasVictim() then
-            self:ArmTrap()
+            playOpenVisual(self, function()
+                if IsValid(self) and not self:HasVictim() then
+                    self:ArmTrap()
+                end
+            end)
         end
     end)
 end
@@ -244,6 +255,12 @@ function ENT:ArmTrap()
     self:SetArmed(true)
     self:SetNextRearm(0)
     setSequenceSafe(self, "OpenIdle")
+end
+
+function ENT:OpenTrap()
+    if self:HasVictim() then return end
+    self:SetArmed(false)
+    playOpenVisual(self)
 end
 
 function ENT:CloseTrap()
@@ -287,10 +304,10 @@ function ENT:ReleaseVictim(opener)
     self:SetTrappedLimb(0)
     self.ReleaseHold = {}
     self.NextBleed = 0
-    self:CloseTrap()
+    self:OpenTrap()
 
     if opener and opener.Notify and opener ~= victim then
-        opener:Notify("Капкан открыт.", 3, "pat_beartrap", 1)
+        --opener:Notify("Капкан открыт.", 3, "pat_beartrap", 1)
     end
 
     self:SetNextRearm(CurTime() + PAT_BEARTRAP.RearmTime)
@@ -327,7 +344,6 @@ function ENT:TriggerVictim(victimEnt)
             dmg:SetAttacker(IsValid(owner) and owner or self)
             dmg:SetInflictor(self)
             victimEnt:TakeDamageInfo(dmg)
-            paintBlood(self:GetPos(), victimEnt)
         end
 
         return
@@ -335,16 +351,12 @@ function ENT:TriggerVictim(victimEnt)
 
     local limb = chooseLimb(victim, self:GetPos())
     if not limb or victim.organism[limb .. "amputated"] then
-        local dmg = makeTrapDmg(self)
-        dmg:SetDamage(45)
-        victim:TakeDamageInfo(dmg)
-        paintBlood(self:GetPos(), PAT_BEARTRAP.GetCharacterEntity(victim))
+        applyOrganismTrapDamage(victim, limb, true)
         return
     end
 
     applyClampWounds(victim, limb, self)
     self:PinVictim(victim, limb)
-    paintBlood(self:GetPos(), PAT_BEARTRAP.GetCharacterEntity(victim))
 end
 
 function ENT:TryRelease()
