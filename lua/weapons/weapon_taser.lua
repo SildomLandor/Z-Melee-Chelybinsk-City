@@ -174,8 +174,10 @@ function SWEP:Shoot(override)
             local ply = ent
 
             if ent:IsRagdoll() then
-                ply = hg.RagdollOwner(ent) or ent
+                ply = hg.RagdollOwner(ent)
             end
+
+            if not IsValid(ply) or not ply:IsPlayer() then return end
 
 			if ply:InVehicle() then
 				ply:ExitVehicle()
