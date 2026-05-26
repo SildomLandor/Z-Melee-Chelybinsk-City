@@ -124,8 +124,15 @@ end
 
 local hg_furcity = ConVarExists("hg_furcity") and GetConVar("hg_furcity") or CreateConVar("hg_furcity", 0, bit.bor(FCVAR_REPLICATED, FCVAR_ARCHIVE, FCVAR_LUA_SERVER), "Toggle phrase furryfier :3", 0, 1)
 
+hook.Add("HG_PlayerSay", "ULXSilence", function(ply, txt)
+	if hg.PlayerChatBlocked and hg.PlayerChatBlocked(ply) then
+		txt[1] = ""
+	end
+end, HOOK_HIGH)
+
 hook.Add("HG_PlayerSay", "huy", function(ply, txt)
 	local text = txt[1]
+	if text == "" or not text:find("%S") then return end
 
 	txt[1] = funca(ply, text)
 end)
@@ -140,7 +147,14 @@ hook.Add("HG_PlayerSay", "furrifyPhraseOwO", function(ply, txt)
 	txt[1] = text
 end)
 
+hook.Add("HG_PlayerCanHearPlayersVoice", "ULXSilence", function(listener, speaker)
+	if hg.PlayerVoiceBlocked and hg.PlayerVoiceBlocked(speaker) then
+		return false, false
+	end
+end)
+
 hook.Add("HG_PlayerCanHearPlayersVoice","BrainDamage", function(listener, speaker)
+	if not speaker.organism then return end
 	if speaker.organism.brain > 0.05 then return false, false end
 end)
 
@@ -160,6 +174,11 @@ hook.Add("HG_ReplacePhrase", "BraindeadPhrase", function(ply, phrase, muffed, pi
 end)
 
 hook.Add("PlayerCanHearPlayersVoice", "RealisticVoice", function(listener,speaker)
+	if not IsValid(speaker) or not IsValid(listener) then return false, false end
+	if hg.PlayerVoiceBlocked and hg.PlayerVoiceBlocked(speaker) then
+		return false, false
+	end
+
 	local result,is3D = ChatLogic(speaker,listener,false,false)
 	local speak = speaker:IsSpeaking()
 	speaker.IsSpeak = speak

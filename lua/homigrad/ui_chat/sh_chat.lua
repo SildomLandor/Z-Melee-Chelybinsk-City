@@ -1,5 +1,27 @@
 local maxLength = CreateConVar("zchat_maxmessagelength", "256", {FCVAR_ARCHIVE, FCVAR_NOTIFY, FCVAR_REPLICATED}, "Maximum message length allowed")
 
+function hg.PlayerULXMuted(ply)
+	return IsValid(ply) and ply:GetNWBool("ulx_muted", false)
+end
+
+function hg.PlayerULXGagged(ply)
+	return IsValid(ply) and ply:GetNWBool("ulx_gagged", false)
+end
+
+function hg.PlayerChatBlocked(ply)
+	return hg.PlayerULXMuted(ply) or hg.PlayerULXGagged(ply)
+end
+
+function hg.PlayerVoiceBlocked(ply)
+	return hg.PlayerULXGagged(ply) or hg.PlayerULXMuted(ply)
+end
+
+local function notifySilenced(ply)
+	if ULib and ULib.tsayError then
+		ULib.tsayError(ply, "ьебя замутили!", true)
+	end
+end
+
 if CLIENT then
 	local fontSize = CreateClientConVar("zchat_fontsize", 7, true, false, "Self explanatory", 3, 30)
 	local fontName = CreateClientConVar("zchat_font", "Bahnschrift", true, false, "Self explanatory, should be available to GMod")
@@ -221,21 +243,25 @@ else
 			text = text:utf8sub(0, maxLen)
 		end
 
+		if hg.PlayerChatBlocked(ply) then
+			notifySilenced(ply)
+			return
+		end
+
 		hook.Run("PlayerSay", ply, text)
 	end)
 
 	hook.Add("PlayerSay", "ZChat", function(ply, text)
 		if not IsValid(ply) then return "" end
-		if ply:GetNWBool("ulx_muted", false) then
-			if ULib and ULib.tsayError then
-				ULib.tsayError(ply, "You are muted, and therefore cannot speak! Use asay for admin chat if urgent.", true)
-			end
+		if hg.PlayerChatBlocked(ply) then
+			notifySilenced(ply)
 			return ""
 		end
 
  		local txtTbl = {text}
 		hook.Run("HG_PlayerSay", ply, txtTbl, text) // our shit gets called later
-		text = isstring(txtTbl[1]) and txtTbl[1] or text // checks to see if shit hits the ceiling
+		text = isstring(txtTbl[1]) and txtTbl[1] or ""
+		if text == "" or not text:find("%S") then return "" end
 
 		if ply:Alive() and ply.organism and ply.organism.otrub then return end
 
