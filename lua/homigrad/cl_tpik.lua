@@ -981,10 +981,12 @@ function hg.DoTPIK(ply, ent)
     ply.segmentsr = ply.segmentsr or {}
     ply.segmentsr[1] = ply.segmentsr[1] or {Pos = Vector(), Len = 0}
     ply.segmentsr[2] = ply.segmentsr[2] or {Pos = Vector(), Len = 0}
+    ply.segmentsr[3] = ply.segmentsr[3] or {Pos = Vector(), Len = limblength, ready = false}
 
     ply.segmentsl = ply.segmentsl or {}
     ply.segmentsl[1] = ply.segmentsl[1] or {Pos = Vector(), Len = 0}
     ply.segmentsl[2] = ply.segmentsl[2] or {Pos = Vector(), Len = 0}
+    ply.segmentsl[3] = ply.segmentsl[3] or {Pos = Vector(), Len = limblength, ready = false}
     
     if not ply.BonesLength then
         ply.BonesLength = {}
@@ -1003,7 +1005,7 @@ function hg.DoTPIK(ply, ent)
     if lerp_rh != 0 then
         local segments = ply.segmentsr
 
-        if shouldrebuild then
+        if shouldrebuild or not segments[3].ready then
             local old = segments[2] and ((segments[2].Pos - segments[1].Pos):GetNormalized() * 2) or vector_origin
 
             local eyeang = -(-eyeang)
@@ -1055,6 +1057,7 @@ function hg.DoTPIK(ply, ent)
             end
 
             segments = solve(segments, 4)
+            segments[3].ready = true
 
             --[[if lply:IsSuperAdmin() then
                 for i = 2, #segments do
@@ -1065,6 +1068,7 @@ function hg.DoTPIK(ply, ent)
             ply.segmentsr = segments
         end
 
+        if segments[3] and segments[3].ready then
         local new = -(-segments[3].Pos)
 
         ply_r_upperarm_matrix:SetTranslation(segments[1].Pos)
@@ -1136,12 +1140,13 @@ function hg.DoTPIK(ply, ent)
             wmat:SetAngles(ang)
             ent:SetBoneMatrix(wrst, wmat)
         end
+        end
     end
     
     if lerp_lh != 0 then
         local segments = ply.segmentsl
         
-        if shouldrebuild then
+        if shouldrebuild or not segments[3].ready then
             local old = segments[2] and ((segments[2].Pos - segments[1].Pos):GetNormalized() * 2) or vector_origin
             local eyeang = -(-eyeang)
             eyeang.p = math.NormalizeAngle(eyeang.p) * 0.5
@@ -1191,6 +1196,7 @@ function hg.DoTPIK(ply, ent)
             end
 
             segments = solve(segments, 4)
+            segments[3].ready = true
 
             --[[if lply:IsSuperAdmin() then
                 for i = 2, #segments do
@@ -1201,6 +1207,7 @@ function hg.DoTPIK(ply, ent)
             ply.segmentsl = segments
         end
 
+        if segments[3] and segments[3].ready then
         local new = -(-segments[3].Pos)
 
         ply_l_upperarm_matrix:SetTranslation(segments[1].Pos)
@@ -1270,6 +1277,7 @@ function hg.DoTPIK(ply, ent)
             ang:RotateAroundAxis(ang:Forward(), angrotate * 0.5 + 00)
             wmat:SetAngles(ang)
             ent:SetBoneMatrix(wrst, wmat)
+        end
         end
     end
     

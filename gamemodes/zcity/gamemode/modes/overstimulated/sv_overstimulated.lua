@@ -53,6 +53,10 @@ function MODE.GuiltCheck(attacker, victim)
 		return 1, true
 	end
 
+	if not attacker:IsPlayer() or not victim:IsPlayer() then
+		return 1, true
+	end
+
 	if attacker:Team() == victim:Team() and attacker:Team() ~= TEAM_SPECTATOR then
 		return 4, true
 	end
