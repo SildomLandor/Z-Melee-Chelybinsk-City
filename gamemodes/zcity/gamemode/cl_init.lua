@@ -938,8 +938,8 @@ function GM:ScoreboardShow()
 
 		surface.SetFont("ZCity_Veteran")
 		surface.SetTextColor(col.textTitle)
-		local srvX = margin + ScreenScale(2)
-		local srvY = ScreenScaleH(5) + shakeY * 0.5
+		local srvX = margin + ScreenScale(4)
+		local srvY = ScreenScaleH(7) + shakeY * 0.5
 		surface.SetTextPos(srvX + shakeX * 0.5, srvY)
 		surface.DrawText("meleecity")
 
