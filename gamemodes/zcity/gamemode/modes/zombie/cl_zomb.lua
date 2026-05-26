@@ -187,10 +187,10 @@ function MODE:HUDPaint()
 	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((zb.ROUND_START + introLen - CurTime()) / introLen, 0, 1)
 	if textFade <= 0 then return end
 
-	DrawFadeTitle("ZBattle | Zombie Survival", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle("Мокруха | Зомбари", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(intro.color1.r, intro.color1.g, intro.color1.b, 255 * textFade)
-	DrawFadeText("Ты — " .. intro.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
+	DrawFadeText("Ты - " .. intro.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
 
 	local colObj = Color(intro.color2.r, intro.color2.g, intro.color2.b, 255 * textFade)
 	DrawFadeText(intro.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
@@ -201,8 +201,8 @@ net.Receive("zombie_roundend", function()
 	zb.EndMenu.Open({
 		sound = survived and "ambient/alarms/warningbell1.wav",
 		statusText = function(ply)
-			if not ply:Alive() then return " — мёртв" end
-			return survived and " — выжил" or ""
+			if not ply:Alive() then return " - мёртв" end
+			return survived and " - выжил" or ""
 		end,
 	})
 end)

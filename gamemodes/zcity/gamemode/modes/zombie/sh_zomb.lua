@@ -1,7 +1,7 @@
 local MODE = MODE
 MODE.name = "zombie"
-MODE.EndMenuTitle = "Zombie Survival"
-MODE.PrintName = "Zombie Survival"
+MODE.EndMenuTitle = "Мокруха | Зомбари"
+MODE.PrintName = "Мокруха | Зомбари"
 
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6

@@ -1,7 +1,7 @@
 local MODE = MODE
 
 MODE.name = "zombie"
-MODE.PrintName = "Zombie Survival"
+MODE.PrintName = "Мокруха | Зомбари"
 MODE.randomSpawns = true
 MODE.LootSpawn = true
 MODE.LootOnTime = false
@@ -143,12 +143,12 @@ function MODE:GiveEquipment()
 
 		ply:SetSuppressPickupNotices(true)
 		ply.noSound = true
-		ply:SetPlayerClass("survivor")
-		zb.GiveRole(ply, "Survivor", Color(80, 200, 80))
+		ply:SetPlayerClass("default")
+		zb.GiveRole(ply, "Выживший", Color(0, 56, 0))
 
 		ply:Give("weapon_hands_sh")
 		ply:Give("weapon_bandage_sh")
-		ply:Give("weapon_pocketknife")
+		ply:Give("weapon_melee")
 
 		ply:SetSuppressPickupNotices(false)
 		ply.noSound = false
