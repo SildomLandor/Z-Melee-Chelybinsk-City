@@ -78,5 +78,10 @@ end
     --chat.AddText(Color(255, 50, 50), "[DEFENSE] ", Color(255, 255, 255), "Boss banner test activated!")
 end)]]
 
+net.Receive("npc_defense_roundend", function()
+	zb.EndMenu.Open({ title = zb.EndMenu.TitleForRound() })
+end)
 
-
+function MODE:RoundStart()
+	zb.EndMenu.Close()
+end

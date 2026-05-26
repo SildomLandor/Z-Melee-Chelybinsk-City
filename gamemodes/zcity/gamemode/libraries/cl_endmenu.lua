@@ -73,6 +73,35 @@ local function ShortenTitle(title)
 	if not isstring(title) then return title end
 	return title
 		:gsub("Чрезвычайное положение", "ЧП")
+		:gsub("Чрезвычайное происшествие", "ЧП")
+end
+
+EndMenu.ModeTitles = {
+	gwars = "Война банд",
+	defense = "Оборона",
+	overstimulated = "Передозированный",
+	tdm = "Командный бой",
+	cstrike = "CS",
+	hl2dm = "HL2 Мокруха",
+	criresp = "Кризис",
+	dm = "Против всех",
+	event = "Событие",
+	riot = "Бунт",
+}
+
+function EndMenu.TitleForRound(custom)
+	if isstring(custom) and custom ~= "" then
+		return ShortenTitle(custom)
+	end
+	local key = zb.CROUND
+	if key and EndMenu.ModeTitles[key] then
+		return ShortenTitle(EndMenu.ModeTitles[key])
+	end
+	local mode = CurrentRound and CurrentRound()
+	if mode and isstring(mode.PrintName) and mode.PrintName ~= "" then
+		return ShortenTitle(mode.PrintName)
+	end
+	return "Конец раунда"
 end
 
 function EndMenu.Close()
@@ -104,7 +133,7 @@ function EndMenu.Open(opts)
 	local listY = topBarH + headerH + ScreenScaleH(4)
 	local listH = sizeY - listY - margin
 
-	local titleText = ShortenTitle(opts.title or "Конец раунда")
+	local titleText = EndMenu.TitleForRound(opts.title)
 	local subtitle = opts.subtitle
 	local filter = opts.filter or function(ply) return ply:Team() ~= TEAM_SPECTATOR end
 
@@ -160,18 +189,21 @@ function EndMenu.Open(opts)
 		surface.SetDrawColor(col.frameBorder)
 		surface.DrawOutlinedRect(0, 0, w, h, 1)
 
+		local titleMaxW = w - margin * 2
+		local titleDraw = FitText("ZC_MM_Title", titleText, titleMaxW)
 		surface.SetFont("ZC_MM_Title")
-		local tw, th = surface.GetTextSize(titleText)
+		local tw, th = surface.GetTextSize(titleDraw)
 		local pulse = math.sin(t * 1.5) * 0.12 + 0.88
 		local tx = w * 0.5 + shakeX
 		local ty = ScreenScaleH(8) + shakeY
-		draw.SimpleText(titleText, "ZC_MM_Title", tx + 2, ty + 2, col.titleShadow, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
-		draw.SimpleText(titleText, "ZC_MM_Title", tx + 1, ty + 1, col.titleDark, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
-		draw.SimpleText(titleText, "ZC_MM_Title", tx, ty, Color(col.titleRed.r * pulse, col.titleRed.g * pulse, col.titleRed.b * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(titleDraw, "ZC_MM_Title", tx + 2, ty + 2, col.titleShadow, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(titleDraw, "ZC_MM_Title", tx + 1, ty + 1, col.titleDark, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(titleDraw, "ZC_MM_Title", tx, ty, Color(col.titleRed.r * pulse, col.titleRed.g * pulse, col.titleRed.b * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 
 		if isstring(subtitle) and subtitle ~= "" then
 			local subY = ty + th + ScreenScaleH(2)
-			draw.SimpleText(subtitle, "ZCity_Veteran", w * 0.5 - 30 + shakeX * 0.5, subY, opts.subtitleColor or col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+			local subDraw = FitText("ZCity_Veteran", subtitle, titleMaxW)
+			draw.SimpleText(subDraw, "ZCity_Veteran", w * 0.5 - 30 + shakeX * 0.5, subY, opts.subtitleColor or col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 		end
 
 		surface.SetDrawColor(col.separator)

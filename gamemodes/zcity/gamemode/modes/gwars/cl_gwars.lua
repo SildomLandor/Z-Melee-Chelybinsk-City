@@ -259,3 +259,11 @@ function MODE:HUDPaint()
 	local colObj = Color(teamInfo.color2.r, teamInfo.color2.g, teamInfo.color2.b, 255 * textFade)
 	DrawFadeText(teamInfo.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 end
+
+net.Receive("gwars_roundend", function()
+	zb.EndMenu.Open({ title = zb.EndMenu.TitleForRound() })
+end)
+
+function MODE:RoundStart()
+	zb.EndMenu.Close()
+end

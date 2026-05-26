@@ -78,7 +78,7 @@ function MODE:AddHudPaint()
 end
 
 net.Receive("tdm_roundend", function()
-	zb.EndMenu.Open({ title = "Командный бой" })
+	zb.EndMenu.Open({ title = zb.EndMenu.TitleForRound() })
 end)
 
 function MODE:RoundStart()
