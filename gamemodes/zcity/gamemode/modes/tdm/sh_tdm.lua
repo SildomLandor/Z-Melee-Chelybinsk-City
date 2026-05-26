@@ -1,5 +1,6 @@
 local MODE = MODE
 MODE.name = "tdm"
+MODE.buymenu = true
 
 zb = zb or {}
 zb.Points = zb.Points or {}

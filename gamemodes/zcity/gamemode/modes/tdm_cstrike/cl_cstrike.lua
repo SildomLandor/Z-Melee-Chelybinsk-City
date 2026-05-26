@@ -75,11 +75,6 @@ local function drawBombSites3D()
 		if not center then continue end
 
 		local radius = zb.GetBombSiteRadius(site)
-		local clr = site == 1 and zb.Points.BOMB_ZONE_A.Color or zb.Points.BOMB_ZONE_B.Color
-		local inSite = zb.BombInSite(LocalPlayer():EyePos(), site)
-		local alpha = inSite and 90 or 35
-
-		render.DrawWireframeSphere(center, radius, 24, 24, Color(clr.r, clr.g, clr.b, alpha))
 
 		local label = "SITE " .. (site == 1 and "A" or "B")
 		local ang = Angle(0, LocalPlayer():EyeAngles().y - 90, 90)
