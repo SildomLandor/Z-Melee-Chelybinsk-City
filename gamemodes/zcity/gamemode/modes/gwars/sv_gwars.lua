@@ -8,6 +8,7 @@ MODE.ROUND_TIME = 180
 MODE.Chance = 0.02
 
 MODE.OverideSpawnPos = true
+MODE.OverrideSpawn = true
 MODE.LootSpawn = false
 
 function MODE:CanLaunch()
@@ -186,50 +187,94 @@ function MODE:GiveEquipment()
 	timer.Simple(0.35, tryAll)
 end
 
+local function gwars_equip_swat(ply)
+	if not IsValid(ply) or not ply:Alive() or ply:Team() ~= 2 then return end
+	if CurrentRound() ~= MODE then return end
+
+	ply:SetSuppressPickupNotices(true)
+	ply.noSound = true
+
+	ply:SetPlayerClass("swat")
+	zb.GiveRole(ply, "СОБР", Color(0, 0, 190))
+
+	local inv = ply:GetNetVar("Inventory") or {}
+	inv.Weapons = inv.Weapons or {}
+	inv.Weapons.hg_sling = true
+	ply:SetNetVar("Inventory", inv)
+
+	ply:StripWeapons()
+
+	local gun = ply:Give("weapon_ar15")
+	if IsValid(gun) and gun.GetMaxClip1 and gun.GetPrimaryAmmoType then
+		ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
+	end
+
+	local sidearm = ply:Give("weapon_glock17")
+	if IsValid(sidearm) and sidearm.GetMaxClip1 and sidearm.GetPrimaryAmmoType then
+		ply:GiveAmmo(sidearm:GetMaxClip1() * 3, sidearm:GetPrimaryAmmoType(), true)
+	end
+
+	ply:Give("weapon_medkit_sh")
+	ply:Give("weapon_tourniquet")
+	ply:Give("weapon_walkie_talkie")
+	ply:Give("weapon_hg_flashbang_tpik")
+	ply:Give("weapon_melee")
+	hg.AddArmor(ply, "ent_armor_helmet1")
+	hg.AddArmor(ply, "ent_armor_vest4")
+
+	local hands = ply:Give("weapon_hands_sh")
+	if IsValid(hands) then
+		ply:SelectWeapon("weapon_hands_sh")
+	end
+
+	timer.Simple(0.1, function()
+		if not IsValid(ply) then return end
+		ply.noSound = false
+		ply:SetSuppressPickupNotices(false)
+	end)
+end
+
+local function gwars_spawn_swat(ply, startpos, slot)
+	if not IsValid(ply) then return end
+
+	ply:SetTeam(2)
+	ply:Spawn()
+	ply:SetupTeam(2)
+
+	if startpos then
+		hg.tpPlayer(startpos, ply, slot or 1, 0)
+	end
+
+	local function tryEquip()
+		gwars_equip_swat(ply)
+	end
+
+	timer.Simple(0, tryEquip)
+	timer.Simple(0.15, tryEquip)
+end
+
 function MODE:RoundThink()
-    if not swatSpawned and (CurTime() - zb.ROUND_BEGIN) >= 120 then
-        local deadPlayers = {}
+	if swatSpawned or (CurTime() - zb.ROUND_BEGIN) < 120 then return end
 
-        for _, ply in player.Iterator() do
-            if not ply:Alive() and ply:Team() != TEAM_SPECTATOR then
-                table.insert(deadPlayers, ply)
-            end
-        end
+	local deadPlayers = {}
+	for _, ply in player.Iterator() do
+		if not ply:Alive() and ply:Team() ~= TEAM_SPECTATOR then
+			deadPlayers[#deadPlayers + 1] = ply
+		end
+	end
 
-		local startpos = self.TPoints and #self.TPoints > 0 and self.TPoints[1].pos or zb:GetRandomSpawn()
+	local startpos
+	if self.TPoints and #self.TPoints > 0 and self.TPoints[1].pos then
+		startpos = self.TPoints[1].pos
+	else
+		startpos = zb:GetRandomSpawn()
+	end
 
-		for i = 1, math.min(4, #deadPlayers) do
-            local ply = deadPlayers[i]
+	for i = 1, math.min(4, #deadPlayers) do
+		gwars_spawn_swat(deadPlayers[i], startpos, i)
+	end
 
-            //if self.TPoints and #self.TPoints > 0 then
-                ply:Spawn()
-				ply:SetTeam(2)
-				if !startpos then
-					startpos = ply:GetPos()
-				else
-					hg.tpPlayer(startpos, ply, i, 0)
-				end
-
-				ply:SetPlayerClass("swat")
-				zb.GiveRole(ply, "SWAT", Color(0, 0, 122))
-				local gun = ply:Give("weapon_ar15")
-				if IsValid(gun) and gun.GetMaxClip1 and gun.GetPrimaryAmmoType then
-					ply:GiveAmmo(gun:GetMaxClip1() * 3, gun:GetPrimaryAmmoType(), true)
-				end
-                ply:Give("weapon_medkit_sh")
-                ply:Give("weapon_tourniquet")
-                ply:Give("weapon_walkie_talkie")
-                ply:Give("weapon_hg_flashbang_tpik")
-                hg.AddArmor(ply, "ent_armor_helmet1")
-                hg.AddArmor(ply, "ent_armor_vest4")
-
-                local hands = ply:Give("weapon_hands_sh")
-                ply:SelectWeapon("weapon_hands_sh")
-            //end
-        end
-
-        swatSpawned = true
-    end
+	swatSpawned = true
 end
 
 function MODE:GetTeamSpawn()
