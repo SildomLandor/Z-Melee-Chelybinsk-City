@@ -69,6 +69,12 @@ local function FitText(font, text, maxW)
 	return string.sub(text, 1, lo) .. dots
 end
 
+local function ShortenTitle(title)
+	if not isstring(title) then return title end
+	return title
+		:gsub("Чрезвычайное положение", "ЧП")
+end
+
 function EndMenu.Close()
 	if IsValid(hmcdEndMenu) then
 		hmcdEndMenu:Remove()
@@ -98,7 +104,7 @@ function EndMenu.Open(opts)
 	local listY = topBarH + headerH + ScreenScaleH(4)
 	local listH = sizeY - listY - margin
 
-	local titleText = opts.title or "Конец раунда"
+	local titleText = ShortenTitle(opts.title or "Конец раунда")
 	local subtitle = opts.subtitle
 	local filter = opts.filter or function(ply) return ply:Team() ~= TEAM_SPECTATOR end
 
