@@ -3,8 +3,8 @@ if(SERVER)then
 end
 
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Рация"
-SWEP.Instructions = "Главное не забыть ее настроить. Самая настоящая рация. Сколько раз видел такие в кино — и вот она, в руках. Тяжелее, чем казалось."
+SWEP.PrintName = "Телефон"
+SWEP.Instructions = "Холодное стекло в руке — мой единственный и самый жуткий свидетель"
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -23,13 +23,12 @@ SWEP.Secondary.Ammo = "none"
 
 SWEP.IdleHoldType = "normal"
 SWEP.HoldType = "normal"
-SWEP.ViewModel = ""
-SWEP.WorldModel = "models/sirgibs/ragdoll/css/terror_arctic_radio.mdl"
+SWEP.ViewModel = "models/cof/weapons/mobile/v_mobile.mdl"
+SWEP.WorldModel = "models/cof/weapons/mobile/w_mobile.mdl"
 
 if CLIENT then
-	SWEP.WepSelectIcon = Material("vgui/wep_jack_hmcd_walkietalkie")
-	SWEP.IconOverride = "vgui/wep_jack_hmcd_walkietalkie.png"
-	SWEP.BounceWeaponIcon = false
+	SWEP.WepSelectIcon = Material("cof/vgui/weapons/mobile/640_mobile_slot")
+	SWEP.IconOverride = "materials/entities/weapon_cof_mobile.png"	SWEP.BounceWeaponIcon = False
 end
 
 SWEP.Weight = 0
@@ -40,8 +39,8 @@ SWEP.DrawCrosshair = false
 SWEP.Slot = 5
 SWEP.SlotPos = 5
 SWEP.WorkWithFake = true
-SWEP.offsetVec = Vector(6, 5.5, -41)
-SWEP.offsetAng = Angle(180, 160, 180)
+SWEP.offsetVec = Vector(4,-1,1.9)
+SWEP.offsetAng = Angle(-2,170,15)
 
 SWEP.Frequency = 107.8
 SWEP.Frequencies = {
@@ -193,11 +192,11 @@ function SWEP:SetupDataTables()
 end
 
 local walkietalkie_clr = Color(0,0,0)
-local bg_clr = Color(0,75,0)
-local bg_off_clr = Color(0,32,0)
+local bg_clr = Color(203,208,205)
+local bg_off_clr = Color(203,208,205)
 
-SWEP.ScreenPosOffset = Vector(3.4,-2.22,3.57)
-SWEP.ScreenAngleOffset = Angle(-5,-18.5,91)
+SWEP.ScreenPosOffset = Vector(4.08,-0.9,3.5)
+SWEP.ScreenAngleOffset = Angle(2,-11,75)
 
 if CLIENT then
 	surface.CreateFont("Walkie-Talkie_Fixed-Font", {
@@ -247,14 +246,14 @@ function SWEP:DrawWorldModel2()
 
 		newPos, newAng = LocalToWorld(self.ScreenPosOffset, self.ScreenAngleOffset, matrix:GetTranslation(), matrix:GetAngles())
 
-		cam.Start3D2D( newPos, newAng, 0.005 )
-			local Frequency = math.Round(self:GetHudFrequency(),1) .. " МГц"
+		cam.Start3D2D( newPos, newAng, 0.007 )
+			local Frequency = math.Round(self:GetHudFrequency(),1) .. "SD"
 			--local IsOn = self:GetIsOn() and "On" or "Off"
-			local width, height = 264, 145
-			draw.RoundedBox(3, 0 - width / 2, 0 - height / 2, width, height, self:GetIsOn() and bg_clr or bg_off_clr)
+			local width, height = 230, 300
+			draw.RoundedBox(10, 0 - width / 2, 0 - height / 12, width, height, self:GetIsOn() and bg_clr or bg_off_clr)
 			if self:GetIsOn() then
-				draw.SimpleText(Frequency, "Walkie-Talkie_Fixed-Font", 0, -15, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText(self:GetOwner():IsSpeaking() and "Транслирует" or "Получает", "Walkie-Talkie_Fixed-SmallFont", 0, 40, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				draw.SimpleText(Frequency, "Walkie-Talkie_Fixed-Font", 10, -1, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				draw.SimpleText(self:GetOwner():IsSpeaking() and "321" or "123", "Walkie-Talkie_Fixed-SmallFont", 0, 120, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			end
 		cam.End3D2D()
 
@@ -365,7 +364,7 @@ function SWEP:PrimaryAttack()
 	tbl[#tbl + 1] = {function()
 		RunConsoleCommand("+reload")
 		timer.Simple(0,function() RunConsoleCommand("-reload") end)
-	end, self:GetIsOn() and "Выключить рацию" or "Включить рацию"}
+	end, self:GetIsOn() and "Выключить телефон" or "Включить телефон"}
 	hg.CreateRadialMenu(tbl)
 end
 
@@ -382,7 +381,7 @@ end
 
 if CLIENT then
 	-- local walkietalkie_clr = Color(230,230,230)
-	-- local bg_clr = Color(0,0,0,150)
+	-- local bg_clr = Color(0,0,0,120)
 	function SWEP:DrawHUD()
 		-- local Frequency = math.Round(self:GetHudFrequency(),1) .. " MHz"
 		-- local IsOn = self:GetIsOn() and "On" or "Off"
