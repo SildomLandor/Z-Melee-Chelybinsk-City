@@ -722,6 +722,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		local trBone = util.TraceLine({start = dmgPos, endpos = dmgPos + dir * 100, filter = dmgTraceFilter})
 		bone = trBone.PhysicsBone
 	end
+	if not bone or bone < 0 then bone = 0 end
 
 	-- if tracePoses then
 	-- 	local mat = ent:GetBoneMatrix(ent:TranslatePhysBoneToBone(bone))
@@ -753,9 +754,10 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	local dmgPos = dmgInfo:GetDamagePosition()
 	local dirCool = dmgInfo:GetDamageForce():GetNormalized()
 	local tr = util.TraceLine({start = dmgPos, endpos = dmgPos + dirCool * 100, filter = dmgTraceFilter})
-	local len = math.abs(dmgInfo:GetDamageForce():Length())
+	local len = math.min(math.abs(dmgInfo:GetDamageForce():Length()), 2800)
 
-	local bonename = ent:GetBoneName(ent:TranslatePhysBoneToBone(bone))
+	local boneIdx = ent:TranslatePhysBoneToBone(bone)
+	local bonename = (boneIdx and boneIdx >= 0) and ent:GetBoneName(boneIdx) or ""
 	local hitgroup = bonetohitgroup[bonename] or 0
 	--print(dmg_before, 1)
 	--if ent:IsRagdoll() then
@@ -894,9 +896,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 
 	if dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_BLAST + DMG_SLASH + DMG_CLUB + DMG_GENERIC) then
 		local force = dirCool * len
-		--print("HIT")
 		if ply then
-			--if ply.lastFake then ply.lastFake = ply.lastFake - len end
 			ply.HitBones = ply.HitBones or {}
 
 			if hitgrouptobone[hitgroup] then
@@ -905,28 +905,42 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 					ply.HitBones[bon] = CurTime() + dmg
 				end
 			end
-			
-			hg.AddForceRag(ply, bone, force * 0.5, 0.5)
 
-			local ragForce = ply.AddForceRag and ply.AddForceRag[bone]
-			if ragForce and ragForce[2] and ragForce[2]:Length() > 4500 then
-				if ragForce[2]:Length() > 7000 then
-					hg.StunPlayer(ply, 0.5)
-					hg.LightStunPlayer(ply, 2)
-				else
-					hg.LightStunPlayer(ply, 2)
+			if not ent:IsRagdoll() then
+				hg.AddForceRag(ply, bone, force * 0.5, 0.5)
+
+				local ragForce = ply.AddForceRag and ply.AddForceRag[bone]
+				if ragForce and ragForce[2] and ragForce[2]:Length() > 4500 then
+					if ragForce[2]:Length() > 7000 then
+						hg.StunPlayer(ply, 0.5)
+						hg.LightStunPlayer(ply, 2)
+					else
+						hg.LightStunPlayer(ply, 2)
+					end
 				end
 			end
 		end
-		
+
 		if ent:IsRagdoll() then
-			local maxForce = 5000
-			local ragForce = force * 1
-			if ragForce:Length() > maxForce then
-				ragForce:Normalize()
-				ragForce:Mul(maxForce)
+			local phys = ent:GetPhysicsObjectNum(bone)
+			if IsValid(phys) then
+				local ragForce = force * 0.55
+				local maxForce = math.min(2200, phys:GetMass() * 110)
+				if ragForce:Length() > maxForce then
+					ragForce:Normalize()
+					ragForce:Mul(maxForce)
+				end
+				phys:ApplyForceCenter(ragForce)
+
+				if ply and ragForce:Length() > 4500 then
+					if ragForce:Length() > 7000 then
+						hg.StunPlayer(ply, 0.5)
+						hg.LightStunPlayer(ply, 2)
+					else
+						hg.LightStunPlayer(ply, 2)
+					end
+				end
 			end
-			ent:GetPhysicsObjectNum(bone or 0):ApplyForceCenter(ragForce)
 		end
 	end
 

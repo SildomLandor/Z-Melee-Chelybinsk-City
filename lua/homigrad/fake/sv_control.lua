@@ -867,7 +867,8 @@ hook.Add("Think", "Fake", function()
 		local vellen = vel:Length()
 		local throatAmt = hg.organism.ThroatClutchAmt and hg.organism.ThroatClutchAmt(org) or 0
 		local throatClutch = throatAmt >= 0.12 or (ragdoll.beingChokedUntil or 0) > CurTime()
-		if org.canmove and vellen > 350 and !ply:InVehicle() and not throatClutch then
+		local recentBulletHit = org.lasthit and (org.lasthit + 0.4) > CurTime()
+		if org.canmove and vellen > 350 and !ply:InVehicle() and not throatClutch and not recentBulletHit then
 			--[[
 			
 				local defaultBones = {

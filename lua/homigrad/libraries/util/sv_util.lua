@@ -57,6 +57,26 @@ end
 
 hook.Add( "PostEntityTakeDamage", "ResponsiveHits_PostEntityTakeDamage", playEffects )
 
+local propPushClasses = {
+	prop_physics = true,
+	prop_physics_multiplayer = true,
+	func_physbox = true,
+}
+
+hook.Add("EntityTakeDamage", "hg_clamp_prop_bullet_push", function(ent, dmginfo)
+	if not IsValid(ent) or not dmginfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then return end
+	if not propPushClasses[ent:GetClass()] then return end
+
+	local phys = ent:GetPhysicsObject()
+	if not IsValid(phys) then return end
+
+	local f = dmginfo:GetDamageForce()
+	local maxLen = math.Clamp(phys:GetMass() * 45, 60, 900)
+	if f:LengthSqr() <= maxLen * maxLen then return end
+
+	dmginfo:SetDamageForce(f:GetNormalized() * maxLen)
+end, HOOK_HIGH)
+
 local function setBloodonSpawn( ent )
     if getBloodColor( ent ) == -1 then return end
     ent.bloodColorHitFix = getBloodColor( ent )
