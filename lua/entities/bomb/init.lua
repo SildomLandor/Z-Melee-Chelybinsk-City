@@ -26,20 +26,8 @@ end
 util.AddNetworkString("bomb_look")
 util.AddNetworkString("bomb_enter")
 
-function BombInSite(pos, site)
-	local pts = zb.GetMapPoints( "BOMB_ZONE_"..(site == 1 and "A" or "B") )
-
-	local vec1
-	local vec2
-
-	if #pts >= 2 then
-		vec1 = -(-pts[1].pos)
-		vec1[3] = vec1[3] - 256
-		vec2 = -(-pts[2].pos)
-		vec2[3] = vec2[3] + 256
-	end
-
-	return (#pts >= 2 and pos:WithinAABox(vec1, vec2))
+local function inBombSite(pos, site)
+	return zb and zb.BombInSite and zb.BombInSite(pos, site)
 end
 
 net.Receive("bomb_enter",function(len, ply)
@@ -58,7 +46,7 @@ net.Receive("bomb_enter",function(len, ply)
 	if ent.isbomb then
 		if not ent.active then
 			local isSandbox = engine.ActiveGamemode() == "sandbox"
-			if isSandbox or BombInSite(ent:GetPos(), 1) or BombInSite(ent:GetPos(), 2) then
+			if isSandbox or inBombSite(ent:GetPos(), 1) or inBombSite(ent:GetPos(), 2) then
 				ent.code = txt
 				ply:ChatPrint("The bomb's code is: "..ent.code)
 				ent:ActivateBomb()
@@ -110,9 +98,9 @@ function ENT:ActivateBomb()
 
 	if self.tbl and not self.activatedonce then
 		local siteName
-		if BombInSite(self:GetPos(), 1) then
+		if inBombSite(self:GetPos(), 1) then
 			siteName = "A"
-		elseif BombInSite(self:GetPos(), 2) then
+		elseif inBombSite(self:GetPos(), 2) then
 			siteName = "B"
 		end
 		PrintMessage(HUD_PRINTTALK, "Bomb has been planted"
@@ -149,7 +137,7 @@ function ENT:Use(activator)
 	local isSandbox = engine.ActiveGamemode() == "sandbox"
 	--if self:IsPlayerHolding() then return end
 	if not isSandbox then
-		if not BombInSite(self:GetPos(), 1) and not BombInSite(self:GetPos(), 2) then activator:PickupObject(self) return end
+		if not inBombSite(self:GetPos(), 1) and not inBombSite(self:GetPos(), 2) then activator:PickupObject(self) return end
 	end
 	if self.active then
 		if activator:Team() == 0 then

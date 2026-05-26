@@ -1,5 +1,7 @@
 local MODE = MODE
 
+CreateConVar("zb_bomb_site_radius", "25", FCVAR_REPLICATED, "Радиус закладки бомбы (метры)", 15, 40)
+
 MODE.KillMoney = 1000
 MODE.StartMoney = 1000
 MODE.start_time = 20
@@ -40,7 +42,7 @@ function MODE:CanLaunch()
 
     local points5 = zb.GetMapPoints( "HOSTAGE_DELIVERY_ZONE" )
 
-    return (#points > 0) and (#points2 > 0) and (((#points3 > 1) or (#points4 > 1)) or (#points5 > 1))
+    return (#points > 0) and (#points2 > 0) and (((#points3 > 0) or (#points4 > 0)) or (#points5 > 1))
 end
 
 function MODE:OverrideBalance()--return true to keep alive players
@@ -145,9 +147,26 @@ function MODE:Intermission()
 	net.Start("tdm_start")
         net.WriteString(zb.rtype or "bomb")
         net.Broadcast()
+
+    if zb.rtype == "bomb" then
+        timer.Simple(0.5, function()
+            if zb.CROUND ~= "cstrike" then return end
+            zb.SendSpecificPointsToPly(nil, "BOMB_ZONE_A", false)
+            zb.SendSpecificPointsToPly(nil, "BOMB_ZONE_B", false)
+        end)
+    end
     
     self.GameStarted = nil
 end
+
+hook.Add("PlayerInitialSpawn", "ZB_CStrike_BombPoints", function(ply)
+    timer.Simple(2, function()
+        if not IsValid(ply) then return end
+        if zb.CROUND ~= "cstrike" or zb.rtype ~= "bomb" then return end
+        zb.SendSpecificPointsToPly(ply, "BOMB_ZONE_A", false)
+        zb.SendSpecificPointsToPly(ply, "BOMB_ZONE_B", false)
+    end)
+end)
 
 concommand.Add("tdm_setrounds", function(ply, cmd, args)
     if not ply:IsAdmin() then return end--idiot

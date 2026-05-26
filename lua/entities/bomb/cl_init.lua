@@ -1,26 +1,6 @@
 
 include("shared.lua")
 
-function BombInSite(pos, site)
-    local pts = zb.ClPoints["BOMB_ZONE_"..(site == 1 and "A" or "B")]
-
-	local vec1
-	local vec2
-	local vec3
-	local vec4
-
-	if #pts >= 2 then
-		vec1 = -(-pts[1].pos)
-		vec1[3] = vec1[3] - 256
-		vec2 = -(-pts[2].pos)
-		vec2[3] = vec2[3] + 256
-	end
-	
-	return (#pts < 2 or pos:WithinAABox(vec1,vec2))
-end
-
- 
-
 local offsetAng = Angle(-90,0,0)
 local offsetVec = Vector(0,0,0)
 

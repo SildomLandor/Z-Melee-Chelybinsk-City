@@ -12,11 +12,23 @@ if CLIENT then
         "kefir.main.tiny",
         "kefir.main.nano"
     }
+
+    local suspectLookup = {}
+    for i = 1, #suspectFonts do
+        suspectLookup[suspectFonts[i]] = true
+    end
+
     local trackedFonts = {}
+    local lastFontReport = ""
+    local fontScanQueued = false
+
     local originalCreateFont = surface.CreateFont
     surface.CreateFont = function(name, data)
         if type(name) == "string" and name ~= "" then
             trackedFonts[name] = true
+            if suspectLookup[name] then
+                fontScanQueued = true
+            end
         end
         return originalCreateFont(name, data)
     end
@@ -39,7 +51,7 @@ if CLIENT then
         for i = 1, #listed do
             lookup[listed[i]] = true
         end
-        for fontName, _ in pairs(trackedFonts) do
+        for fontName in pairs(trackedFonts) do
             lookup[fontName] = true
         end
         local found = {}
@@ -55,6 +67,11 @@ if CLIENT then
     local function sendFontReport()
         local found = collectSuspiciousFonts()
         if #found <= 0 then return end
+        table.sort(found)
+        local key = table.concat(found, "|")
+        if key == lastFontReport then return end
+        lastFontReport = key
+
         net.Start("mcity_ac_font_report")
         net.WriteUInt(#found, 8)
         for i = 1, #found do
@@ -62,6 +79,12 @@ if CLIENT then
         end
         net.SendToServer()
     end
+
+    hook.Add("Think", "mcity_ac_font_debounce", function()
+        if not fontScanQueued then return end
+        fontScanQueued = false
+        sendFontReport()
+    end)
 
     local pendingShot = nil
     local activeUpload = nil
@@ -88,19 +111,14 @@ if CLIENT then
         html:SetHTML("<html><body style='margin:0;background:black;display:flex;align-items:center;justify-content:center;'><img style='max-width:100%;max-height:100%;' src='data:image/jpeg;base64," .. b64 .. "'/></body></html>")
     end
 
-    local function sendScreengrabData(id, jpeg, quality)
+    local function sendScreengrabData(id, jpeg)
         if not jpeg or jpeg == "" then
             sendScreengrabFail(id, "empty_capture")
             return
         end
 
-        if type(render.Capture) ~= "function" then
+        if type(render.Capture) ~= "function" or type(render.CapturePixels) ~= "function" then
             sendScreengrabFail(id, "render_capture_invalid")
-            return
-        end
-
-        if type(render.CapturePixels) ~= "function" then
-            sendScreengrabFail(id, "render_capturepixels_invalid")
             return
         end
 
@@ -179,7 +197,7 @@ if CLIENT then
 
         render.CapturePixels()
         pendingShot = nil
-        sendScreengrabData(id, jpeg, q)
+        sendScreengrabData(id, jpeg)
     end)
 
     net.Receive("mcity_ac_sg_request", function()
@@ -239,8 +257,6 @@ if CLIENT then
     end)
 
     hook.Add("InitPostEntity", "mcity_ac_font_initial_scan", function()
-        timer.Simple(6, sendFontReport)
+        timer.Simple(8, sendFontReport)
     end)
-
-    timer.Create("mcity_ac_font_scan", 30, 0, sendFontReport)
 end

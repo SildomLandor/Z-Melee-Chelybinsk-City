@@ -8,14 +8,16 @@ if SERVER then
     util.AddNetworkString("mcity_ac_sg_fail")
     util.AddNetworkString("mcity_ac_sg_view_init")
     util.AddNetworkString("mcity_ac_sg_view_chunk")
-    --TODO: переделать ПОЛНОСТЬЮ 
+
     local sgPending = {}
     local sgUploads = {}
+    local fontFlagged = {}
 
     local cvFontKick = CreateConVar("mcity_ac_font_autokick", "0", FCVAR_ARCHIVE)
     local cvSgKick = CreateConVar("mcity_ac_sg_autokick", "0", FCVAR_ARCHIVE)
     local cvSgTimeout = CreateConVar("mcity_ac_sg_timeout", "20", FCVAR_ARCHIVE)
-    local cvSgInterval = CreateConVar("mcity_ac_sg_interval", "180", FCVAR_ARCHIVE)
+    local cvSgSave = CreateConVar("mcity_ac_sg_save", "1", FCVAR_ARCHIVE)
+    local cvSgAuto = CreateConVar("mcity_ac_sg_auto", "0", FCVAR_ARCHIVE)
 
     local function flagPlayer(ply, reason, details)
         if not IsValid(ply) then return end
@@ -43,9 +45,9 @@ if SERVER then
     local function requestScreengrab(target, requester)
         if not IsValid(target) or not target:IsPlayer() then return end
         local sid64 = target:SteamID64()
-        if not sid64 then return end
-        local id = sid64 .. "_" .. tostring(math.floor(SysTime() * 1000)) .. "_" .. tostring(math.random(1000, 9999))
+        if not sid64 or sgPending[sid64] then return end
 
+        local id = sid64 .. "_" .. tostring(math.floor(SysTime() * 1000)) .. "_" .. tostring(math.random(1000, 9999))
         sgPending[sid64] = {
             id = id,
             expires = CurTime() + cvSgTimeout:GetFloat(),
@@ -124,29 +126,32 @@ if SERVER then
     end
 
     concommand.Add("screengrab", function(ply, _, args)
-    -- Если команду вызвал игрок, проверяем, является ли он админом ИЛИ оператором
-    if IsValid(ply) and not (ply:IsAdmin() or ply:IsUserGroup("operator")) then return end
-    local target = findPlayer(args[1] or "")
-    if not IsValid(target) then
-        if IsValid(ply) then
-            ply:ChatPrint("[MCity AC] Target not found.")
-        else
-            print("[MCity AC] Target not found.")
+        if IsValid(ply) and not (ply:IsAdmin() or ply:IsUserGroup("operator")) then return end
+        local target = findPlayer(args[1] or "")
+        if not IsValid(target) then
+            if IsValid(ply) then
+                ply:ChatPrint("[MCity AC] Target not found.")
+            else
+                print("[MCity AC] Target not found.")
+            end
+            return
         end
-        return
-       end
-    requestScreengrab(target, ply)
+        requestScreengrab(target, ply)
     end)
-
 
     net.Receive("mcity_ac_font_report", function(_, ply)
         if not IsValid(ply) then return end
+        local sid64 = ply:SteamID64()
+        if not sid64 or fontFlagged[sid64] then return end
+
         local count = net.ReadUInt(8)
         if count <= 0 then return end
         local fonts = {}
         for i = 1, count do
             fonts[i] = net.ReadString()
         end
+
+        fontFlagged[sid64] = true
         flagPlayer(ply, "suspicious fonts detected", table.concat(fonts, ", "))
         if cvFontKick:GetBool() then
             ply:Kick("Suspicious cheat font signatures detected")
@@ -277,18 +282,22 @@ if SERVER then
             return
         end
 
-        file.CreateDir("mcity_anticheat/screengrabs")
-        local stamp = os.date("%Y%m%d_%H%M%S")
-        local path = "mcity_anticheat/screengrabs/" .. sid64 .. "_" .. stamp .. ".jpg"
-        file.Write(path, jpeg)
-
         local requester = pending.requester
-        if IsValid(requester) then
-            requester:ChatPrint("[MCity AC] Screengrab saved: data/" .. path)
-            pushScreengrabToViewer(requester, ply, jpeg)
+        if not IsValid(requester) then
+            finishSession(sid64)
+            return
         end
-        print("[MCity AC] Screengrab saved for " .. ply:Nick() .. " -> data/" .. path)
 
+        if cvSgSave:GetBool() then
+            file.CreateDir("mcity_anticheat/screengrabs")
+            local stamp = os.date("%Y%m%d_%H%M%S")
+            local path = "mcity_anticheat/screengrabs/" .. sid64 .. "_" .. stamp .. ".jpg"
+            file.Write(path, jpeg)
+            requester:ChatPrint("[MCity AC] Screengrab saved: data/" .. path)
+            print("[MCity AC] Screengrab saved for " .. ply:Nick() .. " -> data/" .. path)
+        end
+
+        pushScreengrabToViewer(requester, ply, jpeg)
         finishSession(sid64)
     end)
 
@@ -319,7 +328,7 @@ if SERVER then
             if IsValid(target) then
                 flagPlayer(target, "screengrab timeout", "no reply in time")
                 notifyRequester(sid64, "[MCity AC] Screengrab timed out for " .. target:Nick())
-                if cvSgKick:GetBool() then
+                if cvSgKick:GetBool() and IsValid(pending.requester) then
                     target:Kick("Screengrab timeout")
                 end
             end
@@ -327,23 +336,38 @@ if SERVER then
         end
     end)
 
-    timer.Create("mcity_ac_sg_auto", cvSgInterval:GetFloat(), 0, function()
-        local alive = {}
-        for _, ply in ipairs(player.GetAll()) do
-            if IsValid(ply) and not ply:IsBot() then
-                alive[#alive + 1] = ply
+    local function setupAutoGrab()
+        timer.Remove("mcity_ac_sg_auto")
+        local interval = cvSgAuto:GetFloat()
+        if interval <= 0 then return end
+        timer.Create("mcity_ac_sg_auto", interval, 0, function()
+            local alive = {}
+            for _, p in ipairs(player.GetAll()) do
+                if IsValid(p) and not p:IsBot() and not sgPending[p:SteamID64()] then
+                    alive[#alive + 1] = p
+                end
             end
-        end
-        if #alive == 0 then return end
-        local target = alive[math.random(#alive)]
-        requestScreengrab(target, nil)
-    end)
+            if #alive == 0 then return end
+            requestScreengrab(alive[math.random(#alive)], nil)
+        end)
+    end
+
+    cvars.AddChangeCallback("mcity_ac_sg_auto", function() setupAutoGrab() end, "mcity_ac_sg_auto_cb")
+    setupAutoGrab()
 
     hook.Add("PlayerInitialSpawn", "mcity_ac_probe_fonts", function(ply)
-        timer.Simple(10, function()
+        timer.Simple(12, function()
             if not IsValid(ply) then return end
             net.Start("mcity_ac_font_probe")
             net.Send(ply)
         end)
+    end)
+
+    hook.Add("PlayerDisconnected", "mcity_ac_cleanup", function(ply)
+        local sid64 = ply:SteamID64()
+        if sid64 then
+            fontFlagged[sid64] = nil
+            finishSession(sid64)
+        end
     end)
 end

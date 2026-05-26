@@ -185,7 +185,7 @@ end
 function zb.SendSpecificPointsToPly(ply, pointGroup, shouldprint)
     net.Start("zb_getspecificpoints")
         net.WriteString(pointGroup)
-        net.WriteTable(zb.GetAllPoints()[pointGroup])
+        net.WriteTable(zb.GetAllPoints()[pointGroup] or zb.GetMapPoints(pointGroup) or {})
     if IsValid(ply) then    
         net.Send(ply)
         
