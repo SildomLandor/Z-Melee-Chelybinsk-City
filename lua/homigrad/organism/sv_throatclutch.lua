@@ -1,5 +1,4 @@
-local Rand, random, sin, cos = math.Rand, math.random, math.sin, math.cos
-local CurTime = CurTime
+local Rand, random = math.Rand, math.random
 
 local function ragIsChokingSomeone(rag)
 	if IsValid(rag.ConsLH) and IsValid(rag.ConsLH.choking) then return true end
@@ -12,25 +11,25 @@ function hg.organism.ThroatClutchRagdoll(rag, org)
 	if ragIsChokingSomeone(rag) then return end
 
 	local headPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 10))
-	local lhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 5))
-	local rhandPhys = rag:GetPhysicsObjectNum(hg.realPhysNum(rag, 7))
-	if not IsValid(headPhys) or not IsValid(lhandPhys) or not IsValid(rhandPhys) then return end
+	if not IsValid(headPhys) then return end
 
 	local pos = headPhys:GetPos()
-	local t = CurTime()
-	local spd, damp = 220, 90
+	local headAng = headPhys:GetAngles()
+	local right = headAng:Right()
+	local forward = headAng:Forward()
+	local gripAng = Angle(headAng.p, headAng.y, headAng.r)
+
+	local lGrip = pos - right * 4 + forward * 2
+	local rGrip = pos + right * 4 + forward * 2
+	local spd, damp = 5050, 100
 
 	if not org or not org.larmamputated then
-		local lpos = lhandPhys:GetPos()
-		local grip = pos - (pos - lpos):GetNormalized() * (2 + sin(t * 2) * 0.35)
-		hg.ShadowControl(rag, 3, 0.001, nil, nil, nil, grip, spd, damp)
-		hg.ShadowControl(rag, 5, 0.001, nil, nil, nil, grip, spd, damp)
+		hg.ShadowControl(rag, 4, 0.001, gripAng, 180, 60, lGrip, 1200, 120)
+		hg.ShadowControl(rag, 5, 0.001, gripAng, 0, 0, lGrip, spd, damp)
 	end
 	if not org or not org.rarmamputated then
-		local rpos = rhandPhys:GetPos()
-		local grip = pos - (pos - rpos):GetNormalized() * (2 + cos(t * 1.8) * 0.35)
-		hg.ShadowControl(rag, 2, 0.001, nil, nil, nil, grip, spd, damp)
-		hg.ShadowControl(rag, 7, 0.001, nil, nil, nil, grip, spd, damp)
+		hg.ShadowControl(rag, 6, 0.001, gripAng, 180, 60, rGrip, 1200, 120)
+		hg.ShadowControl(rag, 7, 0.001, gripAng, 0, 0, rGrip, spd, damp)
 	end
 end
 

@@ -136,6 +136,9 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     
     local oldharmdone = zb.HarmDone[Victim][Attacker] or 0
     zb.HarmDone[Victim][Attacker] = math.Clamp((zb.HarmDone[Victim][Attacker] or 0) + harm, 0, maxharm)
+
+    Victim.LastAttacked = CurTime()
+    Victim.LastAttacker = Attacker
     
     zb.HarmAttacked[Attacker] = zb.HarmAttacked[Attacker] or 0
     zb.HarmAttacked[Attacker] = zb.HarmAttacked[Attacker] + harm
@@ -194,8 +197,10 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     
     if rnd.name != "hmcd" and (Attacker.Team and Victim.Team and attackerTeam ~= Victim:Team()) then return end
     if zb.ROUND_STATE != 1 and (rnd.name != "cstrike" or !zb.RoundsLeft) then return end
-    if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
     if Attacker:IsBerserk() then return end
+
+    local harmFromVictim = (zb.HarmDone[Attacker] and zb.HarmDone[Attacker][Victim]) or 0
+    local provoked = harmFromVictim > 0
 
     local victimWep = Victim:IsPlayer() and IsValid(Victim:GetActiveWeapon()) and Victim:GetActiveWeapon()
     
@@ -221,8 +226,14 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     end
     
     local guiltadd = amt * 60
+    zb.GuiltTable[Attacker][Victim] = math.Clamp((zb.GuiltTable[Attacker][Victim] or 0) + guiltadd, 0, 200)
+
+    if provoked then return end
+    if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
+
+    local retal = math.min((zb.GuiltTable[Victim][Attacker] or 0) / 60, 1)
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd
-    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - add * math.max(((1 - (zb.GuiltTable[Victim][Attacker] or 0)) / 1),0), -60, zb.MaxKarma)
+    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - add * math.max(1 - retal, 0), -60, zb.MaxKarma)
 
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
 
@@ -237,8 +248,6 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     end
 
     Attacker:SetNetVar("Karma", Attacker.Karma)
-    
-    zb.GuiltTable[Attacker][Victim] = math.Clamp((zb.GuiltTable[Attacker][Victim] or 0) + guiltadd, 0, 200)
 
     if Attacker.Karma <= 0 then
         local steamID = Attacker:SteamID()
@@ -268,7 +277,8 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 end)
 
 function zb.IsForce(Attacker)
-    return Attacker.PlayerClassName == "police" and Attacker.PlayerClassName == "nationalguard" and Attacker.PlayerClassName == "swat"
+    local cn = Attacker.PlayerClassName
+    return cn == "police" or cn == "nationalguard" or cn == "swat"
 end
 
 local function IsLookingAt(ply, targetVec)
@@ -382,6 +392,7 @@ hook.Add("ZB_StartRound","NO_HARM",function()
     
     zb.HarmDone = {}
     zb.HarmDoneKarma = {}
+    zb.GuiltTable = {}
 end)
 
 util.AddNetworkString("get_karma")
