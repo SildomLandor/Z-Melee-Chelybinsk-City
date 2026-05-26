@@ -997,13 +997,12 @@ local IsValid = IsValid
 
 	local util_TraceHull = util.TraceHull
 
-	function hg.hullCheck(startpos, endpos, ply)
-		//if ply.lasthulltrace == CurTime() and ply.cachedhulltrace then return ply.cachedhulltrace end
-		//ply.lasthulltrace = CurTime()
+	function hg.hullCheck(startpos, endpos, ply, ragEnt)
 		if ply:InVehicle() then return {HitPos = endpos} end
-		traceBuilder.start = IsValid(ply.FakeRagdoll) and endpos or startpos
+		ragEnt = IsValid(ragEnt) and ragEnt or ply.FakeRagdoll
+		traceBuilder.start = IsValid(ragEnt) and endpos or startpos
 		traceBuilder.endpos = endpos
-		traceBuilder.filter = {ply, ply.FakeRagdoll, ply:InVehicle() and ply:GetVehicle(), ply.OldRagdoll}
+		traceBuilder.filter = {ply, ragEnt, ply:InVehicle() and ply:GetVehicle(), ply.OldRagdoll}
 		local trace = util_TraceHull(traceBuilder)
 
 		ply.cachedhulltrace = trace
@@ -1032,21 +1031,34 @@ local IsValid = IsValid
 	function hg.eye(ply, dist, ent, aimvec, startpos)
 		if !ply:IsPlayer() then return false end
 		local fakeCam = false//IsValid(ent) and ent != ply
-		local ent = (IsValid(ent) and ent) or (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll) or ply
+		ent = (IsValid(ent) and ent) or (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll) or ply
 		local bon = ent:LookupBone("ValveBiped.Bip01_Neck1")
 		if not bon then return end
 		if not IsValid(ply) then return end
 		if not ply.GetAimVector then return end
 
 		local aim_vector = isvector(aimvec) and aimvec or isangle(aimvec) and aimvec:Forward() or ply:GetAimVector()
+		local useRag = ent ~= ply
 
-		if not bon or not ent:GetBoneMatrix(bon) then
-			local tr = {
-				start = ply:EyePos(),
-				endpos = ply:EyePos() + aim_vector * (dist or 60),
-				filter = ply
-			}
-			return ply:EyePos(), aim_vector * (dist or 60), ply//util.TraceLine(tr)
+		local headm = ent:GetBoneMatrix(bon)
+		if CLIENT and useRag and not headm then
+			ent:SetupBones()
+			headm = ent:GetBoneMatrix(bon)
+		end
+
+		if not headm then
+			local attid = ent:LookupAttachment("eyes")
+			if attid and attid > 0 then
+				local att = ent:GetAttachment(attid)
+				if att and att.Pos then
+					local pos = att.Pos
+					local trace = hg.hullCheck(ply:EyePos() - vector_up * 10, pos, ply, ent)
+					return trace.HitPos, aim_vector * (dist or 60), {ply, ent, ply.OldRagdoll}, trace
+				end
+			end
+
+			if useRag then return end
+			return ply:EyePos(), aim_vector * (dist or 60), ply
 		end
 
 		/*if (ply.InVehicle and ply:InVehicle() and IsValid(ply:GetVehicle())) then
@@ -1059,8 +1071,6 @@ local IsValid = IsValid
 			}
 			return util.TraceLine(tr), nil, headm
 		end*/
-
-		local headm = ent:GetBoneMatrix(bon)
 
 		//if CLIENT and IsValid(ply.OldRagdoll) then
 		//	headm = ply.headm or headm
@@ -1080,7 +1090,7 @@ local IsValid = IsValid
 		//local pos = startpos or headm:GetTranslation() + (fakeCam and (headm:GetAngles():Forward() * 5 + headm:GetAngles():Up() * 0 + headm:GetAngles():Right() * 6) or (eyeAng:Up() * 1 + eyeang2:Forward() * 4))
 		local pos = startpos or headm:GetTranslation() + (fakeCam and (headm:GetAngles():Forward() * 2 + headm:GetAngles():Up() * -2 + headm:GetAngles():Right() * 3) or (eyeAng:Up() * 2 + headm:GetAngles():Right() * 4 + headm:GetAngles():Up() * 0  + headm:GetAngles():Forward() * (4 + (ply.PlayerClassName == "Combine" and 4 or 0))))
 
-		local trace = hg.hullCheck(ply:EyePos() - vector_up * 10, pos, ply)
+		local trace = hg.hullCheck(ply:EyePos() - vector_up * 10, pos, ply, ent)
 
 		--[[if CLIENT then
 			cam.Start3D()

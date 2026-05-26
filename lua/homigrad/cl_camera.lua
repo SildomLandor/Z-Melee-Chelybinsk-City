@@ -337,7 +337,9 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 
 
 
-	if IsValid(follow) then
+	local fakeRag = hg.GetFakeRagdoll and hg.GetFakeRagdoll(lply)
+	if IsValid(fakeRag) then
+		if not IsValid(follow) then follow = fakeRag end
 		return hg.CalcViewFake(ply, origin, angles, fov, znear, zfar)
 	end
 	if ply:InVehicle() then
