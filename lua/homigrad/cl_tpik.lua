@@ -631,10 +631,11 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     if not ply:IsPlayer() then return end
     if not ply.InVehicle then return end
 
-    -- fake ragdoll: physics drives limbs; client IK only in ragdoll-combat mode
-    if ent ~= ply and not hg.RagdollCombatInUse(ply) then return end
-
     local should = hg.ShouldTPIK(ply, ent)
+    local org = ply.organism or ent.organism
+    if ent != ply and org and (org.otrub or org.canmove == false or (org.shock or 0) > 40) then
+        should = false
+    end
     //print("shouldtpik func: ", SysTime() - systime)
 
     if should then

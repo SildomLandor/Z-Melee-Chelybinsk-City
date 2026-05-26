@@ -14,6 +14,7 @@ local ACD_StrikesLeft = {}
 local function resetPlyRoundState(ply)
     ply.subClass = nil
     ply.leader = nil
+    ply.zb_hl2dm_equip = nil
     ply:SetNWString("PlayerRole", "")
 end
 
@@ -127,7 +128,10 @@ end
 
 function MODE:EquipPlayer(ply)
     if not IsValid(ply) or not ply:Alive() or ply:Team() == TEAM_SPECTATOR then return false end
-    if CurrentRound() ~= MODE then return false end
+    if CurrentRound() ~= self then return false end
+
+    local tag = zb.ROUND_BEGIN or 0
+    if ply.zb_hl2dm_equip == tag and ply.PlayerClassName and ply.PlayerClassName ~= "none" then return true end
 
     ply:SetSuppressPickupNotices(true)
     ply.noSound = true
@@ -138,6 +142,7 @@ function MODE:EquipPlayer(ply)
     ply:SetNetVar("Inventory", inv)
 
     ply:SetPlayerClass(ply:Team() == 1 and "Combine" or "Rebel")
+    ply.zb_hl2dm_equip = tag
 
     timer.Simple(0.1, function()
         if not IsValid(ply) then return end
@@ -169,6 +174,17 @@ function MODE:GiveEquipment()
     timer.Simple(0.15, tryAll)
     timer.Simple(0.35, tryAll)
 end
+
+hook.Add("PlayerSpawn", "ZB_HL2DM_Loadout", function(ply)
+    local mode = CurrentRound()
+    if not mode or mode.name ~= "hl2dm" or zb.ROUND_STATE ~= 1 then return end
+
+    timer.Simple(0, function()
+        if not IsValid(ply) then return end
+        local m = CurrentRound()
+        if m and m.EquipPlayer then m:EquipPlayer(ply) end
+    end)
+end)
 
 function MODE:RoundThink()
 end

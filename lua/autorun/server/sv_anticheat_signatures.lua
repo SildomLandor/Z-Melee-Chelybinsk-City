@@ -8,7 +8,7 @@ if SERVER then
     util.AddNetworkString("mcity_ac_sg_fail")
     util.AddNetworkString("mcity_ac_sg_view_init")
     util.AddNetworkString("mcity_ac_sg_view_chunk")
-
+    --TODO: переделать ПОЛНОСТЬЮ 
     local sgPending = {}
     local sgUploads = {}
 
