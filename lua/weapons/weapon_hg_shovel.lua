@@ -38,6 +38,12 @@ SWEP.basebone = 94
 SWEP.weaponPos = Vector(0,0,-24)
 SWEP.weaponAng = Angle(0,270,-2)
 
+SWEP.DefaultWeaponPos = Vector(0, 0, -24)
+SWEP.DefaultWeaponAng = Angle(0, 270, -2)
+SWEP.Attack2WeaponPos = Vector(0, 0, -20)
+SWEP.Attack2WeaponAng = Angle(200, 270, -2)
+SWEP.Attack2WeaponTransitionSpeed = 12
+
 SWEP.DamageType = DMG_CLUB
 SWEP.DamagePrimary = 35
 SWEP.NeckBreakChance = 0.01
@@ -113,7 +119,7 @@ SWEP.BlockImpactSound = "physics/metal/metal_solid_impact_bullet1.wav"
 SWEP.AttackPos = Vector(0,0,0)
 
 function SWEP:CanSecondaryAttack()
-    self.DamageType = DMG_CLUB
+    self.DamageType = DMG_SLASH
     return true
 end
 
@@ -130,3 +136,21 @@ SWEP.AttackRads2 = 0
 
 SWEP.SwingAng = -5
 SWEP.SwingAng2 = 0
+
+function SWEP:Think()
+    self:CustomThink()
+
+    if CLIENT then
+        local targetPos = self.DefaultWeaponPos
+        local targetAng = self.DefaultWeaponAng
+
+        if self:GetInAttack() and self:GetAttackType() == 2 then
+            targetPos = self.Attack2WeaponPos
+            targetAng = self.Attack2WeaponAng
+        end
+
+        local spd = FrameTime() * (self.Attack2WeaponTransitionSpeed or 12)
+        self.weaponPos = LerpVector(spd, self.weaponPos, targetPos)
+        self.weaponAng = LerpAngle(spd, self.weaponAng, targetAng)
+    end
+end
