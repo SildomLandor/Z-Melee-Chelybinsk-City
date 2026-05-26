@@ -5,6 +5,8 @@ util.AddNetworkString("HMCD_BreakingOtherNeck")
 util.AddNetworkString("HMCD_BeingVictimOfDisarmament")
 util.AddNetworkString("HMCD_DisarmingOther")
 util.AddNetworkString("HMCD_UpdateChemicalResistance")
+util.AddNetworkString("HMCD_BeingVictimOfThroatSlit")
+util.AddNetworkString("HMCD_SlittingOtherThroat")
 
 --\\Chemical resistance
 	function MODE.NetworkChemicalResistanceOfPlayer(ply)
@@ -124,6 +126,64 @@ hook.Add("PlayerPostThink", "HMCD_SubRoles_Abilities", function(ply)
 					MODE.NetworkChemicalResistanceOfPlayer(ply)
 
 					ply.PassiveAbility_ChemicalAccumulation_NextNetworkTime = CurTime() + 1
+				end
+			end
+
+			if MODE.IsTraitorDiversant(ply) then
+				if ply:KeyDown(IN_WALK) then
+					if ply:KeyPressed(IN_RELOAD) then
+						local aim_ent, other_ply = hg.eyeTrace(ply, 85).Entity
+						other_ply = hg.RagdollOwner(aim_ent) or aim_ent
+
+						if IsValid(aim_ent) and aim_ent:IsRagdoll() then
+							local other_appearance = aim_ent.CurAppearance
+							local your_appearance = ply.CurAppearance
+							if not other_appearance or not your_appearance then return end
+
+							local aMdl1, aMdl2 = your_appearance.AModel, other_appearance.AModel
+							other_appearance.AModel = aMdl1
+							your_appearance.AModel = aMdl2
+
+							local aFace1, aFace2 = your_appearance.AFacemaps, other_appearance.AFacemaps
+							other_appearance.AFacemaps = aFace1
+							your_appearance.AFacemaps = aFace2
+
+							hg.Appearance.ForceApplyAppearance(ply, other_appearance, true)
+							local char = hg.GetCurrentCharacter(ply)
+							if char:IsRagdoll() then
+								hg.Appearance.ForceApplyAppearance(char, other_appearance, true)
+							end
+							ply:EmitSound("snd_jack_hmcd_disguise.wav", 35, math.random(90, 110), 0.5)
+
+							aim_ent.CurAppearance = your_appearance
+							hg.Appearance.ForceApplyAppearance(aim_ent, your_appearance, true)
+
+							if other_ply:IsPlayer() and other_ply:Alive() then
+								hg.Appearance.ForceApplyAppearance(other_ply, your_appearance, true)
+							end
+						elseif IsValid(other_ply) and other_ply:IsPlayer() and other_ply:Alive() then
+							if MODE.CanPlayerStealFromBack(ply, other_ply, aim_ent) then
+								MODE.StealBackWeapon(ply, other_ply)
+							end
+						end
+					end
+
+					if ply:KeyPressed(IN_USE) then
+						local aim_ent, other_ply = MODE.GetPlayerTraceToOther(ply)
+						if IsValid(aim_ent) and other_ply and MODE.CanPlayerBreakOtherNeck(ply, aim_ent) and MODE.PlyHasSharpWeapon(ply) then
+							MODE.StartSlittingOtherThroat(ply, other_ply)
+						end
+					elseif ply:KeyDown(IN_USE) then
+						if ply.Ability_ThroatSlit then
+							MODE.ContinueSlittingOtherThroat(ply)
+						end
+					end
+
+					if ply:KeyReleased(IN_USE) then
+						MODE.StopSlittingOtherThroat(ply)
+					end
+				else
+					MODE.StopSlittingOtherThroat(ply)
 				end
 			end
 		end

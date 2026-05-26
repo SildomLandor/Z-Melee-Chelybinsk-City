@@ -15,7 +15,15 @@ function MODE.DisplayOrganismInfo(organism, ply)
 end
 
 --\\
+hook.Add("HG_PlayerFootstep", "HMCD_Diversant_StealthSprint", function(ply)
+	if MODE.IsTraitorDiversant and MODE.IsTraitorDiversant(ply) and ply:KeyDown(IN_SPEED) then
+		return true
+	end
+end)
+
 hook.Add("HG_PlayerFootstep_Notify", "HMCD_Professions_Abilities", function(ply, pos, foot, snd, volume, filter)
+	if MODE.IsTraitorDiversant and MODE.IsTraitorDiversant(ply) and ply:KeyDown(IN_SPEED) then return end
+
 	ply.ProfessionAbility_FootstepsAmt = ply.ProfessionAbility_FootstepsAmt or 0
 	ply.ProfessionAbility_FootstepsAmt = ply.ProfessionAbility_FootstepsAmt + 1
 	

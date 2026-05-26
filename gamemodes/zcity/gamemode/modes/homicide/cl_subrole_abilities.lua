@@ -53,6 +53,34 @@ net.Receive("HMCD_DisarmingOther", function(len, ply)
 end)
 --//
 
+--\\Throat Slit
+net.Receive("HMCD_BeingVictimOfThroatSlit", function(len, ply)
+	LocalPlayer().BeingVictimOfThroatSlit = net.ReadBool()
+
+	if LocalPlayer().BeingVictimOfThroatSlit then
+		BeingVictimOfThroatSlitResetTime = CurTime() + 5
+	else
+		BeingVictimOfThroatSlitResetTime = nil
+	end
+end)
+
+net.Receive("HMCD_SlittingOtherThroat", function(len, ply)
+	local status = net.ReadBool()
+	local attacker_ply = net.ReadEntity()
+
+	if status then
+		local other_ply = net.ReadEntity()
+		if IsValid(attacker_ply) then
+			MODE.StartSlittingOtherThroat(LocalPlayer(), other_ply)
+		end
+	else
+		if IsValid(attacker_ply) then
+			MODE.StopSlittingOtherThroat(LocalPlayer())
+		end
+	end
+end)
+--//
+
 --\\Chemical resistance
 net.Receive("HMCD_UpdateChemicalResistance", function(len, ply)
 	local chemical_name = net.ReadString()
@@ -90,6 +118,15 @@ hook.Add("Think", "HMCD_SubRole_Abilities", function()
 	if(LocalPlayer().Ability_Disarm)then
 		MODE.ContinueDisarmingOther(LocalPlayer())
 	end
+
+	if BeingVictimOfThroatSlitResetTime and BeingVictimOfThroatSlitResetTime <= CurTime() then
+		BeingVictimOfThroatSlitResetTime = nil
+		LocalPlayer().BeingVictimOfThroatSlit = false
+	end
+
+	if LocalPlayer().Ability_ThroatSlit then
+		MODE.ContinueSlittingOtherThroat(LocalPlayer())
+	end
 end)
 --[[
 hook.Add("InputMouseApply", "HMCD_SubRole_Abilities", function(cmd, mouse_x, mouse_y, ang)
@@ -106,7 +143,7 @@ hook.Add("InputMouseApply", "HMCD_SubRole_Abilities", function(cmd, mouse_x, mou
 end)
 ]]
 hook.Add("hg_AdjustMouseSensitivity", "HMCD_SubRole_Abilities", function(sensitivity)
-	if(LocalPlayer().BeingVictimOfNeckBreak)then
+	if(LocalPlayer().BeingVictimOfNeckBreak or LocalPlayer().BeingVictimOfThroatSlit)then
 		return 0.1
 	end
 end)

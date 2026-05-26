@@ -189,10 +189,156 @@ function MODE.ContinueBreakingOtherNeck(ply)
 end
 
 hook.Add("HG_MovementCalc_2", "HMCD_SubRole_Abilities", function(mul, ply, cmd)
-	if(ply.BeingVictimOfNeckBreak or ply.BeingVictimOfDisarmament)then
+	if(ply.BeingVictimOfNeckBreak or ply.BeingVictimOfDisarmament or ply.BeingVictimOfThroatSlit)then
 		mul[1] = mul[1] * 0.3
 	end
 end)
+--//
+
+function MODE.IsTraitorDiversant(ply)
+	if not IsValid(ply) then return false end
+	return ply.SubRole == "traitor_diversant" or ply.SubRole == "traitor_diversant_soe"
+end
+
+MODE.SharpMeleeClasses = {
+	["weapon_sogknife"] = true,
+	["weapon_buck200knife"] = true,
+	["weapon_fiberwire"] = true,
+	["weapon_hg_axe"] = true,
+	["weapon_hg_machete"] = true,
+	["weapon_hg_crowbar"] = true,
+	["weapon_hatchet"] = true,
+	["weapon_tomahawk"] = true,
+	["weapon_pocketknife"] = true,
+	["weapon_hg_glassshard"] = true,
+	["weapon_hg_glassshard_taped"] = true,
+}
+
+function MODE.PlyHasSharpWeapon(ply)
+	if not IsValid(ply) then return false end
+	local wep = ply:GetActiveWeapon()
+	return MODE.IsSharpWeapon(wep)
+end
+
+function MODE.IsSharpWeapon(wep)
+	if not IsValid(wep) then return false end
+	if MODE.SharpMeleeClasses[wep:GetClass()] then return true end
+	if wep.Base == "weapon_melee" and (wep.HoldType == "knife" or wep.DamageType == DMG_SLASH) then return true end
+	return false
+end
+
+function MODE.GetStealableBackWeapon(victim)
+	if not IsValid(victim) or not victim:Alive() then return end
+	local active = victim:GetActiveWeapon()
+	for _, wep in ipairs(victim:GetWeapons()) do
+		if wep == active or wep.NoDrop then continue end
+		local class = wep:GetClass()
+		if class == "weapon_hands_sh" then continue end
+		local swep = weapons.Get(class)
+		if swep and swep.holsteredBone and not swep.shouldntDrawHolstered then
+			return wep
+		end
+	end
+end
+
+function MODE.CanPlayerStealFromBack(ply, other_ply, aim_ent)
+	if not IsValid(other_ply) or not other_ply:Alive() then return false end
+	if not MODE.GetStealableBackWeapon(other_ply) then return false end
+	return MODE.CanPlayerBreakOtherNeck(ply, aim_ent or other_ply)
+end
+
+function MODE.StealBackWeapon(ply, other_ply)
+	local wep = MODE.GetStealableBackWeapon(other_ply)
+	if not IsValid(wep) then return end
+	other_ply:DropWeapon(wep, nil, ply:GetPos() + ply:GetAimVector() * 8)
+	wep.DontEquipInstantly = true
+	ply:PickupWeapon(wep, false)
+	ply.noSound = true
+	timer.Simple(0, function()
+		if IsValid(ply) then ply.noSound = false end
+	end)
+end
+
+--\\Throat Slit
+function MODE.SlitOtherThroat(ply, other_ply, aim_ent)
+	if not other_ply:Alive() then return end
+	local dmgInfo = DamageInfo()
+	dmgInfo:SetDamageType(DMG_SLASH)
+	dmgInfo:SetAttacker(ply)
+	dmgInfo:SetInflictor(ply:GetActiveWeapon() or ply)
+	local ent = hg.GetCurrentCharacter(other_ply)
+	if not IsValid(ent) then return end
+	local ang = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Neck1"))
+	if not ang then return end
+	ang = ang:GetAngles()
+	local _, slashAng = LocalToWorld(vector_origin, Angle(0, -60, 0), vector_origin, ang)
+	if other_ply.organism and hg.organism and hg.organism.input_list and hg.organism.input_list.arteria then
+		hg.organism.input_list.arteria(other_ply.organism, 0, 8, dmgInfo, nil, -slashAng:Forward())
+	end
+	for i = 1, 4 do
+		hg.organism.AddWoundManual(other_ply, 40, VectorRand(-2, 2), slashAng, "ValveBiped.Bip01_Neck1", CurTime() + math.Rand(0, 1.5))
+	end
+	aim_ent:EmitSound("Flesh.ImpactHard", 45, math.random(95, 105), 0.6, CHAN_AUTO)
+	hook.Run("HomigradDamage", other_ply, dmgInfo, HITGROUP_HEAD, ent, 12)
+end
+
+function MODE.StartSlittingOtherThroat(ply, other_ply)
+	ply.Ability_ThroatSlit = {
+		Victim = other_ply,
+		Progress = 0,
+	}
+	other_ply.BeingVictimOfThroatSlit = true
+
+	if SERVER then
+		other_ply:ViewPunch(Angle(0, -8, -8))
+		net.Start("HMCD_BeingVictimOfThroatSlit")
+			net.WriteBool(true)
+		net.Send(other_ply)
+		net.Start("HMCD_SlittingOtherThroat")
+			net.WriteBool(true)
+			net.WriteEntity(ply)
+			net.WriteEntity(other_ply)
+		net.SendPVS(ply:GetShootPos())
+	end
+end
+
+function MODE.StopSlittingOtherThroat(ply)
+	if ply.Ability_ThroatSlit and IsValid(ply.Ability_ThroatSlit.Victim) then
+		ply.Ability_ThroatSlit.Victim.BeingVictimOfThroatSlit = false
+	end
+	if SERVER and ply.Ability_ThroatSlit and IsValid(ply.Ability_ThroatSlit.Victim) then
+		net.Start("HMCD_BeingVictimOfThroatSlit")
+			net.WriteBool(false)
+		net.Send(ply.Ability_ThroatSlit.Victim)
+		net.Start("HMCD_SlittingOtherThroat")
+			net.WriteBool(false)
+			net.WriteEntity(ply)
+		net.SendPVS(ply:GetShootPos())
+	end
+	ply.Ability_ThroatSlit = nil
+end
+
+function MODE.ContinueSlittingOtherThroat(ply)
+	local data = ply.Ability_ThroatSlit
+	if not data then return end
+	local victim = data.Victim
+	local aim_ent, other_ply = MODE.GetPlayerTraceToOtherVictim(ply, victim)
+	if IsValid(aim_ent) and (aim_ent:IsPlayer() or aim_ent:IsRagdoll()) then
+		if IsValid(victim) and victim:Alive() and MODE.CanPlayerBreakOtherNeck(ply, aim_ent) and other_ply == victim and MODE.PlyHasSharpWeapon(ply) then
+			data.Progress = data.Progress + FrameTime() * 350
+			if data.Progress >= 100 then
+				if SERVER then
+					MODE.SlitOtherThroat(ply, victim, aim_ent)
+				end
+				MODE.StopSlittingOtherThroat(ply)
+			end
+		else
+			MODE.StopSlittingOtherThroat(ply)
+		end
+	else
+		MODE.StopSlittingOtherThroat(ply)
+	end
+end
 --//
 
 --\\Disarm

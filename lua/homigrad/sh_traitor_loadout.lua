@@ -42,6 +42,7 @@ TL.WeaponAddonOrder = {
 TL.Skillsets = {
 	["none"] = {cost = 0, name = "Мокрушник", desc = "Без особых навыков.", objective = "Убей всех выбранным снаряжением."},
 	["infiltrator"] = {cost = 10, name = "Саботажник", desc = "Может сворачивать шеи, и переодеваться в одежду трупов.", objective = "Эксперт по диверсиям. Действуй тихо, убирай по одному."},
+	["diversant"] = {cost = 11, name = "Диверсант", desc = "Крадёт снаряжение со спины, режет горло острым предметом, переодевается в трупы. Тихий бег без следов. Рация-приманка и парализующий шприц.", objective = "Действуй из тени. Разъединяй, обезвреживай, заманивай."},
 	["assassin"] = {cost = 12, name = "Ассасин", desc = "Быстро обезоруживает людей, опытен в стрельбе.", objective = "Разоружай стрелка и бей его же оружием."},
 	["chemist"] = {cost = 3, name = "Химик", desc = "Устойчив к химикатам, обнаруживает химические вещества в воздухе.", objective = "Отравляй всё, что движется."},
 	["martial_artist"] = {cost = 30, name = "Мастер боевых искусств", desc = "Начинает с нунчаками. Усиленные кулаки, ноги и урон в ближнем бою. +40% к выносливости. Может обезоруживать и сворачивать шеи. Без фонарика.", objective = "Твоё тело — оружие. Убей всех.", exclusive = true},
@@ -56,6 +57,7 @@ TL.SubRoleBySkillset = {
 	standard = {
 		none = "traitor_custom",
 		infiltrator = "traitor_infiltrator",
+		diversant = "traitor_diversant",
 		assassin = "traitor_assasin",
 		chemist = "traitor_chemist",
 		martial_artist = "traitor_martial_artist",
@@ -63,6 +65,7 @@ TL.SubRoleBySkillset = {
 	soe = {
 		none = "traitor_custom_soe",
 		infiltrator = "traitor_infiltrator_soe",
+		diversant = "traitor_diversant_soe",
 		assassin = "traitor_assasin_soe",
 		chemist = "traitor_chemist",
 		martial_artist = "traitor_martial_artist_soe",
@@ -289,6 +292,8 @@ function TL.ApplySkillset(ply, skillset, modeType)
 		ply.organism.stamina[1] = 300
 		TL.GiveTraitorFlashlight(ply)
 	elseif skillset == "infiltrator" then
+		TL.GiveTraitorFlashlight(ply)
+	elseif skillset == "diversant" then
 		TL.GiveTraitorFlashlight(ply)
 	elseif skillset == "chemist" then
 		TL.GiveTraitorFlashlight(ply)

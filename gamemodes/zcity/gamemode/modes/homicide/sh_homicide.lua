@@ -130,6 +130,48 @@ MODE.SubRoles = {
 		end,
 	},
 	--==//
+
+	--==\\
+	["traitor_diversant"] = {
+		Name = "Диверсант",
+		Description = [[Крадёт снаряжение со спины.
+Режет горло острым предметом сзади.
+Переодевание через регдолл.
+Тихий бег без следов.
+Шприц-парализатор и рация-приманка.]],
+		Objective = "Действуй из тени. Разъединяй, обезвреживай, заманивай.",
+		SpawnFunction = function(ply)
+			ply:Give("weapon_traitor_diversant_syringe")
+			ply:Give("weapon_traitor_decoy_radio")
+
+			ply.organism.stamina.max = 220
+			local inv = ply:GetNetVar("Inventory", {})
+			inv["Weapons"]["hg_flashlight"] = true
+
+			ply:SetNetVar("Inventory", inv)
+		end,
+	},
+	["traitor_diversant_soe"] = {
+		Name = "Диверсант",
+		Description = [[Крадёт снаряжение со спины.
+Режет горло острым предметом сзади.
+Переодевание через регдолл.
+Тихий бег без следов.
+Шприц-парализатор и рация-приманка.]],
+		Objective = "Действуй из тени. Разъединяй, обезвреживай, заманивай.",
+		SpawnFunction = function(ply)
+			ply:Give("weapon_traitor_diversant_syringe")
+			ply:Give("weapon_traitor_decoy_radio")
+
+			ply.organism.recoilmul = 1
+			ply.organism.stamina.max = 220
+			local inv = ply:GetNetVar("Inventory", {})
+			inv["Weapons"]["hg_flashlight"] = true
+
+			ply:SetNetVar("Inventory", inv)
+		end,
+	},
+	--==//
 	
 	--==\\
 	--; СДЕЛАТЬ ЕМУ ЛУТ ДРУГИХ ИГРОКОВ ДАЖЕ ПОКА У НИХ НЕТ ПУШКИ В РУКАХ
@@ -353,6 +395,7 @@ MODE.RoleChooseRoundTypes = {
 			["traitor_default"] = true,
 			["traitor_custom"] = true,
 			["traitor_infiltrator"] = true,
+			["traitor_diversant"] = true,
 			["traitor_chemist"] = true,
 			["traitor_assasin"] = true,
 			["traitor_martial_artist"] = true,
@@ -383,6 +426,7 @@ MODE.RoleChooseRoundTypes = {
 			["traitor_default_soe"] = true,
 			["traitor_custom_soe"] = true,
 			["traitor_infiltrator_soe"] = true,
+			["traitor_diversant_soe"] = true,
 			["traitor_chemist"] = true,
 			["traitor_assasin_soe"] = true,
 			["traitor_martial_artist_soe"] = true,

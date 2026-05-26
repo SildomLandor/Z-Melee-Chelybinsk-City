@@ -103,6 +103,39 @@ hook.Add("HUDPaint", "HMCD_SubRoles_Abilities", function()
 					y_offset = y_offset + th + after_text_offset
 				end
 			end
+
+			if MODE.IsTraitorDiversant and MODE.IsTraitorDiversant(ply) then
+				local text = "(HOLD)[ALT + E] Slit Throat"
+				local tw, th = surface.GetTextSize(text)
+				local cx, cy = trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y
+				cy = cy + y_offset
+
+				if ((IsValid(aim_ent) and other_ply and MODE.CanPlayerBreakOtherNeck(ply, aim_ent) and MODE.PlyHasSharpWeapon(ply)) or ply.Ability_ThroatSlit) then
+					draw_shadow_text(text, cx, cy)
+
+					if ply.Ability_ThroatSlit then
+						local frac = ply.Ability_ThroatSlit.Progress / 100
+						surface.SetDrawColor(vgui_color_text_main)
+						surface.DrawRect(cx - tw / 2, cy, tw * frac, th)
+					end
+
+					y_offset = y_offset + th + after_text_offset
+				end
+
+				if IsValid(aim_ent) then
+					if aim_ent:IsRagdoll() then
+						local ragText = "[ALT + R] Exchange Appearances"
+						local rtw, rth = surface.GetTextSize(ragText)
+						draw_shadow_text(ragText, trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y + y_offset)
+						y_offset = y_offset + rth + after_text_offset
+					elseif other_ply and other_ply:IsPlayer() and other_ply:Alive() and MODE.CanPlayerStealFromBack(ply, other_ply, aim_ent) then
+						local stealText = "[ALT + R] Steal From Back"
+						local stw, sth = surface.GetTextSize(stealText)
+						draw_shadow_text(stealText, trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y + y_offset)
+						y_offset = y_offset + sth + after_text_offset
+					end
+				end
+			end
 			
 			if(ply.SubRole == "traitor_chemist")then
 				local after_side_bar_offset = 5
