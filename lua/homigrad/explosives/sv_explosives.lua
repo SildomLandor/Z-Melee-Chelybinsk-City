@@ -16,6 +16,12 @@ local DebrisSounds = {
 local vecCone = Vector(5, 5, 0)
 local dmgBurn = DMG_BLAST_SURFACE + DMG_BLAST + DMG_BURN
 local dmgBurnCoop = dmgBurn + DMG_BULLET + DMG_BUCKSHOT + DMG_AIRBOAT
+local ents_FindInSphere = ents.FindInSphere
+local math_random = math.random
+local math_min = math.min
+local math_Clamp = math.Clamp
+local SysTime = SysTime
+local IsValid = IsValid
 
 local function boomNet(pos, kind)
 	net.Start("hg_booom")
@@ -28,32 +34,40 @@ local function debrisRattle(ent, n)
 	if n <= 10 then return end
 	local pos, idx = ent:GetPos(), ent:EntIndex()
 	for _ = 1, 3 do
-		EmitSound(DebrisSounds[math.random(#DebrisSounds)], pos, idx, CHAN_AUTO, 1, 80)
+		EmitSound(DebrisSounds[math_random(#DebrisSounds)], pos, idx, CHAN_AUTO, 1, 80)
 	end
 end
 
--- fireOrg: огонь дезориентирует сквозь стену (делитель), остальные — только в прямой видимости
 local function blastSphere(selfPos, ent, dis, fireOrg)
 	local skip = { ent }
 	local nPhys = 0
-	local list = ents.FindInSphere(selfPos, dis)
+	local invDis = 1 / dis
+	local list = ents_FindInSphere(selfPos, dis)
 
 	for i = 1, #list do
 		local enta = list[i]
-		local tracePos = enta:IsPlayer() and (enta:GetPos() + enta:OBBCenter()) or enta:GetPos()
-		local tr = hg.ExplosionTrace(selfPos, tracePos, skip)
+		local isPly = enta:IsPlayer()
+		local org = enta.organism
 		local phys = enta:GetPhysicsObject()
-		if IsValid(phys) then nPhys = nPhys + 1 end
+		local hasPhys = IsValid(phys)
+
+		if not isPly and not org and not hasPhys then continue end
+		if hasPhys then nPhys = nPhys + 1 end
+
+		local tracePos = isPly and (enta:GetPos() + enta:OBBCenter()) or enta:GetPos()
+		local tr = hg.ExplosionTrace(selfPos, tracePos, skip)
 
 		local force = enta:GetPos() - selfPos
 		local len = force:Length()
+		if len < 0.001 then continue end
 		force:Div(len)
-		local frac = math.Clamp((dis - len) / dis, 0.5, 1)
-		local forceadd = force * frac * 50000
 
-		if enta.organism then
+		local frac = math_Clamp((dis - len) * invDis, 0.5, 1)
+		local forceadd = force * (frac * 50000)
+
+		if org then
 			local behindwall = tr.Entity ~= enta and tr.MatType ~= MAT_GLASS
-			local owner = enta.organism.owner
+			local owner = org.owner
 			if IsValid(owner) and owner:IsPlayer() and (fireOrg or not behindwall) then
 				if fireOrg then
 					local div = behindwall and 3 or 1
@@ -65,23 +79,55 @@ local function blastSphere(selfPos, ent, dis, fireOrg)
 			end
 		end
 
-		if tr.Entity ~= enta then forceadd = forceadd / 5 continue end
+		if tr.Entity ~= enta then
+			forceadd = forceadd / 5
+			continue
+		end
 
-		if enta:IsPlayer() then
+		if isPly then
 			hg.AddForceRag(enta, 0, forceadd * 0.5, 0.5)
 			hg.AddForceRag(enta, 1, forceadd * 0.5, 0.5)
 			timer.Simple(0, function() hg.LightStunPlayer(enta) end)
 		end
 
-		if not IsValid(phys) then continue end
-		phys:ApplyForceCenter(forceadd)
+		if hasPhys then phys:ApplyForceCenter(forceadd) end
 	end
 
 	return nPhys
 end
 
+local shrapJobs = {}
+
+local function shrapnelPump()
+	for i = #shrapJobs, 1, -1 do
+		local job = shrapJobs[i]
+		if not IsValid(job.ent) then
+			table.remove(shrapJobs, i)
+		else
+			coroutine.resume(job.co)
+			if job.ent.ShrapnelDone then
+				SafeRemoveEntity(job.ent)
+				table.remove(shrapJobs, i)
+			end
+		end
+	end
+
+	if #shrapJobs == 0 then
+		hook.Remove("Think", "hg_shrapnel")
+	end
+end
+
+local function shrapFilter(ent)
+	local filt = { ent }
+	local drums = hg.drums2
+	for d = 1, #drums do
+		filt[#filt + 1] = drums[d]
+	end
+	return filt
+end
+
 local function shrapnelBurst(ent, selfPos, owner, force, mass, countMul, shakeRad)
-	local multi = math.min(mass / 5, 20)
+	local multi = math_min(mass / 5, 20)
 	local bullet = {
 		Src = selfPos,
 		Spread = vecCone,
@@ -91,17 +137,18 @@ local function shrapnelBurst(ent, selfPos, owner, force, mass, countMul, shakeRa
 		Attacker = owner,
 		Distance = 15000,
 		DisableLagComp = true,
-		Filter = { ent },
+		Filter = shrapFilter(ent),
 	}
-	table.Add(bullet.Filter, hg.drums2)
 
+	local shots = multi * countMul
+	local fwd = ent:GetAngles():Forward()
 	local co = coroutine.create(function()
 		local last
-		for i = 1, multi * countMul do
+		for n = 1, shots do
 			last = SysTime()
 			if not IsValid(ent) then return end
-			bullet.Dir = ent:GetAngles():Forward() * math.random(-1, 1)
-			bullet.Spread = vecCone * (i / mass / 5)
+			bullet.Dir = fwd * math_random(-1, 1)
+			bullet.Spread = vecCone * (n / mass / 5)
 			ent:FireLuaBullets(bullet, true)
 			last = SysTime() - last
 			if last > 0.001 then coroutine.yield() end
@@ -112,35 +159,31 @@ local function shrapnelBurst(ent, selfPos, owner, force, mass, countMul, shakeRa
 	util.ScreenShake(selfPos, 100, 900, 1, shakeRad)
 	coroutine.resume(co)
 
-	local index = ent:EntIndex()
-	timer.Create("GrenadeCheck_" .. index, 0, 0, function()
-		if not IsValid(ent) then
-			timer.Remove("GrenadeCheck_" .. index)
-		end
-		coroutine.resume(co)
-		if ent.ShrapnelDone then
-			if not IsValid(ent) then return end
-			SafeRemoveEntity(ent)
-			timer.Remove("GrenadeCheck_" .. index)
-		end
-	end)
+	shrapJobs[#shrapJobs + 1] = { ent = ent, co = co }
+	if #shrapJobs == 1 then
+		hook.Add("Think", "hg_shrapnel", shrapnelPump)
+	end
+end
+
+local function boomCore(ent, selfPos, owner, force, blastDmg, doorPow, doorRange, fxPow, netKind)
+	util.BlastDamage(ent, owner, selfPos, blastDmg, force * 2)
+	hgBlastDoors(ent, selfPos, doorPow, doorRange)
+	hg.ExplosionEffect(selfPos, fxPow, 80)
+	boomNet(selfPos, netKind)
 end
 
 local ExpTypes = {
 	Fire = function(ent, force, mass)
-		local multi = math.min(mass / 10, 20)
+		local multi = math_min(mass / 10, 20)
 		force = force * multi
 		local selfPos = ent:LocalToWorld(ent:OBBCenter())
 		local owner = ent.owner or ent
 		local rad = force / 8
 
-		util.BlastDamage(ent, owner, selfPos, rad / 0.01905, force * 2)
-		hgBlastDoors(ent, selfPos, force / 50, force / 15)
-		hg.ExplosionEffect(selfPos, force / 0.2, 80)
-		boomNet(selfPos, "Fire")
+		boomCore(ent, selfPos, owner, force, rad / 0.01905, force / 50, force / 15, force / 0.2, "Fire")
 
 		if not IsValid(ent) then return end
-		multi = math.min(mass / 5, 20)
+		multi = math_min(mass / 5, 20)
 
 		local tr = util.QuickTrace(selfPos, -vector_up * 500, { ent })
 		local fire = CreateVFire(game.GetWorld(), tr.HitPos, tr.HitNormal, 150 / 7 * multi, ent)
@@ -148,7 +191,7 @@ local ExpTypes = {
 
 		for _ = 1, multi / 2 do
 			local randvec = VectorRand(-1000, 1000)
-			randvec[3] = math.random(100, 1000)
+			randvec[3] = math_random(100, 1000)
 			CreateVFireBall(20, 50, selfPos + vector_up * 10, randvec)
 		end
 

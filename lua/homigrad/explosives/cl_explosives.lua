@@ -12,35 +12,35 @@ local ExplosiveSound = {
 }
 
 local upAng = vector_up:Angle()
-local effectPerMSec = 0
-local effectCDCurTime = 0
+local effectCount = 0
+local effectResetAt = 0
+local CurTime = CurTime
+local table_Random = table.Random
+local math_random = math.random
+local EmitSound = EmitSound
+local render_GetViewSetup = render.GetViewSetup
+local ParticleEffect = ParticleEffect
 
-local function PlaySndDist(snd, snd2, pos, isOnWater, watersnd)
-	if SERVER then return end
-	local delay = pos:Distance(render.GetViewSetup(true).origin) / 17836
+local function playBoomSnd(snd, sndFar, pos)
+	local delay = pos:Distance(render_GetViewSetup(true).origin) / 17836
 	timer.Simple(delay, function()
-		if isOnWater then
-			EmitSound(watersnd, pos, 0, CHAN_WEAPON, 1, 100, 0, 85, 0, nil)
-			return
-		end
-		EmitSound(snd2, pos, 0, CHAN_WEAPON, 1, 110, 0, 100, 0, nil)
+		EmitSound(sndFar, pos, 0, CHAN_WEAPON, 1, 110, 0, 100, 0, nil)
 		EmitSound(snd, pos, 0, CHAN_AUTO, 1, delay > 0.6 and 140 or 110, 0, 100, 0, nil)
 	end)
 end
 
 net.Receive("hg_booom", function()
 	local pos = net.ReadVector()
-	local typ = net.ReadString()
-	local cfg = ExplosiveSound[typ]
+	local cfg = ExplosiveSound[net.ReadString()]
+	if not cfg then return end
 
-	if effectCDCurTime < CurTime() then
-		effectPerMSec = 0
-	end
-	if effectPerMSec < 10 then
+	local t = CurTime()
+	if effectResetAt < t then effectCount = 0 end
+	if effectCount < 10 then
 		ParticleEffect(cfg.Effect, pos, upAng)
-		effectPerMSec = effectPerMSec + 1
-		effectCDCurTime = CurTime() + 0.2
+		effectCount = effectCount + 1
+		effectResetAt = t + 0.2
 	end
 
-	PlaySndDist(table.Random(cfg.Near), table.Random(cfg.Far), pos, false, "huy")
+	playBoomSnd(table_Random(cfg.Near), table_Random(cfg.Far), pos)
 end)
