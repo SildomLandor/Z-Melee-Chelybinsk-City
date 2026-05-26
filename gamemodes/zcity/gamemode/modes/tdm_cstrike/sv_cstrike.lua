@@ -4,6 +4,7 @@ CreateConVar("zb_bomb_site_radius", "25", FCVAR_REPLICATED, "Радиус зак
 
 MODE.KillMoney = 1000
 MODE.StartMoney = 1000
+MODE.BombExplodeMoney = 1500
 MODE.start_time = 20
 
 MODE.Rounds = 5
@@ -401,6 +402,17 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:RoundThink()
+end
+
+function MODE:OnBombExploded()
+	if zb.CROUND ~= self.name or zb.rtype ~= "bomb" then return end
+
+	for _, ply in ipairs(team.GetPlayers(0)) do
+		ply:SetNWInt("TDM_Money", math.max(ply:GetNWInt("TDM_Money") + self.BombExplodeMoney, 0))
+		ply:ChatPrint("Бонус за подрыв бомбы: +"..self.BombExplodeMoney.."$")
+	end
+
+	PrintMessage(HUD_PRINTTALK, "Бомба взорвалась. Террористы получили "..self.BombExplodeMoney.."$.")
 end
 
 hook.Add("HarmDone", "MoneyGive", function(ply, victim, amt)

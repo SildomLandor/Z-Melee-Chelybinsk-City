@@ -161,9 +161,17 @@ function ENT:Think()
 	self:NextThink(CurTime())
 	if self.active then
 		if self:GetNetVar("timer") < CurTime() then
-			zb.bombexploded = true
-			util.ScreenShake(self:GetPos(), 95, 500, 4, 1000)
-			hg.PropExplosion(self, "Fire", 300, 100)
+			if not self.exploded then
+				self.exploded = true
+				zb.bombexploded = true
+
+				if self.tbl and self.tbl.OnBombExploded then
+					self.tbl:OnBombExploded()
+				end
+
+				util.ScreenShake(self:GetPos(), 95, 500, 4, 1000)
+				hg.PropExplosion(self, "Fire", 300, 100)
+			end
 		end
 
 		--;; WHAT THE FAK YUUUUUUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH

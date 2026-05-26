@@ -241,11 +241,14 @@ end
 function MODE:SpawnWave()
     local spawnPoints = self.GetDefenseAnchorPoints and self:GetDefenseAnchorPoints() or {}
     if not spawnPoints or #spawnPoints == 0 then
+        PrintMessage(HUD_PRINTTALK, "нет точек спавна NPC (NPC_DEFENSE_SPAWN / DEFENSE_POINT).")
+        self.WaveSpawnInProgress = false
         return
     end
     
     local waveDefinitions = DEFENSE_WAVE_DEFINITIONS[self.CurrentSubMode]
     if not waveDefinitions or not waveDefinitions[self.Wave] then
+        self.WaveSpawnInProgress = false
         return
     end
     

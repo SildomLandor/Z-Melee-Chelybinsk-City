@@ -18,6 +18,7 @@ MODE.CurrentSubMode = "STANDARD"
 MODE.LootSpawn = true
 MODE.ForBigMaps = true
 MODE.Chance = 0.02
+MODE.start_time = 55
 
 local defenseDefaultPlayerSpawns = {
     "info_player_deathmatch", "info_player_combine", "info_player_rebel",
@@ -112,6 +113,16 @@ function MODE:StartWave()
         net.WriteString(DEFENSE_MUSIC.WAVE[self.Wave])
         net.Broadcast()
     end
+end
+
+function MODE:ResetWaveState()
+    self.WaveActive = false
+    self.WaveSpawnInProgress = false
+    self.WaveCompleted = false
+    self:ClearAllTimers()
+
+    net.Start("StopWaveMusic")
+    net.Broadcast()
 end
 
 function MODE:EndWave()
@@ -249,10 +260,11 @@ end
 function MODE:Intermission()
     self.NPCCount = 0
     self.Wave = 0
-    self.WaveActive = false
-    self.WaveCompleted = false
+    self.VoteInProgress = false
+    self.SetupPhase = false
+    self.PrepInProgress = false
 
-    self:ClearAllTimers() 
+    self:ResetWaveState()
     game.CleanUpMap()
 
     self.SpawnPoints = self:GetUsualPlayerSpawnPoints()
@@ -270,7 +282,6 @@ function MODE:Intermission()
         end
     end
 
-    self:EndWave()
     self:StartVoting()
 end
 
@@ -308,7 +319,12 @@ function MODE:StartVoting()
 end
 
 function MODE:EndVoting()
+    if not self.VoteInProgress then return end
+
     self:RemoveTimer("vote_update_timer")
+    self:RemoveTimer("vote_end_timer")
+    self.VoteInProgress = false
+    self.SetupPhase = true
     
     local highestVotes = 0
     local selectedModes = {}
@@ -351,9 +367,8 @@ function MODE:EndVoting()
     net.WriteString(self.CurrentSubMode)
     net.Broadcast()
 
-    self.VoteInProgress = false
-    
     timer.Simple(3, function()
+        if CurrentRound() ~= self then return end
         net.Start("npc_defense_start")
         net.Broadcast()
         self:StartPrepPhase()
@@ -361,6 +376,9 @@ function MODE:EndVoting()
 end
 
 function MODE:StartPrepPhase()
+    self.SetupPhase = false
+    self.PrepInProgress = true
+
     for _, ply in player.Iterator() do
         if ply:Team() ~= TEAM_SPECTATOR and not ply:Alive() then
             ply:Spawn()
@@ -377,9 +395,12 @@ function MODE:StartPrepPhase()
     self:GiveEquipment()
 
     self:CreateTimer("prep_phase_timer", 30, 1, function()
+        if CurrentRound() ~= self then return end
+        self.PrepInProgress = false
         self.Wave = 1
-        self.NPCCount = 0  
-        self:StartWave()  
+        self.NPCCount = 0
+        self.WaveCompleted = false
+        self:StartWave()
         self:SpawnWave()
     end)
 
@@ -390,30 +411,18 @@ function MODE:StartPrepPhase()
 end
 
 function MODE:ShouldRoundEnd()
-    if self.VoteInProgress then
+    if self.VoteInProgress or self.SetupPhase or self.PrepInProgress then
         return false
     end
-    
-    if (#zb:CheckAlive(true) <= 0) then
-        local menuActive = false
-        for _, ply in player.Iterator() do
-            if ply.HasVoted ~= nil then
-                menuActive = true
-                break
-            end
-        end
-        
-        if menuActive then
-            return false
-        end
-        
-        return true
-    end
-    
+
     if self.WaveCompleted and self.Wave >= self.TotalWaves then
         return true
     end
-    
+
+    if #zb:CheckAlive(true) <= 0 then
+        return true
+    end
+
     return false
 end
 
@@ -559,6 +568,9 @@ end
 function MODE:EndRound()
     net.Start("npc_defense_roundend")
     net.Broadcast()
+    self.VoteInProgress = false
+    self.SetupPhase = false
+    self.PrepInProgress = false
     self:EndWave()
     self:ClearPlayerRoles()
     self:ClearAllTimers()
@@ -640,6 +652,12 @@ net.Receive("defense_submit_vote", function(len, ply)
         end
     end
 end)
+
+function zb.EndMatch()
+    if zb.ROUND_STATE == 1 then
+        zb:EndRound()
+    end
+end
 
 net.Receive("defense_change_vote", function(len, ply)
     if not IsValid(ply) then return end

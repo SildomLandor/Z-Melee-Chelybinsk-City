@@ -49,18 +49,17 @@ function MODE:HUDPaint()
 	 
 	if not lply:Alive() then return end
     local fade = math.Clamp(zb.ROUND_START + 8 - CurTime(), 0, 1)
-	local team_ = lply:Team()
+	local teamData = teams[lply:Team()] or teams[1]
     draw.SimpleText("ZBattle | HL2 Base Defense", "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	
     local playerRole = lply:GetNWString("PlayerRole", "Refugee") 
-    local roleColor = teams[team_].color1
+    local roleColor = teamData.color1
     roleColor.a = 255 * fade
     draw.SimpleText("You are a " .. playerRole, "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.5, roleColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
-    local objective = teams[team_].objective
-    local objectiveColor = teams[team_].color2
+    local objectiveColor = teamData.color2
     objectiveColor.a = 255 * fade
-    draw.SimpleText(objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, objectiveColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    draw.SimpleText(teamData.objective, "ZB_HomicideMedium", sw * 0.5, sh * 0.9, objectiveColor, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 end
 
 --[[concommand.Add("defense_test_boss_banner", function()

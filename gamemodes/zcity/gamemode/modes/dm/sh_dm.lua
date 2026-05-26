@@ -3,6 +3,18 @@ local MODE = MODE
 MODE.name = "dm"
 MODE.EndMenuTitle = "Против всех"
 
+MODE.FadeScreenTime = 1.5
+MODE.DefaultRoundStartTime = 6
+MODE.IntroTitle = "ZBattle | Против всех"
+MODE.FighterName = "Боец"
+MODE.FighterObjective = "Убей всех."
+
+function MODE.IsDMFamily(mode)
+	mode = mode or (CurrentRound and CurrentRound())
+	if not mode then return false end
+	return mode.name == "dm" or mode.base == "dm"
+end
+
 MODE.MapSize = 7500
 MODE.ZoneTimeToShrink = 120
 

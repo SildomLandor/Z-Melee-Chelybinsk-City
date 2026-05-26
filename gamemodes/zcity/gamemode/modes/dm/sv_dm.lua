@@ -228,7 +228,7 @@ end
 local cooldown = CurTime()
 hook.Add("Think","bober",function(ply)
 	local rnd = CurrentRound()
-	if not rnd or rnd.name != "dm" then return end
+	if not MODE.IsDMFamily(rnd) then return end
 	if (zb.ROUND_START or 0) + 20 > CurTime() then return end
 	if cooldown > CurTime() then return end
 	if deathmatch_nozone:GetBool() then return end

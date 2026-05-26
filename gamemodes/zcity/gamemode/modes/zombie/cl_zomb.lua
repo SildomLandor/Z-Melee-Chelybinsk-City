@@ -1,7 +1,10 @@
 local MODE = MODE
+MODE.name = "zombie"
 
+local nextWaveAt = 0
+local currentWave = 0
+local totalWaves = 6
 local roundStartSynced = 0
-local roundend = false
 
 local fadeFX = {
 	noiseMat = Material("vgui/noisevhs"),
@@ -16,13 +19,10 @@ if fadeFX.noiseMat:IsError() then
 	fadeFX.noiseMat = Material("vgui/white")
 end
 
-function MODE.GetRoundFadeOverlay(mode)
-	mode = mode or CurrentRound()
-	if not mode then return 0 end
-
-	local diff = (mode.DynamicFadeScreenEndTime or 0) - CurTime()
+function MODE.GetRoundFadeOverlay()
+	local diff = (MODE.DynamicFadeScreenEndTime or 0) - CurTime()
 	if diff <= 0 then return 0 end
-	return math.min(diff / (mode.FadeScreenTime or 1.5), 1)
+	return math.min(diff / (MODE.FadeScreenTime or 1.5), 1)
 end
 
 local function UpdateFadeShake(intensity)
@@ -112,13 +112,11 @@ local function DrawFadeTitle(text, cx, cy, col, alpha)
 	end
 end
 
-local function SyncRoundFade(mode)
-	mode = mode or CurrentRound()
-	if not mode then return end
+local function SyncRoundFade()
 	if roundStartSynced == zb.ROUND_START then return end
 	roundStartSynced = zb.ROUND_START
 
-	mode.DynamicFadeScreenEndTime = zb.ROUND_START + (mode.DefaultRoundStartTime or 6)
+	MODE.DynamicFadeScreenEndTime = zb.ROUND_START + (MODE.DefaultRoundStartTime or 6)
 	fadeFX.shakeX = 0
 	fadeFX.shakeY = 0
 	fadeFX.targetShakeX = math.Rand(-2, 2)
@@ -126,51 +124,29 @@ local function SyncRoundFade(mode)
 	fadeFX.nextShake = 0
 end
 
-local deathmatch_nozone = ConVarExists("deathmatch_nozone") and GetConVar("deathmatch_nozone") or CreateConVar("deathmatch_nozone", 0, FCVAR_REPLICATED, "Allows to disable deathmatch mode zone.", 0, 1)
+local intro = {
+	objective = "Переживи все волны. Ищи лут в ящиках и шкафах.",
+	name = "Выживший",
+	color1 = Color(80, 200, 80),
+	color2 = Color(60, 160, 60),
+}
 
-local fighterColor = Color(0, 120, 190)
-
-net.Receive("dm_start", function()
-	roundend = false
-	hg.DynaMusic:Start("mirrors_edge")
+net.Receive("zombie_start", function()
+	nextWaveAt = 0
+	currentWave = 0
+	hg.DynaMusic:Start("splinter_cell")
 	zb.RemoveFade()
-	SyncRoundFade(CurrentRound())
-
-	ZonePos = net.ReadVector()
-	zonedistance = net.ReadFloat()
-
-	surface.PlaySound("snd_jack_hmcd_deathmatch.mp3")
-	sound.PlayFile("sound/ambient/energy/force_field_loop1.wav", "noblock", function(station)
-		if not IsValid(station) then return end
-		zb.SoundStation = station
-		station:Play()
-		station:EnableLooping(true)
-		station:SetVolume(0)
-	end)
 end)
 
-hook.Add("Think", "ZoneSoundThink", function()
-	if not MODE.IsDMFamily(CurrentRound()) then return end
-	local station = zb.SoundStation
-	if not IsValid(station) then return end
-	if deathmatch_nozone:GetBool() then return end
-	local radius = MODE.GetZoneRadius()
-	local volume = math.Clamp((LocalPlayer():GetPos():Distance(ZonePos) - radius) + 200, 0, 200) / 200
-	station:SetVolume(volume)
+net.Receive("zombie_newwave", function()
+	currentWave = net.ReadInt(8)
+	totalWaves = net.ReadInt(8)
+	nextWaveAt = CurTime() + 8
 end)
-
-local mat = Material("hmcd_dmzone")
-
-function MODE:PostDrawTranslucentRenderables(bDepth, bSkybox, isDraw3DSkybox)
-	if bSkybox or isDraw3DSkybox or deathmatch_nozone:GetBool() then return end
-	local radius = MODE.GetZoneRadius()
-	render.SetMaterial(mat)
-	render.DrawSphere(ZonePos, -radius, 60, 60, color_white)
-end
 
 function MODE:RenderScreenspaceEffects()
-	SyncRoundFade(self)
-	local overlay = MODE.GetRoundFadeOverlay(self)
+	SyncRoundFade()
+	local overlay = MODE.GetRoundFadeOverlay()
 	if overlay <= 0 then return end
 
 	zb.RemoveFade()
@@ -179,74 +155,58 @@ function MODE:RenderScreenspaceEffects()
 end
 
 function MODE:HUDPaint()
-	SyncRoundFade(self)
+	SyncRoundFade()
 
-	if zb.ROUND_START + 20 > CurTime() then
-		draw.SimpleText(string.FormattedTime(zb.ROUND_START + 20 - CurTime(), "%02i:%02i:%02i"), "ZB_HomicideMedium", sw * 0.5, sh * 0.75, Color(255, 55, 55), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	local sw, sh = ScrW(), ScrH()
+
+	local waveAt = nextWaveAt
+	if currentWave == 0 and waveAt <= CurTime() then
+		waveAt = zb.ROUND_START + 35
 	end
 
-	if not lply:Alive() then return end
+	if waveAt > CurTime() then
+		local t = waveAt - CurTime()
+		draw.SimpleText(
+			"След. Волна: " .. string.format("%02i:%02i", math.floor(t / 60), math.floor(t % 60)),
+			"ZCity_Veteran",
+			sw * 0.5, sh * 0.92,
+			color_white,
+			TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
+		)
+	end
 
-	local introLen = (self.DefaultRoundStartTime or 6) + (self.FadeScreenTime or 1.5)
+	if not IsValid(lply) or not lply:Alive() or lply:Team() == TEAM_SPECTATOR then return end
+
+	local introLen = (MODE.DefaultRoundStartTime or 6) + (MODE.FadeScreenTime or 1.5)
 	if CurTime() > zb.ROUND_START + introLen + 2 then return end
 
 	zb.RemoveFade()
-	local overlay = MODE.GetRoundFadeOverlay(self)
+	local overlay = MODE.GetRoundFadeOverlay()
 	UpdateFadeShake(math.max(overlay, 0.35))
 
 	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((zb.ROUND_START + introLen - CurTime()) / introLen, 0, 1)
 	if textFade <= 0 then return end
 
-	local accent = self.FighterColor or fighterColor
+	DrawFadeTitle("ZBattle | Zombie Survival", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
-	DrawFadeTitle(self.IntroTitle or "ZBattle | Против всех", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	local colRole = Color(intro.color1.r, intro.color1.g, intro.color1.b, 255 * textFade)
+	DrawFadeText("Ты — " .. intro.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
 
-	local colRole = Color(accent.r, accent.g, accent.b, 255 * textFade)
-	DrawFadeText("Ты — " .. (self.FighterName or "Боец"), "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
-
-	local colObj = Color(accent.r, accent.g, accent.b, 255 * textFade)
-	DrawFadeText(self.FighterObjective or "Убей всех.", "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
+	local colObj = Color(intro.color2.r, intro.color2.g, intro.color2.b, 255 * textFade)
+	DrawFadeText(intro.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)
 end
 
-net.Receive("dm_end", function()
-	local ent = net.ReadEntity()
-	local most_violent_player = net.ReadEntity()
-
-	if IsValid(most_violent_player) then
-		most_violent_player.most_violent_player = true
-	end
-
-	local wonply = IsValid(ent) and ent or nil
-	if IsValid(ent) then ent.won = true end
-
-	zb.SoundStation = nil
-	roundend = CurTime()
-
-	if MODE.SoundStation and MODE.SoundStation:IsValid() then
-		MODE.SoundStation:Stop()
-		MODE.SoundStation = nil
-	end
-
-	local winnerName = IsValid(wonply) and wonply:GetPlayerName() or "Никто"
+net.Receive("zombie_roundend", function()
+	local survived = net.ReadBool()
 	zb.EndMenu.Open({
-		subtitle = winnerName .. " победил!",
-		subtitleColor = Color(217, 201, 99),
+		sound = survived and "ambient/alarms/warningbell1.wav",
 		statusText = function(ply)
-			if ply.most_violent_player then return " — MVP" end
 			if not ply:Alive() then return " — мёртв" end
-			return ""
-		end,
-		rowStyle = function(ply)
-			if ply.won or ply.most_violent_player then return { winner = true } end
-			if ply:Alive() then return { bar = Color(0, 120, 190) } end
+			return survived and " — выжил" or ""
 		end,
 	})
 end)
 
 function MODE:RoundStart()
-	for _, ply in player.Iterator() do
-		ply.won = nil
-		ply.most_violent_player = nil
-	end
 	zb.EndMenu.Close()
 end
