@@ -73,7 +73,40 @@ local col = {
 local NoiseMat = Material("vgui/noisevhs")
 if NoiseMat:IsError() then NoiseMat = Material("vgui/white") end
 
-local guiltOverlay, guiltMenu
+local guiltOverlay, guiltMenu, guiltPayload
+
+local function calcLayout(sw, sh)
+	sw, sh = sw or ScrW(), sh or ScrH()
+
+	local margin = ScreenScale(6)
+	local topBarH = ScreenScaleH(34)
+	local footerH = ScreenScaleH(26)
+	local rowH = ScreenScaleH(34)
+	local pad = ScreenScale(6)
+
+	local sizeX = math.Clamp(math.floor(sw * 0.42), ScreenScale(260), math.floor(sw * 0.92))
+	local sizeY = math.Clamp(math.floor(sh * 0.50), ScreenScaleH(220), math.floor(sh * 0.88))
+	sizeX = math.min(sizeX, sw - margin * 2)
+	sizeY = math.min(sizeY, sh - margin * 2)
+
+	local listTop = topBarH + ScreenScaleH(4)
+	local listH = math.max(sizeY - listTop - footerH - ScreenScaleH(4), rowH * 2)
+
+	return {
+		sw = sw, sh = sh,
+		sizeX = sizeX, sizeY = sizeY,
+		posX = math.floor((sw - sizeX) * 0.5),
+		posY = math.floor((sh - sizeY) * 0.46),
+		margin = margin, pad = pad,
+		topBarH = topBarH, footerH = footerH, rowH = rowH,
+		listTop = listTop, listH = listH,
+		titleOffY = ScreenScaleH(15),
+		shake = math.max(ScreenScale(0.35), 0.25),
+		avPad = ScreenScaleH(4),
+		forgiveW = ScreenScale(52),
+		scanStep = math.max(2, math.floor(ScreenScaleH(3))),
+	}
+end
 
 local function entryHarm(data)
 	if istable(data) then return data.harm or 0 end
@@ -127,17 +160,15 @@ local function styleScrollbar(sbar)
 	end
 end
 
-local function close_guilt_menu()
-	if IsValid(guiltOverlay) then
-		guiltOverlay:Remove()
-	end
-	guiltOverlay = nil
-	guiltMenu = nil
+local function close_guilt_menu(clearPayload)
+	if IsValid(guiltOverlay) then guiltOverlay:Remove() end
+	guiltOverlay, guiltMenu = nil, nil
+	if clearPayload then guiltPayload = nil end
 	gui.EnableScreenClicker(false)
 end
 
 hook.Add("zbClientModeCleanup", "guilt_close_on_mode_change", function()
-	close_guilt_menu()
+	close_guilt_menu(true)
 	showstuff = 0
 end)
 
@@ -164,7 +195,7 @@ net.Receive("open_guilt_menu", function()
 	if guiltHasEntries(tbl) then
 		OpenMenu(tbl)
 	elseif IsValid(guiltOverlay) then
-		close_guilt_menu()
+		close_guilt_menu(true)
 	else
 		OpenMenu(tbl)
 	end
@@ -184,11 +215,12 @@ hook.Add("HUDPaint", "shownotification", function()
 	if IsValid(guiltOverlay) then return end
 
 	if showstuff > CurTime() then
-		local sw, sh = ScrW(), ScrH()
+		local lay = calcLayout()
 		local txt = "Нажми [F], чтобы открыть меню прощения"
 		local pulse = math.sin(CurTime() * 3) * 0.2 + 0.8
-		draw.SimpleText(txt, "ZCity_Veteran", sw * 0.5 + 1, sh - ScreenScaleH(28) + 1, Color(0, 0, 0, 120 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		draw.SimpleText(txt, "ZCity_Veteran", sw * 0.5, sh - ScreenScaleH(28), Color(200, 200, 200, 220 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		local hintY = lay.sh - ScreenScaleH(28)
+		draw.SimpleText(txt, "ZCity_Veteran", lay.sw * 0.5 + 1, hintY + 1, Color(0, 0, 0, 120 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText(txt, "ZCity_Veteran", lay.sw * 0.5, hintY, Color(200, 200, 200, 220 * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 
 	if input.IsKeyDown(KEY_F) and not gui.IsGameUIVisible() and not IsValid(vgui.GetKeyboardFocus()) then
@@ -202,21 +234,19 @@ hook.Add("HUDPaint", "shownotification", function()
 	end
 end)
 
+hook.Add("OnScreenSizeChanged", "guilt_rescale", function()
+	if not guiltPayload or not IsValid(guiltOverlay) then return end
+	OpenMenu(guiltPayload)
+end)
+
 OpenMenu = function(tbl)
 	close_guilt_menu()
+	guiltPayload = tbl
 
-	local sw, sh = ScrW(), ScrH()
-	local sizeX = math.Clamp(math.floor(sw * 0.44), 480, 720)
-	local sizeY = math.Clamp(math.floor(sh * 0.48), 260, 720)
-	local posX = math.floor(sw * 0.5 - sizeX * 0.5)
-	local posY = math.floor(sh * 0.44 - sizeY * 0.5)
-
-	local margin = ScreenScale(6)
-	local topBarH = ScreenScaleH(34)
-	local footerH = ScreenScaleH(26)
-	local rowH = ScreenScaleH(34)
-	local listTop = topBarH + ScreenScaleH(4)
-	local listH = math.max(sizeY - listTop - footerH - ScreenScaleH(4), ScreenScaleH(60))
+	local lay = calcLayout()
+	local sizeX, sizeY = lay.sizeX, lay.sizeY
+	local margin, topBarH, footerH, rowH = lay.margin, lay.topBarH, lay.footerH, lay.rowH
+	local listTop, listH = lay.listTop, lay.listH
 
 	local bloodDrips = {}
 	for i = 1, math.random(4, 64) do
@@ -233,10 +263,10 @@ OpenMenu = function(tbl)
 	local shakeX, shakeY = 0, 0
 	local targetShakeX, targetShakeY = 0, 0
 	local nextShakeSample = 0
-	local shakeStrength = 0.4
+	local shakeStrength = lay.shake
 
 	guiltOverlay = vgui.Create("DPanel")
-	guiltOverlay:SetSize(sw, sh)
+	guiltOverlay:SetSize(lay.sw, lay.sh)
 	guiltOverlay:SetPos(0, 0)
 	guiltOverlay:SetMouseInputEnabled(true)
 	guiltOverlay:SetKeyboardInputEnabled(true)
@@ -252,15 +282,15 @@ OpenMenu = function(tbl)
 		surface.DrawRect(0, 0, w, h)
 	end
 	guiltOverlay.OnKeyCodePressed = function(_, key)
-		if key == KEY_ESCAPE then close_guilt_menu() end
+		if key == KEY_ESCAPE then close_guilt_menu(true) end
 	end
 	guiltOverlay.OnMousePressed = function(self, code)
 		if code ~= MOUSE_LEFT then return end
-		close_guilt_menu()
+		close_guilt_menu(true)
 	end
 
 	guiltMenu = vgui.Create("DPanel", guiltOverlay)
-	guiltMenu:SetPos(posX, posY)
+	guiltMenu:SetPos(lay.posX, lay.posY)
 	guiltMenu:SetSize(sizeX, sizeY)
 	guiltMenu:SetMouseInputEnabled(true)
 	guiltMenu.OnMousePressed = function() end
@@ -293,7 +323,7 @@ OpenMenu = function(tbl)
 			surface.DrawTexturedRectUV(0, 0, w, h, nx / 512, ny / 512, nx / 512 + w / 768, ny / 512 + h / 768)
 		end
 
-		for y = 0, h, 3 do
+		for y = 0, h, lay.scanStep do
 			surface.SetDrawColor(0, 0, 0, 12)
 			surface.DrawRect(0, y, w, 1)
 		end
@@ -307,12 +337,12 @@ OpenMenu = function(tbl)
 		local title = "ПРОЩЕНИЕ"
 		local cx = w * 0.5 + shakeX
 		local ty = margin + shakeY
-		draw.SimpleText(title, "ZCity_Veteran", cx + 1, ty - 15, Color(90, 8, 6, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
-		draw.SimpleText(title, "ZCity_Veteran", cx, ty -15, Color(140, 15, 12, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, "ZCity_Veteran", cx + 1, ty - lay.titleOffY + 1, Color(90, 8, 6, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, "ZCity_Veteran", cx, ty - lay.titleOffY, Color(140, 15, 12, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 
 		surface.SetDrawColor(col.separator)
 		surface.DrawRect(margin, topBarH - 1, w - margin * 2, 1)
-		surface.DrawRect(margin, listTop - ScreenScaleH(2), w - margin * 2, 1)
+		surface.DrawRect(margin, listTop - math.max(1, math.floor(ScreenScaleH(2))), w - margin * 2, 1)
 	end
 
 	local listPanel = vgui.Create("DScrollPanel", guiltMenu)
@@ -341,10 +371,10 @@ OpenMenu = function(tbl)
 		row:SetTall(rowH)
 		row:SetText("")
 
-		local avSize = rowH - 8
+		local avSize = rowH - lay.avPad * 2
 		local avatar = vgui.Create("AvatarImage", row)
 		avatar:SetMouseInputEnabled(false)
-		avatar:SetPlayer(ply, 32)
+		avatar:SetPlayer(ply, math.Clamp(math.floor(avSize), 16, 64))
 
 		row.Paint = function(self, rw, rh)
 			if i % 2 == 0 then
@@ -360,19 +390,18 @@ OpenMenu = function(tbl)
 			surface.SetDrawColor(col.rowBorder)
 			surface.DrawRect(0, rh - 1, rw, 1)
 
-			local pad = ScreenScale(6)
-			local textX = pad + avSize + ScreenScale(6)
-			avatar:SetPos(pad, 4)
+			local textX = lay.pad + avSize + lay.pad
+			avatar:SetPos(lay.pad, lay.avPad)
 			avatar:SetSize(avSize, avSize)
 
-			local midW = rw - textX - pad
-			if self:IsHovered() then midW = midW - ScreenScale(52) end
+			local midW = rw - textX - lay.pad
+			if self:IsHovered() then midW = midW - lay.forgiveW end
 
 			draw.SimpleText(fitText("ZCity_Veteran", ply:Name(), midW), "ZCity_Veteran", textX, rh * 0.32, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 			draw.SimpleText(fitText("ZCity_Veteran", harmLabel(harm) .. " · +" .. karmaBack .. " кармы", midW), "ZCity_Veteran", textX, rh * 0.72, col.textMuted, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
 			if self:IsHovered() then
-				draw.SimpleText("простить", "ZCity_Veteran", rw - pad, rh * 0.5, col.textBlood, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+				draw.SimpleText("простить", "ZCity_Veteran", rw - lay.pad, rh * 0.5, col.textBlood, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
 			end
 		end
 
