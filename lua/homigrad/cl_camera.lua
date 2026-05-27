@@ -349,17 +349,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	end
 
 	if not ply:Alive() and not follow then
-		if lply:GetNWInt("viewmode",0) == 1 then
-			ply = lply:GetNWEntity("spect",NULL)
-			
-			if IsValid(ply) then
-				origin = ply:EyePos()
-				angles = ply:EyeAngles()
-				--lply:SetEyeAngles(ply:EyeAngles())
-			end
-		else
-			return hook.Run("HG_CalcView", lply, origin, angles, fov, znear, zfar)
-		end
+		return hook.Run("HG_CalcView", lply, origin, angles, fov, znear, zfar)
 	end
 
 	if not IsValid(ply) or not ply.LookupBone or not ply:LookupBone("ValveBiped.Bip01_Head1") then return end

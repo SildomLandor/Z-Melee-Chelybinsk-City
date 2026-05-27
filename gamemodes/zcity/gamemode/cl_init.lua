@@ -3,7 +3,7 @@ include("shared.lua")
 include("loader.lua")
 
 if not ConVarExists("hg_newspectate") then
-    CreateClientConVar("hg_newspectate", "1", true, false, "Enables smooth spectator camera transitions", 0, 1)
+    CreateClientConVar("hg_newspectate", "0", true, false, "Smooth third-person spectator camera only (mode 2)", 0, 1)
 end
 
 function CurrentRound()
@@ -24,7 +24,11 @@ net.Receive("ZB_SpectatePlayer", function(len)
 	prevspect = net.ReadEntity()
 	viewmode = net.ReadInt(4)
 
-	timer.Simple(0.1,function()
+	local specPly = LocalPlayer()
+	specPly.spectLastPos = nil
+	specPly.spectLastAng = nil
+
+	timer.Simple(0.1, function()
 		-- LocalPlayer():BoneScaleChange()
 		LocalPlayer():SetHull(-hullscale,hullscale)
 		LocalPlayer():SetHullDuck(-hullscale,hullscale)
@@ -105,6 +109,49 @@ local keydownattack
 local keydownattack2
 local keydownreload
 
+local function SendChooseSpecKey(key)
+	net.Start("ZB_ChooseSpecPly")
+	net.WriteInt(key, 32)
+	net.SendToServer()
+end
+
+hook.Add("CreateMove", "ZB_SpectateControls", function(cmd)
+	local specPly = LocalPlayer()
+	if not IsValid(specPly) or specPly:Alive() then
+		keydownattack = false
+		keydownattack2 = false
+		keydownreload = false
+		return
+	end
+
+	if cmd:KeyDown(IN_ATTACK) then
+		if not keydownattack then
+			keydownattack = true
+			SendChooseSpecKey(IN_ATTACK)
+		end
+	else
+		keydownattack = false
+	end
+
+	if cmd:KeyDown(IN_ATTACK2) then
+		if not keydownattack2 then
+			keydownattack2 = true
+			SendChooseSpecKey(IN_ATTACK2)
+		end
+	else
+		keydownattack2 = false
+	end
+
+	if cmd:KeyDown(IN_RELOAD) then
+		if not keydownreload then
+			keydownreload = true
+			SendChooseSpecKey(IN_RELOAD)
+		end
+	else
+		keydownreload = false
+	end
+end)
+
 hook.Add("HUDPaint","FUCKINGSAMENAMEUSEDINHOOKFUCKME",function()
     if LocalPlayer():Alive() then return end
 	local spect = LocalPlayer():GetNWEntity("spect")
@@ -124,137 +171,101 @@ hook.Add("HUDPaint","FUCKINGSAMENAMEUSEDINHOOKFUCKME",function()
 end)
 
 hook.Add("HG_CalcView", "zzzzzzzUwU", function(ply, pos, angles, fov)
-	if not lply:Alive() then
-		if lply:KeyDown(IN_ATTACK) then
-			if not keydownattack then
-				keydownattack = true
-				net.Start("ZB_ChooseSpecPly")
-				net.WriteInt(IN_ATTACK,32)
-				net.SendToServer()
-			end
-		else
-			keydownattack = false
-		end
+	local specPly = IsValid(ply) and ply or LocalPlayer()
+	if not IsValid(specPly) then return end
 
-		if lply:KeyDown(IN_ATTACK2) then
-			if not keydownattack2 then
-				keydownattack2 = true
-				net.Start("ZB_ChooseSpecPly")
-				net.WriteInt(IN_ATTACK2,32)
-				net.SendToServer()
-			end
-		else
-			keydownattack2 = false
-		end
-
-		if lply:KeyDown(IN_RELOAD) then
-			if not keydownreload then
-				keydownreload = true
-				net.Start("ZB_ChooseSpecPly")
-				net.WriteInt(IN_RELOAD,32)
-				net.SendToServer()
-			end
-		else
-			keydownreload = false
-		end
-
-		local spect = lply:GetNWEntity("spect",spect)
-		if not IsValid(spect) then return end
-
-		local viewmode = lply:GetNWInt("viewmode",viewmode)
-		
-		if viewmode == 3 then
-			if lply:GetMoveType()!=MOVETYPE_NOCLIP then
-				lply:SetMoveType(MOVETYPE_NOCLIP)
-			end
-			lply:SetObserverMode(OBS_MODE_ROAMING)
-			return
-		else
-			lply:SetPos(spect:GetPos())
-		end
-		
-		local ent = hg.GetCurrentCharacter(spect)
-		if not IsValid(ent) then return end
-		
-		local headBone = ent:LookupBone("ValveBiped.Bip01_Head1") or ent:LookupBone("ValveBiped.Bip01_Spine1") or 1
-		local bon = ent:GetBoneMatrix(headBone)
-		
-		if not bon then 
-			local eyePos = ent:EyePos()
-			if eyePos and eyePos ~= vector_origin then
-				pos = eyePos
-				ang = ent:EyeAngles()
-			else
-				pos = ent:GetPos() + Vector(0, 0, 64)
-				ang = ent:GetAngles()
-			end
-		else
-			pos, ang = bon:GetTranslation(), bon:GetAngles()
-		end
-
-		local eyePos, eyeAng = lply:EyePos(), lply:EyeAngles()
-		
-		local tr = {}
-		tr.start = pos
-		tr.endpos = pos + eyeAng:Forward() * -120
-		tr.filter = {ent, lply, spect}
-		tr.mins = Vector(-4, -4, -4)
-		tr.maxs = Vector(4, 4, 4)
-		tr = util.TraceHull(tr)
-
-		if viewmode == 2 then
-			pos = tr.HitPos + eyeAng:Forward() * 8
-			ang = eyeAng
-		elseif viewmode == 1 then
-			if ent ~= spect and IsValid(ent) then
-				local eyeAtt = ent:GetAttachment(ent:LookupAttachment("eyes"))
-				if eyeAtt then
-					ang = eyeAtt.Ang
-				else
-					ang = spect:EyeAngles()
-				end
-			else
-				ang = spect:EyeAngles()
-			end
-			pos = pos + spect:EyeAngles():Forward() * 8
-		else
-			pos = eyePos
-			ang = eyeAng
-		end
-		
-		ang[3] = 0
-		
-		local view
-		local hg_newspectate = GetConVar("hg_newspectate")
-		if hg_newspectate and hg_newspectate:GetBool() then
-			if not lply.spectLastPos then
-				lply.spectLastPos = pos
-				lply.spectLastAng = ang
-			end
-			
-			local lerpFactor = FrameTime() * 10
-			lply.spectLastPos = LerpVector(lerpFactor, lply.spectLastPos, pos)
-			lply.spectLastAng = LerpAngle(lerpFactor, lply.spectLastAng, ang)
-
-			view = {
-				origin = lply.spectLastPos,
-				angles = lply.spectLastAng,
-				fov = fov,
-			}
-		else
-			view = {
-				origin = pos,
-				angles = ang,
-				fov = fov,
-			}
-		end
-
-		return view
-	else
-		lply.spectLastPos = nil
-		lply.spectLastAng = nil
-		lply:SetObserverMode(OBS_MODE_NONE)
+	if specPly:Alive() then
+		specPly.spectLastPos = nil
+		specPly.spectLastAng = nil
+		specPly.spectCamTarget = nil
+		specPly.spectCamMode = nil
+		specPly:SetObserverMode(OBS_MODE_NONE)
+		return
 	end
+
+	local spect = specPly:GetNWEntity("spect", spect)
+	if not IsValid(spect) then return end
+
+	local curViewmode = specPly:GetNWInt("viewmode", viewmode or 1)
+
+	if specPly.spectCamTarget ~= spect or specPly.spectCamMode ~= curViewmode then
+		specPly.spectCamTarget = spect
+		specPly.spectCamMode = curViewmode
+		specPly.spectLastPos = nil
+		specPly.spectLastAng = nil
+	end
+
+	if curViewmode == 3 then
+		if specPly:GetMoveType() ~= MOVETYPE_NOCLIP then
+			specPly:SetMoveType(MOVETYPE_NOCLIP)
+			specPly:SetObserverMode(OBS_MODE_ROAMING)
+		end
+		return
+	end
+
+	if specPly:GetMoveType() == MOVETYPE_NOCLIP then
+		specPly:SetMoveType(MOVETYPE_OBSERVER)
+	end
+
+	local ent = hg.GetCurrentCharacter(spect)
+	if not IsValid(ent) then ent = spect end
+
+	local ang
+
+	if curViewmode == 1 then
+		pos = spect:EyePos()
+		ang = spect:EyeAngles()
+	else
+		local headBone = ent:LookupBone("ValveBiped.Bip01_Head1") or ent:LookupBone("ValveBiped.Bip01_Spine1")
+		local bon = headBone and ent:GetBoneMatrix(headBone)
+
+		if not bon then
+			pos = ent:EyePos()
+			if not pos or pos == vector_origin then
+				pos = ent:GetPos() + Vector(0, 0, 64)
+			end
+		else
+			pos = bon:GetTranslation()
+		end
+
+		local eyeAng = specPly:EyeAngles()
+		local tr = util.TraceHull({
+			start = pos,
+			endpos = pos + eyeAng:Forward() * -120,
+			filter = {ent, specPly, spect},
+			mins = Vector(-4, -4, -4),
+			maxs = Vector(4, 4, 4),
+		})
+
+		pos = tr.HitPos + eyeAng:Forward() * 8
+		ang = eyeAng
+	end
+
+	ang[3] = 0
+
+	local hg_newspectate = GetConVar("hg_newspectate")
+	if curViewmode == 2 and hg_newspectate and hg_newspectate:GetBool() then
+		if not specPly.spectLastPos then
+			specPly.spectLastPos = pos
+			specPly.spectLastAng = ang
+		end
+
+		local lerpFactor = math.min(FrameTime() * 25, 1)
+		specPly.spectLastPos = LerpVector(lerpFactor, specPly.spectLastPos, pos)
+		specPly.spectLastAng = LerpAngle(lerpFactor, specPly.spectLastAng, ang)
+
+		return {
+			origin = specPly.spectLastPos,
+			angles = specPly.spectLastAng,
+			fov = fov,
+		}
+	end
+
+	return {
+		origin = pos,
+		angles = ang,
+		fov = fov,
+	}
 end)
 
 zb.fade = zb.fade or 0
