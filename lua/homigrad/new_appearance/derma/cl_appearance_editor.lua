@@ -774,6 +774,7 @@ local function NormalizeAppearanceTable(tbl)
 	end
 
 	tbl.AColor = tbl.AColor or Color(180, 0, 0)
+	if hg.Appearance.FixAppearanceNameSex then hg.Appearance.FixAppearanceNameSex(tbl) end
 	return tbl
 end
 
@@ -830,7 +831,7 @@ function PANEL:PostInit()
 
 	local tMdl = APmodule.PlayerModels[1][self.AppearanceTable.AModel] or APmodule.PlayerModels[2][self.AppearanceTable.AModel]
 	if not tMdl then
-		local fallbackName, fallbackMdl = table.Random(APmodule.PlayerModels[1])
+		local fallbackMdl, fallbackName = table.Random(APmodule.PlayerModels[1])
 		tMdl = fallbackMdl
 		self.AppearanceTable.AModel = fallbackName
 	end
@@ -1035,7 +1036,7 @@ function PANEL:PostInit()
 					end
 
 					main.AppearanceTable = NormalizeAppearanceTable(loadedPreset)
-					if IsValid(NameEntry) then NameEntry:SetText(loadedPreset.AName or "") end
+					if IsValid(NameEntry) then NameEntry:SetText(main.AppearanceTable.AName or "") end
 					if IsValid(modelBtn) then
 						modelBtn:SetText(loadedPreset.AModel or "Male 01")
 						modelBtn:SizeToContents()

@@ -235,6 +235,38 @@ AppAddModel( "Женщина 06", "models/zcity/f/female_06.mdl", true, {main = 
 
 hg.Appearance.PlayerModels = PlayerModels
 
+local function GetModelSexIndex(strModel)
+	if not isstring(strModel) then return end
+	if PlayerModels[1][strModel] then return 1 end
+	if PlayerModels[2][strModel] then return 2 end
+end
+
+local function GetNameSexIndex(name)
+	if not isstring(name) then return end
+	local lists = hg.Appearance.RandomNames
+	if not lists then return end
+
+	for sex, names in ipairs(lists) do
+		for i = 1, #names do
+			if names[i] == name then return sex end
+		end
+	end
+end
+
+function hg.Appearance.FixAppearanceNameSex(tbl)
+	if not istable(tbl) then return tbl end
+
+	local modelSex = GetModelSexIndex(tbl.AModel)
+	if not modelSex then return tbl end
+
+	local nameSex = GetNameSexIndex(tbl.AName)
+	if nameSex and nameSex ~= modelSex then
+		tbl.AName = GenerateRandomName(modelSex)
+	end
+
+	return tbl
+end
+
 hg.Appearance.FuckYouModels = {{}, {}}
 
 for name, tbl in pairs(hg.Appearance.PlayerModels[1]) do
@@ -574,6 +606,8 @@ function hg.Appearance.GetRandomAppearance()
 
 	local _, facemap = table.Random(hg.Appearance.FacemapsSlots[hg.Appearance.FacemapsModels[tMdl.mdl]] or {})
 	randomAppearance.AFacemap = facemap
+
+	hg.Appearance.FixAppearanceNameSex(randomAppearance)
 
 	return randomAppearance
 end

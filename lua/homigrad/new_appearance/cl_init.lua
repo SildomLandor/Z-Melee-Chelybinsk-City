@@ -28,6 +28,8 @@ function hg.Appearance.LoadAppearanceFile(strFile_name)
 		end
 	end
 
+	hg.Appearance.FixAppearanceNameSex(tblAppearance)
+
 	return tblAppearance
 end
 
