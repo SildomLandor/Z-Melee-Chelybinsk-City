@@ -2,6 +2,9 @@ if CLIENT then
 	local fade = 0
 
 	net.Receive("FadeScreen", function()
+		local lply = LocalPlayer()
+		if not IsValid(lply) or lply:Team() == TEAM_SPECTATOR then return end
+
 		fade = 0
 		timer.Simple(6, function()
 			hook.Add("RenderScreenspaceEffects", "ZB_ScreenFade", function()
