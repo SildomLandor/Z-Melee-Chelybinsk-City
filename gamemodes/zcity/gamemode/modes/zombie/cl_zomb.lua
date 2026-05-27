@@ -134,7 +134,7 @@ local intro = {
 net.Receive("zombie_start", function()
 	nextWaveAt = 0
 	currentWave = 0
-	hg.DynaMusic:Start("splinter_cell")
+	hg.DynaMusic:Start("black_mesa")
 	zb.RemoveFade()
 end)
 

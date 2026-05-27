@@ -5,9 +5,9 @@ local MODE = MODE
 
 local highlightNPCs = {}
 
-
 net.Receive("npc_defense_start",function()
     surface.PlaySound("csgo_round.wav")
+    hg.DynaMusic:Start("black_mesa")
 end)
 
 local teams = {
@@ -115,6 +115,7 @@ net.Receive("npc_defense_roundend", function()
     if zb and zb.EndMenu and zb.EndMenu.Open then
         zb.EndMenu.Open()
     end
+    hg.DynaMusic:Stop()
     StopCurrentMusic()
 end)
 

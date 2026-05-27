@@ -186,6 +186,18 @@ musMeta:AddMusic(Music, 1, "am_music/battle/penthouse(stress).mp3" )
 musMeta:AddMusic(Music, 3, "am_music/battle_intensive/penthouse(intense).mp3" )
 DMusic:AddSequence( "splinter_cell", "Penthouse", Music )
 
+DMusic:AddPack( "black_mesa" )
+
+local Music = musMeta:CreateTbl()
+musMeta:AddMusic(Music, 0, "bc_music/border_worlds.mp3", 0.3 )
+musMeta:AddMusic(Music, 0.5, "bc_music/forget_about_freeman.mp3", 0.7 )
+musMeta:AddMusic(Music, 1, "bc_music/lambda_core.mp3" )
+musMeta:AddMusic(Music, 3, "bc_music/surface_tension.mp3" )
+musMeta:AddMusic(Music, 4, "bc_music/surface_tension_3.mp3" )
+musMeta:AddMusic(Music, 0, "bc_music/unforeseen_consequences.mp3", 0.3 )
+musMeta:AddMusic(Music, 0, "bc_music/on_a_rail.mp3", 0.3 )
+DMusic:AddSequence( "black_mesa", "Terra", Music )
+
 if SERVER then
     util.AddNetworkString("DMusic")
     function DMusic:AddPanic(ply,ammout)
