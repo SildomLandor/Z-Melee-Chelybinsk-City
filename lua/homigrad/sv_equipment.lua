@@ -219,6 +219,7 @@ end
 
 -- armorstuff
 util.AddNetworkString("AddFlash")
+util.AddNetworkString("send_tinnitus")
 
 local function GiveTinnitus(ply, time, needSound)
 	if not IsValid(ply) then return end
@@ -227,8 +228,9 @@ local function GiveTinnitus(ply, time, needSound)
 	end
 	if not IsValid(ply) or not ply:IsPlayer() then return end
 
-	if ply.AddTinnitus then
-		ply:AddTinnitus(time, needSound)
+	local add = FindMetaTable("Player").AddTinnitus
+	if add then
+		add(ply, time, needSound or false)
 		return
 	end
 
