@@ -185,9 +185,12 @@ if CLIENT then
 				return
 			end
 
-			local mdl = string.Split(string.sub(ent:GetModel(),1,-5),"/")[#string.Split(string.sub(ent:GetModel(),1,-5),"/")]
-			if mdl and model:GetFlexIDByName(mdl) then
-				model:SetFlexWeight(model:GetFlexIDByName(mdl),1)
+			local entModel = ent:GetModel()
+			if entModel then
+				local mdl = string.Split(string.sub(entModel, 1, -5), "/")[#string.Split(string.sub(entModel, 1, -5), "/")]
+				if mdl and model:GetFlexIDByName(mdl) then
+					model:SetFlexWeight(model:GetFlexIDByName(mdl), 1)
+				end
 			end
 			
 			local matrix = ent:GetBoneMatrix(ent:LookupBone(armorData["bone"]))

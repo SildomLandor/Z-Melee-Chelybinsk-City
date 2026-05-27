@@ -1021,6 +1021,7 @@ function SWEP:Attack(owner, ent, vellen, attacktype, inattackLength)
     
     local vellen = math.min(owner:GetVelocity():Length() * 0.05, 40)
     local eyetr = hg.eyeTrace(owner, (self:GetAttackLength() + vellen), ent, owner:GetAimVector())
+    if !eyetr then return end
     //debugoverlay.Line(eyetr.StartPos, eyetr.StartPos + eyetr.Normal * (self:GetAttackLength() + vellen), 3, color_white)
     //local ent = ents.Create("prop_physics")
     //ent:SetModel("models/props_interiors/pot01a.mdl")

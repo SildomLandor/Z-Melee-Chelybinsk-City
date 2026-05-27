@@ -676,7 +676,8 @@ function SWEP:FireBullet()
 
 	if CLIENT then
 		if IsValid(ent) then
-			local head = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Head1"))
+			local bone = ent:LookupBone("ValveBiped.Bip01_Head1")
+			local head = bone and ent:GetBoneMatrix(bone)
 
 			if head then
 				headpos, headang = head:GetTranslation(), head:GetAngles()
@@ -690,7 +691,8 @@ function SWEP:FireBullet()
 			headpos = headpos + headang:Forward() * 3-- - dir * 10
 		end]]
 		if IsValid(ent) then
-			local head = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Head1"))
+			local bone = ent:LookupBone("ValveBiped.Bip01_Head1")
+			local head = bone and ent:GetBoneMatrix(bone)
 
 			if head then
 				headpos, headang = head:GetTranslation(), head:GetAngles()

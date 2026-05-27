@@ -5,6 +5,53 @@ local chemical_degrade_speeds = {
 	["KCN"] = 0.5,
 }
 
+function MODE.SetChemicalToPlayer(ply, chemical_name, amt)
+	ply.PassiveAbility_ChemicalAccumulation = ply.PassiveAbility_ChemicalAccumulation or {}
+
+	if amt <= 0 then
+		ply.PassiveAbility_ChemicalAccumulation[chemical_name] = nil
+	else
+		ply.PassiveAbility_ChemicalAccumulation[chemical_name] = amt
+	end
+end
+
+if SERVER then
+	function MODE.AddChemicalToPlayer(ply, chemical_name, amount)
+		ply.PassiveAbility_ChemicalAccumulation = ply.PassiveAbility_ChemicalAccumulation or {}
+		local amt = (ply.PassiveAbility_ChemicalAccumulation[chemical_name] or 0) + amount
+		ply.PassiveAbility_ChemicalAccumulation[chemical_name] = amt
+
+		return amt
+	end
+
+	function MODE.DegradeChemicalsOfPlayer(ply)
+		if not ply.PassiveAbility_ChemicalAccumulation then return end
+
+		local dt = FrameTime()
+
+		for chemical_name, amt in pairs(ply.PassiveAbility_ChemicalAccumulation) do
+			local speed = chemical_degrade_speeds[chemical_name]
+
+			if speed then
+				amt = amt - speed * dt
+
+				if amt <= 0 then
+					ply.PassiveAbility_ChemicalAccumulation[chemical_name] = nil
+				else
+					ply.PassiveAbility_ChemicalAccumulation[chemical_name] = amt
+				end
+			end
+		end
+	end
+
+	AddChemicalToPlayer = MODE.AddChemicalToPlayer
+	DegradeChemicalsOfPlayer = MODE.DegradeChemicalsOfPlayer
+end
+
+if CLIENT then
+	SetChemicalToPlayer = MODE.SetChemicalToPlayer
+end
+
 MODE.DisarmReach = 90
 MODE.NoDisarmWeapons = {
 	["weapon_hands_sh"] = true,
