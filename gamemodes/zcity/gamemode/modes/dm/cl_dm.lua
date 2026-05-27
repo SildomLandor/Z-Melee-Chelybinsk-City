@@ -132,7 +132,7 @@ local fighterColor = Color(0, 120, 190)
 
 net.Receive("dm_start", function()
 	roundend = false
-	hg.DynaMusic:Start("mirrors_edge")
+	hg.DynaMusic:Start("black_mesa_agressive")
 	zb.RemoveFade()
 	SyncRoundFade(CurrentRound())
 

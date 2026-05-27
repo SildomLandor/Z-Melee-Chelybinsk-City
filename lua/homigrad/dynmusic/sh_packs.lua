@@ -198,6 +198,13 @@ musMeta:AddMusic(Music, 0, "bc_music/unforeseen_consequences.mp3", 0.3 )
 musMeta:AddMusic(Music, 1, "bc_music/on_a_rail.mp3", 0.3 )
 DMusic:AddSequence( "black_mesa", "Terra", Music )
 
+DMusic:AddPack( "black_mesa_agressive" )
+local Music = musMeta:CreateTbl()
+musMeta:AddMusic(Music, 1, "bc_music/forget_about_freeman.mp3", 0.7 )
+musMeta:AddMusic(Music, 1, "bc_music/unforeseen_consequences.mp3", 0.3 )
+musMeta:AddMusic(Music, 0, "bc_music/on_a_rail.mp3", 0.3 )
+DMusic:AddSequence( "black_mesa_agressive", "Terra2", Music )
+
 if SERVER then
     util.AddNetworkString("DMusic")
     function DMusic:AddPanic(ply,ammout)
