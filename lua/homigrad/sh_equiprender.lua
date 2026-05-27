@@ -193,10 +193,11 @@ if CLIENT then
 				end
 			end
 			
-			local matrix = ent:GetBoneMatrix(ent:LookupBone(armorData["bone"]))
-			if not matrix then
-				return
-			end
+			local boneId = ent:LookupBone(armorData["bone"])
+			if not boneId then continue end
+
+			local matrix = ent:GetBoneMatrix(boneId)
+			if not matrix then continue end
 			
 			local bonePos, boneAng = matrix:GetTranslation(), matrix:GetAngles()
 			bonePos:Add(boneAng:Forward() * (fem and armorData.femPos[1] or 0) + boneAng:Up() * (fem and armorData.femPos[2] or 0) + boneAng:Right() * (fem and armorData.femPos[3] or 0))

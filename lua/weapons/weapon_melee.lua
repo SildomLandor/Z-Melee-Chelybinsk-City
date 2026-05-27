@@ -349,13 +349,15 @@ if CLIENT then
             self.ShakePos = LerpVector(FrameTime() * 15, self.ShakePos, targetShakePos)
             self.ShakeAng = LerpAngle(FrameTime() * 15, self.ShakeAng, targetShakeAng)
 
-            pos = pos + self.ShakePos
-            ang = ang + self.ShakeAng
+            if pos and ang then
+                pos = pos + self.ShakePos
+                ang = ang + self.ShakeAng
 
-			WorldModel:SetRenderOrigin(pos)
-			WorldModel:SetRenderAngles(ang)
-            WorldModel:SetPos(pos)
-            WorldModel:SetAngles(ang)
+                WorldModel:SetRenderOrigin(pos)
+                WorldModel:SetRenderAngles(ang)
+                WorldModel:SetPos(pos)
+                WorldModel:SetAngles(ang)
+            end
 		else
             if WorldModel:GetModel() ~= self.WorldModel then WorldModel:SetModel(self.WorldModel) end
 			

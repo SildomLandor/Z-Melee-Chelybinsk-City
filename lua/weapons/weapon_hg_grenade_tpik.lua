@@ -204,17 +204,16 @@ if SERVER then
     function SWEP:OnRemove() end
 
 	function SWEP:OnDrop()
-		timer.Simple(0.2,function()
-			if self.ReadyToThrow then
-				if self.Spoon then
-					self:CreateSpoon(self:GetOwner())
-					self.Spoon = false
-					self:SetShowSpoon(false)
-				end
-				self.ReadyToThrow = false
-				self:Throw(0, self.SpoonTime or CurTime(),nil,Vector(0,0,0),Angle(0,0,0))
-				self:Remove()
+		timer.Simple(0.2, function()
+			if not IsValid(self) or not self.ReadyToThrow then return end
+			if self.Spoon then
+				self:CreateSpoon(self.Thrower or self:GetOwner())
+				self.Spoon = false
+				self:SetShowSpoon(false)
 			end
+			self.ReadyToThrow = false
+			self:Throw(0, self.SpoonTime or CurTime(), nil, Vector(0, 0, 0), Angle(0, 0, 0))
+			self:Remove()
 		end)
 	end
 end
@@ -248,22 +247,28 @@ function SWEP:Throw(mul, time, nosound, throwPosAdjust, throwAngAdjust)
 	if not self.ENT then return end
 
 	local owner = self.Thrower or self:GetOwner()
+	if not IsValid(owner) then owner = nil end
+
 	local ent = ents.Create(self.ENT)
-	local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or IsValid(owner) and owner
+	if not IsValid(ent) then return end
+
+	local entOwner = IsValid(owner) and (IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner) or nil
 	throwPosAdjust = throwPosAdjust or Vector(0,0,5)
 	throwAngAdjust = throwAngAdjust or Angle(0,0,0)
-	--throwPosAdjust[2] = throwPosAdjust[2] + 2
-	local _,_,headm = self:GetEyeTrace()
-	local eyepos = headm:GetTranslation() or false
-	local ang = IsValid(entOwner) and owner:EyeAngles() or self:GetAngles()
+
+	local eyetr, _, headm = IsValid(owner) and self:GetEyeTrace() or nil
+	local eyepos = headm and headm:GetTranslation() or (eyetr and eyetr.StartPos) or (IsValid(owner) and owner:EyePos())
+	local ang = IsValid(owner) and owner:EyeAngles() or self:GetAngles()
 	local hand = eyepos and eyepos + ang:Forward() * throwPosAdjust[1] + ang:Right() * (throwPosAdjust[2] + 2) + ang:Up() * throwPosAdjust[3] or self:GetPos()
 
 	if IsValid(entOwner) then
-		ent:SetOwner(entOwner or game.GetWorld())
+		ent:SetOwner(entOwner)
 	end
-	
-	ent.team = owner:Team()
-	ent.steamid = owner:SteamID()
+
+	if IsValid(owner) and owner:IsPlayer() then
+		ent.team = owner:Team()
+		ent.steamid = owner:SteamID()
+	end
 
 	if not nosound and IsValid(entOwner) then
 		entOwner:EmitSound(self.throwsound or "weapons/m67/m67_throw_01.wav", 90, math.random(95, 105))
@@ -312,11 +317,11 @@ function SWEP:Throw(mul, time, nosound, throwPosAdjust, throwAngAdjust)
 	angThrow:RotateAroundAxis(angThrow:Up(),throwAngAdjust[3])
 	ent:SetAngles(angThrow)
 	local phys = ent:GetPhysicsObject()
-	if phys then 
-		real_ent = hg.GetCurrentCharacter(owner)
-		phys:SetVelocity(IsValid(real_ent) and (owner:GetAimVector() * mul/1.5) + real_ent:GetVelocity() or Vector(0,0,0)) 
+	if phys then
+		local real_ent = IsValid(owner) and hg.GetCurrentCharacter(owner)
+		phys:SetVelocity(IsValid(real_ent) and IsValid(owner) and (owner:GetAimVector() * mul / 1.5) + real_ent:GetVelocity() or Vector(0, 0, 0))
 	end
-	if owner:IsOnGround() then
+	if IsValid(owner) and owner:IsOnGround() then
 		owner:SetVelocity(owner:GetVelocity() - owner:GetVelocity()/2)
 	end
 	ent.timer = time

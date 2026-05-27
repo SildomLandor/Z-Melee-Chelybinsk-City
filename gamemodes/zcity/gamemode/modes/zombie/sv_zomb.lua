@@ -13,6 +13,20 @@ MODE.Chance = 0.03
 local spawnMinDistSqr = 600 * 600
 local spawnMaxDist = 1400
 
+local function getRandomSpawnPoints()
+	local spawns = {}
+	for _, pt in ipairs(zb.GetMapPoints("RandomSpawns") or {}) do
+		spawns[#spawns + 1] = pt.pos or pt
+	end
+	return spawns
+end
+
+function MODE:PlacePlayer(ply)
+	local spawns = getRandomSpawnPoints()
+	local pos = #spawns > 0 and zb:GetRandomSpawn(ply, spawns) or zb:GetRandomSpawn(ply)
+	if pos then ply:SetPos(pos) end
+end
+
 MODE.Waves = {
 	{
 		{type = "npc_zombie", count = 6, health = 120},
@@ -131,6 +145,7 @@ function MODE:Intermission()
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
 		ply:SetupTeam(0)
+		self:PlacePlayer(ply)
 	end
 
 	net.Start("zombie_start")
@@ -171,7 +186,11 @@ function MODE:FindSpawnPos()
 	end
 
 	local alive = zb:CheckAlive(true)
-	if #alive == 0 then return zb:GetRandomSpawn() end
+	if #alive == 0 then
+		local spawns = getRandomSpawnPoints()
+		if #spawns > 0 then return zb:GetRandomSpawn(nil, spawns) end
+		return zb:GetRandomSpawn()
+	end
 
 	for _ = 1, 12 do
 		local ply = table.Random(alive)

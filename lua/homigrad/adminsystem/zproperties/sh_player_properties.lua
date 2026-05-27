@@ -65,7 +65,9 @@ properties.Add( "givegun", {
 		if ( !self:Filter( ent, ply ) ) then return end
         ent = hg.RagdollOwner( ent ) or ent
 
+		ent:SetSuppressPickupNotices(true)
 		local spawned = ent:Give( text )
+		ent:SetSuppressPickupNotices(false)
         if not IsValid(spawned) then return end
         spawned:Use(ent)
 		print(tostring(ply:Nick() or ply) .." has given ".. tostring(ent:Nick() or ent) .." a SWEP; "..text)

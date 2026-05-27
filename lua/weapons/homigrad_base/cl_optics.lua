@@ -107,6 +107,7 @@ function SWEP:DoRT()
 	
 	if not att then return end
 	if not self.sizeperekrestie then return end
+	if not IsValid(owner) or not owner:IsPlayer() then return end
 	
 	self.isscoping = true
 

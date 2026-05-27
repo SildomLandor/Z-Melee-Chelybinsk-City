@@ -62,8 +62,10 @@ camera_position_addition = Vector(0,0,0)
 local swayAng = Angle(0, 0, 0)
 hook.Add("Camera", "Weapon", function(ply, ...)
 	local ply = ply or lply
+	if not IsValid(ply) then return end
+	if not ply:Alive() and not IsValid(follow) then return end
 	wep = ply:GetActiveWeapon()
-	if wep.Camera then return wep:Camera(...) end
+	if IsValid(wep) and wep.Camera then return wep:Camera(...) end
 end)
 
 hook.Add("MotionBlur", "Weapon", function(x,y,w,z)
@@ -337,9 +339,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 
 
 
-	local fakeRag = hg.GetFakeRagdoll and hg.GetFakeRagdoll(lply)
-	if IsValid(fakeRag) then
-		if not IsValid(follow) then follow = fakeRag end
+	if IsValid(follow) then
 		return hg.CalcViewFake(ply, origin, angles, fov, znear, zfar)
 	end
 	if ply:InVehicle() then
