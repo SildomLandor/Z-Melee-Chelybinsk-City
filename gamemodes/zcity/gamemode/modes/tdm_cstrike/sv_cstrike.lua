@@ -112,13 +112,11 @@ function MODE:Intermission()
             local team_t = team.GetPlayers(0)
             if #team_t == 0 then return end
             local ply = team_t[math.random(#team_t)]
-            
-            local ent = ents.Create("bomb")
-            ent:SetPos(ply:EyePos())
-            ent:Spawn()
+            if not IsValid(ply) then return end
 
-            zb.bomb = ent
-            ent.tbl = self
+            ply:Give("weapon_zb_bomb")
+            ply:SelectWeapon("weapon_zb_bomb")
+            ply:ChatPrint("У вас бомба. Поставьте её на зоне А или Б смотря в пол нажав ЛКМ")
         end)
     elseif zb.rtype == "hostage" then
         timer.Simple(3,function()
