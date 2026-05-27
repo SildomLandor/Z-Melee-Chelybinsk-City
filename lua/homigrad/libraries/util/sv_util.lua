@@ -308,18 +308,17 @@ end)
 
 hook.Add("OnEntityCreated", "DragDisabler", function(v) -- more reallife phys??
 	timer.Simple(0, function()
-		if IsValid(v) then
-			local phys = v:GetPhysicsObject()
-			if IsValid(phys) then
-				phys:SetDragCoefficient(0.2)
+		if not IsValid(v) or v:GetMoveType() == MOVETYPE_NONE or v:GetNWBool("nophys", false) then return end
+		local phys = v:GetPhysicsObject()
+		if not IsValid(phys) then return end
 
-				local physcount = v:GetPhysicsObjectCount()
-				if physcount > 1 then
-					for i = 0, physcount - 1 do
-						local b = v:GetPhysicsObjectNum(i)
-						b:SetDragCoefficient(0.2)
-					end
-				end
+		phys:SetDragCoefficient(0.2)
+
+		local physcount = v:GetPhysicsObjectCount()
+		if physcount > 1 then
+			for i = 0, physcount - 1 do
+				local b = v:GetPhysicsObjectNum(i)
+				b:SetDragCoefficient(0.2)
 			end
 		end
 	end)
@@ -334,7 +333,8 @@ local badmats = {
 }
 hook.Add("OnEntityCreated", "PropMassFix", function(v)
 	timer.Simple(0, function()
-		if IsValid(v) and IsValid(v:GetPhysicsObject()) and v:GetClass() ~= "prop_ragdoll" then
+		if not IsValid(v) or v:GetMoveType() == MOVETYPE_NONE or v:GetNWBool("nophys", false) then return end
+		if IsValid(v:GetPhysicsObject()) and v:GetClass() ~= "prop_ragdoll" then
 			local phys = v:GetPhysicsObject()
 			local rad = v:GetModelRadius()
 			if rad == nil then return end
@@ -1110,11 +1110,19 @@ else
 	MsgC(Color(255, 0, 0), "Eightbit module is not found! You are furry!\n")
 end
 
+local hg_max_velocity = CreateConVar("hg_max_velocity", "4000", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Physics max velocity cap", 2000, 100000)
+
 hook.Add("InitPostEntity", "ffuckk", function()
 	local perf = physenv.GetPerformanceSettings()
-	perf.MaxVelocity = 100000 -- default 2000
+	perf.MaxVelocity = hg_max_velocity:GetFloat()
 	physenv.SetPerformanceSettings(perf)
 end)
+
+cvars.AddChangeCallback("hg_max_velocity", function(_, _, new)
+	local perf = physenv.GetPerformanceSettings()
+	perf.MaxVelocity = tonumber(new) or 4000
+	physenv.SetPerformanceSettings(perf)
+end, "hg_max_velocity")
 
 local TrackedEnts = {
 	["weapon_crowbar"]={"weapon_hg_crowbar"},

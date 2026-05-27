@@ -250,24 +250,83 @@ hook.Add("PostPlayerDeath", "homigrad-inventory", function(ply)
     hg.RenewInv(ply, true)
     hg.TransferItems(ply, ragdoll)
     ply:SetNetVar("Inventory", ply.inventory)
-    ragdoll:SetNetVar("Inventory", ragdoll.inventory)
+    if IsValid(ragdoll) then
+        ragdoll:SetNetVar("Inventory", ragdoll.inventory)
+    end
 
-    --ply:StripWeapons() -- WTF
-    ply:SetNetVar("Armor",{})
-    ply:SetNetVar("Inventory",{})
+    ply:SetNetVar("Armor", {})
+    ply:SetNetVar("Inventory", {})
     ply:RemoveAllAmmo()
 end)
 
+local function GetEntInv(ent)
+    if not IsValid(ent) then return end
+
+    local inv = ent.inventory
+    if not inv then
+        inv = ent:GetNetVar("Inventory")
+        if inv then ent.inventory = inv end
+    end
+
+    return inv
+end
+
+local function SyncEntInvNet(ent, receiver)
+    local inv = GetEntInv(ent)
+    if inv then ent:SetNetVar("Inventory", inv) end
+    if ent.armors then ent:SetNetVar("Armor", ent.armors) end
+    if receiver and IsValid(ent) then
+        if inv then ent:SendNetVar("Inventory", receiver) end
+        if ent.armors then ent:SendNetVar("Armor", receiver) end
+    end
+end
+
+local function IsLootContainer(ent)
+    if not IsValid(ent) then return false end
+    if ent:IsPlayer() or ent:IsRagdoll() then return true end
+    if not string.find(ent:GetClass() or "", "prop_") then return false end
+    return hg.loot_boxes and hg.loot_boxes[string.lower(ent:GetModel() or "")] ~= nil
+end
+
+local function PrepLootEnt(ply, ent)
+    if not IsValid(ent) then return end
+    hook.Run("ZB_InventoryChecked", ply, ent)
+    if not GetEntInv(ent) and IsLootContainer(ent) then
+        ent.inventory = {Weapons = {}, Ammo = {}, Attachments = {}}
+        ent.armors = ent.armors or {}
+        ent:SetNetVar("Inventory", ent.inventory)
+        ent:SetNetVar("Armor", ent.armors)
+    end
+end
+
+local function EntCanOpenLoot(ent)
+    return IsLootContainer(ent) and GetEntInv(ent) ~= nil
+end
+
+local function CanLootEnt(ent)
+    if not IsValid(ent) then return false end
+    if not ent:IsPlayer() then return true end
+
+    if ent:Alive() then
+        return ent.organism and ent.organism.otrub and IsValid(ent.FakeRagdoll)
+    end
+
+    return true
+end
+
 local functions = {
     ["Weapons"] = function(ply, ent, wep)
+        local inv = GetEntInv(ent)
+        if not inv or not inv.Weapons then return end
+
         if (ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == wep) then return end
-        if (not ent.inventory.Weapons[wep]) then return end
+        if not inv.Weapons[wep] then return end
 
         --local weapon = weapons.Get(wep)
         --if not weapon then return end
         
         local weapon
-        local weaponIsEnt = (not isbool(ent.inventory.Weapons[wep]) )and IsValid(ent.inventory.Weapons[wep]) and ent.inventory.Weapons[wep]:IsWeapon()
+        local weaponIsEnt = (not isbool(inv.Weapons[wep])) and IsValid(inv.Weapons[wep]) and inv.Weapons[wep]:IsWeapon()
         --print(weaponIsEnt)
         if not weaponIsEnt then
             weapon = ents.Create(wep)
@@ -279,10 +338,10 @@ local functions = {
             weapon:SetPos(ent:GetPos())
             weapon:SetAngles(ent:GetAngles())
             
-            local tbl = ent.inventory.Weapons[wep]
+            local tbl = inv.Weapons[wep]
             if weapon.SetInfo then weapon:SetInfo(tbl) end
         else
-            weapon = ent.inventory.Weapons[wep]
+            weapon = inv.Weapons[wep]
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
 
             weapon:SetParent( NULL )
@@ -299,7 +358,8 @@ local functions = {
 
         --print(weapon:GetPos())
 
-        ent.inventory.Weapons[wep] = nil
+        inv.Weapons[wep] = nil
+        ent.inventory = inv
 
         if ent:IsPlayer() then
             if weaponIsEnt then
@@ -331,16 +391,19 @@ local functions = {
         if not weapon.DontEquipInstantly then timer.Simple(0,function() ply:SelectWeapon(weapon:GetClass()) end) end
     end,
     ["Ammo"] = function(ply, ent, ammo, amt)
-        local amt2 = ent.inventory.Ammo[tonumber(ammo)]
+        local inv = GetEntInv(ent)
+        if not inv or not inv.Ammo then return end
+
+        local amt2 = inv.Ammo[tonumber(ammo)]
         if not amt2 or amt != amt2 then return end
 
         ply:GiveAmmo(amt2, game.GetAmmoName(ammo), true)
-        --ent.inventory.Ammo[tonumber(ammo)] = nil
         if ent:IsPlayer() then
             ent:SetAmmo(0, game.GetAmmoName(ammo))
         else
-            ent.inventory.Ammo[tonumber(ammo)] = nil
+            inv.Ammo[tonumber(ammo)] = nil
         end
+        ent.inventory = inv
     end,
     ["Armor"] = function(ply, ent, placement, armor)
         if hg.armor[placement][armor].nodrop then return end
@@ -356,10 +419,14 @@ local functions = {
         hook.Run("ItemTransfer",ply, ent, placement, armor)
     end,
     ["Attachments"] = function(ply, ent, att)
+        local inv = GetEntInv(ent)
+        if not inv or not inv.Attachments then return end
+
         att = tonumber(att)
-        if not ent.inventory.Attachments[att] then return end
-        ply.inventory.Attachments[#ply.inventory.Attachments + 1] = ent.inventory.Attachments[att]
-        ent.inventory.Attachments[att] = nil
+        if not inv.Attachments[att] then return end
+        ply.inventory.Attachments[#ply.inventory.Attachments + 1] = inv.Attachments[att]
+        inv.Attachments[att] = nil
+        ent.inventory = inv
     end,
     -- ["Money"] = function(ply, ent)
     --     local money = ent:GetNetVar("zb_Scrappers_RaidMoney", 0)
@@ -367,12 +434,6 @@ local functions = {
     --     ent:SetNetVar("zb_Scrappers_RaidMoney", 0)
     -- end,
 }
-
-local function CanLootEnt(ent)
-    if not ent:IsPlayer() then return true end
-    if not (ent.organism and ent.organism.otrub) then return false end
-    return IsValid(ent.FakeRagdoll)
-end
 
 local function BuildLootTakeKey(ent, tblIndex, thing)
     if not IsValid(ent) then return "" end
@@ -435,8 +496,8 @@ net.Receive("ply_take_item", function(_, ply)
 
     local func = functions[tblIndex]
     if func then func(ply, ent, thing, unpack(tbl)) end
+    SyncEntInvNet(ent)
     ply:SetNetVar("Inventory", ply.inventory)
-    ent:SetNetVar("Inventory", ent.inventory)
     ply:SyncArmor()
     ent:SyncArmor()
 end)
@@ -444,10 +505,10 @@ end)
 util.AddNetworkString("should_open_inv")
 local playerMeta = FindMetaTable("Player")
 function playerMeta:OpenInventory(ent)
-    hook.Run("ZB_InventoryOpened",self,ent)
+    hook.Run("ZB_InventoryOpened", self, ent)
     if not IsValid(ent) then return end
     if not CanLootEnt(ent) then return end
-    if ent:IsPlayer() then hg.RenewInv(ent) end
+    if ent:IsPlayer() and ent:Alive() then hg.RenewInv(ent) end
     if self:IsPlayer() then hg.RenewInv(self) end
     self.cooldown_takeitem = CurTime() + 0.3
     net.Start("should_open_inv")
@@ -479,7 +540,14 @@ hook.Add("Player Think", "loot-fellows",function(ply)
     
         if not trace then return end
         local ent = trace.Entity
-        ent = IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
+
+        if ent:IsPlayer() and not ent:Alive() then
+            local rag = ent:GetNWEntity("RagdollDeath")
+            if IsValid(rag) then ent = rag end
+        else
+            ent = IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
+        end
+
         if ent:IsPlayer() and not (ent.organism and ent.organism.otrub) then
             if not ply.keypressed then ply:ChatPrint("Не могу обыскать человека пока он в сознании.") end
             ply.keypressed = true
@@ -492,8 +560,8 @@ hook.Add("Player Think", "loot-fellows",function(ply)
 		end
     
         hook.Run("ZB_InventoryChecked", ply, ent)
-        
-        if not IsValid(ent) or not ent:GetNetVar("Inventory") then return end
+
+        if not IsValid(ent) or not GetEntInv(ent) then return end
         
         if not ply.keypressed then ply:OpenInventory(ent) end
         

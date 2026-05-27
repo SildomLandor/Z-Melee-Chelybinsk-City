@@ -403,25 +403,39 @@ local functions_break = {
 }
 
 hook.Add("ZB_InventoryChecked", "LootSpawn", function(ply, ent)
-	ent:SetNetVar("Inventory", ent.inventory)
-	if not IsValid(ent) or ent:IsPlayer() or ent.was_opened or not string.find(ent:GetClass(),"prop_") then return end
-	if not hg.loot_boxes[string.lower(ent:GetModel())] then return end
-	
-	ent.armors = {}
-	ent.inventory = {}
+	if not IsValid(ent) or ent:IsPlayer() then return end
+	if not string.find(ent:GetClass(), "prop_") then return end
 
+	local model = string.lower(ent:GetModel() or "")
+	if not hg.loot_boxes[model] then return end
+
+	if ent.was_opened then
+		ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
+		ent.inventory = ent.inventory or {Weapons = {}, Ammo = {}, Attachments = {}}
+		ent.armors = ent.armors or ent:GetNetVar("Armor") or {}
+		ent:SetNetVar("Armor", ent.armors)
+		ent:SetNetVar("Inventory", ent.inventory)
+		return
+	end
+
+	ent.armors = ent.armors or {}
+	ent.inventory = {
+		Weapons = {},
+		Ammo = {},
+		Attachments = {},
+	}
 	ent.was_opened = true
 
-	local chance = hg.loot_amount[hg.loot_boxes[string.lower(ent:GetModel())][1]] or {0,1}
-	local amount = math.random(chance[1],chance[2])
-	
-	for i = 0,amount-1 do
-		local entName, AmmoCount, Tab = hg.GenerateLoot(ply,ent)
+	local chance = hg.loot_amount[hg.loot_boxes[model][1]] or {0, 1}
+	local amount = math.random(chance[1], chance[2])
+
+	for i = 0, amount - 1 do
+		local entName, AmmoCount, Tab = hg.GenerateLoot(ply, ent)
 		if entName then
-			entName = string.Replace(entName,"ent_att_","")
-			entName = string.Replace(entName,"ent_armor_","")
-			entName = string.Replace(entName,"ent_ammo_","")
-			functions[Tab](ent,entName,AmmoCount)
+			entName = string.Replace(entName, "ent_att_", "")
+			entName = string.Replace(entName, "ent_armor_", "")
+			entName = string.Replace(entName, "ent_ammo_", "")
+			functions[Tab](ent, entName, AmmoCount)
 		end
 	end
 
@@ -568,6 +582,131 @@ if #spawns > 0 then
 end
 
 local hook_Run = hook.Run
+
+hg.lootSpawn = hg.lootSpawn or {}
+local LOOT = hg.lootSpawn
+LOOT.byIndex = LOOT.byIndex or {}
+
+LOOT.cv_interval = CreateConVar("hg_loot_interval", "12", FCVAR_ARCHIVE, "Seconds between loot spawn ticks", 4, 60)
+LOOT.cv_cap = CreateConVar("hg_loot_prop_cap", "50", FCVAR_ARCHIVE, "Max dynamic loot prop_physics per round", 0, 150)
+LOOT.cv_clutter = CreateConVar("hg_loot_clutter", "0", FCVAR_ARCHIVE, "Spawn decorative hg.props clutter (heavy)", 0, 1)
+LOOT.cv_freeze = CreateConVar("hg_loot_freeze_props", "0", FCVAR_ARCHIVE, "Freeze decorative spawned props (not loot containers)", 0, 1)
+
+function LOOT.IsLootBoxModel(model)
+	return hg.loot_boxes[string.lower(model or "")] ~= nil
+end
+
+function LOOT.Count()
+	local n = 0
+	for idx, ent in pairs(LOOT.byIndex) do
+		if IsValid(ent) then
+			n = n + 1
+		else
+			LOOT.byIndex[idx] = nil
+		end
+	end
+	return n
+end
+
+function LOOT.PickPropModel()
+	local pool = hg.loot_boxes
+	if LOOT.cv_clutter:GetBool() and math.random(6) == 1 then
+		pool = hg.props
+	end
+
+	for model, tbl in RandomPairs(pool) do
+		if not istable(tbl) or not tbl[3] then
+			return model
+		end
+	end
+end
+
+function LOOT.Freeze(ent)
+	if not LOOT.cv_freeze:GetBool() then return end
+	if LOOT.IsLootBoxModel(ent:GetModel()) then return end
+
+	for i = 0, ent:GetPhysicsObjectCount() - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) then
+			phys:EnableMotion(false)
+			phys:Sleep()
+		end
+	end
+end
+
+function LOOT.Register(ent)
+	ent.hgLootSpawned = true
+	LOOT.byIndex[ent:EntIndex()] = ent
+	ent:CallOnRemove("hgLootSpawned", function()
+		LOOT.byIndex[ent:EntIndex()] = nil
+	end)
+end
+
+function LOOT.SpawnProp(pos)
+	if LOOT.Count() >= LOOT.cv_cap:GetInt() then return false end
+
+	local model = LOOT.PickPropModel()
+	if not model or not util.IsValidProp(model) then return false end
+
+	local ent = ents.Create("prop_physics")
+	ent:SetPos(pos)
+	ent:SetModel(model)
+
+	local tr = {
+		start = pos,
+		endpos = pos,
+		collisiongroup = COLLISION_GROUP_WORLD,
+	}
+
+	if util.TraceEntity(tr, ent).Hit then
+		ent:Remove()
+		return false
+	end
+
+	ent:Spawn()
+	LOOT.Register(ent)
+
+	timer.Simple(0, function()
+		if not IsValid(ent) then return end
+		LOOT.Freeze(ent)
+		hook.Run("ZB_InventoryChecked", NULL, ent)
+	end)
+
+	return true
+end
+
+function LOOT.Cleanup()
+	for idx, ent in pairs(LOOT.byIndex) do
+		if IsValid(ent) then ent:Remove() end
+		LOOT.byIndex[idx] = nil
+	end
+end
+
+function LOOT.StartTimer()
+	if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
+	LOOT.nextTick = 0
+	timer.Create("SpawnTheBoxes", 1, 0, function()
+		if CurTime() < LOOT.nextTick then return end
+		LOOT.nextTick = CurTime() + LOOT.cv_interval:GetFloat()
+		hook_Run("Boxes Think")
+	end)
+end
+
+hook.Add("ZB_EndRound", "hgLootSpawnCleanup", LOOT.Cleanup)
+hook.Add("PostCleanupMap", "hgLootSpawnCleanup", LOOT.Cleanup)
+
+hook.Add("EntityTakeDamage", "hgLootSpawnWake", function(ent)
+	if not ent.hgLootSpawned or LOOT.IsLootBoxModel(ent:GetModel()) then return end
+
+	for i = 0, ent:GetPhysicsObjectCount() - 1 do
+		local phys = ent:GetPhysicsObjectNum(i)
+		if IsValid(phys) and not phys:IsMotionEnabled() then
+			phys:EnableMotion(true)
+			phys:Wake()
+		end
+	end
+end)
+
 hook.Add("PostCleanupMap", "addboxs", function()
 	if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
 	timer.Simple(.5,function()
@@ -594,12 +733,11 @@ hook.Add("PostCleanupMap", "addboxs", function()
 
 		table.Add(spawns,tbladd)
 
-		timer.Create("SpawnTheBoxes", 8, 0, function() hook_Run("Boxes Think") end)
+		LOOT.StartTimer()
 	end)
 end)
 
-if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
-timer.Create("SpawnTheBoxes", 8, 0, function() hook_Run("Boxes Think") end)
+LOOT.StartTimer()
 
 local vec = Vector(0, 0, 64)
 local vec_dist = Vector(500,500,500)
@@ -655,40 +793,8 @@ hook.Add("Boxes Think", "SpawnBoxes", function()
 		end
 	end
 
-	if (math.random(2) == 1) and not CurrentRound().noBoxes then
-
-		/*if math.random(4) == 1 then
-			local huy = ents.Create("prop_physics")
-			huy:SetPos(spawnPos)
-			local _, randprop = table.Random(hg.props)
-			if not util.IsValidProp(randprop) then huy:Remove() return end
-			huy:SetModel(randprop)
-			huy:Spawn()
-			return
-		end*/
-
-		local huy = ents.Create("prop_physics")
-		huy:SetPos(spawnPos)
-		local randprop
-		for model, tbl in RandomPairs(math.random(6) == 1 and hg.props or hg.loot_boxes) do
-			if !istable(tbl) or !tbl[3] then randprop = model break end
-		end
-		if not util.IsValidProp(randprop) then huy:Remove() return end
-		huy:SetModel(randprop)
-		local tr = {}
-		tr.start = spawnPos
-		tr.endpos = spawnPos
-		tr.collisiongroup = COLLISION_GROUP_WORLD
-		local trace = util.TraceEntity(tr, huy)
-		
-		if !trace.Hit then
-			huy:Spawn()
-		else
-			huy:Remove()
-		end
-
-		--huy.stats = stats--длина и тип спавна лута (для рп дополнения...)
-		return
+	if math.random(2) == 1 and not CurrentRound().noBoxes then
+		if LOOT.SpawnProp(spawnPos) then return end
 	end
 
 	local entName, AmmoCount, Tab = hg.GenerateLoot()

@@ -9,8 +9,8 @@ PLUGIN.Name = "Cleaner"
 PLUGIN.Hooks = {}
 local Hook = PLUGIN.Hooks
 
-local CLEANUP_INTERVAL = 1200 --; 10 мин проверка
-local ENTITY_LIFETIME = 1200 --; 10 мин
+local CLEANUP_INTERVAL = 300
+local ENTITY_LIFETIME = 300
 
 local ragdollSpawnTimes = {}
 local weaponSpawnTimes = {}

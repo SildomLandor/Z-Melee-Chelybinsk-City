@@ -27,6 +27,25 @@ function hg.organism.Remove(ent)
 	hg.organism.list[ent] = nil
 end
 
+function hg.organism.CorpseNeedsThink(owner, org)
+	if org.alive ~= false then return true end
+	if not owner:IsRagdoll() then return true end
+
+	if owner:IsOnFire() then return true end
+	if (org.bleed or 0) > 0 then return true end
+	if (org.painadd or 0) > 0 then return true end
+	if org.choking then return true end
+	if (org.blood or 5000) < 4800 then return true end
+
+	local wounds = owner:GetNetVar("wounds")
+	if wounds and not table.IsEmpty(wounds) then return true end
+
+	local arterial = owner:GetNetVar("arterialwounds")
+	if arterial and not table.IsEmpty(arterial) then return true end
+
+	return false
+end
+
 hook.Add("PlayerInitialSpawn", "homigrad-organism", function(ply) hg.organism.Add(ply) end)
 hook.Add("Player Spawn", "homigrad-organism", function(ply) hg.organism.Clear(ply.organism) end)
 hook.Add("PlayerDisconnected", "homigrad-organism", function(ply) hg.organism.Remove(ply) end)
@@ -82,6 +101,7 @@ hook.Add("Think", "homigrad-organism", function()
 			continue
 		end
 		if org.godmode then continue end
+		if not hg.organism.CorpseNeedsThink(owner, org) then continue end
 		hook_Run("Org Think", owner, org, mulTime)
 	end
 end)

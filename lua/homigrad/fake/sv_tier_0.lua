@@ -547,6 +547,7 @@ function hg.Fake(ply, huyragdoll, no_freemove, force)
 		hook_Run("Ragdoll_Create", ply, ragdoll)
 	end
 	if !IsValid(ragdoll) then return end
+	if IsValid(ply.bull) then ply.bull:Remove() ply.bull = nil end
 	ragdoll:CallOnRemove("Fake", RemoveRag, ply)
 	ply.fakecd = CurTime() + 1// + ply.organism.shock / 10
 	NET_Fake(ragdoll, ply)

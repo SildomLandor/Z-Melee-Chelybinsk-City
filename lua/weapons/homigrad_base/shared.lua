@@ -204,7 +204,7 @@ function SWEP:Initialize()
 	self.init = false
 	
 	timer.Simple(0.1,function()
-		if IsValid(self) and self.PlayAnim then self:PlayAnim("idle", 0, not self.NoIdleLoop) end
+		if IsValid(self) and self.PlayAnim then self:PlayAnim("idle", 1, not self.NoIdleLoop) end
 		if self.AmmoTypes and SERVER then
 			self:ApplyAmmoChanges(1)
 		end

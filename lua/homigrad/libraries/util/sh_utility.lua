@@ -520,9 +520,9 @@ hg.ConVars = hg.ConVars or {}
 
 		--hg.addbonecallback(ply)
 
-		if IsValid(ply) and ply:Alive() and not IsValid(ply.bull) and SERVER then
+		if IsValid(ply) and ply:Alive() and not IsValid(ply.bull) and not IsValid(ply.FakeRagdoll) and SERVER then
 			timer.Simple(1, function()
-				if not IsValid(ply) or not ply:Alive() then return end
+				if not IsValid(ply) or not ply:Alive() or IsValid(ply.FakeRagdoll) then return end
 				ply.bull = ents.Create("npc_bullseye")
 				local bull = ply.bull
 				local bon = ply:LookupBone("ValveBiped.Bip01_Head1")

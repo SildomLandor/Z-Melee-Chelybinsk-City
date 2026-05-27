@@ -144,15 +144,21 @@ local throatClutchArmBones = {
 }
 
 local player_GetHumans = player.GetHumans
+local hg_fake_think_hz = CreateConVar("hg_fake_think_hz", "33", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Fake ragdoll control update rate (Hz)", 15, 66)
+
+local fakeThinkNext = 0
 
 hook.Add("Think", "Fake", function()
+	local t = CurTime()
+	local interval = 1 / hg_fake_think_hz:GetFloat()
+	if fakeThinkNext > t then return end
+	fakeThinkNext = t + interval
+
 	hg.humans_cached = player_GetHumans()
 
-	//for ply, ragdoll in pairs(hg.ragdollFake) do
-	for i, ply in player.Iterator() do
-		local ragdoll = hg.ragdollFake[ply]//ply.FakeRagdoll
-		if not IsValid(ragdoll) then
-			//hg.ragdollFake[ply] = nil
+	for ply, ragdoll in pairs(hg.ragdollFake) do
+		if not IsValid(ply) or not IsValid(ragdoll) then
+			hg.ragdollFake[ply] = nil
 			continue
 		end
 
