@@ -105,10 +105,15 @@ function MODE:GetLootTable()
 	end
 end
 
+local function zombieMode()
+	local mode = CurrentRound()
+	if mode and mode.name == "zombie" then return mode end
+end
+
 local function spawnLootBurst(count, delay)
 	for i = 1, count do
 		timer.Simple(delay * i, function()
-			if not CurrentRound() or CurrentRound().name ~= "zombie" then return end
+			if not zombieMode() then return end
 			hook.Run("Boxes Think")
 		end)
 	end
@@ -140,7 +145,10 @@ function MODE:Intermission()
 	self.PrepPhase = true
 	self.WaveActive = false
 	self.WaveCompleted = false
+	self.WaveSpawnInProgress = false
+	self.WaveIntermission = false
 	self.Zombies = {}
+	self.nextZombieCheck = nil
 
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
@@ -172,9 +180,10 @@ function MODE:GiveEquipment()
 	spawnLootBurst(8, 2)
 
 	timer.Simple(self.start_time or 35, function()
-		if CurrentRound() ~= self then return end
-		self.PrepPhase = false
-		self:StartWave(1)
+		local mode = zombieMode()
+		if not mode then return end
+		mode.PrepPhase = false
+		mode:StartWave(1)
 	end)
 end
 
@@ -261,6 +270,11 @@ function MODE:StartWave(num)
 	self.Wave = num
 	self.WaveActive = true
 	self.WaveCompleted = false
+	self.WaveIntermission = false
+	self.WaveSpawnInProgress = true
+	self.Zombies = {}
+	self.ZombieCount = 0
+	self.nextZombieCheck = CurTime() + 2
 
 	net.Start("zombie_newwave")
 		net.WriteInt(num, 8)
@@ -269,44 +283,52 @@ function MODE:StartWave(num)
 
 	local mode = self
 	local delay = 0
+
 	for _, entry in ipairs(waveDef) do
 		for _ = 1, entry.count do
 			delay = delay + 0.6
 			timer.Simple(delay, function()
-				if CurrentRound() ~= mode or not mode.WaveActive then return end
+				if zombieMode() ~= mode or not mode.WaveActive then return end
 				mode:SpawnZombie(entry.type, entry.health)
 			end)
 		end
 	end
+
+	timer.Simple(delay + 0.15, function()
+		if zombieMode() ~= mode then return end
+		mode.WaveSpawnInProgress = false
+	end)
 end
 
 function MODE:EndWave()
+	if self.WaveIntermission then return end
+
 	self.WaveActive = false
+	self.WaveSpawnInProgress = false
 
 	if self.Wave >= #self.Waves then
 		self.WaveCompleted = true
 		return
 	end
 
+	self.WaveIntermission = true
+
 	timer.Simple(8, function()
-		if CurrentRound() ~= self or self.PrepPhase then return end
-		if #zb:CheckAlive(true) <= 0 then return end
-		self:StartWave(self.Wave + 1)
+		local mode = zombieMode()
+		if not mode or mode.PrepPhase then return end
+		if #zb:CheckAlive(true) <= 0 then
+			mode.WaveIntermission = false
+			return
+		end
+
+		mode.WaveIntermission = false
+		mode:StartWave(mode.Wave + 1)
 	end)
 end
 
-function MODE:RoundThink()
-	if (self.nextLootThink or 0) < CurTime() then
-		self.nextLootThink = CurTime() + 5
-		hook.Run("Boxes Think")
-	end
-
-	if self.PrepPhase or not self.WaveActive then return end
-
-	if (self.nextZombieCheck or 0) > CurTime() then return end
-	self.nextZombieCheck = CurTime() + 2
-
+function MODE:CountLivingZombies()
 	local alive = 0
+
 	for id, ent in pairs(self.Zombies or {}) do
 		if not IsValid(ent) or ent:Health() <= 0 then
 			self.Zombies[id] = nil
@@ -316,11 +338,33 @@ function MODE:RoundThink()
 	end
 
 	self.ZombieCount = alive
+	return alive
+end
 
-	if alive <= 0 then
+function MODE:RoundThink()
+	if (self.nextLootThink or 0) < CurTime() then
+		self.nextLootThink = CurTime() + 5
+		hook.Run("Boxes Think")
+	end
+
+	if self.PrepPhase or not self.WaveActive or self.WaveIntermission or self.WaveSpawnInProgress then return end
+
+	if (self.nextZombieCheck or 0) > CurTime() then return end
+	self.nextZombieCheck = CurTime() + 2
+
+	if self:CountLivingZombies() <= 0 then
 		self:EndWave()
 	end
 end
+
+hook.Add("EntityRemoved", "ZombieModeNPCRemoved", function(ent)
+	if not ent.IsZombieModeNPC then return end
+
+	local mode = zombieMode()
+	if not mode or not mode.Zombies then return end
+
+	mode.Zombies[ent:EntIndex()] = nil
+end)
 
 function MODE:ShouldRoundEnd()
 	if self.PrepPhase then return false end
@@ -343,7 +387,10 @@ function MODE:EndRound()
 	self.Zombies = {}
 	self.ZombieCount = 0
 	self.WaveActive = false
+	self.WaveSpawnInProgress = false
+	self.WaveIntermission = false
 	self.PrepPhase = false
+	self.nextZombieCheck = nil
 end
 
 function MODE:RoundStart()
