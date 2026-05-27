@@ -15,7 +15,7 @@ hg.TraitorLoot = {
 }
 
 if CLIENT then
-	hook.Add("Player_Death","foundloot",function(ply)
+	hook.Add("Player_Death", "foundloot", function(ply)
 		if IsValid(ply.FakeRagdoll) then ply.FakeRagdoll.foundloot = table.Copy(ply.foundloot) end
 		ply.foundloot = {}
 	end)
@@ -23,20 +23,15 @@ if CLIENT then
 	local OpenInv
 	net.Receive("should_open_inv", function()
 		local ent = net.ReadEntity()
-		local inv = net.ReadTable()
-		local armors = net.ReadTable()
 		if not IsValid(ent) then return end
-		OpenInv(ent, inv, armors)
+		OpenInv(ent)
 	end)
-
-	local buttons = {}
 
 	local invCol = {
 		frameBG       = Color(10, 10, 19, 235),
 		frameBorder   = Color(90, 90, 95, 120),
 		panelBG       = Color(8, 8, 16, 200),
 		text          = Color(200, 200, 200, 255),
-		textDim       = Color(160, 160, 165, 180),
 		textMuted     = Color(100, 100, 108, 140),
 		separator     = Color(255, 255, 255, 12),
 		scrollTrack   = Color(255, 255, 255, 6),
@@ -47,19 +42,8 @@ if CLIENT then
 	local invNoiseMat = Material("vgui/noisevhs")
 	if invNoiseMat:IsError() then invNoiseMat = Material("vgui/white") end
 
-	local function InvStyleScrollbar(sbar)
-		if not IsValid(sbar) then return end
-		sbar:SetHideButtons(true)
-		sbar.Paint = function(_, sw, sh)
-			surface.SetDrawColor(invCol.scrollTrack)
-			surface.DrawRect(0, 0, sw, sh)
-		end
-		sbar.btnGrip.Paint = function(grip, sw, sh)
-			local c = grip:IsHovered() and invCol.scrollGripHov or invCol.scrollGrip
-			surface.SetDrawColor(c)
-			surface.DrawRect(2, 0, sw - 4, sh)
-		end
-	end
+	local buttons = {}
+
 	local function BuildLootTakeKey(owner, tblIndex, thing)
 		if not IsValid(owner) then return "" end
 		return owner:EntIndex() .. "|" .. tblIndex .. "|" .. thing
@@ -91,6 +75,20 @@ if CLIENT then
 		net.SendToServer()
 	end
 
+	local function InvStyleScrollbar(sbar)
+		if not IsValid(sbar) then return end
+		sbar:SetHideButtons(true)
+		sbar.Paint = function(_, sw, sh)
+			surface.SetDrawColor(invCol.scrollTrack)
+			surface.DrawRect(0, 0, sw, sh)
+		end
+		sbar.btnGrip.Paint = function(grip, sw, sh)
+			local c = grip:IsHovered() and invCol.scrollGripHov or invCol.scrollGrip
+			surface.SetDrawColor(c)
+			surface.DrawRect(2, 0, sw - 4, sh)
+		end
+	end
+
 	local function nameThings(i, thing)
 		local weps = weapons.Get(i)
 		local entss = scripted_ents.Get(i)
@@ -105,129 +103,95 @@ if CLIENT then
 	local function getIconThing(i, thing, tab)
 		if tab == "Weapons" and weapons.Get(i) then
 			local GunTable = weapons.Get(i)
-				local Icon = (GunTable.WepSelectIcon2 ~= nil and GunTable.WepSelectIcon2) or GunTable.WepSelectIcon
-			local Overide = GunTable.WepSelectIcon2 == nil and true or false
-			local HaveIcon = true
-			return Icon, HaveIcon, Overide, GunTable.WepSelectIcon2box
+			local Icon = (GunTable.WepSelectIcon2 ~= nil and GunTable.WepSelectIcon2) or GunTable.WepSelectIcon
+			local Overide = GunTable.WepSelectIcon2 == nil
+			return Icon, true, Overide, GunTable.WepSelectIcon2box
 		end
 
-		if tab == "Attachments" and hg.attachmentsIcons[thing] then
-			local AttIcon = hg.attachmentsIcons[thing]
-			local HaveIcon = true
-			return AttIcon, HaveIcon, false, true
+		if tab == "Attachments" and hg.attachmentsIcons and hg.attachmentsIcons[thing] then
+			return hg.attachmentsIcons[thing], true, false, true
 		end
 
-		if tab == "Armor" then
-			local AttIcon = hg.armorIcons[thing]
-			local HaveIcon = true
-			return AttIcon, HaveIcon, false, true
+		if tab == "Armor" and hg.armorIcons and hg.armorIcons[thing] then
+			return hg.armorIcons[thing], true, false, true
 		end
 
 		if tab == "Money" then
-			local AttIcon = "scrappers/money_icon.png"
-			local HaveIcon = true
-			return AttIcon, HaveIcon, false
+			return "scrappers/money_icon.png", true, false
 		end
 	end
 
 	local functions2 = {
-		["Weapons"] = function(ply, ent, wep)
-			if true then return true end
-		end,
-		["Ammo"] = function(ply, ent, ammo, amt)
-			if true then return true end
-		end,
+		["Weapons"] = function() return true end,
+		["Ammo"] = function() return true end,
 		["Armor"] = function(ply, ent, placement, armor)
 			local slot = hg.armor and hg.armor[placement]
 			if slot and slot[armor] and slot[armor].nodrop then return false end
 			return true
 		end,
-		["Attachments"] = function(ply, ent, att, tbl)
-			if true then return true end
-		end,
-		["Money"] = function(ply, ent)
-			if true then return true end
-		end,
+		["Attachments"] = function() return true end,
+		["Money"] = function() return true end,
 	}
 
 	local functions = {
 		["Weapons"] = function(ply, ent, wep)
-			local weapon = weapons.Get(wep)
-			if (ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon() == wep) then return end
-			--if not hg.weaponInv.CanInsert(ply, weapon) or ply:HasWeapon(wep) then return false end
+			if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == wep then return end
 			return true
 		end,
-		["Ammo"] = function(ply, ent, ammo, amt)
-			if true then return true end
-		end,
+		["Ammo"] = function() return true end,
 		["Armor"] = function(ply, ent, placement, armor)
-			local armors = ply:GetNetVar("Armor",{})
+			local armors = ply:GetNetVar("Armor", {})
 			if armors[placement] then return false end
-			if true then return true end
+			return true
 		end,
-		["Attachments"] = function(ply, ent, att, tbl)
-			if true then return true end
-		end,
-		["Money"] = function(ply, ent)
-			if true then return true end
-		end,
+		["Attachments"] = function() return true end,
+		["Money"] = function() return true end,
 	}
 
 	local cooldown = 0
 
 	local function TakeItem(tblIndex, thing, item, owner)
-		local item = istable(item) and item or {item}
-
 		net.Start("ply_take_item")
 			net.WriteString(tblIndex)
 			net.WriteString(thing)
-			net.WriteTable(item)
+			net.WriteTable(istable(item) and item or {item})
 			net.WriteEntity(owner)
 		net.SendToServer()
 	end
 
 	local plyMenu
 
-	hook.Add("OnNetVarSet","inventory_netvar",function(index,key,var)
-		if key == "Inventory" then
-			local ent = Entity(index)
-
-			if IsValid(plyMenu) and plyMenu.entindex == index then
-				timer.Simple(0,function()
-					--OpenInv(ent)
-				end)
-			end
-		end
+	hook.Add("OnNetVarSet", "inventory_netvar", function(index, key, var)
+		if key == "Inventory" and IsValid(plyMenu) and plyMenu.entindex == index then end
 	end)
 
-	OpenInv = function(ent, invOverride, armorOverride)
+	OpenInv = function(ent)
 		if IsValid(plyMenu) then
 			plyMenu:Remove()
 			plyMenu = nil
 		end
 
-		cooldown = CurTime() + 0
+		cooldown = CurTime()
 		if not IsValid(ent) then return end
 
 		local ply = LocalPlayer()
-		local inv = invOverride or ent:GetNetVar("Inventory")
+		local inv = ent:GetNetVar("Inventory")
 		if not inv then return end
-
-		if invOverride or armorOverride then
-			local idx = ent:EntIndex()
-			zb.net = zb.net or {}
-			zb.net[idx] = zb.net[idx] or {}
-			zb.net[idx].Inventory = inv
-			if armorOverride then zb.net[idx].Armor = armorOverride end
-		end
 
 		inv = table.Copy(inv)
 		inv["Money"] = {}
-		inv["Armor"] = armorOverride or ent:GetNetVar("Armor") or {}
+		inv["Armor"] = ent:GetNetVar("Armor") or {}
 
 		local nameStr = "контейнер"
-		if ent:IsPlayer() or ent:IsRagdoll() then
-			nameStr = ent:GetPlayerName() or string.NiceName(ent:GetClass())
+		if ent:IsPlayer() then
+			nameStr = ent:GetNWString("PlayerName", ent:Nick())
+		elseif ent:IsRagdoll() then
+			local owner = hg.RagdollOwner and hg.RagdollOwner(ent)
+			if IsValid(owner) then
+				nameStr = owner:GetNWString("PlayerName", owner:Nick())
+			else
+				nameStr = string.NiceName(ent:GetClass())
+			end
 		end
 		local title = nameStr .. " — инвентарь"
 
@@ -289,8 +253,6 @@ if CLIENT then
 		plyMenu:SetDraggable(false)
 		plyMenu:SetColorBG(invCol.frameBG)
 		plyMenu:SetColorBR(invCol.frameBorder)
-		plyMenu:SetAlpha(0)
-		plyMenu:AlphaTo(255, 0.12, 0)
 		plyMenu.Created = CurTime()
 
 		plyMenu.Think = function(self)
@@ -309,8 +271,8 @@ if CLIENT then
 			local lp = LocalPlayer()
 			local org = lp.organism
 			if (org and org.otrub) or not lp:Alive() then self:Remove() return end
-			if (e:GetPos() - LocalPlayer():GetPos()):LengthSqr() > 125 ^ 2 then self:Remove() return end
-			if e:IsPlayer() and (not IsValid(e.FakeRagdoll) or (e.organism and not e.organism.otrub)) then self:Remove() return end
+			if (e:GetPos() - lp:GetPos()):LengthSqr() > 125 * 125 then self:Remove() return end
+			if e:IsPlayer() and not IsValid(e.FakeRagdoll) then self:Remove() return end
 			if input.IsKeyDown(KEY_R) then self:Close() end
 		end
 
@@ -367,53 +329,51 @@ if CLIENT then
 		grid:SetColWide(colWide)
 		grid:SetRowHeight(rowH)
 		grid:SetTall(rows * rowH + gridPad)
+
 		local count = 0
 		for tab, things in pairs(inv) do
 			if not istable(things) then continue end
-			for i, thing in pairs(things) do
+			for i in pairs(things) do
 				ent.foundloot = ent.foundloot or {}
 				count = count + ((ent:IsPlayer() or ent:IsRagdoll()) and ((hg.TraitorLoot[i] and ent:IsPlayer()) and 2 or 0.5) or 1) * (not ent.foundloot[i] and 1 or 0)
 			end
 		end
+
 		local searchCycle = CurTime() + 3
 		function DScrollPanel:Paint(w, h)
-			--draw.RoundedBox(0, 0, 0, w, h, invCol.panelBG)
 			if (plyMenu.Created + count + 3) >= CurTime() then
 				local txt = "обыск"
-				for i = 1, 3 - math.Round(searchCycle - CurTime(), 0) do
+				for n = 1, 3 - math.Round(searchCycle - CurTime(), 0) do
 					txt = txt .. "."
 				end
 				if searchCycle < CurTime() then searchCycle = CurTime() + 3 end
 				draw.SimpleText(txt, "ZCity_Veteran", w * 0.5, h * 0.42, invCol.textMuted, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			end
 		end
+
 		local count2 = 0
-		
 		for tab, things in pairs(inv) do
 			if not istable(things) or not functions2[tab] then continue end
 			local keys = table.GetKeys(things)
-			table.sort(keys,function(a,b)
-				local atbl = weapons.Get(a)
-				local wep = atbl and atbl.holsteredBone and not atbl.shouldntDrawHolstered
-				return (ent.foundloot[a] and 1 or 0) > (ent.foundloot[b] and 1 or 0)//(hg.TraitorLoot[a] or 0) < (hg.TraitorLoot[b] or (wep and 1 or 0) or 0)
+			table.sort(keys, function(a, b)
+				return (ent.foundloot[a] and 1 or 0) > (ent.foundloot[b] and 1 or 0)
 			end)
-			
-			for k, i in ipairs(keys) do
+
+			for _, i in ipairs(keys) do
 				local thing = things[i]
 				local thing1 = istable(thing) and thing or {thing}
 
 				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
-
 				ent.foundloot = ent.foundloot or {}
-
 				if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == i then continue end
-				count2 = count2 + (!ent.foundloot[i] and 1 or 0)//((ent:IsPlayer() or ent:IsRagdoll()) and ((hg.TraitorLoot[i] and ent:IsPlayer()) and 2 or 0.5) or 1) * (not ent.foundloot[i] and 1 or 0)
+
+				count2 = count2 + (not ent.foundloot[i] and 1 or 0)
 
 				local button = vgui.Create("DButton", plyMenu)
 				button:SetText("")
 				button:DockMargin(5, 0, 2, 0)
 				button:SetSize(0, 0)
-				button.Created = CurTime() + (IsValid(ent.FakeRagdoll) and !ent.foundloot[i] and 2 or 0) + count2
+				button.Created = CurTime() + (IsValid(ent.FakeRagdoll) and not ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
 					if self.Created and self.Created < CurTime() then
 						self:SetSize(boxW, boxH)
@@ -450,7 +410,7 @@ if CLIENT then
 
 					if not functions[tab](ply, ent, i, unpack(thing1)) then
 						local OptionsMenu = DermaMenu()
-							OptionsMenu:AddOption("У вас есть такой предмет", function() end)
+						OptionsMenu:AddOption("У вас есть такой предмет", function() end)
 						OptionsMenu:Open()
 						self.HoldPressed = false
 						self.HoldRequested = false
@@ -460,10 +420,7 @@ if CLIENT then
 						return
 					end
 
-					if istable(thing) then
-						thing["render"] = {}
-					end
-
+					if istable(thing) then thing.render = {} end
 					surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
 					grid.SoundKD = CurTime() + 0.2
 					self:Remove()
@@ -478,13 +435,13 @@ if CLIENT then
 
 					if not functions[tab](ply, ent, i, unpack(thing1)) then
 						local OptionsMenu = DermaMenu()
-							OptionsMenu:AddOption("У вас есть такой предмет", function() end)
+						OptionsMenu:AddOption("У вас есть такой предмет", function() end)
 						OptionsMenu:Open()
 						return
 					end
 
 					local OptionsMenu = DermaMenu()
-						OptionsMenu:AddOption("Зажмите LMB для взятия", function() end)
+					OptionsMenu:AddOption("Зажмите LMB для взятия", function() end)
 					OptionsMenu:Open()
 				end
 

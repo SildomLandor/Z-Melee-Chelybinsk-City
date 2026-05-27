@@ -220,6 +220,24 @@ end
 -- armorstuff
 util.AddNetworkString("AddFlash")
 
+local function GiveTinnitus(ply, time, needSound)
+	if not IsValid(ply) then return end
+	if not ply:IsPlayer() then
+		ply = hg.RagdollOwner(ply)
+	end
+	if not IsValid(ply) or not ply:IsPlayer() then return end
+
+	if ply.AddTinnitus then
+		ply:AddTinnitus(time, needSound)
+		return
+	end
+
+	net.Start("send_tinnitus")
+		net.WriteFloat(time)
+		net.WriteBool(needSound or false)
+	net.Send(ply)
+end
+
 local ArmorEffect
 local force
 local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scaleprot, punch, boneindex, dir, hit, ricochet)
@@ -238,7 +256,7 @@ local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scalepro
 			
 			org.owner:EmitSound("homigrad/physics/shield/bullet_hit_shield_0"..math.random(7)..".wav", 80, math.random(95, 105))
 
-			org.owner:AddTinnitus(3, true)
+			GiveTinnitus(org.owner, 3, true)
 			net.Start("AddFlash")
 				net.WriteVector(hg.eye(org.owner) + org.owner:GetForward() * 3)
 				net.WriteFloat(3)
