@@ -3,6 +3,14 @@ local blackList = {
     ["weapon_zombclaws"] = true
 }
 
+local invDebug = CreateConVar("hg_inv_debug", "0", FCVAR_ARCHIVE, "huyhuyhuy")
+local function InvDbg(ply, fmt, ...)
+    if not invDebug:GetBool() then return end
+    local who = IsValid(ply) and (ply:Nick() .. "#" .. ply:EntIndex()) or "world"
+    print(("sv_inventory.lua:" .. fmt):format(who, ...))
+end
+
+
 local META = getmetatable("PLAYER")
 META.inventory = {
     Weapons = {},
@@ -13,6 +21,7 @@ META.inventory = {
 META.armors = {}
 
 function hg.CreateInv(ply)
+    InvDbg(ply, "hg.CreateInv")
     ply.inventory = {}
     local inv = ply.inventory
     inv.Weapons = {}
@@ -285,22 +294,13 @@ local function IsLootContainer(ent)
     if not IsValid(ent) then return false end
     if ent:IsPlayer() or ent:IsRagdoll() then return true end
     if not string.find(ent:GetClass() or "", "prop_") then return false end
-    return hg.loot_boxes and hg.loot_boxes[string.lower(ent:GetModel() or "")] ~= nil
-end
-
-local function PrepLootEnt(ply, ent)
-    if not IsValid(ent) then return end
-    hook.Run("ZB_InventoryChecked", ply, ent)
-    if not GetEntInv(ent) and IsLootContainer(ent) then
-        ent.inventory = {Weapons = {}, Ammo = {}, Attachments = {}}
-        ent.armors = ent.armors or {}
-        ent:SetNetVar("Inventory", ent.inventory)
-        ent:SetNetVar("Armor", ent.armors)
+    local model = string.lower(ent:GetModel() or "")
+    local hasLootBoxes = istable(hg.loot_boxes)
+    local isLootModel = hasLootBoxes and hg.loot_boxes[model] ~= nil
+    if invDebug:GetBool() then
+        InvDbg(nil, "is_loot_container model=%s class=%s loot_boxes=%s in_loot=%s", model, ent:GetClass() or "nil", tostring(hasLootBoxes), tostring(isLootModel))
     end
-end
-
-local function EntCanOpenLoot(ent)
-    return IsLootContainer(ent) and GetEntInv(ent) ~= nil
+    return isLootModel
 end
 
 local function CanLootEnt(ent)
@@ -505,14 +505,44 @@ end)
 util.AddNetworkString("should_open_inv")
 local playerMeta = FindMetaTable("Player")
 function playerMeta:OpenInventory(ent)
+    if not IsValid(ent) then
+        InvDbg(self, "open_inventory blocked: invalid entity")
+        return
+    end
+    if not CanLootEnt(ent) then
+        InvDbg(self, "open_inventory blocked: CanLootEnt=false class=%s model=%s", ent:GetClass() or "nil", string.lower(ent:GetModel() or ""))
+        return
+    end
+
+    hook.Run("ZB_InventoryChecked", self, ent)
+
+    local inv = GetEntInv(ent)
+    if not inv and IsLootContainer(ent) then
+        -- Fallback: if loot hook did not populate inventory, create empty container anyway.
+        ent.inventory = {Weapons = {}, Ammo = {}, Attachments = {}}
+        ent.armors = ent.armors or {}
+        ent:SetNetVar("Inventory", ent.inventory)
+        ent:SetNetVar("Armor", ent.armors)
+        inv = ent.inventory
+        InvDbg(self, "fallback inventory created class=%s model=%s", ent:GetClass() or "nil", string.lower(ent:GetModel() or ""))
+    end
+
+    if not inv then
+        InvDbg(self, "open_inventory blocked: no inventory after ZB_InventoryChecked class=%s model=%s", ent:GetClass() or "nil", string.lower(ent:GetModel() or ""))
+        return
+    end
+
     hook.Run("ZB_InventoryOpened", self, ent)
-    if not IsValid(ent) then return end
-    if not CanLootEnt(ent) then return end
     if ent:IsPlayer() and ent:Alive() then hg.RenewInv(ent) end
     if self:IsPlayer() then hg.RenewInv(self) end
+
+    SyncEntInvNet(ent, self)
     self.cooldown_takeitem = CurTime() + 0.3
+
     net.Start("should_open_inv")
     net.WriteEntity(ent)
+    net.WriteTable(inv)
+    net.WriteTable(ent.armors or ent:GetNetVar("Armor") or {})
     net.Send(self)
 end
 
@@ -540,6 +570,7 @@ hook.Add("Player Think", "loot-fellows",function(ply)
     
         if not trace then return end
         local ent = trace.Entity
+        if not IsValid(ent) then return end
 
         if ent:IsPlayer() and not ent:Alive() then
             local rag = ent:GetNWEntity("RagdollDeath")
@@ -553,16 +584,18 @@ hook.Add("Player Think", "loot-fellows",function(ply)
             ply.keypressed = true
             return
         end
-		local _ply, _ent, canloot = hook.Run("ZB_CanLootInventory", ply, ent, canloot)
+		local _ply, _ent, canloot = hook.Run("ZB_CanLootInventory", ply, ent, nil)
 		if canloot ~= nil and canloot == false then
+            InvDbg(ply, "blocked by ZB_CanLootInventory class=%s model=%s", ent:GetClass() or "nil", string.lower(ent:GetModel() or ""))
 			ply.keypressed = true
 			return
 		end
     
-        hook.Run("ZB_InventoryChecked", ply, ent)
+        if invDebug:GetBool() then
+            local model = string.lower(ent:GetModel() or "")
+            InvDbg(ply, "attempt open class=%s model=%s has_inv=%s is_loot=%s loot_boxes=%s", ent:GetClass() or "nil", model, tostring(GetEntInv(ent) ~= nil), tostring(IsLootContainer(ent)), tostring(istable(hg.loot_boxes)))
+        end
 
-        if not IsValid(ent) or not GetEntInv(ent) then return end
-        
         if not ply.keypressed then ply:OpenInventory(ent) end
         
         ply.keypressed = true

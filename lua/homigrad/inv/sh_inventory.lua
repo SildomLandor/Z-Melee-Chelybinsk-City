@@ -23,7 +23,10 @@ if CLIENT then
 	local OpenInv
 	net.Receive("should_open_inv", function()
 		local ent = net.ReadEntity()
-		OpenInv(ent)
+		local inv = net.ReadTable()
+		local armors = net.ReadTable()
+		if not IsValid(ent) then return end
+		OpenInv(ent, inv, armors)
 	end)
 
 	local buttons = {}
@@ -135,8 +138,9 @@ if CLIENT then
 			if true then return true end
 		end,
 		["Armor"] = function(ply, ent, placement, armor)
-			if hg.armor[placement][armor].nodrop then return false end
-			if true then return true end
+			local slot = hg.armor and hg.armor[placement]
+			if slot and slot[armor] and slot[armor].nodrop then return false end
+			return true
 		end,
 		["Attachments"] = function(ply, ent, att, tbl)
 			if true then return true end
@@ -196,7 +200,7 @@ if CLIENT then
 		end
 	end)
 
-	OpenInv = function(ent)
+	OpenInv = function(ent, invOverride, armorOverride)
 		if IsValid(plyMenu) then
 			plyMenu:Remove()
 			plyMenu = nil
@@ -206,11 +210,20 @@ if CLIENT then
 		if not IsValid(ent) then return end
 
 		local ply = LocalPlayer()
-		local inv = ent:GetNetVar("Inventory")
+		local inv = invOverride or ent:GetNetVar("Inventory")
 		if not inv then return end
 
+		if invOverride or armorOverride then
+			local idx = ent:EntIndex()
+			zb.net = zb.net or {}
+			zb.net[idx] = zb.net[idx] or {}
+			zb.net[idx].Inventory = inv
+			if armorOverride then zb.net[idx].Armor = armorOverride end
+		end
+
+		inv = table.Copy(inv)
 		inv["Money"] = {}
-		inv["Armor"] = ent:GetNetVar("Armor")
+		inv["Armor"] = armorOverride or ent:GetNetVar("Armor") or {}
 
 		local nameStr = "контейнер"
 		if ent:IsPlayer() or ent:IsRagdoll() then
@@ -231,7 +244,7 @@ if CLIENT then
 
 		local itemCount = 0
 		for tab, things in pairs(inv) do
-			if not istable(things) then continue end
+			if not istable(things) or not functions2[tab] then continue end
 			for i, thing in pairs(things) do
 				local thing1 = istable(thing) and thing or {thing}
 				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
@@ -293,7 +306,9 @@ if CLIENT then
 
 			local e = self.ent
 			if not IsValid(e) then self:Close() return end
-			if LocalPlayer().organism.otrub or not LocalPlayer():Alive() then self:Remove() return end
+			local lp = LocalPlayer()
+			local org = lp.organism
+			if (org and org.otrub) or not lp:Alive() then self:Remove() return end
 			if (e:GetPos() - LocalPlayer():GetPos()):LengthSqr() > 125 ^ 2 then self:Remove() return end
 			if e:IsPlayer() and (not IsValid(e.FakeRagdoll) or (e.organism and not e.organism.otrub)) then self:Remove() return end
 			if input.IsKeyDown(KEY_R) then self:Close() end
@@ -375,7 +390,7 @@ if CLIENT then
 		local count2 = 0
 		
 		for tab, things in pairs(inv) do
-			if not istable(things) then continue end
+			if not istable(things) or not functions2[tab] then continue end
 			local keys = table.GetKeys(things)
 			table.sort(keys,function(a,b)
 				local atbl = weapons.Get(a)
