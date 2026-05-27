@@ -280,6 +280,8 @@ function TL.ApplySkillset(ply, skillset, modeType)
 
 	ply.organism.superfighter = false
 	ply.organism.recoilmul = 1
+	ply.MeleeDamageMul = nil
+	ply.FistsDamageMul = nil
 
 	ply.organism.stamina.range = 220
 	ply.organism.stamina.max = 220
@@ -301,7 +303,8 @@ function TL.ApplySkillset(ply, skillset, modeType)
 			CleanChemicalsOfPlayer(ply)
 		end
 	elseif skillset == "martial_artist" then
-		ply.organism.superfighter = true
+		ply.MeleeDamageMul = 2.5
+		ply.FistsDamageMul = 2.5
 		ply.organism.stamina.range = 154
 		ply.organism.stamina.max = 308
 		ply.organism.stamina[1] = 308
