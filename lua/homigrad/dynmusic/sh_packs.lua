@@ -195,7 +195,7 @@ musMeta:AddMusic(Music, 1, "bc_music/lambda_core.mp3" )
 musMeta:AddMusic(Music, 3, "bc_music/surface_tension.mp3" )
 musMeta:AddMusic(Music, 4, "bc_music/surface_tension_3.mp3" )
 musMeta:AddMusic(Music, 0, "bc_music/unforeseen_consequences.mp3", 0.3 )
-musMeta:AddMusic(Music, 0, "bc_music/on_a_rail.mp3", 0.3 )
+musMeta:AddMusic(Music, 1, "bc_music/on_a_rail.mp3", 0.3 )
 DMusic:AddSequence( "black_mesa", "Terra", Music )
 
 if SERVER then
