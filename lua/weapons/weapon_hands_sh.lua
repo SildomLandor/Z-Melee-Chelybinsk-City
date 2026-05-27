@@ -268,7 +268,7 @@ if CLIENT then
 	    if (IsValid(owner)) then
 
 	        local ang = owner:EyeAngles()
-	        local posa = hg.eye(owner)
+	        local posa = select(1, hg.eye(owner, nil, hg.GetCurrentCharacter(owner))) or owner:EyePos()
 
 	        local admire_offset = Vector(0, 0, 0)
 	        local admiring = owner:GetNWBool("mcd_admiring", false) and not owner.mcd_admire_local_cancel

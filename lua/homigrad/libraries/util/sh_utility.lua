@@ -1030,14 +1030,20 @@ local IsValid = IsValid
 
 	function hg.eye(ply, dist, ent, aimvec, startpos)
 		if !ply:IsPlayer() then return false end
+		if not IsValid(ply) or not ply.GetAimVector then return end
+
+		local aim_vector = isvector(aimvec) and aimvec or isangle(aimvec) and aimvec:Forward() or ply:GetAimVector()
+		local aim_dist = aim_vector * (dist or 60)
+
+		local function eyeFallback(filter)
+			return ply:EyePos(), aim_dist, filter or ply
+		end
+
 		local fakeCam = false//IsValid(ent) and ent != ply
 		ent = (IsValid(ent) and ent) or (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll) or ply
 		local bon = ent:LookupBone("ValveBiped.Bip01_Neck1")
-		if not bon then return end
-		if not IsValid(ply) then return end
-		if not ply.GetAimVector then return end
+		if not bon then return eyeFallback(ent ~= ply and {ply, ent, ply.OldRagdoll} or nil) end
 
-		local aim_vector = isvector(aimvec) and aimvec or isangle(aimvec) and aimvec:Forward() or ply:GetAimVector()
 		local useRag = ent ~= ply
 
 		local headm = ent:GetBoneMatrix(bon)
@@ -1053,12 +1059,11 @@ local IsValid = IsValid
 				if att and att.Pos then
 					local pos = att.Pos
 					local trace = hg.hullCheck(ply:EyePos() - vector_up * 10, pos, ply, ent)
-					return trace.HitPos, aim_vector * (dist or 60), {ply, ent, ply.OldRagdoll}, trace
+					return trace.HitPos, aim_dist, {ply, ent, ply.OldRagdoll}, trace
 				end
 			end
 
-			if useRag then return end
-			return ply:EyePos(), aim_vector * (dist or 60), ply
+			return eyeFallback(useRag and {ply, ent, ply.OldRagdoll} or nil)
 		end
 
 		/*if (ply.InVehicle and ply:InVehicle() and IsValid(ply:GetVehicle())) then
@@ -1103,7 +1108,7 @@ local IsValid = IsValid
 		//tr.endpos = tr.start + aim_vector * (dist or 60)
 		//tr.filter = {ply,ent}
 
-		return trace.HitPos, aim_vector * (dist or 60), {ply, ent, ply.OldRagdoll}, trace, headm//util.TraceLine(tr), trace, headm
+		return trace.HitPos or ply:EyePos(), aim_dist, {ply, ent, ply.OldRagdoll}, trace, headm//util.TraceLine(tr), trace, headm
 	end
 
 	function hg.eyeTrace(ply, dist, ent, aim_vector, startpos, fFilter)

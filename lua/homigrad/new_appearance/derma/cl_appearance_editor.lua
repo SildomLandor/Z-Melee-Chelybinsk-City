@@ -168,11 +168,306 @@ local function CloseAllOpenMenus()
     for i = #openMenus, 1, -1 do
         local m = openMenus[i]
         if IsValid(m) then
-            m:Remove()
+            if m.Close then m:Close() else m:Remove() end
         end
         table.remove(openMenus, i)
     end
 end
+
+local function AddDropdownOption(drop, scroll, text, onClick)
+	local btn = vgui.Create("DLabel", scroll:GetCanvas())
+	btn:SetText(text)
+	btn:SetFont("ZCity_Veteran")
+	btn:SetTextColor(Color(255, 255, 255))
+	btn:SetContentAlignment(4)
+	btn:Dock(TOP)
+	btn:DockMargin(0, 0, 0, ScreenScale(3))
+	btn:SizeToContents()
+	btn:SetWide(math.max(btn:GetWide() + ScreenScale(8), drop:GetWide() - ScreenScale(8)))
+	btn:SetTall(math.max(ScreenScale(16), btn:GetTall()))
+	btn.Paint = PaintMenuLabel
+	WireMenuLabel(btn, function()
+		if onClick then onClick() end
+		if IsValid(drop) then drop:Close() end
+	end)
+	scroll:InvalidateLayout(true)
+	return btn
+end
+
+local function CreateAnchorDropdown(parent, anchor, wide, maxTall, build, openUp)
+	CloseAllOpenMenus()
+
+	local drop = vgui.Create("DPanel", parent)
+	local ax, ay = anchor:LocalToScreen(0, 0)
+	local px, py = parent:LocalToScreen(0, 0)
+	local anchorTall = anchor:GetTall()
+
+	drop:SetPos(ax - px, ay - py + (openUp and -maxTall or anchorTall + ScreenScale(2)))
+	drop:SetWide(wide or anchor:GetWide())
+	drop:SetTall(0)
+	drop:SetZPos(110)
+	drop:SetMouseInputEnabled(true)
+	drop.TargetTall = maxTall
+	drop.OpenFrac = 0
+	drop.Closing = false
+	drop.Anchor = anchor
+	drop.OpenUp = openUp
+	drop._openedAt = SysTime()
+
+	function drop:Paint(w, h)
+		surface.SetDrawColor(10, 10, 10, 240)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(40, 40, 40, 220)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+	end
+
+	function drop:Close()
+		self.Closing = true
+	end
+
+	function drop:Think()
+		local target = self.Closing and 0 or 1
+		self.OpenFrac = Lerp(FrameTime() * 12, self.OpenFrac, target)
+		local tall = math.max(1, self.TargetTall * self.OpenFrac)
+		self:SetTall(tall)
+
+		if IsValid(self.Anchor) then
+			local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+			local px2, py2 = parent:LocalToScreen(0, 0)
+			if self.OpenUp then
+				self:SetPos(ax2 - px2, ay2 - py2 - tall - ScreenScale(2))
+			else
+				self:SetPos(ax2 - px2, ay2 - py2 + self.Anchor:GetTall() + ScreenScale(2))
+			end
+		end
+
+		if self.Closing and self.OpenFrac < 0.02 then
+			self:Remove()
+			return
+		end
+
+		if self.Closing or SysTime() - self._openedAt < 0.15 then return end
+		if not input.IsMouseDown(MOUSE_LEFT) then return end
+
+		local mx, my = gui.MouseX(), gui.MouseY()
+		local dx, dy = self:LocalToScreen(0, 0)
+		local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+		local aw, ah = self.Anchor:GetSize()
+
+		local inDrop = mx >= dx and mx <= dx + self:GetWide() and my >= dy and my <= dy + self:GetTall()
+		local inAnchor = mx >= ax2 and mx <= ax2 + aw and my >= ay2 and my <= ay2 + ah
+		if not inDrop and not inAnchor then self:Close() end
+	end
+
+	local scroll = CreateStyledScrollPanel(drop)
+	scroll:Dock(FILL)
+	scroll:DockMargin(ScreenScale(4), ScreenScale(4), ScreenScale(4), ScreenScale(4))
+	drop.Scroll = scroll
+
+	if build then build(drop, scroll) end
+
+	timer.Simple(0, function()
+		if not IsValid(drop) or not IsValid(scroll) then return end
+		local canvas = scroll:GetCanvas()
+		local contentH = (IsValid(canvas) and canvas:GetTall() or 0) + ScreenScale(8)
+		drop.TargetTall = math.min(maxTall, math.max(ScreenScale(20), contentH))
+
+		if IsValid(anchor) then
+			local ax2, ay2 = anchor:LocalToScreen(0, 0)
+			local px2, py2 = parent:LocalToScreen(0, 0)
+			if drop.OpenUp then
+				drop:SetPos(ax2 - px2, ay2 - py2 - drop.TargetTall - ScreenScale(2))
+			else
+				drop:SetPos(ax2 - px2, ay2 - py2 + anchor:GetTall() + ScreenScale(2))
+			end
+		end
+	end)
+
+	RegisterOpenMenu(drop)
+	drop:MoveToFront()
+	return drop
+end
+
+local function CreateSlideSidePanel(parent, anchor, wide, maxTall, build, onClose, panelX, panelY)
+	if not IsValid(anchor) then return end
+	CloseAllOpenMenus()
+
+	anchor.BaseX = anchor.BaseX or anchor:GetPos()
+	anchor.BaseY = anchor.BaseY or select(2, anchor:GetPos())
+	local gap = ScreenScale(6)
+
+	local panel = vgui.Create("DPanel", parent)
+	panel:SetPos(panelX or anchor.BaseX, panelY or anchor.BaseY)
+	panel:SetWide(0)
+	panel:SetTall(maxTall)
+	panel:SetZPos(55)
+	panel:SetMouseInputEnabled(true)
+	panel.TargetWide = wide
+	panel.OpenFrac = 0
+	panel.Closing = false
+	panel.Anchor = anchor
+	panel.BaseX = panelX or anchor.BaseX
+	panel.BaseY = panelY or anchor.BaseY
+	panel.Gap = gap
+	panel._openedAt = SysTime()
+
+	function panel:Paint(w, h)
+		surface.SetDrawColor(12, 12, 12, 255)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(45, 45, 45, 255)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+	end
+
+	function panel:Close()
+		self.Closing = true
+	end
+
+	function panel:Think()
+		local target = self.Closing and 0 or 1
+		self.OpenFrac = Lerp(FrameTime() * 12, self.OpenFrac, target)
+		local curWide = math.max(1, self.TargetWide * self.OpenFrac)
+		self:SetWide(curWide)
+		self:SetPos(self.BaseX, self.BaseY)
+
+		if IsValid(self.Anchor) then
+			self.Anchor:SetPos(self.BaseX + curWide + self.Gap * self.OpenFrac, self.Anchor.BaseY)
+			self.Anchor:MoveToFront()
+		end
+
+		if self.Closing and self.OpenFrac < 0.02 then
+			self:Remove()
+			return
+		end
+
+		if self.Closing or SysTime() - self._openedAt < 0.15 then return end
+		if not input.IsMouseDown(MOUSE_LEFT) then return end
+
+		local mx, my = gui.MouseX(), gui.MouseY()
+		local dx, dy = self:LocalToScreen(0, 0)
+		local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+		local aw, ah = self.Anchor:GetSize()
+
+		local inPanel = mx >= dx and mx <= dx + self:GetWide() and my >= dy and my <= dy + self:GetTall()
+		local inAnchor = mx >= ax2 and mx <= ax2 + aw and my >= ay2 and my <= ay2 + ah
+		if not inPanel and not inAnchor then self:Close() end
+	end
+
+	local scroll = CreateStyledScrollPanel(panel)
+	scroll:Dock(FILL)
+	scroll:DockMargin(ScreenScale(4), ScreenScale(4), ScreenScale(4), ScreenScale(4))
+	scroll.Paint = function(s, w, h)
+		surface.SetDrawColor(12, 12, 12, 255)
+		surface.DrawRect(0, 0, w, h)
+	end
+	panel.Scroll = scroll
+
+	if build then build(panel, scroll) end
+
+	function panel:OnRemove()
+		if IsValid(anchor) then
+			anchor:SetPos(anchor.BaseX, anchor.BaseY)
+			anchor.SlidePanel = nil
+		end
+		if onClose then onClose() end
+	end
+
+	RegisterOpenMenu(panel)
+	anchor.SlidePanel = panel
+	panel:MoveToFront()
+	anchor:MoveToFront()
+	return panel
+end
+
+local function CreateSlideSidePanelRight(parent, anchor, wide, maxTall, build, onClose, panelRightX, panelY)
+	if not IsValid(anchor) then return end
+	CloseAllOpenMenus()
+
+	anchor.BaseX = anchor.BaseX or anchor:GetPos()
+	anchor.BaseY = anchor.BaseY or select(2, anchor:GetPos())
+	local gap = ScreenScale(6)
+
+	local panel = vgui.Create("DPanel", parent)
+	panel:SetPos((panelRightX or (anchor.BaseX + anchor:GetWide())) - 1, panelY or anchor.BaseY)
+	panel:SetWide(0)
+	panel:SetTall(maxTall)
+	panel:SetZPos(55)
+	panel:SetMouseInputEnabled(true)
+	panel.TargetWide = wide
+	panel.OpenFrac = 0
+	panel.Closing = false
+	panel.Anchor = anchor
+	panel.BaseRightX = panelRightX or (anchor.BaseX + anchor:GetWide())
+	panel.BaseY = panelY or anchor.BaseY
+	panel.Gap = gap
+	panel._openedAt = SysTime()
+
+	function panel:Paint(w, h)
+		surface.SetDrawColor(12, 12, 12, 255)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(45, 45, 45, 255)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+	end
+
+	function panel:Close()
+		self.Closing = true
+	end
+
+	function panel:Think()
+		local target = self.Closing and 0 or 1
+		self.OpenFrac = Lerp(FrameTime() * 12, self.OpenFrac, target)
+		local curWide = math.max(1, self.TargetWide * self.OpenFrac)
+		self:SetWide(curWide)
+		self:SetPos(self.BaseRightX - curWide, self.BaseY)
+
+		if IsValid(self.Anchor) then
+			self.Anchor:SetPos(self.BaseRightX - curWide - self.Gap * self.OpenFrac - self.Anchor:GetWide(), self.Anchor.BaseY)
+			self.Anchor:MoveToFront()
+		end
+
+		if self.Closing and self.OpenFrac < 0.02 then
+			self:Remove()
+			return
+		end
+
+		if self.Closing or SysTime() - self._openedAt < 0.15 then return end
+		if not input.IsMouseDown(MOUSE_LEFT) then return end
+
+		local mx, my = gui.MouseX(), gui.MouseY()
+		local dx, dy = self:LocalToScreen(0, 0)
+		local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+		local aw, ah = self.Anchor:GetSize()
+
+		local inPanel = mx >= dx and mx <= dx + self:GetWide() and my >= dy and my <= dy + self:GetTall()
+		local inAnchor = mx >= ax2 and mx <= ax2 + aw and my >= ay2 and my <= ay2 + ah
+		if not inPanel and not inAnchor then self:Close() end
+	end
+
+	local scroll = CreateStyledScrollPanel(panel)
+	scroll:Dock(FILL)
+	scroll:DockMargin(ScreenScale(4), ScreenScale(4), ScreenScale(4), ScreenScale(4))
+	scroll.Paint = function(s, w, h)
+		surface.SetDrawColor(12, 12, 12, 255)
+		surface.DrawRect(0, 0, w, h)
+	end
+	panel.Scroll = scroll
+
+	if build then build(panel, scroll) end
+
+	function panel:OnRemove()
+		if IsValid(anchor) then
+			anchor:SetPos(anchor.BaseX, anchor.BaseY)
+			anchor.SlidePanel = nil
+		end
+		if onClose then onClose() end
+	end
+
+	RegisterOpenMenu(panel)
+	anchor.SlidePanel = panel
+	panel:MoveToFront()
+	anchor:MoveToFront()
+	return panel
+end
+
 local function CreateStyledListMenu(title)
     local menu = vgui.Create("DPanel")
     menu:SetSize(ScrW() * 0.75, ScrH() * 0.75)
@@ -342,6 +637,7 @@ local function CreateStyledAccessoryMenu(parent, title)
 		ico:SetSize(icoSize, icoSize)
 		ico.Accessor = accessorKey
 		ico.bIsHovered = false
+		ico:SetMouseInputEnabled(true)
 
 		local spawnIcon = vgui.Create("DModelPanel", ico)
 		spawnIcon:Dock(FILL)
@@ -378,6 +674,14 @@ local function CreateStyledAccessoryMenu(parent, title)
 			if onSelect then onSelect(accessorKey) end
 			surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
 			menu:Remove()
+		end
+
+		function ico:OnMousePressed(mc)
+			if mc == MOUSE_LEFT then spawnIcon:DoClick() end
+		end
+
+		function ico:OnCursorEntered()
+			self:SetCursor("hand")
 		end
 
 		function ico:Paint(w, h)
@@ -485,6 +789,8 @@ function PANEL:Init()
 	self:ShowCloseButton(false)
 	self:SetDraggable(false)
 	self:SetSizable(false)
+	self:SetMouseInputEnabled(true)
+	self:SetKeyboardInputEnabled(true)
 
 	if self.PostInit then
 		timer.Simple(0, function()
@@ -522,61 +828,6 @@ function PANEL:PostInit()
 		return APmodule.PlayerModels[1][main.AppearanceTable.AModel] or APmodule.PlayerModels[2][main.AppearanceTable.AModel]
 	end
 
-	local function OpenStyledTextMenu(title, posID, build)
-		main.modelPosID = posID
-		CloseAllOpenMenus()
-		local menu = CreateStyledListMenu(title)
-		if build then build(menu) end
-		bindMenuClose(menu)
-	end
-
-	local function OpenBodygroupMenu(title, bgKey, posID)
-		OpenStyledTextMenu(title, posID, function(menu)
-			local mdl = getCurMdl()
-			if not mdl then
-				menu:AddOption("Нет модели", function() end)
-				return
-			end
-
-			local sexTable = hg.Appearance.Bodygroups[bgKey] and hg.Appearance.Bodygroups[bgKey][mdl.sex and 2 or 1]
-			if not sexTable or not next(sexTable) then
-				menu:AddOption("Нет вариантов", function() end)
-				return
-			end
-
-			for name, _ in SortedPairs(sexTable) do
-				menu:AddOption(name, function()
-					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
-					main.AppearanceTable.ABodygroups[bgKey] = name
-				end)
-			end
-		end)
-	end
-
-	local function OpenClothesMenu(title, slot, posID)
-		OpenStyledTextMenu(title, posID, function(menu)
-			local mdl = getCurMdl()
-			if not mdl then
-				menu:AddOption("Нет модели", function() end)
-				return
-			end
-
-			local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
-			if not clothes then
-				menu:AddOption("Нет вариантов", function() end)
-				return
-			end
-
-			for k, _ in SortedPairs(clothes) do
-				local clothName = string.NiceName(string.Replace(k, "_", " "))
-				menu:AddOption(clothName, function()
-					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
-					main.AppearanceTable.AClothes[slot] = k
-				end)
-			end
-		end)
-	end
-
 	local tMdl = APmodule.PlayerModels[1][self.AppearanceTable.AModel] or APmodule.PlayerModels[2][self.AppearanceTable.AModel]
 	if not tMdl then
 		local fallbackName, fallbackMdl = table.Random(APmodule.PlayerModels[1])
@@ -584,7 +835,299 @@ function PANEL:PostInit()
 		self.AppearanceTable.AModel = fallbackName
 	end
 
-	-- Fullscreen Model Viewer
+	local NameEntry, modelBtn
+
+	local function PaintTextEntry(s, w, h)
+		surface.SetDrawColor(0, 0, 0, 200)
+		surface.DrawRect(0, 0, w, h)
+		surface.SetDrawColor(255, 255, 255, 50)
+		surface.DrawOutlinedRect(0, 0, w, h, 1)
+		s:DrawTextEntryText(Color(255, 255, 255), Color(255, 0, 0), Color(255, 255, 255))
+	end
+
+	local function OpenModelDropdown()
+		if IsValid(main.ModelDropdown) then
+			main.ModelDropdown:Close()
+			main.ModelDropdown = nil
+			return
+		end
+
+		main.ModelDropdown = CreateAnchorDropdown(main, modelBtn, ScreenScale(150), ScreenScale(220), function(drop, scroll)
+			local seen = {}
+			local function addModels(sexIdx)
+				for k in SortedPairs(APmodule.PlayerModels[sexIdx]) do
+					local mdl = APmodule.PlayerModels[sexIdx][k]
+					if seen[mdl.mdl] then continue end
+					seen[mdl.mdl] = true
+					AddDropdownOption(drop, scroll, k, function()
+						main.AppearanceTable.AModel = k
+						main.AppearanceTable.AName = APmodule.GenerateRandomName(mdl.sex and 2 or 1)
+						main.AppearanceTable.AFacemap = "Default"
+						if IsValid(NameEntry) then NameEntry:SetText(main.AppearanceTable.AName) end
+						if IsValid(modelBtn) then
+							modelBtn:SetText(k)
+							modelBtn:SizeToContents()
+							modelBtn:SetWide(modelBtn:GetWide() + ScreenScale(10))
+						end
+						main.ModelDropdown = nil
+					end)
+				end
+			end
+			addModels(1)
+			addModels(2)
+		end)
+
+		function main.ModelDropdown:OnRemove()
+			main.ModelDropdown = nil
+		end
+	end
+
+	local function OpenPresetSavePopup(anchor)
+		if not IsValid(anchor) then return end
+
+		if IsValid(main.PresetSavePopup) then
+			main.PresetSavePopup:Close()
+			main.PresetSavePopup = nil
+			return
+		end
+
+		CloseAllOpenMenus()
+
+		local wide = ScreenScale(130)
+		local targetTall = ScreenScale(54)
+		local popup = vgui.Create("DPanel", main)
+		local ax, ay = anchor:LocalToScreen(0, 0)
+		local px, py = main:LocalToScreen(0, 0)
+
+		popup:SetPos(ax - px, ay - py - targetTall - ScreenScale(2))
+		popup:SetWide(wide)
+		popup:SetTall(0)
+		popup:SetZPos(110)
+		popup:SetMouseInputEnabled(true)
+		popup.TargetTall = targetTall
+		popup.OpenFrac = 0
+		popup.Closing = false
+		popup.Anchor = anchor
+		popup._openedAt = SysTime()
+
+		function popup:Paint(w, h)
+			surface.SetDrawColor(10, 10, 10, 240)
+			surface.DrawRect(0, 0, w, h)
+			surface.SetDrawColor(40, 40, 40, 220)
+			surface.DrawOutlinedRect(0, 0, w, h, 1)
+		end
+
+		function popup:Close()
+			self.Closing = true
+		end
+
+		function popup:Think()
+			local target = self.Closing and 0 or 1
+			self.OpenFrac = Lerp(FrameTime() * 12, self.OpenFrac, target)
+			local tall = math.max(1, self.TargetTall * self.OpenFrac)
+			self:SetTall(tall)
+
+			if IsValid(self.Anchor) then
+				local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+				local px2, py2 = main:LocalToScreen(0, 0)
+				self:SetPos(ax2 - px2, ay2 - py2 - tall - ScreenScale(2))
+			end
+
+			if self.Closing and self.OpenFrac < 0.02 then
+				self:Remove()
+				return
+			end
+
+			if self.Closing or SysTime() - self._openedAt < 0.15 then return end
+			if not input.IsMouseDown(MOUSE_LEFT) then return end
+
+			local mx, my = gui.MouseX(), gui.MouseY()
+			local dx, dy = self:LocalToScreen(0, 0)
+			local ax2, ay2 = self.Anchor:LocalToScreen(0, 0)
+			local aw, ah = self.Anchor:GetSize()
+			local inPopup = mx >= dx and mx <= dx + self:GetWide() and my >= dy and my <= dy + self:GetTall()
+			local inAnchor = mx >= ax2 and mx <= ax2 + aw and my >= ay2 and my <= ay2 + ah
+			if not inPopup and not inAnchor then self:Close() end
+		end
+
+		local entry = vgui.Create("DTextEntry", popup)
+		entry:Dock(TOP)
+		entry:DockMargin(ScreenScale(6), ScreenScale(6), ScreenScale(6), ScreenScale(4))
+		entry:SetTall(ScreenScale(22))
+		entry:SetFont("ZCity_Tiny")
+		entry:SetPlaceholderText("имя пресета")
+		entry:SetMouseInputEnabled(true)
+		entry:SetKeyboardInputEnabled(true)
+		entry.Paint = PaintTextEntry
+
+		local function doSave()
+			local presetName = string.Trim(entry:GetValue())
+			if presetName == "" or #presetName < 2 then
+				surface.PlaySound("buttons/button10.wav")
+				notification.AddLegacy("Введи имя пресета (мин. 2 символа)", NOTIFY_ERROR, 3)
+				return
+			end
+
+			presetName = string.gsub(presetName, "[^%w%s_-]", "")
+			SavePreset(presetName, main.AppearanceTable)
+			surface.PlaySound("buttons/button14.wav")
+			notification.AddLegacy("Пресет «" .. presetName .. "» сохранён", NOTIFY_GENERIC, 3)
+			popup:Close()
+			main.PresetSavePopup = nil
+		end
+
+		entry.OnEnter = doSave
+		entry.OnMousePressed = function(s, mc)
+			if mc == MOUSE_LEFT then
+				s:RequestFocus()
+				if main.IsEmbedded then main:MakePopup() end
+			end
+		end
+
+		local confirmBtn = vgui.Create("DLabel", popup)
+		confirmBtn:SetText("Сохранить")
+		confirmBtn:SetFont("ZCity_Veteran")
+		confirmBtn:SetTextColor(Color(255, 255, 255))
+		confirmBtn:SetContentAlignment(5)
+		confirmBtn:Dock(TOP)
+		confirmBtn:DockMargin(ScreenScale(6), 0, ScreenScale(6), ScreenScale(6))
+		confirmBtn:SetTall(ScreenScale(18))
+		confirmBtn.Paint = PaintMenuLabel
+		WireMenuLabel(confirmBtn, doSave)
+
+		function popup:OnRemove()
+			main.PresetSavePopup = nil
+		end
+
+		RegisterOpenMenu(popup)
+		main.PresetSavePopup = popup
+		popup:MoveToFront()
+
+		timer.Simple(0, function()
+			if not IsValid(entry) then return end
+			entry:RequestFocus()
+			if main.IsEmbedded then main:MakePopup() end
+		end)
+	end
+
+	local function OpenPresetLoadDropdown(anchor)
+		if IsValid(main.PresetDropdown) then
+			main.PresetDropdown:Close()
+			main.PresetDropdown = nil
+			return
+		end
+
+		local presetList = GetPresetList()
+		if #presetList == 0 then
+			surface.PlaySound("buttons/button10.wav")
+			notification.AddLegacy("Нет сохранённых пресетов", NOTIFY_ERROR, 3)
+			return
+		end
+
+		main.PresetDropdown = CreateAnchorDropdown(main, anchor, ScreenScale(130), ScreenScale(180), function(drop, scroll)
+			for _, presetName in ipairs(presetList) do
+				AddDropdownOption(drop, scroll, presetName, function()
+					local loadedPreset = LoadPreset(presetName)
+					if not loadedPreset then
+						surface.PlaySound("buttons/button10.wav")
+						notification.AddLegacy("Не удалось загрузить пресет", NOTIFY_ERROR, 3)
+						return
+					end
+
+					main.AppearanceTable = NormalizeAppearanceTable(loadedPreset)
+					if IsValid(NameEntry) then NameEntry:SetText(loadedPreset.AName or "") end
+					if IsValid(modelBtn) then
+						modelBtn:SetText(loadedPreset.AModel or "Male 01")
+						modelBtn:SizeToContents()
+						modelBtn:SetWide(modelBtn:GetWide() + ScreenScale(10))
+					end
+					surface.PlaySound("buttons/button14.wav")
+					notification.AddLegacy("Пресет «" .. presetName .. "» загружен", NOTIFY_GENERIC, 3)
+					main.PresetDropdown = nil
+				end)
+			end
+		end, true)
+
+		function main.PresetDropdown:OnRemove()
+			main.PresetDropdown = nil
+		end
+	end
+
+	local function OpenPresetDeleteDropdown(anchor)
+		if IsValid(main.PresetDeleteDropdown) then
+			main.PresetDeleteDropdown:Close()
+			main.PresetDeleteDropdown = nil
+			return
+		end
+
+		local presetList = GetPresetList()
+		if #presetList == 0 then
+			surface.PlaySound("buttons/button10.wav")
+			notification.AddLegacy("Нет сохранённых пресетов", NOTIFY_ERROR, 3)
+			return
+		end
+
+		main.PresetDeleteDropdown = CreateAnchorDropdown(main, anchor, ScreenScale(130), ScreenScale(180), function(drop, scroll)
+			for _, presetName in ipairs(presetList) do
+				AddDropdownOption(drop, scroll, "✕ " .. presetName, function()
+					if DeletePreset(presetName) then
+						surface.PlaySound("buttons/button14.wav")
+						notification.AddLegacy("Пресет «" .. presetName .. "» удалён", NOTIFY_GENERIC, 3)
+					else
+						surface.PlaySound("buttons/button10.wav")
+						notification.AddLegacy("Не удалось удалить пресет", NOTIFY_ERROR, 3)
+					end
+					main.PresetDeleteDropdown = nil
+				end)
+			end
+		end, true)
+
+		function main.PresetDeleteDropdown:OnRemove()
+			main.PresetDeleteDropdown = nil
+		end
+	end
+
+	local topBar = vgui.Create("DPanel", self)
+	topBar:SetPos(0, 0)
+	topBar:SetSize(ScrW(), ScreenScale(36))
+	topBar:SetZPos(100)
+	topBar:SetMouseInputEnabled(true)
+	topBar.Paint = function(_, w, h)
+		surface.SetDrawColor(0, 0, 0, 160)
+		surface.DrawRect(0, 0, w, h)
+	end
+
+	NameEntry = vgui.Create("DTextEntry", topBar)
+	NameEntry:SetWide(ScreenScale(110))
+	NameEntry:SetTall(ScreenScale(22))
+	NameEntry:SetFont("ZCity_Veteran")
+	NameEntry:SetText(main.AppearanceTable.AName)
+	NameEntry:SetPos(ScreenScale(20), ScreenScale(7))
+	NameEntry:SetZPos(101)
+	NameEntry:SetMouseInputEnabled(true)
+	NameEntry:SetKeyboardInputEnabled(true)
+	NameEntry.OnChange = function(s) main.AppearanceTable.AName = s:GetValue() end
+	NameEntry.OnMousePressed = function(s, mc)
+		if mc == MOUSE_LEFT then
+			s:RequestFocus()
+			if main.IsEmbedded then main:MakePopup() end
+		end
+	end
+	NameEntry.Paint = PaintTextEntry
+
+	modelBtn = vgui.Create("DLabel", topBar)
+	modelBtn:SetText(main.AppearanceTable.AModel or "?")
+	modelBtn:SetFont("ZCity_Veteran")
+	modelBtn:SetTextColor(Color(255, 255, 255))
+	modelBtn:SetContentAlignment(4)
+	modelBtn:SizeToContents()
+	modelBtn:SetWide(modelBtn:GetWide() + ScreenScale(10))
+	modelBtn:SetTall(ScreenScale(22))
+	modelBtn:SetPos(ScreenScale(140), ScreenScale(7))
+	modelBtn:SetZPos(101)
+	modelBtn.Paint = PaintMenuLabel
+	WireMenuLabel(modelBtn, OpenModelDropdown)
+
 	local viewer = vgui.Create("DModelPanel", self)
 	viewer:Dock(FILL)
 	viewer:SetZPos(0)
@@ -601,43 +1144,6 @@ function PANEL:PostInit()
 	viewer:SetDirectionalLight(BOX_TOP, Color(255, 255, 255))
 	viewer:SetDirectionalLight(BOX_BOTTOM, Color(0, 0, 0))
 	viewer:SetAmbientLight(Color(255, 0, 0, 255))
-
-	-- Controls Container (Left Side)
-	local controls = vgui.Create("DPanel", self)
-	local controlsTop = ScreenScale(60)
-	controls:SetSize(ScreenScale(140), ScrH() - controlsTop)
-	controls:SetPos(ScreenScale(20), controlsTop)
-	controls:SetZPos(20)
-	controls:SetMouseInputEnabled(true)
-	controls.Paint = function(_, w, h)
-		surface.SetDrawColor(0, 0, 0, 170)
-		surface.DrawRect(0, 0, w, h)
-	end
-
-	local content = vgui.Create("DScrollPanel", controls)
-	content:Dock(FILL)
-	content:DockMargin(0, ScreenScale(20), 0, ScreenScale(40))
-	content:SetMouseInputEnabled(true)
-	local sbar = content:GetVBar()
-	sbar:SetWide(0)
-
-	-- Preset Controls (Right Side)
-	local presetControls = vgui.Create("DPanel", self)
-	presetControls:SetSize(ScreenScale(140), ScrH() - controlsTop)
-	presetControls:SetPos(ScrW() - ScreenScale(160), controlsTop)
-	presetControls:SetZPos(20)
-	presetControls:SetMouseInputEnabled(true)
-	presetControls.Paint = function(_, w, h)
-		surface.SetDrawColor(0, 0, 0, 170)
-		surface.DrawRect(0, 0, w, h)
-	end
-
-	local presetContent = vgui.Create("DScrollPanel", presetControls)
-	presetContent:Dock(FILL)
-	presetContent:DockMargin(0, ScreenScale(20), 0, ScreenScale(40))
-	presetContent:SetMouseInputEnabled(true)
-	local psbar = presetContent:GetVBar()
-	psbar:SetWide(0)
 
 	function viewer:OnMouseWheeled(delta)
 		self.SmoothFOVDelta = self:GetFOV() - delta * 5
@@ -738,332 +1244,321 @@ function PANEL:PostInit()
 
 	function viewer.Entity:GetPlayerColor() return end
 
-	local function CreateControlBtn(text, func, parent)
-		local btn = vgui.Create("DLabel", parent or content)
+	local function CreateBodyBtn(text, relX, relY, alignRight, func)
+		local btn = vgui.Create("DLabel", main)
 		btn:SetText(text)
 		btn:SetFont("ZCity_Veteran")
 		btn:SetTextColor(Color(255, 255, 255))
-		btn:SetContentAlignment(4)
-		btn:Dock(TOP)
-		btn:DockMargin(0, 0, 0, ScreenScale(6))
+		btn:SetContentAlignment(alignRight and 6 or 4)
 		btn:SizeToContents()
-		btn:SetWide(btn:GetWide() + ScreenScale(8))
+		btn:SetWide(btn:GetWide() + ScreenScale(10))
 		btn:SetTall(math.max(ScreenScale(18), btn:GetTall()))
+		btn:SetPos(relX * ScrW() - (alignRight and btn:GetWide() or 0), relY * ScrH())
+		btn:SetZPos(50)
+		btn.BaseX, btn.BaseY = btn:GetPos()
 		btn.Paint = PaintMenuLabel
-		WireMenuLabel(btn, func)
+		WireMenuLabel(btn, function()
+			if func then func(btn) end
+		end)
 		return btn
 	end
 
-	-- Name
-	local NameEntry = vgui.Create("DTextEntry", content)
-	NameEntry:SetTall(ScreenScale(25))
-	NameEntry:SetFont("ZCity_Veteran")
-	NameEntry:SetText(main.AppearanceTable.AName)
-	NameEntry:Dock(TOP)
-	NameEntry:DockMargin(0, 0, 0, ScreenScale(15))
-	NameEntry.OnChange = function(s) main.AppearanceTable.AName = s:GetValue() end
-	NameEntry.Paint = function(s, w, h)
-		surface.SetDrawColor(0, 0, 0, 200)
-		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(255, 255, 255, 50)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
-		s:DrawTextEntryText(Color(255, 255, 255), Color(255, 0, 0), Color(255, 255, 255))
-	end
+	local function OpenAccessorySlidePanel(anchor, posID, placements, slot)
+		if not IsValid(anchor) then return end
 
-	-- Model Selector
-	local modelSelector = vgui.Create("DComboBox", content)
-	modelSelector:SetTall(ScreenScale(25))
-	modelSelector:SetFont("ZCity_Veteran")
-	modelSelector:SetText(main.AppearanceTable.AModel)
-	modelSelector:Dock(TOP)
-	modelSelector:DockMargin(0, 0, 0, ScreenScale(15))
-	modelSelector:SetContentAlignment(4)
-	modelSelector.Paint = function(s, w, h)
-		surface.SetDrawColor(0, 0, 0, 200)
-		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(255, 255, 255, 50)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
-	end
-
-	function modelSelector:OnSelect(i, str)
-		main.AppearanceTable.AModel = str
-		local mdl = APmodule.PlayerModels[1][str] or APmodule.PlayerModels[2][str]
-		if mdl then
-			main.AppearanceTable.AName = APmodule.GenerateRandomName(mdl.sex and 2 or 1)
-			NameEntry:SetText(main.AppearanceTable.AName)
+		if IsValid(anchor.SlidePanel) then
+			anchor.SlidePanel:Close()
+			return
 		end
-	end
 
-	for k, v in pairs(APmodule.PlayerModels[1]) do modelSelector:AddChoice(k) end
-	for k, v in pairs(APmodule.PlayerModels[2]) do modelSelector:AddChoice(k) end
+		main.modelPosID = posID
 
-	-- Hats
-	CreateControlBtn("ГОЛОВНОЙ УБОР", function()
-		main.modelPosID = "Head"
-		CloseAllOpenMenus()
-
-		local menu = CreateStyledAccessoryMenu(nil, "Select Hat")
-		for k, v in pairs(hg.Accessories) do
-			if v.placement != "head" and v.placement != "ears" then continue end
-			menu:AddAccessoryIcon(v.model, k, v, function(key)
-				main.AppearanceTable.AAttachments[1] = key
+		CreateSlideSidePanel(main, anchor, ScreenScale(155), ScreenScale(220), function(pnl, scroll)
+			AddDropdownOption(pnl, scroll, "Нет", function()
+				main.AppearanceTable.AAttachments[slot] = "none"
 			end)
+
+			for k, v in SortedPairs(hg.Accessories) do
+				if not v.placement or not table.HasValue(placements, v.placement) then continue end
+				if not v.model then continue end
+				AddDropdownOption(pnl, scroll, v.name or string.NiceName(k), function()
+					main.AppearanceTable.AAttachments[slot] = k
+					surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
+				end)
+			end
+		end, function()
+			main.modelPosID = "All"
+		end, main.LeftSlidePanelX, main.LeftSlidePanelY)
+	end
+
+	local function OpenTorsoSlidePanel(anchor)
+		if not IsValid(anchor) then return end
+
+		if IsValid(anchor.SlidePanel) then
+			anchor.SlidePanel:Close()
+			return
 		end
 
-		menu:AddNoneOption(function()
-			main.AppearanceTable.AAttachments[1] = "none"
-		end)
-
-		bindMenuClose(menu)
-	end)
-
-	-- Face
-	CreateControlBtn("ЛИЦО", function()
-		main.modelPosID = "Face"
-		CloseAllOpenMenus()
-
-		local menu = CreateStyledAccessoryMenu(nil, "Select Face Accessory")
-		for k, v in pairs(hg.Accessories) do
-			if v.placement != "face" then continue end
-			menu:AddAccessoryIcon(v.model, k, v, function(key)
-				main.AppearanceTable.AAttachments[2] = key
-			end)
-		end
-
-		menu:AddNoneOption(function()
-			main.AppearanceTable.AAttachments[2] = "none"
-		end)
-
-		bindMenuClose(menu)
-	end)
-
-	-- Body
-	CreateControlBtn("ТЕЛО", function()
 		main.modelPosID = "Torso"
-		CloseAllOpenMenus()
 
-		local menu = CreateStyledAccessoryMenu(nil, "Select Body Accessory")
-		for k, v in pairs(hg.Accessories) do
-			if v.placement != "torso" and v.placement != "spine" then continue end
-			menu:AddAccessoryIcon(v.model, k, v, function(key)
-				main.AppearanceTable.AAttachments[3] = key
-			end)
+		CreateSlideSidePanel(main, anchor, ScreenScale(155), ScreenScale(260), function(pnl, scroll)
+			local colorSelector = vgui.Create("DColorCombo", scroll:GetCanvas())
+			colorSelector:SetTall(ScreenScale(20))
+			colorSelector:Dock(TOP)
+			colorSelector:DockMargin(0, 0, 0, ScreenScale(6))
+			function colorSelector:OnValueChanged(clr)
+				main.AppearanceTable.AColor = clr
+			end
+			colorSelector:SetColor(main.AppearanceTable.AColor)
+
+			local mdl = getCurMdl()
+			if mdl then
+				local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
+				if clothes then
+					for k in SortedPairs(clothes) do
+						local clothName = string.NiceName(string.Replace(k, "_", " "))
+						AddDropdownOption(pnl, scroll, clothName, function()
+							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
+							main.AppearanceTable.AClothes.main = k
+						end)
+					end
+				end
+			end
+
+			local sexTable = mdl and hg.Appearance.Bodygroups.TORSO and hg.Appearance.Bodygroups.TORSO[mdl.sex and 2 or 1]
+			if sexTable and next(sexTable) then
+				for name in SortedPairs(sexTable) do
+					AddDropdownOption(pnl, scroll, name, function()
+						main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
+						main.AppearanceTable.ABodygroups.TORSO = name
+					end)
+				end
+			end
+		end, function()
+			main.modelPosID = "All"
+		end, main.LeftSlidePanelX, main.LeftSlidePanelY)
+	end
+
+	local function OpenRightSlidePanel(anchor, posID, maxTall, build)
+		if not IsValid(anchor) then return end
+
+		if IsValid(anchor.SlidePanel) then
+			anchor.SlidePanel:Close()
+			return
 		end
 
-		menu:AddNoneOption(function()
-			main.AppearanceTable.AAttachments[3] = "none"
-		end)
+		main.modelPosID = posID
 
-		bindMenuClose(menu)
-	end)
+		CreateSlideSidePanelRight(main, anchor, ScreenScale(155), maxTall or ScreenScale(220), build, function()
+			main.modelPosID = "All"
+		end, main.RightSlidePanelRightX, main.RightSlidePanelY)
+	end
 
-	-- Torso Bodygroup
-	CreateControlBtn("ТОРС", function()
-		OpenBodygroupMenu("Торс", "TORSO", "Torso")
-	end)
-
-	-- Legs/Boots Bodygroup
-	CreateControlBtn("НОГИ", function()
-		OpenBodygroupMenu("Ноги", "LEGS", "Legs")
-	end)
-
-	-- Gloves (HANDS Bodygroup)
-	CreateControlBtn("ПЕРЧАТКИ", function()
-		OpenBodygroupMenu("Перчатки", "HANDS", "Hands")
-	end)
-
-	-- Facemap
-	CreateControlBtn("ЛИЦО (текстура)", function()
-		OpenStyledTextMenu("Лицо (текстура)", "Face", function(menu)
+	local function OpenFacemapSlidePanel(anchor)
+		OpenRightSlidePanel(anchor, "Face", ScreenScale(220), function(pnl, scroll)
 			local mdl = getCurMdl()
 			if not mdl then
-				menu:AddOption("Нет модели", function() end)
+				AddDropdownOption(pnl, scroll, "Нет модели", function() end)
 				return
 			end
 
 			local facemapKey = hg.Appearance.FacemapsModels and hg.Appearance.FacemapsModels[mdl.mdl]
 			local facemaps = facemapKey and hg.Appearance.FacemapsSlots and hg.Appearance.FacemapsSlots[facemapKey] or {}
 			if not next(facemaps) then
-				menu:AddOption("Нет вариантов", function() end)
+				AddDropdownOption(pnl, scroll, "Нет вариантов", function() end)
 				return
 			end
 
-			for k, _ in SortedPairs(facemaps) do
-				menu:AddOption(k, function()
+			for k in SortedPairs(facemaps) do
+				AddDropdownOption(pnl, scroll, k, function()
 					main.AppearanceTable.AFacemap = k
 				end)
 			end
 		end)
-	end)
+	end
 
-	-- Jacket (main clothes)
-	CreateControlBtn("ВЕРХ", function()
-		OpenStyledTextMenu("Верх", "Torso", function(menu)
-			local colorSelector = vgui.Create("DColorCombo")
-			colorSelector:SetTall(ScreenScale(20))
-			function colorSelector:OnValueChanged(clr)
-				main.AppearanceTable.AColor = clr
-			end
-			colorSelector:SetColor(main.AppearanceTable.AColor)
-			menu:AddPanel(colorSelector)
-
+	local function OpenBodygroupSlidePanel(anchor, bgKey, posID)
+		OpenRightSlidePanel(anchor, posID, ScreenScale(220), function(pnl, scroll)
 			local mdl = getCurMdl()
 			if not mdl then
-				menu:AddOption("Нет модели", function() end)
+				AddDropdownOption(pnl, scroll, "Нет модели", function() end)
+				return
+			end
+
+			local sexTable = hg.Appearance.Bodygroups[bgKey] and hg.Appearance.Bodygroups[bgKey][mdl.sex and 2 or 1]
+			if not sexTable or not next(sexTable) then
+				AddDropdownOption(pnl, scroll, "Нет вариантов", function() end)
+				return
+			end
+
+			for name in SortedPairs(sexTable) do
+				AddDropdownOption(pnl, scroll, name, function()
+					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
+					main.AppearanceTable.ABodygroups[bgKey] = name
+				end)
+			end
+		end)
+	end
+
+	local function OpenLegsSlidePanel(anchor)
+		OpenRightSlidePanel(anchor, "Legs", ScreenScale(220), function(pnl, scroll)
+			local mdl = getCurMdl()
+			if mdl then
+				local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
+				if clothes then
+					for k in SortedPairs(clothes) do
+						local clothName = string.NiceName(string.Replace(k, "_", " "))
+						AddDropdownOption(pnl, scroll, clothName, function()
+							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
+							main.AppearanceTable.AClothes.pants = k
+						end)
+					end
+				end
+			end
+
+			local sexTable = mdl and hg.Appearance.Bodygroups.LEGS and hg.Appearance.Bodygroups.LEGS[mdl.sex and 2 or 1]
+			if sexTable and next(sexTable) then
+				for name in SortedPairs(sexTable) do
+					AddDropdownOption(pnl, scroll, name, function()
+						main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
+						main.AppearanceTable.ABodygroups.LEGS = name
+					end)
+				end
+			end
+		end)
+	end
+
+	local function OpenClothesSlidePanel(anchor, slot, posID)
+		OpenRightSlidePanel(anchor, posID, ScreenScale(220), function(pnl, scroll)
+			local mdl = getCurMdl()
+			if not mdl then
+				AddDropdownOption(pnl, scroll, "Нет модели", function() end)
 				return
 			end
 
 			local clothes = hg.Appearance.Clothes[mdl.sex and 2 or 1]
 			if not clothes then
-				menu:AddOption("Нет вариантов", function() end)
+				AddDropdownOption(pnl, scroll, "Нет вариантов", function() end)
 				return
 			end
 
-			for k, _ in SortedPairs(clothes) do
+			for k in SortedPairs(clothes) do
 				local clothName = string.NiceName(string.Replace(k, "_", " "))
-				menu:AddOption(clothName, function()
+				AddDropdownOption(pnl, scroll, clothName, function()
 					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
-					main.AppearanceTable.AClothes.main = k
+					main.AppearanceTable.AClothes[slot] = k
 				end)
 			end
 		end)
+	end
+
+	local function OpenAccessoryMenu(title, posID, placements, slot)
+		main.modelPosID = posID
+		CloseAllOpenMenus()
+
+		local menu = CreateStyledAccessoryMenu(nil, title)
+		for k, v in pairs(hg.Accessories) do
+			if not v.placement or not table.HasValue(placements, v.placement) then continue end
+			menu:AddAccessoryIcon(v.model, k, v, function(key)
+				main.AppearanceTable.AAttachments[slot] = key
+			end)
+		end
+
+		menu:AddNoneOption(function()
+			main.AppearanceTable.AAttachments[slot] = "none"
+		end)
+
+		bindMenuClose(menu)
+	end
+
+	-- Left side
+	local headBtn = CreateBodyBtn("ГОЛОВНОЙ УБОР", 0.06, 0.14, false, function(anchor)
+		OpenAccessorySlidePanel(anchor, "Head", {"head", "ears"}, 1)
+	end)
+	main.LeftSlidePanelX = headBtn.BaseX
+	main.LeftSlidePanelY = headBtn.BaseY
+
+	CreateBodyBtn("ЛИЦО", 0.06, 0.28, false, function(anchor)
+		OpenAccessorySlidePanel(anchor, "Face", {"face"}, 2)
 	end)
 
-	-- Pants
-	CreateControlBtn("НИЗ", function()
-		OpenClothesMenu("Низ", "pants", "Legs")
+	CreateBodyBtn("ТЕЛО", 0.06, 0.44, false, function(anchor)
+		OpenAccessorySlidePanel(anchor, "Torso", {"torso", "spine"}, 3)
 	end)
 
-	-- Boots
-	CreateControlBtn("ОБУВЬ", function()
-		OpenClothesMenu("Обувь", "boots", "Boots")
+	CreateBodyBtn("ТОРС", 0.06, 0.58, false, OpenTorsoSlidePanel)
+
+	-- Right side
+	local faceTexBtn = CreateBodyBtn("ТЕКСТУРА ЛИЦА", 0.94, 0.22, true, OpenFacemapSlidePanel)
+	main.RightSlidePanelRightX = faceTexBtn.BaseX + faceTexBtn:GetWide()
+	main.RightSlidePanelY = faceTexBtn.BaseY
+
+	CreateBodyBtn("ПЕРЧАТКИ", 0.94, 0.38, true, function(anchor)
+		OpenBodygroupSlidePanel(anchor, "HANDS", "Hands")
 	end)
 
-	-- Spacer
-	local spacer = vgui.Create("DPanel", content)
-	spacer:SetTall(ScreenScale(20))
-	spacer:Dock(TOP)
-	spacer.Paint = function() end
+	CreateBodyBtn("НОГИ", 0.94, 0.54, true, OpenLegsSlidePanel)
 
-	-- Return Button
-	local returnBtn = vgui.Create("DLabel", self)
-	returnBtn:SetText("назад")
-	returnBtn:SetFont("ZCity_Veteran")
-	returnBtn:SetTextColor(Color(255, 255, 255))
-	returnBtn:SetContentAlignment(4)
-	returnBtn:SizeToContents()
-	returnBtn:SetWide(returnBtn:GetWide() + ScreenScale(8))
-	returnBtn:SetTall(math.max(ScreenScale(18), returnBtn:GetTall()))
-	returnBtn:SetPos(ScreenScale(20), ScrH() - ScreenScale(40))
-	returnBtn:SetZPos(30)
-	returnBtn.Paint = PaintMenuLabel
-	WireMenuLabel(returnBtn, function()
+	CreateBodyBtn("ОБУВЬ", 0.94, 0.70, true, function(anchor)
+		OpenClothesSlidePanel(anchor, "boots", "Boots")
+	end)
+
+	-- Exit
+	local returnBtn = CreateBodyBtn("ВЫЙТИ", 0.06, 0.88, false, function()
 		CloseAllOpenMenus()
 		if main.Close then main:Close() end
 	end)
+	returnBtn:SetZPos(30)
 
 	function main:OnRemove()
 		CloseAllOpenMenus()
 	end
 
-	-- Presets (Right Side)
-	local presetNameEntry = vgui.Create("DTextEntry", presetContent)
-	presetNameEntry:Dock(TOP)
-	presetNameEntry:SetTall(ScreenScale(20))
-	presetNameEntry:DockMargin(0, 0, 0, ScreenScale(5))
-	presetNameEntry:SetFont("ZCity_Tiny")
-	presetNameEntry:SetPlaceholderText("Введи имя...")
-
-	presetNameEntry.Paint = function(s, w, h)
-		surface.SetDrawColor(0, 0, 0, 200)
+	-- Пресеты — нижняя панель поверх всего
+	local bottomBar = vgui.Create("DPanel", self)
+	bottomBar:SetSize(ScreenScale(200), ScreenScale(36))
+	bottomBar:SetPos(ScrW() - ScreenScale(210), ScrH() - ScreenScale(44))
+	bottomBar:SetZPos(100)
+	bottomBar:SetMouseInputEnabled(true)
+	bottomBar.Paint = function(_, w, h)
+		surface.SetDrawColor(0, 0, 0, 170)
 		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(255, 255, 255, 50)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
-		s:DrawTextEntryText(Color(255, 255, 255), Color(255, 0, 0), Color(255, 255, 255))
 	end
 
-	CreateControlBtn("SAVE PRESET", function()
-		local presetName = presetNameEntry:GetValue()
-		if presetName == "" or #presetName < 2 then
-			surface.PlaySound("buttons/button10.wav")
-			notification.AddLegacy("Enter a preset name (min 2 chars)", NOTIFY_ERROR, 3)
-			return
-		end
+	local function CreateBarBtn(text, x, func)
+		local btn = vgui.Create("DLabel", bottomBar)
+		btn:SetText(text)
+		btn:SetFont("ZCity_Veteran")
+		btn:SetTextColor(Color(255, 255, 255))
+		btn:SetContentAlignment(5)
+		btn:SetPos(x, ScreenScale(7))
+		btn:SizeToContents()
+		btn:SetWide(btn:GetWide() + ScreenScale(8))
+		btn:SetTall(ScreenScale(22))
+		btn:SetZPos(101)
+		btn.Paint = PaintMenuLabel
+		WireMenuLabel(btn, function()
+			if func then func(btn) end
+		end)
+		return btn
+	end
 
-		presetName = string.gsub(presetName, "[^%w%s_-]", "")
-		SavePreset(presetName, main.AppearanceTable)
-		surface.PlaySound("buttons/button14.wav")
-		notification.AddLegacy("Preset '" .. presetName .. "' saved!", NOTIFY_GENERIC, 3)
-	end, presetContent)
+	CreateBarBtn("СОХРАНИТЬ", ScreenScale(8), function(anchor)
+		OpenPresetSavePopup(anchor)
+	end)
 
-	CreateControlBtn("LOAD PRESET", function()
-		local presetList = GetPresetList()
-		if #presetList == 0 then
-			surface.PlaySound("buttons/button10.wav")
-			notification.AddLegacy("No presets saved yet!", NOTIFY_ERROR, 3)
-			return
-		end
+	CreateBarBtn("ЗАГРУЗИТЬ", ScreenScale(72), function(anchor)
+		OpenPresetLoadDropdown(anchor)
+	end)
 
-		local presetMenu = vgui.Create("DFrame")
-		presetMenu:SetTitle("Load Preset")
-		presetMenu:SetSize(ScreenScale(120), ScreenScale(100))
-		presetMenu:Center()
-		presetMenu:MakePopup()
-		presetMenu:SetDraggable(false)
+	CreateBarBtn("УДАЛИТЬ", ScreenScale(136), function(anchor)
+		OpenPresetDeleteDropdown(anchor)
+	end)
 
-		function presetMenu:Paint(w, h)
-			draw.RoundedBox(8, 0, 0, w, h, Color(20, 20, 28, 250))
-			surface.SetDrawColor(colors.presetBorder)
-			surface.DrawOutlinedRect(0, 0, w, h, 2)
-		end
-
-		local scroll = CreateStyledScrollPanel(presetMenu)
-		scroll:Dock(FILL)
-		scroll:DockMargin(ScreenScale(2), ScreenScale(2), ScreenScale(2), ScreenScale(2))
-
-		for _, presetName in ipairs(presetList) do
-			local presetBtn = vgui.Create("DButton", scroll)
-			presetBtn:Dock(TOP)
-			presetBtn:DockMargin(2, 2, 2, 0)
-			presetBtn:SetTall(ScreenScale(14))
-			presetBtn:SetFont("ZCity_Tiny")
-			presetBtn:SetText(presetName)
-			presetBtn:SetTextColor(colors.mainText)
-
-			function presetBtn:Paint(w, h)
-				if self:IsHovered() then
-					surface.SetDrawColor(200, 220, 220, 255)
-					surface.DrawRect(0, 0, w, h)
-					self:SetTextColor(Color(0, 0, 0))
-				else
-					surface.SetDrawColor(0, 0, 0, 150)
-					surface.DrawRect(0, 0, w, h)
-					self:SetTextColor(colors.mainText)
-				end
-			end
-
-			function presetBtn:DoClick()
-				local loadedPreset = LoadPreset(presetName)
-				if loadedPreset then
-					main.AppearanceTable = NormalizeAppearanceTable(loadedPreset)
-					NameEntry:SetText(loadedPreset.AName or "")
-					modelSelector:SetText(loadedPreset.AModel or "Male 01")
-					presetNameEntry:SetText(presetName)
-					surface.PlaySound("buttons/button14.wav")
-					notification.AddLegacy("Preset '" .. presetName .. "' loaded!", NOTIFY_GENERIC, 3)
-				else
-					surface.PlaySound("buttons/button10.wav")
-					notification.AddLegacy("Failed to load preset!", NOTIFY_ERROR, 3)
-				end
-
-				presetMenu:Close()
-			end
-		end
-	end, presetContent)
-
-	returnBtn:MoveToFront()
-	controls:MoveToFront()
-	presetControls:MoveToFront()
+	topBar:MoveToFront()
+	NameEntry:MoveToFront()
+	modelBtn:MoveToFront()
+	bottomBar:MoveToFront()
 
 	self:CallbackAppearance()
 end

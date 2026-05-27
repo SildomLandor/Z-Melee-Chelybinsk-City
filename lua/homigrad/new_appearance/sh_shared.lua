@@ -473,9 +473,13 @@ hg.Appearance.Bodygroups = hg.Appearance.Bodygroups or {
 }
 
 local function AppAddBodygroup(strBodyGroup, strName, strStringID, bFemale, bPointShop, bDonateOnly, fCost, psModel, psBodygroups, psSubmats, psStrNameOveride)
-	local pointShopID = "Standard_BodyGroups_" .. ( psStrNameOveride or strName )
+	local sex = bFemale and 2 or 1
+	local pointShopID = "Standard_BodyGroups_" .. (psStrNameOveride or strName)
 
-	if PLUGIN.CreateItem then
+	hg.Appearance.Bodygroups[strBodyGroup] = hg.Appearance.Bodygroups[strBodyGroup] or {[1] = {}, [2] = {}}
+	hg.Appearance.Bodygroups[strBodyGroup][sex][strName] = {strStringID, bPointShop, ID = pointShopID}
+
+	if PLUGIN.CreateItem and bPointShop then
 		PLUGIN:CreateItem(pointShopID, string.NiceName(strName), psModel or "models/zcity/gloves/degloves.mdl", psBodygroups, 0, Vector(0, 0, 0), fCost, bDonateOnly, psSubmats or {})
 	end
 end
@@ -529,6 +533,7 @@ local function AddBodygroupsFunc()
 	AppAddBodygroup("LEGS", "Boots", "female_reference_boots.smd", true, false, false, 0, nil, 0)
 end
 
+AddBodygroupsFunc()
 hook.Add("ZPointshopLoaded", "AddBodygroups", AddBodygroupsFunc)
 
 -- SkeletonTable
