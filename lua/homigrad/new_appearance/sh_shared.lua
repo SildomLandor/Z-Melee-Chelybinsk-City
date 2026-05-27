@@ -237,8 +237,13 @@ hg.Appearance.PlayerModels = PlayerModels
 
 local function GetModelSexIndex(strModel)
 	if not isstring(strModel) then return end
-	if PlayerModels[1][strModel] then return 1 end
-	if PlayerModels[2][strModel] then return 2 end
+	for sex = 1, 2 do
+		if PlayerModels[sex][strModel] then return sex end
+
+		for _, mdlData in pairs(PlayerModels[sex]) do
+			if mdlData.mdl == strModel then return sex end
+		end
+	end
 end
 
 local function GetNameSexIndex(name)
