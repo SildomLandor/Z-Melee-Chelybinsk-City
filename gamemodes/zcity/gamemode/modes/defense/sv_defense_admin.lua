@@ -1,4 +1,5 @@
 local function HasAccess(ply)
+    if not IsValid(ply) then return true end
     return ply:IsAdmin() or ply:IsSuperAdmin()
 end
 

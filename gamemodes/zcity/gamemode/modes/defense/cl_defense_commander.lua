@@ -279,9 +279,8 @@ function CreateCommanderMenu()
         surface.SetDrawColor(COMMANDER_UI.PRIMARY_COLOR)
         surface.DrawOutlinedRect(0, 0, w, h, 2)
         
-        draw.SimpleText("COMMANDER SUPPLY REQUISITION", "CommanderTitle", w/2, 25, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-
-        draw.SimpleText("Available Points: " .. points, "CommanderText", w - 120, 25, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
+        draw.SimpleText("СНАБЖЕНИЕ КОМАНДИРА", "CommanderTitle", w/2, 25, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("Очки снабжения: " .. points, "CommanderText", w - 120, 25, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
     end
     
 
@@ -337,10 +336,10 @@ function CreateCommanderMenu()
         surface.SetDrawColor(COMMANDER_UI.PRIMARY_COLOR)
         surface.DrawOutlinedRect(0, 0, w, h, 1)
         
-        draw.SimpleText("YOUR ORDER", "CommanderCategory", 10, 10, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_LEFT)
+        draw.SimpleText("ВАШ ЗАКАЗ", "CommanderCategory", 10, 10, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_LEFT)
         
         local totalCost = CalculateCartCost()
-        draw.SimpleText("Total Cost: " .. totalCost .. " points", "CommanderText", w - 10, 10, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT)
+        draw.SimpleText("Стоимость: " .. totalCost .. " очк.", "CommanderText", w - 10, 10, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT)
     end
     
 
@@ -391,7 +390,7 @@ function CreateCommanderMenu()
                 end
                 
                 draw.SimpleText(item.name, "CommanderSmall", w/2 + 10, 15, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-                draw.SimpleText(item.price .. " pts x " .. (item.quantity or 1), "CommanderSmall", w/2 + 10, 35, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+                draw.SimpleText(item.price .. " очк. x " .. (item.quantity or 1), "CommanderSmall", w/2 + 10, 35, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
             end
             
             local removeButton = vgui.Create("DButton", cartItem)
@@ -463,14 +462,14 @@ function CreateCommanderMenu()
         surface.SetDrawColor(COMMANDER_UI.TEXT_COLOR)
         surface.DrawOutlinedRect(0, 0, w, h, 1)
         
-        draw.SimpleText("PLACE ORDER", "CommanderText", w/2, h/2, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("ОФОРМИТЬ ЗАКАЗ", "CommanderText", w/2, h/2, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     orderButton.DoClick = function()
         if #currentCart == 0 then return end
         
         local totalCost = CalculateCartCost()
         if totalCost > points then
-            chat.AddText(COMMANDER_UI.PRIMARY_COLOR, "Not enough supply points!")
+            chat.AddText(COMMANDER_UI.PRIMARY_COLOR, "Недостаточно очков снабжения!")
             surface.PlaySound("buttons/button10.wav")
             return
         end
@@ -526,7 +525,7 @@ function CreateCommanderMenu()
                 
 
                 draw.SimpleText(item.name, "CommanderText", 80, 20, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_LEFT)
-                draw.SimpleText(item.price .. " points", "CommanderText", w - 150, 20, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT)
+                draw.SimpleText(item.price .. " очк.", "CommanderText", w - 150, 20, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_RIGHT)
                 
 
                 draw.SimpleText(item.desc, "CommanderSmall", 80, 45, COMMANDER_UI.TEXT_COLOR, TEXT_ALIGN_LEFT)
@@ -583,7 +582,7 @@ function CreateCommanderMenu()
             local addToCartBtn = vgui.Create("DButton", itemButton)
             addToCartBtn:SetSize(100, 25)
             addToCartBtn:SetPos(itemButton:GetWide() - 110, 15)
-            addToCartBtn:SetText("Add to Cart")
+            addToCartBtn:SetText("В корзину")
             addToCartBtn:SetTextColor(COMMANDER_UI.TEXT_COLOR)
             addToCartBtn:DockMargin(5, 5, 5, 5)
             addToCartBtn.Paint = function(self, w, h)
@@ -601,7 +600,7 @@ function CreateCommanderMenu()
             
             addToCartBtn.DoClick = function()
                 if item.price * quantity > points then
-                    chat.AddText(COMMANDER_UI.PRIMARY_COLOR, "Not enough supply points for this item!")
+                    chat.AddText(COMMANDER_UI.PRIMARY_COLOR, "Недостаточно очков для этого предмета!")
                     surface.PlaySound("buttons/button10.wav")
                     return
                 end
@@ -706,7 +705,7 @@ hook.Add("radialOptions", "CommanderSupplyMenu", function()
                 net.Start("defense_commander_menu")
                 net.SendToServer()
             end,
-            "Order Supplies (" .. points .. " pts)"
+            "Заказать снабжение (" .. points .. " очк.)"
         }
         hg.radialOptions[#hg.radialOptions + 1] = tbl
     end
@@ -723,13 +722,13 @@ local COMMANDER_HINT = {
     nextTypewriterTime = 0,
     iconPos = Vector(0, 0, 0),
     targetIconPos = Vector(0, 0, 0),
-    text = [[As a Commander, you are responsible for supporting your team!  
-    
-Use the Q-menu to order equipment and support for your soldiers.
+    text = [[Ты командир — твоя задача поддерживать команду.
 
-You get supply points after each wave. Use them wisely!
+Открывай Q-меню и заказывай экипировку/поддержку бойцам.
 
-Your team relies on your leadership and tactical decisions!]]
+После каждой волны ты получаешь очки снабжения.
+
+Трать их с умом — команда держится на твоих решениях.]]
 }
 
 

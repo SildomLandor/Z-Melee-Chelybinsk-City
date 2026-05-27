@@ -332,9 +332,11 @@ end)
 local lastNPCUpdate = 0
 local lastNPCList = {}
 local lastSentTime = 0
+local lastCleanupCheck = 0
 
 hook.Add("Think", "DefenseNPCValidityCheck", function()
-    if CurTime() % 5 != 0 then return end 
+    if CurTime() < lastNPCUpdate then return end
+    lastNPCUpdate = CurTime() + 5
     
     local MODE = CurrentRound()
     if not MODE or MODE.name ~= "defense" then return end
@@ -409,7 +411,8 @@ hook.Add("Think", "DefenseNPCValidityCheck", function()
 end)
 
 hook.Add("Think", "DefenseCleanupCheck", function()
-    if CurTime() % 15 != 0 then return end 
+    if CurTime() < lastCleanupCheck then return end
+    lastCleanupCheck = CurTime() + 15
     
     local MODE = CurrentRound()
     if not MODE or MODE.name ~= "defense" then return end

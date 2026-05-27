@@ -206,13 +206,13 @@ function MODE:StartNewWave()
         if self.Wave % 2 == 0 then
             timer.Simple(0.5, function()
                 for _, ent in ipairs(ents.FindByClass("prop_ragdoll")) do
-                    if IsValid(ent) then
-                        local org = ent.organism
-                        //if org and org.critical then
-                            for i = 0, ent:GetPhysicsObjectCount() - 1 do
-                                ent:GetPhysicsObjectNum(i):Sleep()
-                            end
-                        //end
+                    if not IsValid(ent) then continue end
+
+                    for i = 0, ent:GetPhysicsObjectCount() - 1 do
+                        local phys = ent:GetPhysicsObjectNum(i)
+                        if IsValid(phys) then
+                            phys:Sleep()
+                        end
                     end
                 end
             end)

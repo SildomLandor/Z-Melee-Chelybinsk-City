@@ -122,7 +122,7 @@ local function CreateFallingAirdrop(items, requester)
             end
         else
             if IsValid(requester) then
-                requester:ChatPrint("Unable to find a suitable place for delivery. Try again later.")
+                requester:ChatPrint("Не удалось найти подходящее место для доставки. Попробуй позже.")
             end
             return false
         end
@@ -196,9 +196,9 @@ local function CreateFallingAirdrop(items, requester)
             for _, player in player.Iterator() do
                 if player:Alive() and player:Team() ~= TEAM_SPECTATOR then
                     if IsValid(requester) then
-                        player:ChatPrint("Commander " .. requester:Nick() .. "'s supply drop has arrived!")
+                        player:ChatPrint("Снабжение от командира " .. requester:Nick() .. " прибыло!")
                     else
-                        player:ChatPrint("A supply drop has arrived!")
+                        player:ChatPrint("Снабжение прибыло!")
                     end
                 end
             end
@@ -245,7 +245,7 @@ local function SpawnSupportTeam(requester)
     
     if #spawnPoints < 2 then
         if IsValid(requester) then
-            requester:ChatPrint("Not enough space to deploy support team!")
+            requester:ChatPrint("Недостаточно места для высадки группы поддержки!")
         end
         return false
     end
@@ -317,12 +317,12 @@ local function SpawnSupportTeam(requester)
     end
     
     if successfulSpawns > 0 then
-        requester:ChatPrint("Support team deployed with " .. successfulSpawns .. " soldiers")
+        requester:ChatPrint("Группа поддержки высажена: " .. successfulSpawns .. " бойцов")
         
 
         for _, player in player.Iterator() do
             if player:Alive() and player:Team() != TEAM_SPECTATOR and player != requester then
-                player:ChatPrint("Commander " .. requester:Nick() .. " has called in a support team!")
+                player:ChatPrint("Командир " .. requester:Nick() .. " вызвал группу поддержки!")
             end
         end
         
@@ -351,7 +351,7 @@ local function RespawnDeadPlayers(requester)
     
     if #deadPlayers == 0 then
         if IsValid(requester) then
-            requester:ChatPrint("No dead players to respawn!")
+            requester:ChatPrint("Нет мертвых игроков для подкрепления!")
         end
         return false
     end
@@ -370,7 +370,7 @@ local function RespawnDeadPlayers(requester)
     local spawnPoints = MODE.GetUsualPlayerSpawnPoints and MODE:GetUsualPlayerSpawnPoints() or {}
     if not spawnPoints or #spawnPoints == 0 then
         if IsValid(requester) then
-            requester:ChatPrint("No spawn points available!")
+            requester:ChatPrint("Нет доступных точек возрождения!")
         end
         return false
     end
@@ -394,7 +394,10 @@ local function RespawnDeadPlayers(requester)
                     local ammoAmount = gun:GetMaxClip1() * 3
                     ply:GiveAmmo(ammoAmount, gun:GetPrimaryAmmoType(), true)
                 else
-                    ply:GiveAmmo(30, ply:GetWeapon(weaponClass):GetPrimaryAmmoType(), true)
+                    local givenGun = ply:GetWeapon(weaponClass)
+                    if IsValid(givenGun) then
+                        ply:GiveAmmo(30, givenGun:GetPrimaryAmmoType(), true)
+                    end
                 end
                 pcall(function()
                     hg.AddAttachmentForce(ply, gun, DEFENSE_ATTACHMENTS[0][math.random(#DEFENSE_ATTACHMENTS[0])])
@@ -488,7 +491,7 @@ local function RespawnDeadPlayers(requester)
     if respawnedCount > 0 then
 
         for _, player in player.Iterator() do
-            player:ChatPrint("Commander " .. requester:Nick() .. " has called in reinforcements! " .. respawnedCount .. " players respawned!")
+            player:ChatPrint("Командир " .. requester:Nick() .. " вызвал подкрепление! Возвращено игроков: " .. respawnedCount)
         end
         
 
@@ -498,7 +501,7 @@ local function RespawnDeadPlayers(requester)
         
         timer.Simple(2, function()
             for _, ply in player.Iterator() do
-				if not IsValid(ply) then return end
+				if not IsValid(ply) then continue end
                 ply:StopSound("ambient/alarms/combine_bank_alarm_loop1.wav")
             end
         end)
@@ -535,12 +538,12 @@ net.Receive("RequestSupport", function(len, ply)
     if not MODE or MODE.name ~= "defense" then return end
 
     if CurTime() - lastSupportRequest < supportCooldown then
-        ply:ChatPrint("Wait a bit.")
+        ply:ChatPrint("Подожди немного.")
         return
     end
 
     if ply.organism and ply.organism.otrub then
-        ply:ChatPrint("wtf")
+        ply:ChatPrint("Сейчас ты не можешь вызвать поддержку.")
         return
     end
 
@@ -552,7 +555,7 @@ net.Receive("RequestSupport", function(len, ply)
     lastSupportRequest = CurTime()
 
     
-    ply:ChatPrint("Your order #" .. orderId .. " is on its way!")
+    ply:ChatPrint("Твой заказ #" .. orderId .. " уже в пути!")
 
     local delay = math.random(20, 40)
     local timerName = "airdrop_timer_" .. orderId
@@ -570,7 +573,7 @@ net.Receive("RequestSupport", function(len, ply)
             local success = CreateFallingAirdrop(items, ply)
             
             if not success and IsValid(ply) then
-                ply:ChatPrint("Failed to find a suitable drop location.")
+                ply:ChatPrint("Не удалось найти подходящее место для сброса.")
             end
         end)
     end
@@ -586,7 +589,7 @@ net.Receive("defense_commander_purchase", function(len, ply)
     
     if ply.organism and ply.organism.otrub then
         net.Start("defense_commander_notification")
-        net.WriteString("You cannot place orders in your current condition!")
+        net.WriteString("В текущем состоянии ты не можешь делать заказы!")
         net.WriteInt(0, 16)
         net.Send(ply)
         return
@@ -635,7 +638,7 @@ net.Receive("defense_commander_purchase", function(len, ply)
     
     if totalCost > currentPoints then
         net.Start("defense_commander_notification")
-        net.WriteString("Not enough supply points for this order!")
+        net.WriteString("Недостаточно очков снабжения для этого заказа!")
         net.WriteInt(0, 16)
         net.Send(ply)
         return
@@ -645,7 +648,7 @@ net.Receive("defense_commander_purchase", function(len, ply)
     ply:SetNWInt("CommanderPoints", currentPoints - totalCost)
     
     net.Start("defense_commander_notification")
-    net.WriteString("Order placed successfully! Supply drop inbound.")
+    net.WriteString("Заказ оформлен! Снабжение уже летит.")
     net.WriteInt(-totalCost, 16)
     net.Send(ply)
     
@@ -688,7 +691,7 @@ net.Receive("defense_commander_purchase", function(len, ply)
                     ply:SetNWInt("CommanderPoints", newPoints)
                     
                     net.Start("defense_commander_notification")
-                    net.WriteString("No suitable drop location found. Points for non-special items refunded.")
+                    net.WriteString("Не нашли место для сброса. Очки за обычные предметы возвращены.")
                     net.WriteInt(refundAmount, 16)
                     net.Send(ply)
                 end
@@ -697,12 +700,13 @@ net.Receive("defense_commander_purchase", function(len, ply)
     end
     
     if not specialsSuccess and IsValid(ply) then
+        local partialRefund = math.floor(totalCost / 4)
         net.Start("defense_commander_notification")
-        net.WriteString("Some special items could not be processed. Partial refund issued.")
-        net.WriteInt(totalCost / 4, 16) 
+        net.WriteString("Часть спецзаказов не выполнена. Частичный возврат начислен.")
+        net.WriteInt(partialRefund, 16)
         net.Send(ply)
         
-        local newPoints = ply:GetNWInt("CommanderPoints", 0) + (totalCost / 4)
+        local newPoints = ply:GetNWInt("CommanderPoints", 0) + partialRefund
         ply:SetNWInt("CommanderPoints", newPoints)
     end
 end)

@@ -19,7 +19,7 @@ function MODE:AddCommanderPoints(points)
             ply:SetNWInt("CommanderPoints", currentPoints + points)
 
             net.Start("defense_commander_notification")
-            net.WriteString("You've received " .. points .. " supply points!")
+            net.WriteString("Получено очков снабжения: " .. points)
             net.WriteInt(points, 16)
             net.Send(ply)
         end
@@ -60,7 +60,7 @@ function MODE:OnWaveComplete()
                 ply:SetNWInt("CommanderPoints", currentPoints + pointsPerWave)
                 
                 net.Start("defense_commander_notification")
-                net.WriteString("You received double points for defeating the boss!")
+                net.WriteString("За убийство босса начислены двойные очки!")
                 net.WriteInt(pointsPerWave, 16)
                 net.Send(ply)
             end
@@ -108,7 +108,10 @@ function MODE:AssignPlayerRoles()
                     local ammoAmount = gun:GetMaxClip1() * 3
                     ply:GiveAmmo(ammoAmount, gun:GetPrimaryAmmoType(), true)
                 else
-                    ply:GiveAmmo(30, ply:GetWeapon(weaponClass):GetPrimaryAmmoType(), true)
+                    local givenGun = ply:GetWeapon(weaponClass)
+                    if IsValid(givenGun) then
+                        ply:GiveAmmo(30, givenGun:GetPrimaryAmmoType(), true)
+                    end
                 end
                 pcall(function()
                     hg.AddAttachmentForce(ply, gun, DEFENSE_ATTACHMENTS[0][math.random(#DEFENSE_ATTACHMENTS[0])])
@@ -139,6 +142,7 @@ function MODE:AssignPlayerRoles()
     end
 
     for i = 1, numMedics do
+        if #players <= 0 then break end
         local ply = table.remove(players, math.random(#players))
         if not ply or not IsValid(ply) then continue end
         ply:SetNWString("PlayerRole", "Medic")
@@ -159,6 +163,7 @@ function MODE:AssignPlayerRoles()
     end
 
     for i = 1, numEngineers do
+        if #players <= 0 then break end
         local ply = table.remove(players, math.random(#players))
         if not ply or not IsValid(ply) then continue end
         ply:SetNWString("PlayerRole", "Engineer")
@@ -247,6 +252,6 @@ function SetCommanderRoleByID(playerID)
         net.WriteString("Commander")
         net.Send(ply)
         
-        ply:ChatPrint("u are cmd now")
+        ply:ChatPrint("Ты теперь командир.")
     end
 end

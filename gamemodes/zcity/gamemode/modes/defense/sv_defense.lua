@@ -263,6 +263,7 @@ function MODE:Intermission()
     self.VoteInProgress = false
     self.SetupPhase = false
     self.PrepInProgress = false
+    self.EarlyLoadoutIssued = false
 
     self:ResetWaveState()
     game.CleanUpMap()
@@ -272,7 +273,7 @@ function MODE:Intermission()
         self.SpawnPoints = {}
     end
 
-    for k, ply in player.Iterator() do
+    for _, ply in player.Iterator() do
         if ply:Team() == TEAM_SPECTATOR then continue end
         ply:SetupTeam(1)
         ply.HasVoted = nil
@@ -280,7 +281,24 @@ function MODE:Intermission()
         if ply:Alive() then
             ply:KillSilent()
         end
+
+        timer.Simple(0, function()
+            if not IsValid(ply) then return end
+            if CurrentRound() ~= self then return end
+            if ply:Team() == TEAM_SPECTATOR then return end
+            if ply:Alive() then return end
+
+            ply:Spawn()
+        end)
     end
+
+    timer.Simple(0.2, function()
+        if CurrentRound() ~= self then return end
+        if self.EarlyLoadoutIssued then return end
+
+        self.EarlyLoadoutIssued = true
+        self:GiveEquipment()
+    end)
 
     self:StartVoting()
 end
@@ -392,7 +410,10 @@ function MODE:StartPrepPhase()
     net.Start("npc_defense_prepphase")
     net.Broadcast()
 
-    self:GiveEquipment()
+    if not self.EarlyLoadoutIssued then
+        self:GiveEquipment()
+        self.EarlyLoadoutIssued = true
+    end
 
     self:CreateTimer("prep_phase_timer", 30, 1, function()
         if CurrentRound() ~= self then return end
