@@ -131,30 +131,27 @@ local intro = {
 	color2 = Color(60, 160, 60),
 }
 
-local highlightZombies = {}
+local zomb_hi = {}
 
 net.Receive("zombie_highlight_last", function()
-	highlightZombies = {}
+	zomb_hi = {}
 	for _, id in ipairs(net.ReadTable()) do
 		local ent = Entity(id)
-		if IsValid(ent) then highlightZombies[id] = ent end
+		if IsValid(ent) then zomb_hi[id] = ent end
 	end
 end)
 
-hook.Add("SetupOutlines", "ZombieHighlightLast", function(outline_Add)
-	for id, ent in pairs(highlightZombies) do
-		if not IsValid(ent) then
-			highlightZombies[id] = nil
-			continue
-		end
-		outline_Add(ent, Color(255, 50, 50), OUTLINE_MODE_BOTH)
+hook.Add("SetupOutlines", "ZombieHighlightLast", function(add)
+	for id, ent in pairs(zomb_hi) do
+		if not IsValid(ent) then zomb_hi[id] = nil continue end
+		add(ent, Color(255, 50, 50), OUTLINE_MODE_BOTH)
 	end
 end)
 
 net.Receive("zombie_start", function()
 	nextWaveAt = 0
 	currentWave = 0
-	highlightZombies = {}
+	zomb_hi = {}
 	hg.DynaMusic:Start("black_mesa")
 	zb.RemoveFade()
 end)
@@ -211,7 +208,7 @@ function MODE:HUDPaint()
 end
 
 net.Receive("zombie_roundend", function()
-	highlightZombies = {}
+	zomb_hi = {}
 	local survived = net.ReadBool()
 	zb.EndMenu.Open({
 		sound = survived and "ambient/alarms/warningbell1.wav",

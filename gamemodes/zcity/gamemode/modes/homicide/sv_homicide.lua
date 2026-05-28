@@ -551,6 +551,36 @@ function MODE.SyncTraitorNWStrings()
 	end
 end
 
+local function hmcd_pick_traitors(need, karma)
+	local out, used = {}, {}
+	local function one(blockLast, rollKarma)
+		local pool, sum = {}, 0
+		for _, ply in player.Iterator() do
+			if ply:Team() == TEAM_SPECTATOR or used[ply] then continue end
+			if rollKarma and math.random(100) > (ply.Karma or 100) then continue end
+			if (ply.Karma or 100) <= 0 then continue end
+			if blockLast and tonumber(ply:GetPData("zb_hmcd_was_traitor_last", "0")) == 1 then continue end
+			local w = (1 + (tonumber(ply:GetPData("zb_hmcd_rounds_since_t", "0")) or 0) * 0.4) * math.Clamp((ply.Karma or 100) / 100, 0.15, 1)
+			pool[#pool + 1] = {ply, w}
+			sum = sum + w
+		end
+		if sum <= 0 then return end
+		local roll = math.Rand(0, sum)
+		for i = 1, #pool do
+			roll = roll - pool[i][2]
+			if roll <= 0 then
+				used[pool[i][1]] = true
+				out[#out + 1] = pool[i][1]
+				return
+			end
+		end
+	end
+	for i = 1, need do one(true, karma) end
+	for i = #out + 1, need do one(false, karma) end
+	for i = #out + 1, need do one(false, false) end
+	return out
+end
+
 function MODE.EnsureDuelRoles()
 	local plys = MODE.GetPlayingPlayers()
 	if #plys ~= 2 then return end
@@ -574,7 +604,7 @@ function MODE.EnsureDuelRoles()
 		ply.MainTraitor = false
 	end
 
-	traitor = plys[math.random(2)]
+	traitor = hmcd_pick_traitors(1, true)[1] or plys[math.random(#plys)]
 	traitor.isTraitor = true
 	traitor.MainTraitor = true
 
@@ -1199,29 +1229,10 @@ function MODE.AssignTraitors()
 	end
 
 	MODE.TraitorExpectedAmt = traitors_needed
-	local main_traitor = nil
 
-	for _, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-		if math.random(100) > (ply.Karma or 100) then continue end
-		if traitors_needed <= 0 then break end
-
+	for i, ply in ipairs(hmcd_pick_traitors(traitors_needed, true)) do
 		ply.isTraitor = true
-		traitors_needed = traitors_needed - 1
-		main_traitor = ply
-		ply.MainTraitor = true
-	end
-
-	for _, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply:Team() == TEAM_SPECTATOR then continue end
-		if traitors_needed <= 0 then break end
-
-		ply.isTraitor = true
-		traitors_needed = traitors_needed - 1
-		if not main_traitor then
-			main_traitor = ply
-			ply.MainTraitor = true
-		end
+		ply.MainTraitor = (i == 1)
 	end
 
 	MODE.SyncTraitorNWStrings()
@@ -1296,7 +1307,22 @@ function MODE:EndRound()
 		if(ply:Alive() and ply.organism and !ply.organism.incapacitated)then
 			players_alive = players_alive + 1
 		end
+	end
 
+	local was = {}
+	for _, ply in ipairs(traitors) do was[ply] = true end
+	for _, ply in player.Iterator() do
+		if ply:Team() == TEAM_SPECTATOR then continue end
+		if was[ply] then
+			ply:SetPData("zb_hmcd_rounds_since_t", "0")
+			ply:SetPData("zb_hmcd_was_traitor_last", "1")
+		else
+			ply:SetPData("zb_hmcd_rounds_since_t", tostring((tonumber(ply:GetPData("zb_hmcd_rounds_since_t", "0")) or 0) + 1))
+			ply:SetPData("zb_hmcd_was_traitor_last", "0")
+		end
+	end
+
+	for i, ply in player.Iterator() do
 		ply.isPolice = false
 		ply.isTraitor = false
 		ply.isGunner = false

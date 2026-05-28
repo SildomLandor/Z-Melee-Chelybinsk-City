@@ -122,38 +122,7 @@ util.AddNetworkString("zombie_newwave")
 util.AddNetworkString("zombie_roundend")
 util.AddNetworkString("zombie_highlight_last")
 
-local lastHighlightList = {}
-local lastHighlightSent = 0
-
-local function sendLastZombieHighlight(indices)
-	local changed = #indices ~= #lastHighlightList
-	if not changed then
-		for i, id in ipairs(indices) do
-			if lastHighlightList[i] ~= id then
-				changed = true
-				break
-			end
-		end
-	end
-
-	if not changed and CurTime() - lastHighlightSent < 10 then return end
-
-	lastHighlightList = table.Copy(indices)
-	lastHighlightSent = CurTime()
-
-	net.Start("zombie_highlight_last")
-	net.WriteTable(indices)
-	net.Broadcast()
-end
-
-local function clearLastZombieHighlight()
-	if #lastHighlightList == 0 then return end
-	lastHighlightList = {}
-	lastHighlightSent = 0
-	net.Start("zombie_highlight_last")
-	net.WriteTable({})
-	net.Broadcast()
-end
+local zomb_hi, zomb_hi_t = {}, 0
 
 function MODE.GuiltCheck(attacker, victim)
 	if not IsValid(attacker) or not IsValid(victim) then return 1, true end
@@ -181,7 +150,7 @@ function MODE:Intermission()
 	self.WaveIntermission = false
 	self.Zombies = {}
 	self.nextZombieCheck = nil
-	clearLastZombieHighlight()
+	zomb_hi, zomb_hi_t = {}, 0
 
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
@@ -375,23 +344,32 @@ function MODE:CountLivingZombies()
 end
 
 function MODE:SyncLastZombieHighlight()
-	if self.PrepPhase or not self.WaveActive or self.WaveIntermission or self.WaveSpawnInProgress then
-		clearLastZombieHighlight()
+	local off = self.PrepPhase or not self.WaveActive or self.WaveIntermission or self.WaveSpawnInProgress
+	local n = self.ZombieCount or 0
+	local list = {}
+
+	if not off and n > 0 and n <= 3 then
+		for _, ent in pairs(self.Zombies or {}) do
+			if IsValid(ent) and ent:Health() > 0 then list[#list + 1] = ent:EntIndex() end
+		end
+	end
+
+	if #list == 0 then
+		if #zomb_hi == 0 then return end
+		zomb_hi, zomb_hi_t = {}, 0
+		net.Start("zombie_highlight_last") net.WriteTable({}) net.Broadcast()
 		return
 	end
 
-	local alive = self.ZombieCount or 0
-	if alive <= 3 and alive > 0 then
-		local indices = {}
-		for _, ent in pairs(self.Zombies or {}) do
-			if IsValid(ent) and ent:Health() > 0 then
-				indices[#indices + 1] = ent:EntIndex()
-			end
+	if #list == #zomb_hi and CurTime() - zomb_hi_t < 10 then
+		for i = 1, #list do
+			if list[i] ~= zomb_hi[i] then break end
+			if i == #list then return end
 		end
-		sendLastZombieHighlight(indices)
-	else
-		clearLastZombieHighlight()
 	end
+
+	zomb_hi, zomb_hi_t = list, CurTime()
+	net.Start("zombie_highlight_last") net.WriteTable(list) net.Broadcast()
 end
 
 function MODE:RoundThink()
@@ -430,7 +408,8 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:EndRound()
-	clearLastZombieHighlight()
+	zomb_hi, zomb_hi_t = {}, 0
+	net.Start("zombie_highlight_last") net.WriteTable({}) net.Broadcast()
 
 	net.Start("zombie_roundend")
 		net.WriteBool(self.WaveCompleted or false)
