@@ -81,6 +81,13 @@ end
 
 net.Receive("OnlyGet_Appearance", OnlyGetAppearance)
 
+hook.Add("InitPostEntity", "HG_Appearance_SendCachedOnJoin", function()
+    timer.Simple(0, function()
+        if not IsValid(LocalPlayer()) then return end
+        OnlyGetAppearance()
+    end)
+end)
+
 -- Render things
 
 local whitelist = {

@@ -185,6 +185,14 @@ net.Receive("OnlyGet_Appearance", function(len, client)
     local bRandom = not tAppearance or next(tAppearance) == nil
     if not bRandom then APmodule.FixAppearanceNameSex(tAppearance) end
     client.CachedAppearance = bRandom and APmodule.GetRandomAppearance() or tAppearance
+
+    if not client.HG_AppearanceLoadedOnJoin then
+        client.HG_AppearanceLoadedOnJoin = true
+        timer.Simple(0, function()
+            if not IsValid(client) then return end
+            ApplyAppearance(client, nil, nil, nil, true)
+        end)
+    end
 end)
 APmodule.ApplyAppearance = ApplyAppearance
 
@@ -213,3 +221,9 @@ if engine.ActiveGamemode() == "sandbox" then
         end)
     end)
 end
+
+hook.Add("PlayerInitialSpawn", "HG_Appearance_RequestCachedOnJoin", function(ply)
+    ply.HG_AppearanceLoadedOnJoin = false
+    net.Start("OnlyGet_Appearance")
+    net.Send(ply)
+end)
