@@ -1291,6 +1291,8 @@ function NPC:AITick_Slow()
         debugoverlay.Text(self:GetPos(), "Doing SCHED_RELOAD because of dry fire")
     end
 
+    self:ZBase_StuckThink()
+
     -- Follow player that we should follow
     if self:CanPursueFollowing() then
         self:PursueFollowing()
@@ -1395,18 +1397,11 @@ function NPC:AITick_Slow()
                 self:SetSchedule(SCHED_FORCED_GO_RUN)
             end
 
-            -- Actively advance towards enemy if visible and not doing other move schedule
-            -- local doingGunForcedGo = (self:IsCurrentSchedule(SCHED_FORCED_GO_RUN) || self:IsCurrentSchedule(SCHED_FORCED_GO)) 
-            --                             && self:GetLastPosition() == self.ForcedGoPosForGunning
-            -- if self:SeeEne() 
-            -- && (!self:IsMoving() || doingGunForcedGo) 
-            -- && !self.DontGunPushUpdate then
-            --     self.ForcedGoPosForGunning = ene:GetPos()
-            --     self:SetLastPosition(self.ForcedGoPosForGunning)
-            --     self:SetSchedule(SCHED_FORCED_GO_RUN)
-            --     self:CONV_TempVar("DontGunPushUpdate", true, 1.5)
-            --     debugoverlay.Sphere(self.ForcedGoPosForGunning, 20, 1.5, Color(155, 0, 255))
-            -- end
+            if self:SeeEne() && !inGunDist && !self.DontGunPushUpdate && ZBCVAR.FallbackNav:GetBool()
+            && !ZBaseMoveIsActive(self) && (sched == SCHED_CHASE_ENEMY || sched == SCHED_ESTABLISH_LINE_OF_FIRE || !self:IsMoving()) then
+                ZBaseMove(self, ene:GetPos(), "GunChase")
+                self:CONV_TempVar("DontGunPushUpdate", true, 1.2)
+            end
 
         -- No enemy...
         else
@@ -1545,9 +1540,61 @@ function NPC:NewSchedDetected( sched, schedName )
     self:CustomNewSchedDetected(sched, self.ZBaseLastESched || -1)
 end
 
+function NPC:ZBase_StuckThink()
+    if !ZBCVAR.FallbackNav:GetBool() then return end
+    if self.SNPCType == ZBASE_SNPCTYPE_FLY then return end
+    if ZBaseMoveIsActive(self) || self.DoingPlayAnim || !self:IsAlive() then return end
+    if self.bControllerBlock || self.ZBASE_IsPlyControlled then return end
+
+    local pos = self:GetPos()
+    self.ZBase_StuckLastPos = self.ZBase_StuckLastPos or pos
+    self.ZBase_StuckNext = self.ZBase_StuckNext or CurTime()
+
+    if CurTime() < self.ZBase_StuckNext then return end
+    self.ZBase_StuckNext = CurTime() + 0.4
+
+    local moved = pos:DistToSqr(self.ZBase_StuckLastPos)
+    self.ZBase_StuckLastPos = pos
+
+    local sched = self:GetCurrentSchedule()
+    local ene = self:GetEnemy()
+    local wantsMove = self.ZBase_IsMoving
+        || sched == SCHED_FORCED_GO || sched == SCHED_FORCED_GO_RUN
+        || sched == SCHED_CHASE_ENEMY || sched == SCHED_COMBAT_WALK
+        || (IsValid(ene) && self:GetNPCState() >= NPC_STATE_COMBAT)
+
+    if self.IsZBase_SNPC && self.IsCurrentZSched && self:IsCurrentZSched("CombatChase") then
+        wantsMove = true
+    end
+
+    if !wantsMove or moved > 625 then
+        self.ZBase_StuckCount = 0
+        return
+    end
+
+    self.ZBase_StuckCount = (self.ZBase_StuckCount or 0) + 1
+    if self.ZBase_StuckCount < 3 then return end
+
+    local goal
+    if IsValid(ene) then
+        goal = ene:GetPos()
+    elseif !self:GetGoalPos():IsZero() then
+        goal = self:GetGoalPos()
+    elseif self.ZBaseLastValidGoalPos and self.ZBaseLastGoalPos_ValidForFallBack then
+        goal = self.ZBaseLastValidGoalPos
+    elseif IsValid(self.PlayerToFollow) then
+        goal = self.PlayerToFollow:GetPos()
+    else
+        return
+    end
+
+    ZBaseMove(self, goal, "MoveFallback")
+    self.ZBase_StuckCount = 0
+end
+
 function NPC:OnDetectSchedFail()
     if !ZBCVAR.FallbackNav:GetBool() then return end
-    if ZBaseMoveIsActive(self, "MoveFallback") then return end
+    if ZBaseMoveIsActive(self) then return end
 
     if developer:GetInt() >= 2 then
         MsgN("Schedule failed, last seen sched was: "..(self.ZBaseLastESchedName || "none"))
@@ -1592,7 +1639,7 @@ function NPC:DoNewEnemy()
 
         self:CONV_TimerRemove("LostEnemySound")
 
-        ZBaseMoveEnd(self, "MoveFallback")
+        ZBaseMoveEnd(self)
     end
 
     -- Lost enemy
@@ -1813,12 +1860,19 @@ function NPC:CanPursueFollowing()
 end
 
 function NPC:PursueFollowing()
-    if !self:IsCurrentSchedule(SCHED_FORCED_GO_RUN) then
-        self:SetLastPosition(self.PlayerToFollow:GetPos())
+    local ply = self.PlayerToFollow
+    local dest = ply:GetPos()
+
+    if ZBCVAR.FallbackNav:GetBool() && (ZBaseMoveIsActive(self, "Follow") || !self:IsMoving()) then
+        if !ZBaseMoveIsActive(self, "Follow") then
+            ZBaseMove(self, dest, "Follow")
+        end
+    elseif !self:IsCurrentSchedule(SCHED_FORCED_GO_RUN) then
+        self:SetLastPosition(dest)
         self:SetSchedule(SCHED_FORCED_GO_RUN)
     end
 
-    self:NavSetGoalTarget( self.PlayerToFollow, vector_origin )
+    self:NavSetGoalTarget(ply, vector_origin)
     self:CONV_TempVar("DontUpdatePlayerFollowing", true, 0.5)
 end
 

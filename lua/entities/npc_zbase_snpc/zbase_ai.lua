@@ -94,9 +94,12 @@ function ENT:GetBetterSchedule()
 	local enemyUnreachable = enemyValid && self:IsUnreachable(enemy)
 	local hasReachedEnemy = self:ZBaseDist(enemy, { within=ZBaseRoughRadius( self ) })
 
-	-- Can't reach the enemy when chasing
-	-- Start fallback
 	if self:DoingChaseSched() && enemyValid && !hasReachedEnemy && self:IsNavStuck() then
+		if ZBCVAR.FallbackNav:GetBool() && !ZBaseMoveIsActive(self, "CombatChaseNav") then
+			ZBaseMove(self, enemy:GetPos(), "CombatChaseNav")
+			self:SetNotNavStuck()
+			return false
+		end
 
 		self:RememberUnreachable( enemy, 4 )
 	
@@ -147,8 +150,11 @@ function ENT:GetBetterSchedule()
 		return false
 	end
 
-	-- Still can't navigate while doing fall back, do move random
 	if self:DoingChaseFallbackSched() && self:IsNavStuck() then
+		if ZBCVAR.FallbackNav:GetBool() && IsValid(enemy) && !ZBaseMoveIsActive(self, "CombatChaseNav") then
+			ZBaseMove(self, enemy:GetPos(), "CombatChaseNav")
+			return false
+		end
 		return SCHED_RUN_RANDOM
 	end
 
@@ -173,11 +179,20 @@ function ENT:SetNotNavStuck()
 end
 
 function ENT:DetermineNavStuck()
-
-	if self:IsGoalActive() && self:GetCurWaypointPos()!=vector_origin then
+	local wp = self:GetCurWaypointPos()
+	if self:IsGoalActive() && wp != vector_origin then
 		self:SetNotNavStuck()
 	end
 
+	self.ZBase_StuckSample = self.ZBase_StuckSample or self:GetPos()
+	if self.ZBase_StuckSampleAt && CurTime() < self.ZBase_StuckSampleAt then return end
+	self.ZBase_StuckSampleAt = CurTime() + 0.35
+
+	if self:GetPos():DistToSqr(self.ZBase_StuckSample) < 196 && self:IsMoving() then
+		self.NextStuck = CurTime() - 1
+	else
+		self.ZBase_StuckSample = self:GetPos()
+	end
 end
 
 function ENT:DoSchedule( schedule )
@@ -206,7 +221,11 @@ function ENT:RunAI( strExp )
 		return
 	end
 
-	-- Check if waypoint has been 0,0,0 for some time
+	if ZBaseMoveIsActive(self) then
+		self:MaintainActivity()
+		return true
+	end
+
 	if self.SNPCType == ZBASE_SNPCTYPE_WALK then
 		self:DetermineNavStuck()
 	end

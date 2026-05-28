@@ -15,7 +15,7 @@ ZBCVAR.AltCount =               CreateConVar("zbase_alt_count", "-1", flags)
 ZBCVAR.GrenAltRand =            CreateConVar("zbase_gren_alt_rand", "0", flags)
 
 ZBCVAR.FallbackNav =            CreateConVar("zbase_fallback_nav", "1", flags)
-ZBCVAR.MoreJumping =            CreateConVar("zbase_more_jumping", "0", flags)
+ZBCVAR.MoreJumping =            CreateConVar("zbase_more_jumping", "1", flags)
 ZBCVAR.NPCNocollide =           CreateConVar("zbase_nocollide", "0", flags)
 
 ZBCVAR.ArmorSparks =            CreateConVar("zbase_armor_sparks", "1", flags)
