@@ -1,8 +1,19 @@
 local CurTime, timer, math, table, Angle, Vector, IsValid, LerpAngle, LerpVector = CurTime, timer, math, table, Angle, Vector, IsValid, LerpAngle, LerpVector
 local math_random, math_Rand = math.random, math.Rand
 
---\\ Lootable npcs
-	local lootNPCs = { --// Loot goes here (you need to add npc here to enable NPC organism functionality)
+--\\ NPCs with organism (loot table optional)
+	local organismNPCs = {
+		["npc_metropolice"] = true,
+		["npc_combine_s"] = true,
+		["npc_citizen"] = true,
+		["npc_zombie"] = true,
+		["npc_zombie_torso"] = true,
+		["npc_fastzombie"] = true,
+		["npc_poisonzombie"] = true,
+		["npc_zombine"] = true,
+	}
+
+	local lootNPCs = { --// Loot goes here
 		["npc_metropolice"] = {
 			"weapon_hg_stunstick",
 			"weapon_medkit_sh",
@@ -54,7 +65,7 @@ local math_random, math_Rand = math.random, math.Rand
 		if not IsValid(ent) then return end
 
 		local class = ent:GetClass()
-		if ent:IsNPC() and lootNPCs[class] then
+		if ent:IsNPC() and organismNPCs[class] then
 			hg.organism.Add(ent)
 			hg.organism.Clear(ent.organism)
 			ent.organism.fakePlayer = true
@@ -84,7 +95,7 @@ local math_random, math_Rand = math.random, math.Rand
 		local loot = lootNPCs[class]
 
 		rag:SetCollisionGroup(COLLISION_GROUP_WEAPON)
-		if IsValid(ent) and IsValid(rag) and ent:IsNPC() and loot then
+		if IsValid(ent) and IsValid(rag) and ent:IsNPC() and loot and #loot > 0 then
 			rag.inventory = {}
 			rag.inventory.Weapons = {}
 		
