@@ -64,7 +64,7 @@ function MODE:HUDPaint()
 		if not lply:Alive() and not lply:Team() == 0 then return end
 		local fade = math.Clamp(zb.ROUND_START + 8 - CurTime(), 0, 1)
 		local team_ = lply:Team()
-		draw.SimpleText("Внештатная ситуация", "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText("Мини игры | Внештатная ситуация", "ZB_HomicideMediumLarge", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		local Rolename = teams[team_].name
 		local ColorRole = teams[team_].color1
 		ColorRole.a = 255 * fade

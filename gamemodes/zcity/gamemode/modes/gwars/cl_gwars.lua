@@ -251,7 +251,7 @@ function MODE:HUDPaint()
 	local teamInfo = teams[lply:Team()]
 	if not teamInfo then return end
 
-	DrawFadeTitle("Война банд", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle("Мини игры | Война банд", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(teamInfo.color1.r, teamInfo.color1.g, teamInfo.color1.b, 255 * textFade)
 	DrawFadeText("Ты - " .. teamInfo.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)

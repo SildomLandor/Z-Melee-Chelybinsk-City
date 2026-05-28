@@ -44,12 +44,10 @@ MODE.Waves = {
 		{type = "npc_poisonzombie", count = 2, health = 280},
 	},
 	{
-		{type = "npc_poisonzombie", count = 3, health = 320},
 		{type = "npc_fastzombie", count = 8, health = 125},
 		{type = "npc_zombine", count = 3, health = 190},
 	},
 	{
-		{type = "npc_poisonzombie", count = 4, health = 400, boss = true},
 		{type = "npc_fastzombie", count = 10, health = 135},
 		{type = "npc_zombine", count = 5, health = 220},
 	},
