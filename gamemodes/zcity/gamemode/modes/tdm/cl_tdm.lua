@@ -62,7 +62,7 @@ function MODE:HUDPaint()
 	zb.RemoveFade()
     local fade = math.Clamp(StartTime + 8 - CurTime(),0,1)
 	local team_ = lply:Team()
-    draw.SimpleText("ZBattle | "..(self.PrintName or "Командный Бой"), "ZCity_Veteran_big", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    draw.SimpleText("Мини игры | "..(self.PrintName or "Командный Бой"), "ZCity_Veteran_big", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     local Rolename = teams[team_].name
     local ColorRole = teams[team_].color1
     ColorRole.a = 255 * fade

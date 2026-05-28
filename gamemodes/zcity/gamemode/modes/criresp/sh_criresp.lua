@@ -1,6 +1,6 @@
 local MODE = MODE
 MODE.name = "criresp"
-MODE.EndMenuTitle = "Кризис"
+MODE.EndMenuTitle = "Внештатная ситуация"
 
 zb = zb or {}
 zb.Points = zb.Points or {}
