@@ -9,6 +9,15 @@ include("shared.lua")
 AddCSLuaFile("loader.lua")
 include("loader.lua")
 
+local function UpdateServerHostname()
+	local version = tostring(hg and hg.Version or "")
+	RunConsoleCommand("hostname", "CHELYABINSK | RU | BETA " .. version)
+end
+
+hook.Add("Initialize", "ZB_SetHostname", function()
+	timer.Simple(0, UpdateServerHostname)
+end)
+
 local PLAYER = FindMetaTable("Player")
 function PLAYER:CanSpawn()
 	return ( CurrentRound and CurrentRound() and CurrentRound().CanSpawn and CurrentRound():CanSpawn(self)) or (zb.ROUND_STATE == 0)
