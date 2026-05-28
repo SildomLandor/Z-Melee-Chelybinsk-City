@@ -120,6 +120,40 @@ end
 util.AddNetworkString("zombie_start")
 util.AddNetworkString("zombie_newwave")
 util.AddNetworkString("zombie_roundend")
+util.AddNetworkString("zombie_highlight_last")
+
+local lastHighlightList = {}
+local lastHighlightSent = 0
+
+local function sendLastZombieHighlight(indices)
+	local changed = #indices ~= #lastHighlightList
+	if not changed then
+		for i, id in ipairs(indices) do
+			if lastHighlightList[i] ~= id then
+				changed = true
+				break
+			end
+		end
+	end
+
+	if not changed and CurTime() - lastHighlightSent < 10 then return end
+
+	lastHighlightList = table.Copy(indices)
+	lastHighlightSent = CurTime()
+
+	net.Start("zombie_highlight_last")
+	net.WriteTable(indices)
+	net.Broadcast()
+end
+
+local function clearLastZombieHighlight()
+	if #lastHighlightList == 0 then return end
+	lastHighlightList = {}
+	lastHighlightSent = 0
+	net.Start("zombie_highlight_last")
+	net.WriteTable({})
+	net.Broadcast()
+end
 
 function MODE.GuiltCheck(attacker, victim)
 	if not IsValid(attacker) or not IsValid(victim) then return 1, true end
@@ -147,6 +181,7 @@ function MODE:Intermission()
 	self.WaveIntermission = false
 	self.Zombies = {}
 	self.nextZombieCheck = nil
+	clearLastZombieHighlight()
 
 	for _, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
@@ -339,6 +374,26 @@ function MODE:CountLivingZombies()
 	return alive
 end
 
+function MODE:SyncLastZombieHighlight()
+	if self.PrepPhase or not self.WaveActive or self.WaveIntermission or self.WaveSpawnInProgress then
+		clearLastZombieHighlight()
+		return
+	end
+
+	local alive = self.ZombieCount or 0
+	if alive <= 3 and alive > 0 then
+		local indices = {}
+		for _, ent in pairs(self.Zombies or {}) do
+			if IsValid(ent) and ent:Health() > 0 then
+				indices[#indices + 1] = ent:EntIndex()
+			end
+		end
+		sendLastZombieHighlight(indices)
+	else
+		clearLastZombieHighlight()
+	end
+end
+
 function MODE:RoundThink()
 	if (self.nextLootThink or 0) < CurTime() then
 		self.nextLootThink = CurTime() + 5
@@ -350,7 +405,10 @@ function MODE:RoundThink()
 	if (self.nextZombieCheck or 0) > CurTime() then return end
 	self.nextZombieCheck = CurTime() + 2
 
-	if self:CountLivingZombies() <= 0 then
+	local alive = self:CountLivingZombies()
+	self:SyncLastZombieHighlight()
+
+	if alive <= 0 then
 		self:EndWave()
 	end
 end
@@ -372,6 +430,8 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:EndRound()
+	clearLastZombieHighlight()
+
 	net.Start("zombie_roundend")
 		net.WriteBool(self.WaveCompleted or false)
 	net.Broadcast()

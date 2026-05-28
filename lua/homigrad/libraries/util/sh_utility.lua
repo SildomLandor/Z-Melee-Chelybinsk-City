@@ -2316,8 +2316,8 @@ else
 
 		rt_paint_frame(x, y, w, h, a)
 
-		draw.SimpleText(title, fontTitle, cx + 1, y + rt_pad - 13, Color(90, 8, 6, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
-		draw.SimpleText(title, fontTitle, cx, y + rt_pad - 13, Color(140, 15, 12, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, fontTitle, cx + 1, y + rt_pad - 12, Color(90, 8, 6, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+		draw.SimpleText(title, fontTitle, cx, y + rt_pad - 12, Color(140, 15, 12, 255 * a), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
 
 		local pulse = pending and (math.sin(CurTime() * 2.5) * 0.2 + 0.8) or 1
 		draw.SimpleText(sub, fontSub, cx + 1, y + headerH + rt_pad - 6, Color(0, 0, 0, 120 * a * pulse), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
