@@ -165,15 +165,20 @@ if CLIENT then
 		end,
 		[0.30] = function(self, timeMul)
 			if self:Clip1() < 1 then
+				local wm = self:GetWM()
 				local ent = hg.CreateMag(self, Vector(0, 0, -12), self.FakeBodyGroups or "0", true)
-				for i = 0, ent:GetBoneCount() - 1 do
-					ent:ManipulateBoneScale(i, vector_origin)
+				if IsValid(ent) then
+					for i = 0, ent:GetBoneCount() - 1 do
+						ent:ManipulateBoneScale(i, vector_origin)
+					end
+					ent:ManipulateBoneScale(52, vector_full)
+					ent:ManipulateBoneScale(55, vector_full)
 				end
-				ent:ManipulateBoneScale(52, vector_full)
-				ent:ManipulateBoneScale(55, vector_full)
 
-				self:GetWM():ManipulateBoneScale(52, vector_origin)
-				self:GetWM():ManipulateBoneScale(55, vector_origin)
+				if IsValid(wm) then
+					wm:ManipulateBoneScale(52, vector_origin)
+					wm:ManipulateBoneScale(55, vector_origin)
+				end
 			end
 		end,
 		[0.50] = function(self, timeMul)
