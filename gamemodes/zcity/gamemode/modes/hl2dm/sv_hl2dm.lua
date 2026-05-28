@@ -14,6 +14,8 @@ local ACD_StrikesLeft = {}
 local function resetPlyRoundState(ply)
     ply.subClass = nil
     ply.leader = nil
+    ply.zb_hl2dm_subClass = nil
+    ply.zb_hl2dm_leader = nil
     ply.zb_hl2dm_equip = nil
     ply:SetNWString("PlayerRole", "")
 end
@@ -47,8 +49,8 @@ function MODE:CheckAlivePlayers()
 end
 
 function MODE:ShouldRoundEnd()
-	local endround, winner = zb:CheckWinner(self:CheckAlivePlayers())
-	--print("ShouldRoundEnd", endround, winner)
+	local endround = zb:CheckWinner(self:CheckAlivePlayers())
+	--print("ShouldRoundEnd", endround)
 	return endround
 end
 
@@ -87,12 +89,16 @@ local function assignHl2dmRoles(players)
     if elite then
         elite.subClass = "elite"
         elite.leader = true
+        elite.zb_hl2dm_subClass = "elite"
+        elite.zb_hl2dm_leader = true
         elite:SetNWString("PlayerRole", "Elite")
     end
 
     local shotgunner = takeRandom(combine)
     if shotgunner then
         shotgunner.subClass = "shotgunner"
+        shotgunner.zb_hl2dm_subClass = "shotgunner"
+        shotgunner.zb_hl2dm_leader = false
         shotgunner:SetNWString("PlayerRole", "Shotgunner")
     end
 
@@ -100,6 +106,8 @@ local function assignHl2dmRoles(players)
         local sniper = takeRandom(combine)
         if sniper then
             sniper.subClass = "sniper"
+            sniper.zb_hl2dm_subClass = "sniper"
+            sniper.zb_hl2dm_leader = false
             tpToMapPoint(sniper, "HL2DM_SNIPERSPAWN")
         end
     end
@@ -107,6 +115,8 @@ local function assignHl2dmRoles(players)
     local medic = takeRandom(rebels)
     if medic then
         medic.subClass = "medic"
+        medic.zb_hl2dm_subClass = "medic"
+        medic.zb_hl2dm_leader = false
         medic:SetNWString("PlayerRole", "Medic")
     end
 
@@ -114,12 +124,16 @@ local function assignHl2dmRoles(players)
         local grenadier = takeRandom(rebels)
         if grenadier then
             grenadier.subClass = "grenadier"
+            grenadier.zb_hl2dm_subClass = "grenadier"
+            grenadier.zb_hl2dm_leader = false
             grenadier:SetNWString("PlayerRole", "Grenadier")
         end
 
         local sniper = takeRandom(rebels)
         if sniper then
             sniper.subClass = "sniper"
+            sniper.zb_hl2dm_subClass = "sniper"
+            sniper.zb_hl2dm_leader = false
             sniper:SetNWString("PlayerRole", "Sniper")
             tpToMapPoint(sniper, "HL2DM_CROSSBOWSPAWN")
         end
@@ -130,8 +144,11 @@ function MODE:EquipPlayer(ply)
     if not IsValid(ply) or not ply:Alive() or ply:Team() == TEAM_SPECTATOR then return false end
     if CurrentRound() ~= self then return false end
 
+    ply.subClass = ply.zb_hl2dm_subClass
+    ply.leader = ply.zb_hl2dm_leader
+
     local tag = zb.ROUND_BEGIN or 0
-    if ply.zb_hl2dm_equip == tag and ply.PlayerClassName and ply.PlayerClassName ~= "none" then return true end
+    if ply.zb_hl2dm_equip == tag and ply.PlayerClassName == (ply:Team() == 1 and "Combine" or "Rebel") then return true end
 
     ply:SetSuppressPickupNotices(true)
     ply.noSound = true
@@ -181,6 +198,18 @@ hook.Add("PlayerSpawn", "ZB_HL2DM_Loadout", function(ply)
 
     timer.Simple(0, function()
         if not IsValid(ply) then return end
+        local m = CurrentRound()
+        if m and m.EquipPlayer then m:EquipPlayer(ply) end
+    end)
+end)
+
+hook.Add("Player Getup", "ZB_HL2DM_ReequipGetup", function(ply)
+    local mode = CurrentRound()
+    if not mode or mode.name ~= "hl2dm" or zb.ROUND_STATE ~= 1 then return end
+    if not IsValid(ply) or not ply:Alive() then return end
+
+    timer.Simple(0, function()
+        if not IsValid(ply) or not ply:Alive() then return end
         local m = CurrentRound()
         if m and m.EquipPlayer then m:EquipPlayer(ply) end
     end)

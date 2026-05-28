@@ -297,6 +297,8 @@ function TL.ApplySkillset(ply, skillset, modeType)
 		TL.GiveTraitorFlashlight(ply)
 	elseif skillset == "diversant" then
 		TL.GiveTraitorFlashlight(ply)
+		ply:Give("weapon_traitor_diversant_syringe")
+		ply:Give("weapon_traitor_decoy_radio")
 	elseif skillset == "chemist" then
 		TL.GiveTraitorFlashlight(ply)
 		if SERVER and CleanChemicalsOfPlayer then

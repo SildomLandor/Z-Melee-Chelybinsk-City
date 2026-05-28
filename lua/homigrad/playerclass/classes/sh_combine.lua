@@ -173,7 +173,7 @@ local combine_subclasses = {
                 count = 1
             },
             {
-                weapon = "weapon_spas12",
+                weapon = "weapon_saiga12",
                 ammo_mult = 3
             }
         }

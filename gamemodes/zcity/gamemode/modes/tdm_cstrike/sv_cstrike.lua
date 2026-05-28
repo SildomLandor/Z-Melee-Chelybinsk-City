@@ -212,8 +212,6 @@ function MODE:EndRound()
         if zb.bombexploded then
             winner = 0
             zb.bombexploded = nil
-        elseif not IsValid(zb.bomb) then
-            winner = 1
         elseif #tbl[1] == 0 and #tbl[0] == 0 and IsValid(zb.bomb) and zb.bomb.active then
             winner = 0
         elseif #tbl[1] == 0 and #tbl[0] > 0 then
@@ -356,7 +354,7 @@ function HostageInZone(pos)
 end
 
 function MODE:ShouldRoundEnd()
-    if zb.ROUND_START + 5 > CurTime() then return false end
+    if zb.ROUND_START + (self.start_time or 20) > CurTime() then return false end
 
 	local tbl = zb:CheckAliveTeams(true)
     
@@ -365,11 +363,7 @@ function MODE:ShouldRoundEnd()
             return true
         end
         
-        if not IsValid(zb.bomb) then
-            return true
-        end
-
-        if #tbl[0] == 0 and not zb.bomb.active then
+        if #tbl[0] == 0 and (not IsValid(zb.bomb) or not zb.bomb.active) then
             return true
         end
 
@@ -377,11 +371,11 @@ function MODE:ShouldRoundEnd()
             return true
         end
 
-        if #tbl[1] == 0 and #tbl[0] == 0 and zb.bomb.active then
+        if #tbl[1] == 0 and #tbl[0] == 0 and IsValid(zb.bomb) and zb.bomb.active then
             return true
         end
         
-        if #tbl[0] == 0 and #tbl[1] == 0 and not zb.bomb.active then
+        if #tbl[0] == 0 and #tbl[1] == 0 and (not IsValid(zb.bomb) or not zb.bomb.active) then
             return true
         end
     elseif zb.rtype == "hostage" then
