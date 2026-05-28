@@ -1765,6 +1765,7 @@ function PANEL:CreateTraitorMenuPanel()
     lblPreviewDesc:SetText("None")
 
     local previewWeaponId = nil
+    local previewSkillsetId = currentLoadout.skillset
     local function ResolvePreviewWeaponId()
         if previewWeaponId and TraitorItems[previewWeaponId] then
             return previewWeaponId
@@ -1777,14 +1778,29 @@ function PANEL:CreateTraitorMenuPanel()
         return nil
     end
 
+    local function ResolvePreviewSkillsetId()
+        if previewSkillsetId and Skillsets[previewSkillsetId] then
+            return previewSkillsetId
+        end
+        if Skillsets[currentLoadout.skillset] then
+            return currentLoadout.skillset
+        end
+    end
+
     local function UpdatePreviewPanel()
+        local skillsetId = ResolvePreviewSkillsetId()
+        local skillInfo = skillsetId and Skillsets[skillsetId] or nil
         local weaponId = ResolvePreviewWeaponId()
         local itemInfo = weaponId and TraitorItems[weaponId] or nil
         local swep = weaponId and weapons.GetStored(weaponId) or nil
         local iconMat = nil
         local instructions = "None"
 
-        if itemInfo then
+        if skillInfo and not itemInfo then
+            lblPreviewName:SetText(skillInfo.name)
+            lblPreviewCost:SetText(skillInfo.cost .. " очков")
+            instructions = skillInfo.desc or "Без описания."
+        elseif itemInfo then
             lblPreviewName:SetText(itemInfo.name)
             lblPreviewCost:SetText(itemInfo.cost .. " очков")
             if swep then
@@ -2068,6 +2084,7 @@ function PANEL:CreateTraitorMenuPanel()
                     return
                 end
                 currentLoadout.skillset = id
+                previewSkillsetId = id
                 if info.exclusive then
                     currentLoadout.weapons = {}
                 end
@@ -2102,6 +2119,7 @@ function PANEL:CreateTraitorMenuPanel()
                 end
             end
             btn.DoRightClick = function()
+                previewSkillsetId = nil
                 previewWeaponId = id
                 UpdatePreviewPanel()
                 sound.PlayFile("sound/press.mp3", "noblock", function(station) if IsValid(station) then station:Play() end end)
@@ -2129,6 +2147,7 @@ function PANEL:CreateTraitorMenuPanel()
                         return
                     end
                     table.insert(currentLoadout.weapons, id)
+                    previewSkillsetId = nil
                     previewWeaponId = id
                 end
                 SaveLoadout()
@@ -2172,6 +2191,7 @@ function PANEL:CreateTraitorMenuPanel()
                                 end
                                 table.insert(currentLoadout.weapons, addonId)
                             end
+                            previewSkillsetId = nil
                             previewWeaponId = id
                             SaveLoadout()
                             RefreshLoadoutUI()
@@ -2225,6 +2245,7 @@ function PANEL:CreateTraitorMenuPanel()
     btnClear.DoClick = function()
         currentLoadout.weapons = {}
         currentLoadout.skillset = "none"
+        previewSkillsetId = "none"
         previewWeaponId = nil
         SaveLoadout()
         RefreshLoadoutUI()
