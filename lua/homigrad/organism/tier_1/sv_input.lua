@@ -411,6 +411,20 @@ local hg_bloodimpacts = ConVarExists("hg_bloodimpacts") and GetConVar("hg_bloodi
 
 local net, math, hg, IsValid = net, math, hg, IsValid
 local takeRagdollDamage
+
+local zombieOrganismClasses = {
+	npc_zombie = true,
+	npc_zombie_torso = true,
+	npc_fastzombie = true,
+	npc_poisonzombie = true,
+	npc_zombine = true,
+}
+
+local function plyFakeRagdoll(ply)
+	if not IsValid(ply) or not ply:IsPlayer() then return end
+	local rag = ply.FakeRagdoll
+	if IsValid(rag) then return rag end
+end
 hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	if dmgInfo:IsDamageType(DMG_DISSOLVE) then return end
 
@@ -587,7 +601,8 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	local dmgTraceFilter
 	if IsValid(attacker) and attacker ~= ent then
 		dmgTraceFilter = {attacker}
-		if IsValid(attacker.FakeRagdoll) then dmgTraceFilter[#dmgTraceFilter + 1] = attacker.FakeRagdoll end
+		local atkRag = plyFakeRagdoll(attacker)
+		if atkRag then dmgTraceFilter[#dmgTraceFilter + 1] = atkRag end
 	end
 	local tr = util.TraceLine({start = dmgPos, endpos = dmgPos + dir:GetNormalized() * 100, filter = dmgTraceFilter})
 	if tr.Hit and tr.Entity == ent then
@@ -968,7 +983,14 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	org.dmgstack[hitgroup][3] = (org.dmgstack[hitgroup][3] or 0) + damageStack / 500
 
 	local mat = ent:GetBoneMatrix(ent:TranslatePhysBoneToBone(bone))
-	local hitgroup_max = 100--hitgroup == HITGROUP_HEAD and 150 or 30
+	local hitgroup_max = 100
+	if org.fakePlayer and ent:IsNPC() and zombieOrganismClasses[ent:GetClass()] then
+		if hitgroup == HITGROUP_LEFTLEG or hitgroup == HITGROUP_RIGHTLEG then
+			hitgroup_max = 35
+		elseif dmgInfo:IsDamageType(DMG_SLASH + DMG_CLUB) then
+			hitgroup_max = 50
+		end
+	end
 	local instant = org.dmgstack[hitgroup][1] > hitgroup_max
 	--print(damageStack, org.dmgstack[hitgroup][1], org.dmgstack[hitgroup][3])
 	local blast = dmgInfo:IsDamageType(DMG_BLAST)
