@@ -668,10 +668,19 @@ hook.Add("Player_Death", "Fake", function(ply)
 	-- end)
 end)
 
-function hg.GetCurrentCharacter(ply)
-	if not IsValid(ply) then return end
+function hg.GetCurrentCharacter(ent)
+	if not IsValid(ent) then return end
 
-	return (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll) or ply
+	if ent:IsPlayer() then
+		return (IsValid(ent.FakeRagdoll) and ent.FakeRagdoll) or ent
+	end
+
+	if ent:IsNPC() then
+		local rag = ent:GetNWEntity("hgFakeRagdoll")
+		if IsValid(rag) then return rag end
+	end
+
+	return ent
 end
 
 hook.Add("Player Spawn", "fuckingremoveragdoll", function(ply)

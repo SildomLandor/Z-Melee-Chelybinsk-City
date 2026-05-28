@@ -59,29 +59,125 @@ local math_random, math_Rand = math.random, math.Rand
 		["npc_citizen"] = {"Refugee", Vector(255, 155, 0) / 255}
 	}
 
+	local function npcWantsOrganism(ent)
+		if not ent:IsNPC() then return false end
+		if organismNPCs[ent:GetClass()] then return true end
+		if ent.IsZBaseNPC or ent:GetNWBool("IsZBaseNPC", false) then return true end
+		return false
+	end
+
+	local zombieEngineClasses = {
+		npc_zombie = true,
+		npc_zombie_torso = true,
+		npc_fastzombie = true,
+		npc_fastzombie_torso = true,
+		npc_poisonzombie = true,
+		npc_zombine = true,
+	}
+
+	function hg.organism.NpcIsOrganismZombie(npc)
+		if not IsValid(npc) or not npc:IsNPC() then return false end
+		if npc:Classify() == CLASS_ZOMBIE then return true end
+
+		local cls = npc:GetClass()
+		if zombieEngineClasses[cls] then return true end
+
+		local eng = npc.GetEngineClass and npc:GetEngineClass()
+		if eng and zombieEngineClasses[eng] then return true end
+
+		return false
+	end
+
+	function hg.organism.ZombieLegAmputate(npc, org, limb)
+		if not IsValid(npc) or not org or (limb ~= "lleg" and limb ~= "rleg") then return end
+
+		local other = limb == "lleg" and "rleg" or "lleg"
+		local needOtherGib = not org[other .. "amputated"]
+
+		org.llegamputated = true
+		org.rlegamputated = true
+		org.lleg = 1
+		org.rleg = 1
+		org.legstrength = 0
+		org.alive = false
+		org[other .. "amputated"] = true
+
+		if needOtherGib and hg.organism.ApplyLimbGib then
+			hg.organism.ApplyLimbGib(npc, other)
+		end
+
+		if hg.organism.ApplyAllLimbGibs then
+			hg.organism.ApplyAllLimbGibs(npc, org)
+		end
+
+		hg.organism.KillNpc(npc)
+	end
+
+	function hg.organism.KillNpc(ent)
+		if not IsValid(ent) then return end
+		if ent:IsPlayer() and ent.Kill then
+			ent:Kill()
+			return
+		end
+		if not ent:IsNPC() or not ent.Alive or not ent:Alive() then return end
+
+		if ent:GetMoveType() == MOVETYPE_NONE then
+			ent:SetMoveType(MOVETYPE_STEP)
+		end
+
+		ent.hgForceKill = true
+		ent:SetHealth(0)
+
+		if ent.Fire then
+			ent:Fire("Die", "", 0)
+		end
+
+		if not ent:Alive() then return end
+
+		local att = ent:GetEnemy()
+		if not IsValid(att) then att = game.GetWorld() end
+
+		local dmg = DamageInfo()
+		dmg:SetAttacker(att)
+		dmg:SetInflictor(att)
+		dmg:SetDamage(99999)
+		dmg:SetDamageType(bit.bor(DMG_SLASH, DMG_NEVERGIB))
+		dmg:SetDamageForce(Vector(0, 0, 100))
+		dmg:SetDamagePosition(ent:WorldSpaceCenter())
+		ent.hgForceKill = true
+		ent:TakeDamageInfo(dmg)
+	end
+
+	local function initNpcOrganism(ent)
+		if not IsValid(ent) or ent.organism or not npcWantsOrganism(ent) then return end
+
+		hg.organism.Add(ent)
+		hg.organism.Clear(ent.organism)
+		ent.organism.fakePlayer = true
+
+		local class = ent:GetClass()
+		if funcspawnNPCs[class] then
+			funcspawnNPCs[class](ent)
+		end
+
+		if nameNPCs[class] then
+			ent:SetNWString("PlayerName", nameNPCs[class][1])
+			ent:SetNWVector("PlayerColor", nameNPCs[class][2])
+			ent.GetPlayerName = function()
+				return nameNPCs[class][1]
+			end
+		end
+	end
+
 	local hg_noorganismnpcs = CreateConVar("hg_noorganismnpcs", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY, "NPCs will NOT have organism system like the players", 0, 1)
 	hook.Add("OnEntityCreated", "npcorg", function(ent)
 		if hg_noorganismnpcs:GetBool() then return end
-		if not IsValid(ent) then return end
 
-		local class = ent:GetClass()
-		if ent:IsNPC() and organismNPCs[class] then
-			hg.organism.Add(ent)
-			hg.organism.Clear(ent.organism)
-			ent.organism.fakePlayer = true
-
-			if funcspawnNPCs[class] then
-				funcspawnNPCs[class](ent)
-			end
-
-			if nameNPCs[class] then
-				ent:SetNWString("PlayerName", nameNPCs[class][1])
-				ent:SetNWVector("PlayerColor", nameNPCs[class][2])
-				ent.GetPlayerName = function()
-					return nameNPCs[class][1]
-				end
-			end
-		end
+		timer.Simple(0, function()
+			if hg_noorganismnpcs:GetBool() then return end
+			if not IsValid(ent) then return end
+			initNpcOrganism(ent)
+		end)
 	end)
 
 	--[[hook.Add("EntityTakeDamage", "npcdmg", function(ent, dmgInfo)
@@ -89,6 +185,34 @@ local math_random, math_Rand = math.random, math.Rand
 			hg.organism.AddWound(ent, tr, bone, dmgInfo, dmgPos, hook_info.bleed, inputHole, outputHole)
 		end
 	end)--]]
+
+	local function transferNpcOrganismToRag(ent, rag)
+		if not IsValid(ent) or not IsValid(rag) or not ent.organism then return end
+		if rag.organism then return end
+
+		local newOrg = hg.organism.Add(rag)
+		table.Merge(newOrg, ent.organism)
+
+		hook.Run("RagdollDeath", ent, rag)
+
+		if zb and zb.net and zb.net.list and zb.net.list[ent] then
+			table.Merge(zb.net.list[rag], zb.net.list[ent])
+		end
+
+		newOrg.alive = false
+		newOrg.owner = rag
+		rag:CallOnRemove("organism", hg.organism.Remove, rag)
+		newOrg.owner.fullsend = true
+		hg.send_bareinfo(newOrg)
+
+		ent.organism = nil
+
+		timer.Simple(0, function()
+			if IsValid(rag) then
+				hg.organism.ApplyAllLimbGibs(rag, newOrg)
+			end
+		end)
+	end
 
 	hook.Add("CreateEntityRagdoll", "npcloot", function(ent, rag)
 		local class = ent:GetClass()
@@ -98,26 +222,11 @@ local math_random, math_Rand = math.random, math.Rand
 		if IsValid(ent) and IsValid(rag) and ent:IsNPC() and loot and #loot > 0 then
 			rag.inventory = {}
 			rag.inventory.Weapons = {}
-		
-			if ent.organism then
-				local newOrg = hg.organism.Add(rag)
-				table.Merge(newOrg, ent.organism)
-		
-				hook.Run("RagdollDeath", ent, rag)
-		
-				table.Merge(zb.net.list[rag], zb.net.list[ent])
-		
-				newOrg.alive = false
-				newOrg.owner = rag
-				rag:CallOnRemove("organism", hg.organism.Remove, rag)
-				newOrg.owner.fullsend = true
-				hg.send_bareinfo(newOrg)
-			
-				ent.organism = nil
-			end
+
+			transferNpcOrganismToRag(ent, rag)
 
 			rag.armors = ent.armors
-			
+
 			for k, wep in pairs(loot) do
 				local weapon = weapons.Get(wep)
 				if rag.inventory.Weapons and rag.inventory.Weapons[wep] then return end
@@ -129,208 +238,23 @@ local math_random, math_Rand = math.random, math.Rand
 			if nameNPCs[class] then
 				ent:SetNWString("PlayerName", nameNPCs[class][1])
 				ent:SetNWVector("PlayerColor", nameNPCs[class][2])
-				ent.GetPlayerName = function()
-					return nameNPCs[class][1]
-				end
+				rag:SetNWString("PlayerName", nameNPCs[class][1])
+				rag:SetNWVector("PlayerColor", nameNPCs[class][2])
 			end
 		end
 	end)
---//
 
---\\ Force enable npc serverside ragdolls
-	RunConsoleCommand("ai_serverragdolls", "1")
---//
+	hook.Add("CreateEntityRagdoll", "hg_npc_organism_rag", function(ent, rag)
+		if hg_noorganismnpcs:GetBool() then return end
+		if not IsValid(ent) or not IsValid(rag) or not ent:IsNPC() then return end
+		if IsValid(ent.hgFakeRagdoll) then return end
+		if not ent.organism then return end
 
---\\ Extract bugbait from dead antlion guards
-	hook.Add("PlayerUse", "extractbugbait", function(ply, ent)
-		if IsValid(ent) and ent:GetClass() == "prop_ragdoll" and ent:GetModel() == "models/antlion_guard.mdl" then
-			if not ent.bugbait then
-				ent.bugbait = true
-
-				local bugbait = ply:Give("weapon_hg_bugbait")
-				ply:SelectWeapon(bugbait)
-				ent:EmitSound("npc/barnacle/barnacle_pull2.wav", 80, math_random(90, 110))
-			end
+		if ent.IsZBaseNPC then
+			ent.ZBase_WasGibbedOnDeath = false
 		end
-	end)
---//
-
---\\ Zombies & barnacles twitching (inspired by workshop addon)
-	-- local ZT_Scale = 0.7
-
-	-- local zombieClasses = {
-	-- 	"npc_zombie",
-	-- 	"npc_zombine",
-	-- 	"npc_zombie_torso",
-	-- 	"npc_fastzombie",
-	-- 	"npc_fastzombie_torso",
-	-- 	"npc_poisonzombie"
-	-- }
-	-- local headcrabClasses = {
-	-- 	"npc_headcrab",
-	-- 	"npc_headcrab_fast",
-	-- 	"npc_headcrab_black"
-	-- }
-	-- local barnacleClass = "npc_barnacle"
-
-	-- local function lerpSmoothDiv(startValue, endValue, progress)
-	-- 	return startValue + (endValue - startValue) * progress
-	-- end
-
-	-- local hg_zombtwitching = CreateConVar("hg_zombtwitching", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY, "Zombies & barnacle will twitch and deformate", 0, 1)
-	-- local function applySmoothLerp(npc, boneID, startAngles, endAngles, startPosition, endPosition, startScale, endScale, duration)
-	-- 	local startTime = CurTime()
-	-- 	if not IsValid(npc) then return end
-
-	-- 	timer.Create("SmoothLerp_" .. npc:EntIndex() .. "_" .. boneID, 0.02, math.ceil(duration / 0.02), function()
-	-- 		if not IsValid(npc) then
-	-- 			timer.Remove("SmoothLerp_" .. npc:EntIndex() .. "_" .. boneID)
-	-- 			return
-	-- 		end
-
-	-- 		local elapsedTime = CurTime() - startTime
-	-- 		local progress = math.Clamp(elapsedTime / duration, 0, 1)
-
-	-- 		local currentAngles = LerpAngle(progress, startAngles, endAngles)
-	-- 		local currentPosition = LerpVector(progress, startPosition, endPosition)
-	-- 		local currentScale = Vector(
-	-- 			lerpSmoothDiv(startScale.x, endScale.x, progress),
-	-- 			lerpSmoothDiv(startScale.y, endScale.y, progress),
-	-- 			lerpSmoothDiv(startScale.z, endScale.z, progress)
-	-- 		)
-
-	-- 		npc:ManipulateBoneAngles(boneID, currentAngles)
-	-- 		npc:ManipulateBonePosition(boneID, currentPosition)
-	-- 		npc:ManipulateBoneScale(boneID, currentScale)
-
-	-- 		if progress == 0 then
-	-- 			timer.Remove("SmoothLerp_" .. npc:EntIndex() .. "_" .. boneID)
-	-- 		end
-	-- 	end)
-	-- end
-
-	-- local vector_1 = Vector(1, 1, 1)
-	-- local function applyTwitchEffect(npc, params)
-	-- 	if not IsValid(npc) then return end
-
-	-- 	local bonesToModify = math_random(3)
-	-- 	for _ = 1, bonesToModify do
-	-- 		local boneID = math_random(0, npc:GetBoneCount() - 1)
-	-- 		if boneID == 0 then continue end
-
-	-- 		local startAngles = npc:GetManipulateBoneAngles(boneID) or angle_zero
-	-- 		local endAngles = startAngles + Angle(
-	-- 			math_Rand(-params.twitchRotRange, params.twitchRotRange),
-	-- 			math_Rand(-params.twitchRotRange, params.twitchRotRange),
-	-- 			math_Rand(-params.twitchRotRange, params.twitchRotRange)
-	-- 		) * ZT_Scale
-
-	-- 		local startPosition = npc:GetManipulateBonePosition(boneID) or vector_origin
-	-- 		local endPosition = startPosition + Vector(
-	-- 			math_Rand(-params.twitchOffsetRange, params.twitchOffsetRange),
-	-- 			math_Rand(-params.twitchOffsetRange, params.twitchOffsetRange),
-	-- 			math_Rand(0, params.twitchOffsetRange)
-	-- 		) * ZT_Scale
-
-	-- 		local startScale = npc:GetManipulateBoneScale(boneID) or vector_1
-	-- 		local endScale = startScale + Vector(
-	-- 			math_Rand(-params.twitchScaleRange, params.twitchScaleRange),
-	-- 			math_Rand(-params.twitchScaleRange, params.twitchScaleRange),
-	-- 			math_Rand(-params.twitchScaleRange, params.twitchScaleRange)
-	-- 		) * ZT_Scale * 0.95
-
-	-- 		local duration = math_Rand(0.5, 2)
-	-- 		applySmoothLerp(npc, boneID, startAngles, endAngles, startPosition, endPosition, startScale, endScale, duration)
-	-- 	end
-	-- end
-
-	-- local function applyBoneModifications(npc, params)
-	-- 	if not IsValid(npc) then return end
-
-	-- 	for boneID = 0, npc:GetBoneCount() - 1 do
-	-- 		if boneID == 0 then continue end
-
-	-- 		if math_Rand(0, 1) > 0.2 then continue end
-
-	-- 		local targetAngles = Angle(
-	-- 			math_Rand(-params.rotRange, params.rotRange),
-	-- 			math_Rand(-params.rotRange, params.rotRange),
-	-- 			math_Rand(-params.rotRange, params.rotRange)
-	-- 		) * ZT_Scale
-	-- 		local targetPosition = Vector(
-	-- 			math_Rand(-params.offsetRange, params.offsetRange),
-	-- 			math_Rand(-params.offsetRange, params.offsetRange),
-	-- 			math_Rand(0, params.offsetRange)
-	-- 		) * ZT_Scale
-	-- 		local targetScale = Vector(
-	-- 			1 + math_Rand(-params.scaleRange, params.scaleRange),
-	-- 			1 + math_Rand(-params.scaleRange, params.scaleRange),
-	-- 			1 + math_Rand(-params.scaleRange, params.scaleRange)
-	-- 		) * ZT_Scale
-
-	-- 		npc:ManipulateBoneAngles(boneID, targetAngles)
-	-- 		npc:ManipulateBonePosition(boneID, targetPosition)
-	-- 		npc:ManipulateBoneScale(boneID, targetScale)
-	-- 	end
-	-- end
-
-	-- local function handleNPCSpawn(npc)
-	-- 	if not IsValid(npc) then return end
-	-- 	local class = npc:GetClass()
-
-	-- 	local params = {}
-	-- 	if table.HasValue(zombieClasses, class) then
-	-- 		params = {
-	-- 			rotRange = 15,
-	-- 			scaleRange = 0.04,
-	-- 			offsetRange = 2,
-	-- 			twitchRotRange = 10,
-	-- 			twitchOffsetRange = 0.5,
-	-- 			twitchScaleRange = 0.02
-	-- 		}
-	-- 	elseif table.HasValue(headcrabClasses, class) then
-	-- 		params = {
-	-- 			rotRange = 12,
-	-- 			scaleRange = 0.03,
-	-- 			offsetRange = 1.5,
-	-- 			twitchRotRange = 8,
-	-- 			twitchOffsetRange = 0.3,
-	-- 			twitchScaleRange = 0.01
-	-- 		}
-	-- 	elseif class == barnacleClass then
-	-- 		params = {
-	-- 			rotRange = 10,
-	-- 			scaleRange = 0.02,
-	-- 			offsetRange = 1,
-	-- 			twitchRotRange = 6,
-	-- 			twitchOffsetRange = 0.2,
-	-- 			twitchScaleRange = 0.005
-	-- 		}
-	-- 	else
-	-- 		return
-	-- 	end
-
-	-- 	applyBoneModifications(npc, params)
-	-- 	applyTwitchEffect(npc, params)
-
-	-- 	timer.Create("ZombTwitch_" .. npc:EntIndex(), math_random(12) / 4, 0, function()
-	-- 		if not IsValid(npc) or not hg_zombtwitching:GetBool() then
-	-- 			timer.Remove("ZombTwitch_" .. npc:EntIndex())
-	-- 			return
-	-- 		end
-
-	-- 		applyTwitchEffect(npc, params)
-	-- 	end)
-	-- end
-
-	-- hook.Add("OnEntityCreated", "ZombTwitch", function(ent)
-	-- 	if IsValid(ent) and ent:IsNPC() and hg_zombtwitching:GetBool() then
-	-- 		timer.Simple(0, function()
-	-- 			handleNPCSpawn(ent)
-	-- 		end)
-	-- 	end
-	-- end)
---\\
+		transferNpcOrganismToRag(ent, rag)
+	end, HOOK_HIGH)
 
 --\\ Tough NPCs
 	local hg_toughnpcs = CreateConVar("hg_toughnpcs", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED + FCVAR_NOTIFY, "Toggle more health for npcs", 0, 1)

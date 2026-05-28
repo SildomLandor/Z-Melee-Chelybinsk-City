@@ -469,8 +469,19 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	org.canmove = (org.spine2 < hg.organism.fake_spine2 and org.spine3 < hg.organism.fake_spine3) and not org.otrub
 	org.canmovehead = (org.spine3 < hg.organism.fake_spine3) and not org.otrub
 	
-	if not (org.canmove and org.canmovehead and (org.stun - CurTime()) < 0) then org.needfake = true end
-	if (org.blood < 2700) then org.needfake = true end
+	if isPly then
+		if not (org.canmove and org.canmovehead and (org.stun - CurTime()) < 0) then org.needfake = true end
+		if (org.blood < 2700) then org.needfake = true end
+	elseif owner:IsNPC() then
+		org.needfake = false
+		org.needotrub = false
+		if org.llegamputated and org.rlegamputated
+			and hg.organism.NpcIsOrganismZombie
+			and hg.organism.NpcIsOrganismZombie(owner) then
+			org.canmove = false
+			org.legstrength = 0
+		end
+	end
 
 	local just_went_uncon = not org.otrub and org.needotrub
 
@@ -530,10 +541,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	org.fake = org.needfake
 	
 	if org.needfake and owner:IsNPC() then
-		local dmgInfo = DamageInfo()
-		dmgInfo:SetDamage(10000)
-		dmgInfo:SetAttacker(owner)
-		owner:TakeDamageInfo(dmgInfo)
+		org.needfake = false
 	end
 
 	if owner:IsPlayer() and (org.healthRegen or 0) < CurTime() then

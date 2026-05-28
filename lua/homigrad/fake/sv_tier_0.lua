@@ -359,6 +359,141 @@ function hg.Ragdoll_Create(ply)
 	return ragdoll
 end
 
+function hg.Ragdoll_CreateFromNpc(npc)
+	if not IsValid(npc) or not npc:IsNPC() then return end
+
+	local ragdoll = ents.Create("prop_ragdoll")
+	if not IsValid(ragdoll) then return end
+
+	ragdoll:SetModel(npc:GetModel())
+	ragdoll:SetPos(npc:GetPos())
+	ragdoll:SetAngles(npc:GetAngles())
+	ragdoll:SetSkin(npc:GetSkin())
+
+	for i = 0, npc:GetNumBodyGroups() - 1 do
+		ragdoll:SetBodygroup(i, npc:GetBodygroup(i))
+	end
+
+	ragdoll:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+	ragdoll:Spawn()
+	ragdoll:Activate()
+	ragdoll:AddEFlags(EFL_NO_DAMAGE_FORCES + EFL_DONTBLOCKLOS)
+
+	hg.queue_ragdolls = hg.queue_ragdolls or {}
+	hg.queue_ragdolls[ragdoll] = {}
+
+	cacheModel(ragdoll)
+
+	local org = npc.organism
+	local velocity = npc:GetVelocity()
+	local rootBone = npc:LookupBone("ValveBiped.Bip01_Pelvis") or 0
+	local rootMat = npc:GetBoneMatrix(rootBone)
+	local offset = rootMat and (npc:GetPos() - rootMat:GetTranslation() + vector_up * 36) or vector_up * 36
+
+	for physNum = 0, ragdoll:GetPhysicsObjectCount() - 1 do
+		local phys = ragdoll:GetPhysicsObjectNum(physNum)
+		local bone = ragdoll:TranslatePhysBoneToBone(physNum)
+		if bone < 0 then continue end
+
+		local matrix = npc:GetBoneMatrix(bone)
+		if not matrix then continue end
+
+		local bonename = ragdoll:GetBoneName(bone)
+		phys:SetMass(IdealMassPlayer[bonename] or 4)
+		phys:SetVelocity(velocity)
+
+		if hg.amputeetable and hg.amputeetable[bonename] and org and org[hg.amputeetable[bonename] .. "amputated"] then
+			Gib_RemoveBone(ragdoll, bone, physNum, true)
+		end
+
+		phys:SetPos(matrix:GetTranslation() + offset)
+		phys:SetAngles(matrix:GetAngles())
+		phys:Wake()
+	end
+
+	local spineBone = ragdoll:LookupBone("ValveBiped.Bip01_Spine2") or 0
+	local spinePhys = ragdoll:TranslateBoneToPhysBone(spineBone)
+	local bodyphy = ragdoll:GetPhysicsObjectNum(spinePhys >= 0 and spinePhys or 0)
+
+	if IsValid(bodyphy) then
+		ragdoll.bull = ents.Create("npc_bullseye")
+		local bull = ragdoll.bull
+		bull.rag = ragdoll
+		bull.npc = npc
+		bull:SetPos(bodyphy:GetPos() + bodyphy:GetAngles():Right() * 7)
+		bull:SetAngles(ragdoll:GetAngles())
+		bull:SetMoveType(MOVETYPE_OBSERVER)
+		bull:SetKeyValue("targetname", "Bullseye")
+		bull:SetKeyValue("health", "9999")
+		bull:SetKeyValue("spawnflags", "256")
+		bull:Spawn()
+		bull:Activate()
+		bull:SetNotSolid(true)
+
+		for _, ent in ipairs(ents.FindByClass("npc_*")) do
+			if IsValid(ent) and ent.AddEntityRelationship and ent ~= npc then
+				ent:AddEntityRelationship(bull, ent:Disposition(npc))
+			end
+		end
+	end
+
+	ragdoll:CallOnRemove("hg_npc_fake_bull", function()
+		hg.queue_ragdolls[ragdoll] = nil
+		if IsValid(ragdoll.bull) then ragdoll.bull:Remove() end
+	end)
+
+	ragdoll.hg_npcOwner = npc
+	hook_Run("Ragdoll_Create", npc, ragdoll)
+
+	return ragdoll
+end
+
+function hg.FakeNpc(npc)
+	if not IsValid(npc) or not npc:IsNPC() or not npc:Alive() then return end
+	if IsValid(npc.hgFakeRagdoll) then return npc.hgFakeRagdoll end
+
+	local rag = hg.Ragdoll_CreateFromNpc(npc)
+	if not IsValid(rag) then return end
+
+	local org = npc.organism
+	if org then
+		hg.organism.list[npc] = nil
+		org.owner = rag
+		rag.organism = org
+		hg.organism.list[rag] = org
+		npc.organism = nil
+	end
+
+	npc.hgFakeRagdoll = rag
+	npc:SetNWEntity("hgFakeRagdoll", rag)
+	rag:SetNWEntity("hg_npcOwner", npc)
+
+	npc:SetNoDraw(true)
+	npc:SetNotSolid(true)
+	npc:SetMoveType(MOVETYPE_NONE)
+	npc:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
+	npc:StopMoving()
+
+	if npc.SetSchedule then
+		npc:SetSchedule(SCHED_NONE)
+	end
+
+	if npc.SetEnemy then
+		npc.hg_fakeOldEnemy = npc:GetEnemy()
+		npc:SetEnemy(NULL)
+	end
+
+	rag:CallOnRemove("hg_npc_fake", function()
+		if IsValid(npc) then
+			npc.hgFakeRagdoll = nil
+			npc:SetNWEntity("hgFakeRagdoll", NULL)
+			npc:Remove()
+		end
+	end)
+
+	return rag
+end
+
 local Ragdoll_Create = hg.Ragdoll_Create
 util.AddNetworkString("Player Ragdoll")
 local function NET_Fake(self, ply, send)
@@ -535,10 +670,13 @@ function hg.ApplyPoses(ply)
 end
 
 function hg.Fake(ply, huyragdoll, no_freemove, force)
+	if not IsValid(ply) or not ply:IsPlayer() then return end
 	ply.switchingseat = nil
 	if ply:GetMoveType() == 0 then return end
 	if ply.InVehicle and ply:InVehicle() and not force then return end
-	if not IsValid(huyragdoll) and (not IsValid(ply) or IsValid(ply.FakeRagdoll) or not (ply:IsPlayer() and ply:Alive())) then return end
+	local plyRag = ply.FakeRagdoll
+	if plyRag ~= nil and not isentity(plyRag) then plyRag = nil end
+	if not IsValid(huyragdoll) and (IsValid(plyRag) or not ply:Alive()) then return end
 	local ragdoll = IsValid(huyragdoll) and huyragdoll or Ragdoll_Create(ply, true)
 	
 	if IsValid(huyragdoll) then
@@ -858,20 +996,36 @@ function hg.FakeUp(ply, forced, instant)
 	return true
 end
 
-function hg.GetCurrentCharacter(ply)
-	if not hg.ValidEnt(ply) then return false end
+function hg.GetCurrentCharacter(ent)
+	if not hg.ValidEnt(ent) then return false end
 
-	local rag = ply.FakeRagdoll
-	if rag ~= nil and not isentity(rag) then
-		ply.FakeRagdoll = nil
-		rag = nil
+	if ent:IsPlayer() then
+		local rag = ent.FakeRagdoll
+		if rag ~= nil and not isentity(rag) then
+			ent.FakeRagdoll = nil
+			rag = nil
+		end
+		if hg.ValidEnt(rag) then return rag end
+
+		rag = ent:GetNWEntity("FakeRagdoll", NULL)
+		if hg.ValidEnt(rag) then return rag end
+
+		return ent
 	end
-	if hg.ValidEnt(rag) then return rag end
 
-	rag = ply:GetNWEntity("FakeRagdoll", NULL)
-	if hg.ValidEnt(rag) then return rag end
+	if ent:IsNPC() then
+		local rag = ent.hgFakeRagdoll
+		if rag ~= nil and not isentity(rag) then
+			ent.hgFakeRagdoll = nil
+			rag = nil
+		end
+		if hg.ValidEnt(rag) then return rag end
 
-	return ply
+		rag = ent:GetNWEntity("hgFakeRagdoll", NULL)
+		if hg.ValidEnt(rag) then return rag end
+	end
+
+	return ent
 end
 
 hook.Add("PlayerDisconnected", "Fake", function(ply) hg.ragdollFake[ply] = nil end)

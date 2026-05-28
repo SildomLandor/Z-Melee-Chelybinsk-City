@@ -150,6 +150,39 @@ local limbs = {
 	["rarm"] = "ValveBiped.Bip01_R_Forearm",
 }
 
+hg.organism.limbHideBones = {
+	lleg = {
+		"ValveBiped.Bip01_L_Thigh",
+		"ValveBiped.Bip01_L_Calf",
+		"ValveBiped.Bip01_L_Foot",
+	},
+	rleg = {
+		"ValveBiped.Bip01_R_Thigh",
+		"ValveBiped.Bip01_R_Calf",
+		"ValveBiped.Bip01_R_Foot",
+	},
+	larm = {
+		"ValveBiped.Bip01_L_UpperArm",
+		"ValveBiped.Bip01_L_Forearm",
+		"ValveBiped.Bip01_L_Hand",
+	},
+	rarm = {
+		"ValveBiped.Bip01_R_UpperArm",
+		"ValveBiped.Bip01_R_Forearm",
+		"ValveBiped.Bip01_R_Hand",
+	},
+}
+
+local vecLimbHide = Vector(0, 0, 0)
+
+local function scaleHideBoneTree(ent, boneId)
+	if not boneId or boneId < 0 then return end
+	ent:ManipulateBoneScale(boneId, vecLimbHide)
+	for _, child in ipairs(ent:GetChildBones(boneId)) do
+		if child ~= 0 then scaleHideBoneTree(ent, child) end
+	end
+end
+
 local sounds = {
 	Sound("player/zombie_head_explode_01.wav"),
 	Sound("player/zombie_head_explode_02.wav"),
@@ -160,15 +193,58 @@ local sounds = {
 }
 
 local ents_Create = ents.Create
+
+function hg.organism.ScaleLimbHide(ent, limb)
+	if not IsValid(ent) then return end
+	local names = hg.organism.limbHideBones[limb]
+	if not names then return end
+	for _, bonename in ipairs(names) do
+		scaleHideBoneTree(ent, ent:LookupBone(bonename))
+	end
+end
+
+function hg.organism.ApplyLimbGib(ent, limb)
+	if not IsValid(ent) then return end
+	hg.organism.ScaleLimbHide(ent, limb)
+	if not ent:IsRagdoll() or not Gib_RemoveBone then return end
+	local bonename = limbs[limb]
+	if not bonename then return end
+	local boneId = ent:LookupBone(bonename)
+	if not boneId then return end
+	local phys = ent:TranslateBoneToPhysBone(boneId)
+	if not phys or phys < 0 then return end
+	local physObj = ent:GetPhysicsObjectNum(phys)
+	if not IsValid(physObj) then return end
+	Gib_RemoveBone(ent, boneId, phys)
+end
+
+function hg.organism.ApplyAllLimbGibs(ent, org)
+	org = org or (IsValid(ent) and ent.organism)
+	if not IsValid(ent) or not org then return end
+	for _, limb in ipairs({"lleg", "rleg", "larm", "rarm"}) do
+		if org[limb .. "amputated"] then
+			hg.organism.ApplyLimbGib(ent, limb)
+		end
+	end
+	if org.headamputated and Gib_Input then
+		local bid = ent:LookupBone("ValveBiped.Bip01_Head1")
+		if bid then Gib_Input(ent, bid) end
+	end
+end
+
 function hg.organism.AmputateLimb(org, limb)
 	if org[limb.."amputated"] == nil then return end
 
 	local bone = limbs[limb]
 	if !IsValid(org.owner) then return end
-	local len = org.owner:BoneLength(org.owner:LookupBone(bone))
+
+	local boneId = org.owner:LookupBone(bone)
+	if not boneId then return end
+	local len = org.owner:BoneLength(boneId) or 0
 	local vec = Vector(len, 0, 0)
 	local ang = Angle()
-	local boneup = org.owner:GetBoneName(org.owner:LookupBone(bone) - 1)
+	local parentId = boneId - 1
+	local boneup = parentId >= 0 and org.owner:GetBoneName(parentId) or bone
 	
 	local wnds = {}
 
@@ -194,18 +270,30 @@ function hg.organism.AmputateLimb(org, limb)
 	org.owner:EmitSound(sounds[math.random(#sounds)], 70, math.random(95, 105), 2)
 	
 	local ent = hg.GetCurrentCharacter(org.owner)
-	SpawnMeatGore(ent, select(1, ent:GetBonePosition(ent:LookupBone(bone))), 4)
+	if IsValid(ent) then
+		local bpos = ent:GetBonePosition(ent:LookupBone(bone))
+		if bpos then SpawnMeatGore(ent, bpos, 4) end
+		hg.organism.ApplyLimbGib(ent, limb)
+	end
 
 	hook.Run("OnAmputateLimb", org, ent, limb)
 
 	if org.owner:IsNPC() then
-		org.shock = 100
+		org.shock = math.min((org.shock or 0) + 20, 50)
+		local owner = org.owner
+		if (limb == "lleg" or limb == "rleg")
+			and hg.organism.NpcIsOrganismZombie
+			and hg.organism.NpcIsOrganismZombie(owner)
+			and hg.organism.ZombieLegAmputate then
+			hg.organism.ZombieLegAmputate(owner, org, limb)
+		end
 	end
 
 	net.Start("organism_send")
-	local tbl = {}
-	tbl[limb.."amputated"] = true
-	tbl.owner = org.owner
+	local tbl = {owner = org.owner}
+	tbl[limb .. "amputated"] = true
+	if org.llegamputated then tbl.llegamputated = true end
+	if org.rlegamputated then tbl.rlegamputated = true end
 	net.WriteTable(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)
@@ -412,14 +500,6 @@ local hg_bloodimpacts = ConVarExists("hg_bloodimpacts") and GetConVar("hg_bloodi
 local net, math, hg, IsValid = net, math, hg, IsValid
 local takeRagdollDamage
 
-local zombieOrganismClasses = {
-	npc_zombie = true,
-	npc_zombie_torso = true,
-	npc_fastzombie = true,
-	npc_poisonzombie = true,
-	npc_zombine = true,
-}
-
 local function plyFakeRagdoll(ply)
 	if not IsValid(ply) or not ply:IsPlayer() then return end
 	local rag = ply.FakeRagdoll
@@ -427,6 +507,10 @@ local function plyFakeRagdoll(ply)
 end
 hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	if dmgInfo:IsDamageType(DMG_DISSOLVE) then return end
+	if ent.hgForceKill then
+		ent.hgForceKill = nil
+		return false
+	end
 
 	local attacker = dmgInfo:GetAttacker()
 	
@@ -851,7 +935,12 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		org.shock_turn = 10 * (!org.otrub and 1 or 0.1)
 	
 		if org.shock > org.shock_turn * 1.5 * analgesiaMul * painkillerMul then
-			timer.Simple(0, function() hg.Fake(org.owner) end)
+			local owner = org.owner
+			if IsValid(owner) and owner:IsPlayer() then
+				timer.Simple(0, function()
+					if IsValid(owner) and owner:IsPlayer() then hg.Fake(owner) end
+				end)
+			end
 		end
 
 		if bullet and hg.ammotypeshuy[bullet.AmmoType] and hg.ammotypeshuy[bullet.AmmoType].BulletSettings.tranquilizer then
@@ -885,16 +974,16 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	else
 		local sfd = org.fakePlayer and ent or ply
 		if not IsValid(sfd) then return true end
-		if sfd:Health() < 0 then
-			sfd:Kill() 
-			return true -- кодинг это просто :fumo_bounce:
+		if sfd:Health() <= 0 and sfd:Alive() then
+			if hg.organism.KillNpc then hg.organism.KillNpc(sfd) end
+			return true
 		else
-			sfd:SetHealth(sfd:Health()-dmg_before * .15)
+			sfd:SetHealth(sfd:Health() - dmg_before * .15)
 		end
 	end
 	--end
 	
-	if not org.otrub and org.adrenalineAdd >= 0 then// and dmgInfo:IsDamageType(DMG_BULLET + DMG_BLAST + DMG_BUCKSHOT + DMG_SLASH + DMG_CLUB + DMG_BURN) then
+	if not org.otrub and org.adrenalineAdd >= 0 and org.owner:IsPlayer() then
 		org.owner:AddNaturalAdrenaline(instaPain * 0.75 * (dmgInfo:IsDamageType(DMG_BLAST) and 4 or 1) * (dmgInfo:IsDamageType(DMG_BULLET+DMG_BUCKSHOT) and 4 or 1))
 	end
 	
@@ -997,11 +1086,11 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 
 	local mat = ent:GetBoneMatrix(ent:TranslatePhysBoneToBone(bone))
 	local hitgroup_max = 100
-	if org.fakePlayer and ent:IsNPC() and zombieOrganismClasses[ent:GetClass()] then
+	if org.fakePlayer and ent:IsNPC() then
 		if hitgroup == HITGROUP_LEFTLEG or hitgroup == HITGROUP_RIGHTLEG then
 			hitgroup_max = 35
 		elseif dmgInfo:IsDamageType(DMG_SLASH + DMG_CLUB) then
-			hitgroup_max = 50
+			hitgroup_max = 45
 		end
 	end
 	local instant = org.dmgstack[hitgroup][1] > hitgroup_max
@@ -1032,12 +1121,13 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 				if blast then
 					for i, limb in ipairs(limbs) do
 						if !org[limb.."amputated"] and math.random(5) < 200 / lend then
-							hg.organism.AmputateLimb(org, limb)
+							pcall(hg.organism.AmputateLimb, org, limb)
 						end
 					end
 				else
 					if !org[hitgrouptolimb[hitgroup].."amputated"] then
-						hg.organism.AmputateLimb(org, hitgrouptolimb[hitgroup])
+						local ok, err = pcall(hg.organism.AmputateLimb, org, hitgrouptolimb[hitgroup])
+						if not ok and err then ErrorNoHalt(err .. "\n") end
 					end
 				end
 			end
@@ -1547,9 +1637,9 @@ local function velocityDamage(ent, data)
 		local sfd = org.fakePlayer and ent or ply
 		if not IsValid(sfd) then return end
 		if sfd:Health() > 0 then
-			sfd:SetHealth(sfd:Health()-dmg * 1)
-		else
-			sfd:Kill() 
+			sfd:SetHealth(sfd:Health() - dmg * 1)
+		elseif sfd:Alive() then
+			if hg.organism.KillNpc then hg.organism.KillNpc(sfd) end
 			return
 		end
 	end

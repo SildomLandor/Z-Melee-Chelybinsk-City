@@ -108,7 +108,7 @@ module[2] = function(owner, org, mulTime)
 	local coagulatespeed = 0
 	local bleedoutspeed = 0
 	if #org.wounds > 0 then
-		local ent = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
+		local ent = hg.GetCurrentCharacter(owner) or owner
 		
 		for i, wound in pairs(org.wounds) do
 			local rand1 = math.Rand(4, 10) * 1
@@ -147,7 +147,7 @@ module[2] = function(owner, org, mulTime)
 
 	local bleedoutspeed2 = 0
 	local next_arterypump = 1 / math.max(org.pulse, 10)
-	local ent = owner:IsPlayer() and IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
+	local ent = hg.GetCurrentCharacter(owner) or owner
 	for i, wound in pairs(org.arterialwounds) do
 		bleedoutspeed2 = bleedoutspeed2 + wound[1] * mulTime * 0.2 * math.max(org.pulse, 20) / 80
 

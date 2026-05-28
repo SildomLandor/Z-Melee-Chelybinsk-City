@@ -974,6 +974,13 @@ local limbs = {
 	["head"] = "ValveBiped.Bip01_Head1"
 }
 
+hg.organism.limbHideBones = hg.organism.limbHideBones or {
+	lleg = {"ValveBiped.Bip01_L_Thigh", "ValveBiped.Bip01_L_Calf", "ValveBiped.Bip01_L_Foot"},
+	rleg = {"ValveBiped.Bip01_R_Thigh", "ValveBiped.Bip01_R_Calf", "ValveBiped.Bip01_R_Foot"},
+	larm = {"ValveBiped.Bip01_L_UpperArm", "ValveBiped.Bip01_L_Forearm", "ValveBiped.Bip01_L_Hand"},
+	rarm = {"ValveBiped.Bip01_R_UpperArm", "ValveBiped.Bip01_R_Forearm", "ValveBiped.Bip01_R_Hand"},
+}
+
 function hg.amputatedbone(ent, bone)
 	if ent.organism and hg.amputatedlimbs2[bone] then
 		if ent.organism[hg.amputatedlimbs2[bone].."amputated"] then
@@ -1024,11 +1031,11 @@ function hg.GoreCalc(ent, ply)
 		
 		hg.bone_apply_matrix(ent, bon, mat)
 		
-		if IsValid(ply.OldFakeRagdoll) then
+		if IsValid(ply) and ply:IsPlayer() and IsValid(ply.OldFakeRagdoll) then
 			hg.bone_apply_matrix(ply, bon, mat)
 		end
 
-		local fem = ThatPlyIsFemale(ent) and 1 or 0
+		local fem = (ent:IsPlayer() and ThatPlyIsFemale(ent)) and 1 or 0
 		
 		if !modelPlacements[fem][nam] then continue end
 
@@ -1049,6 +1056,23 @@ function hg.GoreCalc(ent, ply)
 		headboom_mdl:SetupBones()
 		headboom_mdl:DrawModel()
 	end
+end
+
+if CLIENT then
+	hook.Add("PostDrawOpaqueRenderables", "hg_npc_organism_gore", function()
+		local lply = LocalPlayer()
+		if not IsValid(lply) then return end
+
+		for _, ent in ipairs(ents.FindInSphere(lply:GetPos(), 2500)) do
+			if not IsValid(ent) or ent:IsPlayer() then continue end
+			if not (ent:IsNPC() or ent:IsRagdoll()) then continue end
+			local org = ent.new_organism or ent.organism
+			if not org then continue end
+			if not (org.llegamputated or org.rlegamputated or org.larmamputated or org.rarmamputated) then continue end
+			ent:SetupBones()
+			hg.GoreCalc(ent, ent)
+		end
+	end)
 end
 
 local prank = {}

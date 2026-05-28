@@ -119,6 +119,22 @@ local function IsLookingAt(ply, targetVec)
     return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
 end
 
+function zb.VictimIsHeadcrabThreat(victim)
+	if not IsValid(victim) then return false end
+	if victim:IsPlayer() then
+		if victim.PlayerClassName == "headcrabzombie" then return true end
+		if victim:GetNetVar("headcrab") then return true end
+		local org = victim.organism
+		if org and org.headcrabon then return true end
+		return false
+	end
+	local owner = hg.RagdollOwner and hg.RagdollOwner(victim)
+	if IsValid(owner) and owner:IsPlayer() then
+		return zb.VictimIsHeadcrabThreat(owner)
+	end
+	return false
+end
+
 hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, harm) 
     local Attacker, Victim = dmgInfo:GetAttacker(), ply
     
@@ -196,6 +212,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
     if Attacker == Victim then return end
     if not Victim:IsPlayer() then return end
+    if zb.VictimIsHeadcrabThreat(Victim) then return end
 
     zb.GuiltTable[Attacker] = zb.GuiltTable[Attacker] or {}
     zb.GuiltTable[Victim] = zb.GuiltTable[Victim] or {}
@@ -491,6 +508,7 @@ hook.Add("ZC_SomeoneGetFallBy","IdiotsMustBeKilled",function(Attacker,Victim)
    
     if Attacker == Victim then return end
     if not Victim:IsPlayer() then return end
+    if zb.VictimIsHeadcrabThreat(Victim) then return end
 
     if Victim.isTraitor and !Attacker.isTraitor and rnd.name == "hmcd" and !zb.IsForce(Attacker) then return end
     if Attacker.isTraitor and !Victim.isTraitor and rnd.name == "hmcd" then return end

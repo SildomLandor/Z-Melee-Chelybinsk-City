@@ -134,7 +134,7 @@ local angZero = Angle(0, 0, 0)
 local vecZero = Vector(0, 0, 0)
 local function getlocalshit(ent, bone, dmgInfo, dir, hit)
 	if IsValid(ent) and bone then
-		local ent = IsValid(ent.FakeRagdoll) and ent.FakeRagdoll or ent
+		ent = hg.GetCurrentCharacter(ent) or ent
 		local bonePos, boneAng = ent:GetBonePosition(bone)
 		local dmgPos = not isbool(hit) and hit or bonePos
 		

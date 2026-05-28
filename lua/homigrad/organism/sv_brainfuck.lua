@@ -217,13 +217,19 @@ hook.Add("RagdollDeath", "BrainfuckStart", function(ply, rag)
 	end)
 end)
 
+local function ownerFakeRagdoll(owner)
+	if not IsValid(owner) or not owner:IsPlayer() then return end
+	local rag = owner.FakeRagdoll
+	if IsValid(rag) then return rag end
+end
+
 hook.Add("Org Think", "BrainfuckThink", function(owner)
-	if not IsValid(owner) then return end
+	if not IsValid(owner) or owner:IsNPC() then return end
 	local org = owner.organism or owner
 	
 	if org.fencing and org.fencingEnd then
-		local rag = owner.FakeRagdoll
-		if IsValid(rag) then
+		local rag = ownerFakeRagdoll(owner)
+		if rag then
 			if CurTime() > org.fencingEnd then
 				clearFencing(rag)
 				org.fencing, org.fencingEnd, org.fencingDur = nil, nil, nil
@@ -234,8 +240,8 @@ hook.Add("Org Think", "BrainfuckThink", function(owner)
 		end
 	end
 	
-	local deathRag = owner.FakeRagdoll
-	if IsValid(deathRag) and deathRag.spasm and deathRag.spasmEnd then
+	local deathRag = ownerFakeRagdoll(owner)
+	if deathRag and deathRag.spasm and deathRag.spasmEnd then
 		if CurTime() > deathRag.spasmEnd then
 			clearSpasm(deathRag)
 		else
@@ -251,7 +257,7 @@ end)
 
 hook.Add("Org Clear", "BrainfuckClear", function(org)
 	if not org or not org.owner then return end
-	if IsValid(org.owner) then 
+	if IsValid(org.owner) and org.owner:IsPlayer() then 
 		clearSpasm(org.owner)
 		clearFencing(org.owner)
 	end
