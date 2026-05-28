@@ -75,30 +75,24 @@ local function chooseLimb(ply, trapPos)
     return chosen
 end
 
-local function getClosestLegDistanceSqr(ply, trapPos)
-    local char = PAT_BEARTRAP.GetCharacterEntity(ply)
-    if not IsValid(char) then
-        return math.huge
+function PAT_BEARTRAP.PunishGrief(owner, victim)
+    if not IsValid(owner) or not owner:IsPlayer() then return end
+    if not IsValid(victim) or not victim:IsPlayer() or victim == owner then return end
+
+    owner.PAT_BeartrapKarmaCD = owner.PAT_BeartrapKarmaCD or {}
+    local cdKey = victim:SteamID64()
+    if owner.PAT_BeartrapKarmaCD[cdKey] and owner.PAT_BeartrapKarmaCD[cdKey] > CurTime() then return end
+    owner.PAT_BeartrapKarmaCD[cdKey] = CurTime() + 8
+
+    local pen = PAT_BEARTRAP.KarmaGriefPenalty or 50
+    local maxK = (zb and zb.MaxKarma) or 120
+    owner.Karma = math.Clamp((owner.Karma or 100) - pen, -60, maxK)
+    owner:SetNetVar("Karma", owner.Karma)
+    if owner.guilt_SetValue then owner:guilt_SetValue(owner.Karma) end
+
+    if owner.Notify then
+        owner:Notify("Капкан под ноги: -" .. pen .. " кармы.", 5, "pat_beartrap", 1, nil, Color(255, 80, 80))
     end
-
-    local leftPos = getBonePos(char, "ValveBiped.Bip01_L_Foot") or getBonePos(char, "ValveBiped.Bip01_L_Calf")
-    local rightPos = getBonePos(char, "ValveBiped.Bip01_R_Foot") or getBonePos(char, "ValveBiped.Bip01_R_Calf")
-    local best = math.huge
-
-    if isvector(leftPos) then
-        best = math.min(best, leftPos:DistToSqr(trapPos))
-    end
-
-    if isvector(rightPos) then
-        best = math.min(best, rightPos:DistToSqr(trapPos))
-    end
-
-    if best < math.huge then
-        return best
-    end
-
-    local nearest = char:NearestPoint(trapPos)
-    return isvector(nearest) and nearest:DistToSqr(trapPos) or math.huge
 end
 
 local function resolveVictim(ent)
@@ -217,7 +211,6 @@ function ENT:Initialize()
     self.NextBleed = 0
     self.ReleaseHold = {}
     self.ScanRadius = 24
-    self.LegRadiusSqr = 22 * 22
 
     local phys = self:GetPhysicsObject()
     if IsValid(phys) then
@@ -245,7 +238,7 @@ function ENT:CanTriggerVictim(victim)
     if victim:GetMoveType() == MOVETYPE_NOCLIP then return false end
     if victim:GetObserverMode() ~= OBS_MODE_NONE then return false end
     if IsValid(victim.PAT_BeartrapTrap) then return false end
-    if getClosestLegDistanceSqr(victim, self:GetPos()) > self.LegRadiusSqr then return false end
+    if PAT_BEARTRAP.GetClosestLegDistanceSqr(victim, self:GetPos()) > PAT_BEARTRAP.LegRadiusSqr then return false end
 
     return true
 end
@@ -357,6 +350,10 @@ function ENT:TriggerVictim(victimEnt)
 
     applyClampWounds(victim, limb, self)
     self:PinVictim(victim, limb)
+
+    if IsValid(owner) and owner ~= victim then
+        PAT_BEARTRAP.PunishGrief(owner, victim)
+    end
 end
 
 function ENT:TryRelease()

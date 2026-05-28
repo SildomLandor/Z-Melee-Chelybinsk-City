@@ -102,6 +102,14 @@ function SWEP:PrimaryAttack()
     trap:Spawn()
     trap:Activate()
 
+    local legR = PAT_BEARTRAP.LegRadiusSqr or (22 * 22)
+    for _, ply in ipairs(player.GetAll()) do
+        if ply ~= owner and ply:Alive() and PAT_BEARTRAP.GetClosestLegDistanceSqr(ply, trap:GetPos()) <= legR then
+            if PAT_BEARTRAP.PunishGrief then PAT_BEARTRAP.PunishGrief(owner, ply) end
+            break
+        end
+    end
+
     self:EmitSound("physics/metal/chain_impact_hard2.wav", 60, 110)
 
     timer.Simple(0, function()

@@ -36,6 +36,8 @@ PAT_BEARTRAP.RearmTime = 3.5
 PAT_BEARTRAP.ReleaseTime = 3
 PAT_BEARTRAP.BleedInterval = 1.4
 PAT_BEARTRAP.NPCDamage = 65
+PAT_BEARTRAP.LegRadiusSqr = 22 * 22
+PAT_BEARTRAP.KarmaGriefPenalty = 50
 
 PAT_BEARTRAP.LimbById = { [1] = "lleg", [2] = "rleg" }
 PAT_BEARTRAP.LimbId = { lleg = 1, rleg = 2 }
@@ -145,6 +147,35 @@ end
 
 function PAT_BEARTRAP.IdFromLimb(limb)
     return PAT_BEARTRAP.LimbId[limb] or 0
+end
+
+local function beartrapBonePos(ent, boneName)
+    if not IsValid(ent) or not boneName then return end
+
+    local bone = ent:LookupBone(boneName)
+    if not bone then return end
+
+    local pos = select(1, ent:GetBonePosition(bone))
+    if isvector(pos) and not pos:IsZero() then return pos end
+
+    local matrix = ent:GetBoneMatrix(bone)
+    if matrix then return matrix:GetTranslation() end
+end
+
+function PAT_BEARTRAP.GetClosestLegDistanceSqr(ply, trapPos)
+    local char = PAT_BEARTRAP.GetCharacterEntity(ply)
+    if not IsValid(char) then return math.huge end
+
+    local leftPos = beartrapBonePos(char, "ValveBiped.Bip01_L_Foot") or beartrapBonePos(char, "ValveBiped.Bip01_L_Calf")
+    local rightPos = beartrapBonePos(char, "ValveBiped.Bip01_R_Foot") or beartrapBonePos(char, "ValveBiped.Bip01_R_Calf")
+    local best = math.huge
+
+    if isvector(leftPos) then best = math.min(best, leftPos:DistToSqr(trapPos)) end
+    if isvector(rightPos) then best = math.min(best, rightPos:DistToSqr(trapPos)) end
+    if best < math.huge then return best end
+
+    local nearest = char:NearestPoint(trapPos)
+    return isvector(nearest) and nearest:DistToSqr(trapPos) or math.huge
 end
 
 function PAT_BEARTRAP.GetCharacterEntity(ent)
