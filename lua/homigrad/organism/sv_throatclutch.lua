@@ -10,6 +10,7 @@ function hg.organism.ThroatClutchRagdoll(rag, org, opts)
 	if not IsValid(rag) then return end
 	org = org or rag.organism
 	if ragIsChokingSomeone(rag) then return end
+	if SERVER and not opts.force and (rag.beingChokedUntil or 0) <= CurTime() then return end
 
 	if not opts.force and not hg.organism.ShouldThroatClutchRagdollPose(rag, org) then return end
 

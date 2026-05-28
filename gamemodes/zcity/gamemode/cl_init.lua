@@ -1220,6 +1220,9 @@ function GM:ScoreboardShow()
 
 		row.Paint = function(self, rw, rh)
 			if not IsValid(ply) then return end
+			local lp = LocalPlayer()
+			local hideDeathState = IsValid(lp) and zb.ROUND_STATE == 1 and lp:Alive() and lp:Team() ~= TEAM_SPECTATOR
+			local looksAlive = hideDeathState or ply:Alive()
 			local t = CurTime()
 			local waveX = math.sin(t * 28 + rowWaveOffset) * shakeStrength * 0.25
 			local waveY = math.cos(t * 24 + rowWaveOffset) * shakeStrength * 0.2
@@ -1240,7 +1243,7 @@ function GM:ScoreboardShow()
 			end
 
 			if not isSpectator then
-				local statusCol = ply:Alive() and col.rowAlive or col.rowDead
+				local statusCol = looksAlive and col.rowAlive or col.rowDead
 				surface.SetDrawColor(statusCol.r, statusCol.g, statusCol.b, 120)
 				surface.DrawRect(0, 2, 2, rh - 4)
 			end
@@ -1260,6 +1263,9 @@ function GM:ScoreboardShow()
 				local pingX = math.floor(rw * 0.65)
 				local pingW = math.floor(rw * 0.20)
 				local displayName = ply:Name() or "Unknown"
+				if ply:GetNWBool("ZB_AFK", false) then
+					displayName = displayName .. " - AFK"
+				end
 				local fitted = FitText("ZCity_Veteran", displayName, nameW - 8)
 				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 				draw.SimpleText(tostring(ply:Ping()) .. "ms", "ZCity_Veteran", pingX + pingW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
@@ -1277,8 +1283,11 @@ function GM:ScoreboardShow()
 				if not LocalPlayer():Alive() and appearanceName ~= "" then
 					displayName = displayName .. " (" .. appearanceName .. ")"
 				end
+				if ply:GetNWBool("ZB_AFK", false) then
+					displayName = displayName .. " - AFK"
+				end
 				local fitted = FitText("ZCity_Veteran", displayName, nameW - 8)
-				local nameCol = ply:Alive() and col.text or col.textBlood
+				local nameCol = looksAlive and col.text or col.textBlood
 				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, nameCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 				draw.SimpleText(tostring(ply:Frags()), "ZCity_Veteran", fragsX + fragsW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 				draw.SimpleText(tostring(math.floor(ply.exp or 0)), "ZCity_Veteran", xpX + xpW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
@@ -1435,9 +1444,6 @@ function GM:ScoreboardShow()
 		local active = {}
 		local specs = {}
 		for _, ply in player.Iterator() do
-			local mode = CurrentRound()
-			if mode and mode.name == "fear" and not ply:Alive() then continue end
-			if zb.ROUND_STATE == 1 and lply:Alive() and not ply:Alive() and ply:Team() ~= TEAM_SPECTATOR then continue end
 			if disappearance and ply ~= lply then continue end
 			if ply:Team() == TEAM_SPECTATOR then
 				specs[#specs + 1] = ply
