@@ -125,7 +125,7 @@ local function SyncRoundFade()
 end
 
 local intro = {
-	objective = "Переживи все волны. Ищи лут в ящиках и шкафах.",
+	objective = "Вокруг творится полный пиздец. Надо найти союзников и оружие",
 	name = "Выживший",
 	color1 = Color(80, 200, 80),
 	color2 = Color(60, 160, 60),
@@ -166,13 +166,6 @@ function MODE:HUDPaint()
 
 	if waveAt > CurTime() then
 		local t = waveAt - CurTime()
-		draw.SimpleText(
-			"След. Волна: " .. string.format("%02i:%02i", math.floor(t / 60), math.floor(t % 60)),
-			"ZCity_Veteran",
-			sw * 0.5, sh * 0.92,
-			color_white,
-			TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER
-		)
 	end
 
 	if not IsValid(lply) or not lply:Alive() or lply:Team() == TEAM_SPECTATOR then return end
@@ -187,7 +180,7 @@ function MODE:HUDPaint()
 	local textFade = overlay > 0 and math.Clamp(overlay / 0.85, 0, 1) or math.Clamp((zb.ROUND_START + introLen - CurTime()) / introLen, 0, 1)
 	if textFade <= 0 then return end
 
-	DrawFadeTitle("Мокруха | Зомбари", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle("Зомбари", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(intro.color1.r, intro.color1.g, intro.color1.b, 255 * textFade)
 	DrawFadeText("Ты - " .. intro.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)

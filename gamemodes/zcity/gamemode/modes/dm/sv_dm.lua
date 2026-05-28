@@ -3,7 +3,7 @@ local MODE = MODE
 local deathmatch_nozone = ConVarExists("deathmatch_nozone") and GetConVar("deathmatch_nozone") or CreateConVar("deathmatch_nozone", 0, FCVAR_REPLICATED, "Allows to disable deathmatch mode zone.", 0, 1)
 
 MODE.name = "dm"
-MODE.PrintName = "Deathmatch"
+MODE.PrintName = "Против всех"
 MODE.LootSpawn = false
 MODE.GuiltDisabled = true
 MODE.randomSpawns = true

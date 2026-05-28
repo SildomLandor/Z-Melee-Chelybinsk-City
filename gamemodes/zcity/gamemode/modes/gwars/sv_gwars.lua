@@ -1,6 +1,6 @@
 local MODE = MODE
 MODE.name = "gwars"
-MODE.PrintName = "Gang Wars"
+MODE.PrintName = "Война банд"
 
 MODE.ForBigMaps = false
 MODE.ROUND_TIME = 180

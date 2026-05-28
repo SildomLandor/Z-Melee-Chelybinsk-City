@@ -199,7 +199,7 @@ function MODE:HUDPaint()
 
 	local accent = self.FighterColor or fighterColor
 
-	DrawFadeTitle(self.IntroTitle or "ZBattle | Против всех", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle(self.IntroTitle or "Против всех", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(accent.r, accent.g, accent.b, 255 * textFade)
 	DrawFadeText("Ты — " .. (self.FighterName or "Боец"), "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)

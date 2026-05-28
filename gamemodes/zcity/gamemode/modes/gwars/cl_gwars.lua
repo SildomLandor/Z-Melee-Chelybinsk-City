@@ -251,10 +251,10 @@ function MODE:HUDPaint()
 	local teamInfo = teams[lply:Team()]
 	if not teamInfo then return end
 
-	DrawFadeTitle("ZBattle | Война банд", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle("Война банд", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(teamInfo.color1.r, teamInfo.color1.g, teamInfo.color1.b, 255 * textFade)
-	DrawFadeText("Вы - " .. teamInfo.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
+	DrawFadeText("Ты - " .. teamInfo.name, "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
 
 	local colObj = Color(teamInfo.color2.r, teamInfo.color2.g, teamInfo.color2.b, 255 * textFade)
 	DrawFadeText(teamInfo.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.1)

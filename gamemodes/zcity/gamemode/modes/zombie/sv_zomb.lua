@@ -1,14 +1,14 @@
 local MODE = MODE
 
 MODE.name = "zombie"
-MODE.PrintName = "Мокруха | Зомбари"
+MODE.PrintName = "Зомбари"
 MODE.randomSpawns = true
 MODE.LootSpawn = true
 MODE.LootOnTime = false
 MODE.ROUND_TIME = 1200
 MODE.start_time = 35
 MODE.ForBigMaps = false
-MODE.Chance = 0.03
+MODE.Chance = 0.02
 
 local spawnMinDistSqr = 600 * 600
 local spawnMaxDist = 1400

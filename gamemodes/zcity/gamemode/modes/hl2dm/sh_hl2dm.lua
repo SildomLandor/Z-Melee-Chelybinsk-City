@@ -1,18 +1,11 @@
 local MODE = MODE
 MODE.name = "hl2dm"
-MODE.EndMenuTitle = "HL2 Мокруха"
+MODE.EndMenuTitle = "HL2"
 
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6
 
 zb = zb or {}
-
---[[ Идеи
-    Слабая зона глаз у комбайнов
-    //Убрать возможность комбайнам надевать броню
-    //Выдать очки ночного зрения комбайнам ;; Им их выдавать не надо, надо сделать просто функционал встроенный в их класс!!!
-    //Аирстрайки у елитовцев
-]]
 
 zb = zb or {}
 zb.Points = zb.Points or {}

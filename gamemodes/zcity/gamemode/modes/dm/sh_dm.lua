@@ -5,7 +5,7 @@ MODE.EndMenuTitle = "Против всех"
 
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6
-MODE.IntroTitle = "ZBattle | Против всех"
+MODE.IntroTitle = "Против всех"
 MODE.FighterName = "Боец"
 MODE.FighterObjective = "Убей всех."
 

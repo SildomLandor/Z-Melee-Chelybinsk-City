@@ -1183,7 +1183,7 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
     local ent = hg.RagdollOwner(ent) or ent
 	local owner = self:GetOwner()
 
-	if ent:IsPlayer() and ((istable(self.HitEnts) and !table.HasValue(self.HitEnts, ent)) or owner:IsNPC()) then
+	if (ent:IsPlayer() or ent:IsNPC()) and ((istable(self.HitEnts) and !table.HasValue(self.HitEnts, ent)) or owner:IsNPC()) then
         local wep = ent:GetActiveWeapon()
 
         local pos, aimvec = hg.eye(ent)

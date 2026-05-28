@@ -1,5 +1,5 @@
 MODE.name = "criresp"
-MODE.PrintName = "Crisis Response"
+MODE.PrintName = "Внештатная ситуация"
 
 MODE.ForBigMaps = false
 MODE.ROUND_TIME = 480
@@ -76,13 +76,13 @@ function MODE:CheckAlivePlayers()
 	local banditPlayers = {}
 
 	for _, ply in ipairs(team.GetPlayers(0)) do
-		if ply:Alive() and not ply:GetNetVar("handcuffed", false) then
+		if ply:Alive() and not ply:GetNetVar("в наручниках", false) then
 			table.insert(swatPlayers, ply)
 		end
 	end
 
 	for _, ply in ipairs(team.GetPlayers(1)) do
-		if ply:Alive() and not ply:GetNetVar("handcuffed", false) then
+		if ply:Alive() and not ply:GetNetVar("в наручниках", false) then
 			table.insert(banditPlayers, ply)
 		end
 	end
@@ -121,9 +121,19 @@ local tblweps = {
 		"weapon_revolver2",
 		"weapon_p22",
 		"weapon_revolver2",
-		"weapon_hk_usp",
 		"weapon_remington870",
-		"weapon_mac11",
+		"weapon_mosin",
+		"weapon_kar98",
+		"weapon_winchester",
+		"weapon_musket",
+		"weapon_sks",
+		"weapon_doublebarrel",
+		"weapon_doublebarrel_short",
+		"weapon_flintlock",
+		"weapon_tokarev",
+		"weapon_makarov",
+		"weapon_hg_bow",
+		"weapon_akmwreked",
 		"weapon_skorpion",
 	}
 }
@@ -141,7 +151,7 @@ local tblotheritems = {
 		"weapon_bigconsumable", 
 		"weapon_bandage_sh",
 		"weapon_painkillers",
-        "weapon_sogknife",
+        "weapon_buck200knife",
 		"weapon_ducttape",
 		"weapon_hammer"
 
@@ -190,7 +200,7 @@ function MODE:GiveEquipment()
 
 					hg.AddArmor(ply, tblarmors[ply:Team()][math.random(#tblarmors[ply:Team()])]) 
 
-					zb.GiveRole(ply, "SWAT", Color(0,0,190))
+					zb.GiveRole(ply, "СОБР", Color(0,0,190))
 
 					table.insert(swatPlayers, ply) 
 
@@ -223,7 +233,7 @@ function MODE:GiveEquipment()
 
 				ply:SetPlayerClass("terrorist")
 
-				zb.GiveRole(ply, "Suspect", Color(190,0,0))
+				zb.GiveRole(ply, "Подозреваемый", Color(190,0,0))
 
 				local gun = ply:Give(tblweps[ply:Team()][math.random(#tblweps[ply:Team()])])
 				if IsValid(gun) and gun.GetMaxClip1 then

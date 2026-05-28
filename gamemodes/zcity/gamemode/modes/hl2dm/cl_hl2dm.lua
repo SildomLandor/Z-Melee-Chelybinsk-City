@@ -129,19 +129,19 @@ end)
 
 local teams = {
 	[0] = {
-		objective = "Убей всех солдат Combine и выживи.",
-		name = "повстанец",
-		name_medic = "медик повстанцев",
-		name_grenadier = "гренадёр",
-		name_sniper = "снайпер",
+		objective = "Убей всех Комбайнов",
+		name = "Повстанец",
+		name_medic = "Медик повстанцев",
+		name_grenadier = "Гренадёр",
+		name_sniper = "Снайпер",
 		color1 = Color(230, 100, 5),
 		color2 = Color(210, 80, 0),
 	},
 	[1] = {
-		objective = "Уничтожь всех повстанцев.",
-		name = "солдат Combine",
-		name_elite = "элитный солдат Combine",
-		name_shotgunner = "солдат Combine с дробовиком",
+		objective = "Юнит твоя задача - устранить повстанцев",
+		name = "Комбайн 3 ранга",
+		name_elite = "Комбайн 1 ранга",
+		name_shotgunner = "Комбайн 2 ранга",
 		color1 = Color(0, 200, 220),
 		color2 = Color(0, 180, 200),
 	},
@@ -191,7 +191,7 @@ function MODE:HUDPaint()
 	local team_data = teams[team_id]
 	if not team_data then return end
 
-	DrawFadeTitle("ZBattle | HL2 Мокруха", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
+	DrawFadeTitle("HL2", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * textFade), 255 * textFade)
 
 	local colRole = Color(team_data.color1.r, team_data.color1.g, team_data.color1.b, 255 * textFade)
 	DrawFadeText("Вы — " .. GetRoleName(team_id, lply:GetNWString("PlayerRole")), "ZCity_Veteran_big", sw * 0.5, sh * 0.5, colRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 0.7 * 1.25)
