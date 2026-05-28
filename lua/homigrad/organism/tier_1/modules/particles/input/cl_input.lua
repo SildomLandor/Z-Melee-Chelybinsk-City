@@ -169,14 +169,19 @@ net.Receive("bloodsquirt", function()
 	
 	if not IsValid(ent) then return end
 
-	local bone = net.ReadString()
-	local bone = ent:LookupBone(bone)
+	local boneName = net.ReadString()
+	local bone = ent:LookupBone(boneName)
 	local mat = net.ReadMatrix()
 	local pos = net.ReadVector()
 	local dir = net.ReadVector()
 	local len = dir:Length()
 
 	local ent = hg.RagdollOwner(ent) or ent
+	if not isnumber(bone) then
+		bone = ent:LookupBone(boneName)
+	end
+	if not isnumber(bone) then return end
+	if not mat then return end
 
 	//local mat = ent:GetBoneMatrix(bone)
 	local localPos, localDir = WorldToLocal(pos, dir:Angle(), mat:GetTranslation(), mat:GetAngles())
@@ -213,8 +218,8 @@ net.Receive("bloodsquirt2", function()
 	
 	if not IsValid(ent) then return end
 
-	local bone = net.ReadString()
-	local bone = ent:LookupBone(bone)
+	local boneName = net.ReadString()
+	local bone = ent:LookupBone(boneName)
 	local mat = net.ReadMatrix()
 	local pos = net.ReadVector()
 	local dir = net.ReadVector()
@@ -222,6 +227,11 @@ net.Receive("bloodsquirt2", function()
 
 	local ent = hg.RagdollOwner(ent) or ent
 	local ply = ent
+	if not isnumber(bone) then
+		bone = ent:LookupBone(boneName)
+	end
+	if not isnumber(bone) then return end
+	if not mat then return end
 
 	//local mat = ent:GetBoneMatrix(bone)
 	local localPos, localDir = WorldToLocal(pos, dir:Angle(), mat:GetTranslation(), mat:GetAngles())
