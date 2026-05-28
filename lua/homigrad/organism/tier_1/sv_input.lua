@@ -380,7 +380,7 @@ function hg.AddHarm(ply, harm, reason)
 		//ply:ChatPrint(reason..": harm count is "..math.Round(harm,2))
 	end
 
-	ply.harm = ply.harm + harm
+	ply.harm = (ply.harm or 0) + (tonumber(harm) or 0)
 end
 
 function hg.ExplodeHead(ent)

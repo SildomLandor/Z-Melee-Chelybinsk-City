@@ -169,6 +169,7 @@ local rebel_subclasses = {
             local bbag = ply:Give("weapon_bloodbag")
             if IsValid(bbag) then
                 bbag.bloodtype = "o-"
+                bbag.modeValues = bbag.modeValues or {}
                 bbag.modeValues[1] = 1
             end
             ply:Give("weapon_medkit_sh")
