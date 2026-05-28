@@ -1,4 +1,3 @@
--- СДЕЛАЙТЕ СИНХРУ С СКУЭЛЬ УЖЕ // ЛАДНО Я САМ СДЕЛАЮ
 zb = zb or {}
 
 zb.GuiltTable = zb.GuiltTable or {}
@@ -10,75 +9,90 @@ zb.GuiltSQL = zb.GuiltSQL or {}
 zb.GuiltSQL.PlayerInstances = zb.GuiltSQL.PlayerInstances or {}
 
 local hg_developer = ConVarExists("hg_developer") and GetConVar("hg_developer") or CreateConVar("hg_developer",0,FCVAR_SERVER_CAN_EXECUTE,"Toggle developer mode (enables damage traces)",0,1)
+local guiltFilePath = "zcity/guilt.json"
 
-hook.Add("DatabaseConnected", "GuiltCreateData", function()
-	local query
+file.CreateDir("zcity")
 
-	query = mysql:Create("zb_guilt")
-		query:Create("steamid", "VARCHAR(20) NOT NULL")
-		query:Create("steam_name", "VARCHAR(32) NOT NULL")
-		query:Create("value", "FLOAT NOT NULL")
-		query:PrimaryKey("steamid")
-	query:Execute()
+local function saveGuiltData()
+    local out = {}
 
-    zb.GuiltSQL.Active = true
-end)
+    for steamID64, data in pairs(zb.GuiltSQL.PlayerInstances) do
+        local value = tonumber(data and data.value)
+        if value then
+            out[steamID64] = {
+                value = value,
+                steam_name = data.steam_name or ""
+            }
+        end
+    end
+
+    file.Write(guiltFilePath, util.TableToJSON(out, true) or "{}")
+end
+
+local function loadGuiltData()
+    local raw = file.Read(guiltFilePath, "DATA")
+    if not raw or raw == "" then
+        zb.GuiltSQL.PlayerInstances = {}
+        return
+    end
+
+    local decoded = util.JSONToTable(raw)
+    if not istable(decoded) then
+        zb.GuiltSQL.PlayerInstances = {}
+        return
+    end
+
+    local loaded = {}
+    for steamID64, data in pairs(decoded) do
+        local value = tonumber(istable(data) and data.value or data)
+        if value then
+            loaded[steamID64] = {
+                value = value,
+                steam_name = istable(data) and (data.steam_name or "") or ""
+            }
+        end
+    end
+
+    zb.GuiltSQL.PlayerInstances = loaded
+end
+
+loadGuiltData()
+
+hook.Add("Initialize", "GuiltLoadData", loadGuiltData)
+hook.Add("ShutDown", "GuiltSaveData", saveGuiltData)
 
 hook.Add( "PlayerInitialSpawn","ZB_GuiltSQL", function( ply )
     local name = ply:Name()
 	local steamID64 = ply:SteamID64()
+    local data = zb.GuiltSQL.PlayerInstances[steamID64]
+    if not data then
+        data = {
+            value = 100,
+            steam_name = name
+        }
+        zb.GuiltSQL.PlayerInstances[steamID64] = data
+        saveGuiltData()
+    else
+        data.value = tonumber(data.value) or 100
+        data.steam_name = name
+    end
 
-    --if not zb.GuiltSQL.Active then
-    --    zb.GuiltSQL.PlayerInstances[steamID64] = {}
-    --    return
-    --end 
+    ply.Karma = ply:guilt_GetValue()
+    ply:SetNetVar("Karma", ply.Karma)
 
-	local query = mysql:Select("zb_guilt")
-		query:Select("value")
-		query:Where("steamid", steamID64)
-		query:Callback(function(result)
-			if (IsValid(ply) and istable(result) and #result > 0 and result[1].value) then
-				local updateQuery = mysql:Update("zb_guilt")
-					updateQuery:Update("steam_name", name)
-					updateQuery:Where("steamid", steamID64)
-				updateQuery:Execute()
+    if data.value < 0 then
+        ply:guilt_SetValue(10)
+        local karma = ply.Karma
 
-				zb.GuiltSQL.PlayerInstances[steamID64] = {}
+        ply.Karma = 10
+        ply:SetNetVar("Karma", ply.Karma)
 
-                zb.GuiltSQL.PlayerInstances[steamID64].value = tonumber(result[1].value)
-
-                ply.Karma = ply:guilt_GetValue()
-                ply:SetNetVar("Karma", ply.Karma)
-
-                if zb.GuiltSQL.PlayerInstances[steamID64].value < 0 then
-                    ply:guilt_SetValue( 10 )
-                    local karma = ply.Karma
-
-                    ply.Karma = 10
-                    ply:SetNetVar("Karma", ply.Karma)
-
-                    timer.Simple(0, function()
-                        ply:Ban(5, false)
-                        ply:Kick("Твоя карма слишком низкая: " .. math.Round( karma, 0 ) .. ". Попробуй через 5 минут." )
-                    end)
-                end
-			else
-				local insertQuery = mysql:Insert("zb_guilt")
-					insertQuery:Insert("steamid", steamID64)
-					insertQuery:Insert("steam_name", name)
-					insertQuery:Insert("value", 100)
-				insertQuery:Execute()
-
-				zb.GuiltSQL.PlayerInstances[steamID64] = {}
-
-				zb.GuiltSQL.PlayerInstances[steamID64].value = 100
-
-                ply.Karma = ply:guilt_GetValue()
-                ply:SetNetVar("Karma",ply.Karma)
-			end
-		end)
-	query:Execute()
-
+        timer.Simple(0, function()
+            if not IsValid(ply) then return end
+            ply:Ban(5, false)
+            ply:Kick("Твоя карма слишком низкая: " .. math.Round(karma, 0) .. ". Попробуй через 5 минут.")
+        end)
+    end
 end)
 
 local plyMeta = FindMetaTable("Player")
@@ -90,18 +104,13 @@ function plyMeta:guilt_GetValue()
 end
 
 function plyMeta:guilt_SetValue( zb_guilt )
-
     local steamID64 = self:SteamID64()
-	
-	zb.GuiltSQL.PlayerInstances[self:SteamID64()] = zb.GuiltSQL.PlayerInstances[self:SteamID64()] or {}
-	zb.GuiltSQL.PlayerInstances[self:SteamID64()].value = zb.GuiltSQL.PlayerInstances[self:SteamID64()].value or 100
-	
-    zb.GuiltSQL.PlayerInstances[self:SteamID64()].value = zb_guilt
 
-	local updateQuery = mysql:Update("zb_guilt")
-		updateQuery:Update("value", zb_guilt)
-		updateQuery:Where("steamid", steamID64)
-	updateQuery:Execute()
+    zb.GuiltSQL.PlayerInstances[steamID64] = zb.GuiltSQL.PlayerInstances[steamID64] or {}
+    zb.GuiltSQL.PlayerInstances[steamID64].value = tonumber(zb_guilt) or 100
+    zb.GuiltSQL.PlayerInstances[steamID64].steam_name = IsValid(self) and self:Name() or (zb.GuiltSQL.PlayerInstances[steamID64].steam_name or "")
+
+    saveGuiltData()
 end
 
 local function IsLookingAt(ply, targetVec)
