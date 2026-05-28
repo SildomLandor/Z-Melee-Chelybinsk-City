@@ -4,14 +4,16 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 --\\ Smooth UnRagdoll
 	local vecSmall = Vector(0.01, 0.01, 0.01)
 	function hg.SmoothUnfake(ent, ply)
-		if ply.gettingup and (ply.gettingup + 1 - CurTime()) > 0 and IsValid(ply) then
+		local gettingup = ply.gettingup
+		if gettingup and (gettingup + 1 - CurTime()) > 0 and IsValid(ply) then
+			local headBone = ent:LookupBone("ValveBiped.Bip01_Head1")
 			for i = 0, ent:GetBoneCount() - 1 do
 				local m1 = ent:GetBoneMatrix(i)
 				local m2 = ply:GetBoneMatrix(i)
 
 				if not m1 or not m2 then continue end
 
-				local k = math_Clamp(1 - (ply.gettingup + 0.8 - CurTime()) / 0.8, 0, 1)
+				local k = math_Clamp(1 - (gettingup + 0.8 - CurTime()) / 0.8, 0, 1)
 
 				local q1 = Quaternion()
 				q1:SetMatrix(m1)
@@ -26,7 +28,7 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 				newmat:SetAngles(q3:Angle())
 				newmat:SetScale(m1:GetScale())
 
-				if i == ent:LookupBone("ValveBiped.Bip01_Head1") and lply == GetViewEntity() and lply == ply then
+				if i == headBone and lply == GetViewEntity() and lply == ply then
 					newmat:SetScale(vecSmall)
 					//ply.headm = newmat
 				end

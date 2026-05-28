@@ -427,6 +427,25 @@ function hg.EnsureLootInventory(ply, ent)
         return ent.inventory
     end
 
+    if ent:IsRagdoll() then
+        local owner = hg.RagdollOwner and hg.RagdollOwner(ent)
+        if IsValid(owner) then
+            local ownerInv = owner:GetNetVar("Inventory")
+            if ownerInv then
+                ent.inventory = ownerInv
+                ent.armors = owner:GetNetVar("Armor", {})
+                ent:SetNetVar("Inventory", ent.inventory)
+                ent:SetNetVar("Armor", ent.armors)
+                if IsValid(ply) then
+                    ent:SendNetVar("Inventory", ply)
+                    ent:SendNetVar("Armor", ply)
+                end
+                return ent.inventory
+            end
+        end
+        return
+    end
+
     if not string.find(ent:GetClass() or "", "prop_") then return end
 
     hook.Run("ZB_InventoryChecked", ply, ent)
@@ -459,9 +478,7 @@ function playerMeta:OpenInventory(ent)
     if not IsValid(ent) then return end
     if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
 
-    if not ent:IsPlayer() then
-        hg.EnsureLootInventory(self, ent)
-    end
+    if not ent:IsPlayer() and not hg.EnsureLootInventory(self, ent) then return end
 
     hook.Run("ZB_InventoryOpened", self, ent)
     if ent:IsPlayer() then hg.RenewInv(ent) end
@@ -489,14 +506,12 @@ hook.Add("Player Think", "loot-fellows", function(ply)
     if not ply:Alive() then return end
     ply.keypressed = ply.keypressed or false
 
-    local use = IsValid(ply.FakeRagdoll) and (ply:KeyDown(IN_WALK) and ply:KeyDown(IN_SPEED) and not ply:KeyDown(IN_ATTACK) and not ply:KeyDown(IN_ATTACK2))
-        or (not IsValid(ply.FakeRagdoll) and (ply:KeyDown(IN_ATTACK2) and ply:KeyDown(IN_USE)))
+    local use = ply:KeyDown(IN_ATTACK2) and ply:KeyDown(IN_USE) and not ply:KeyDown(IN_ATTACK)
 
     if use then
         local trace = hg.eyeTrace(ply, 60)
         if not trace then return end
         local ent = trace.Entity
-        ent = IsValid(hg.RagdollOwner(ent)) and hg.RagdollOwner(ent) or ent
         local _, _, canloot = hook.Run("ZB_CanLootInventory", ply, ent, nil)
         if canloot ~= nil and canloot == false then
             ply.keypressed = true
@@ -516,9 +531,5 @@ end)
 hook.Add("PlayerUse", "homigrad-inv-prop", function(ply, ent)
     if not ply:Alive() or not IsValid(ent) then return end
     if not string.find(ent:GetClass() or "", "prop_") then return end
-    if not hg.EnsureLootInventory(ply, ent) then return end
-    if (ply.invUseCd or 0) > CurTime() then return true end
-    ply.invUseCd = CurTime() + 0.4
-    ply:OpenInventory(ent)
-    return true
+    return
 end)

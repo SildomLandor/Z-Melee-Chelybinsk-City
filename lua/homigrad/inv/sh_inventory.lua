@@ -190,7 +190,12 @@ if CLIENT then
 			if IsValid(owner) then
 				nameStr = owner:GetNWString("PlayerName", owner:Nick())
 			else
-				nameStr = string.NiceName(ent:GetClass())
+				local ragName = ent:GetNWString("PlayerName", "")
+				if ragName ~= "" then
+					nameStr = ragName
+				else
+					nameStr = "труп"
+				end
 			end
 		end
 		local title = nameStr .. " — инвентарь"
@@ -309,12 +314,10 @@ if CLIENT then
 			surface.SetTextPos(w * 0.5 - titleW * 0.5 + shakeX, ScreenScaleH(6) + shakeY * 0.5)
 			surface.DrawText(title)
 
-			surface.SetFont("ZB_InterfaceSmall")
+			surface.SetFont("ZCity_Veteran")
 			surface.SetTextColor(invCol.textMuted)
-			local hint = "R — закрыть | удерж. ЛКМ — взять | ПКМ — подсказка"
-			local hintW = surface.GetTextSize(hint)
-			surface.SetTextPos(w * 0.5 - hintW * 0.5 + shakeX * 0.3, h - bottomBarH + ScreenScaleH(4))
-			surface.DrawText(hint)
+			local hint = "ЛКМ - Взять, R - Закрыть"
+			draw.SimpleText(hint, "ZCity_Veteran", w * 0.5 + shakeX * 0.3, h - bottomBarH + ScreenScaleH(4), invCol.textMuted, TEXT_ALIGN_CENTER)
 		end
 
 		local DScrollPanel = vgui.Create("DScrollPanel", plyMenu)
@@ -429,21 +432,7 @@ if CLIENT then
 
 				button.DoClick = function() end
 
-				button.DoRightClick = function()
-					if cooldown > CurTime() then return end
-					cooldown = CurTime() + 0.3
-
-					if not functions[tab](ply, ent, i, unpack(thing1)) then
-						local OptionsMenu = DermaMenu()
-						OptionsMenu:AddOption("У вас есть такой предмет", function() end)
-						OptionsMenu:Open()
-						return
-					end
-
-					local OptionsMenu = DermaMenu()
-					OptionsMenu:AddOption("Зажмите LMB для взятия", function() end)
-					OptionsMenu:Open()
-				end
+				button.DoRightClick = function() end
 
 				local itemName = nameThings(i, thing)
 				button.col1 = 100
