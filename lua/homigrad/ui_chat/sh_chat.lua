@@ -268,8 +268,9 @@ else
 		ply.ChatWhisper = ply:Alive() and ply.ChatWhisper or false
 
 		local rf = RecipientFilter()
-		-- local checkdist = ply.ChatWhisper and 128 * 128 or 1024 * 1024
+		rf:AddPlayer(ply)
 		for i, plya in player.Iterator() do
+			if plya == ply then continue end
 			if plya:Alive() and plya.organism and plya.organism.otrub then continue end
 			if plya:Alive() and !ply:Alive() then continue end
 

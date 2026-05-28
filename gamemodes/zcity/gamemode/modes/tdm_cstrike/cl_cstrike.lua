@@ -1,5 +1,49 @@
 local MODE = MODE
 
+local function playerHasBomb(ply)
+	if not IsValid(ply) then return false end
+
+	local wep = ply:GetWeapon("weapon_zb_bomb")
+	if IsValid(wep) then return true end
+
+	for _, item in ipairs(ply:GetWeapons()) do
+		if IsValid(item) and item:GetClass() == "weapon_zb_bomb" then
+			return true
+		end
+	end
+
+	return false
+end
+
+local lastBombCarrier
+
+local function getBombCarrier()
+	for _, ply in ipairs(team.GetPlayers(0)) do
+		if IsValid(ply) and ply:Alive() and playerHasBomb(ply) then
+			return ply
+		end
+	end
+end
+
+local function updateBombCarrierChat()
+	local lply = LocalPlayer()
+	if not IsValid(lply) then return end
+
+	local inBombRound = zb.CROUND == "cstrike" and zb.rtype == "bomb"
+	if not inBombRound or lply:Team() ~= 0 then
+		lastBombCarrier = nil
+		return
+	end
+
+	local carrier = getBombCarrier()
+	if carrier == lastBombCarrier then return end
+
+	lastBombCarrier = carrier
+	if IsValid(carrier) then
+		chat.AddText(color_white, "У ", Color(255, 235, 160), carrier:Nick(), color_white, " бомба")
+	end
+end
+
 local function drawSiteLabel(site, label, xFrac)
 	local center = zb.GetBombSiteCenter(site)
 	if not center then return end
@@ -88,3 +132,5 @@ hook.Add("PostDrawTranslucentRenderables", "ZB_CStrike_BombSites", function(_, s
 	if skybox then return end
 	drawBombSites3D()
 end)
+
+hook.Add("Think", "ZB_CStrike_BombCarrierChat", updateBombCarrierChat)

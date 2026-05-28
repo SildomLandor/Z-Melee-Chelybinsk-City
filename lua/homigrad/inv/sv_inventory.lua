@@ -255,7 +255,18 @@ local functions = {
         local weapon
         local weaponIsEnt = (not isbool(ent.inventory.Weapons[wep])) and IsValid(ent.inventory.Weapons[wep]) and ent.inventory.Weapons[wep]:IsWeapon()
         if not weaponIsEnt then
+            local weaponData = weapons.Get(wep) or scripted_ents.GetStored(wep)
+            if not weaponData then
+                ent.inventory.Weapons[wep] = nil
+                return
+            end
+
             weapon = ents.Create(wep)
+            if not IsValid(weapon) then
+                ent.inventory.Weapons[wep] = nil
+                return
+            end
+
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
             weapon.IsSpawned = true
             weapon.init = true
