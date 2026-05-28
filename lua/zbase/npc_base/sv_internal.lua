@@ -1397,12 +1397,6 @@ function NPC:AITick_Slow()
                 self:SetSchedule(SCHED_FORCED_GO_RUN)
             end
 
-            if self:SeeEne() && !inGunDist && !self.DontGunPushUpdate && ZBCVAR.FallbackNav:GetBool()
-            && !ZBaseMoveIsActive(self) && (sched == SCHED_CHASE_ENEMY || sched == SCHED_ESTABLISH_LINE_OF_FIRE || !self:IsMoving()) then
-                ZBaseMove(self, ene:GetPos(), "GunChase")
-                self:CONV_TempVar("DontGunPushUpdate", true, 1.2)
-            end
-
         -- No enemy...
         else
             -- Set max look distance to sight distance
@@ -1748,14 +1742,42 @@ function NPC:MarkEnemyAsDead( ene, time )
     self:CONV_TempVar("EnemyDied", true, time)
 end
 
+function NPC:ZBaseSyncMoveAnim()
+    if self.IsZBase_SNPC or self.DoingPlayAnim then return end
+    if !self:IsMoving() && !self.ZBase_IsMoving then return end
+
+    local sched = self:GetCurrentSchedule()
+    local run = sched == SCHED_FORCED_GO_RUN or sched == SCHED_CHASE_ENEMY or sched == SCHED_RUN_RANDOM
+        or (IsValid(self:GetEnemy()) && self:GetNPCState() >= NPC_STATE_COMBAT)
+
+    if !run && sched != SCHED_FORCED_GO && sched != SCHED_COMBAT_WALK && sched != SCHED_PATROL_WALK && !ZBaseMoveIsActive(self) then
+        return
+    end
+
+    local act = run and ACT_RUN or ACT_WALK
+    if self:SelectWeightedSequence(act) < 0 then act = ACT_WALK end
+    if self:SelectWeightedSequence(act) < 0 then return end
+
+    local cur, moveAct = self:GetActivity(), self:GetMovementActivity()
+    if cur == ACT_IDLE or cur == ACT_RESET or moveAct == ACT_IDLE or moveAct == -1 or moveAct == ACT_RESET then
+        self:SetIdealActivity(act)
+        self:SetActivity(act)
+        self:SetMovementActivity(act)
+    end
+end
+
 function NPC:DoMoveSpeed()
     local mult = self.MoveSpeedMultiplier * ZBCVAR.MoveSpeedMult:GetFloat()
 
     if !self.DoingPlayAnim then
-        self:SetPlaybackRate(mult)
+        local act = self:GetActivity()
+        if act == ACT_WALK or act == ACT_RUN or act == ACT_WALK_AIM or act == ACT_RUN_AIM then
+            self:SetPlaybackRate(mult)
+        end
     end
 
-    self:SetSaveValue("m_flTimeLastMovement", -0.1*mult)
+    self:SetSaveValue("m_flTimeLastMovement", -0.1 * mult)
+    self:ZBaseSyncMoveAnim()
 end
 
 function NPC:InternalOnReactToSound(ent, pos, loudness)
@@ -1863,13 +1885,18 @@ function NPC:PursueFollowing()
     local ply = self.PlayerToFollow
     local dest = ply:GetPos()
 
-    if ZBCVAR.FallbackNav:GetBool() && (ZBaseMoveIsActive(self, "Follow") || !self:IsMoving()) then
-        if !ZBaseMoveIsActive(self, "Follow") then
-            ZBaseMove(self, dest, "Follow")
-        end
-    elseif !self:IsCurrentSchedule(SCHED_FORCED_GO_RUN) then
+    if !self:IsCurrentSchedule(SCHED_FORCED_GO_RUN) && !ZBaseMoveIsActive(self) then
         self:SetLastPosition(dest)
         self:SetSchedule(SCHED_FORCED_GO_RUN)
+    end
+
+    if ZBCVAR.FallbackNav:GetBool() && !self:IsMoving() && self:ZBaseDist(ply, {away=120}) then
+        self.ZBase_FollowStuck = (self.ZBase_FollowStuck or 0) + 1
+        if self.ZBase_FollowStuck >= 4 && !ZBaseMoveIsActive(self, "Follow") then
+            ZBaseMove(self, dest, "Follow")
+        end
+    else
+        self.ZBase_FollowStuck = 0
     end
 
     self:NavSetGoalTarget(ply, vector_origin)

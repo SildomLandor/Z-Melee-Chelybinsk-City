@@ -221,6 +221,11 @@ function ENT:RunAI( strExp )
 		return
 	end
 
+	if self:DoingEngineSchedule() then
+		self:MaintainActivity()
+		return true
+	end
+
 	if ZBaseMoveIsActive(self) then
 		self:MaintainActivity()
 		return true
@@ -249,11 +254,6 @@ function ENT:RunAI( strExp )
 		if aerialGoal then
 			self:AerialCalcGoal(aerialGoal)
 		end
-	end
-
-	-- Do engine schedule
-	if self:DoingEngineSchedule() then
-		return true
 	end
 
 	-- Do custom schedule

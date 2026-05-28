@@ -363,9 +363,32 @@ if SERVER then
             || npc:GetInternalVariable("m_bWasInPlayerSquad")
     end
 
+    local function syncMoveAnim(npc, run)
+        local act = run and ACT_RUN or ACT_WALK
+        if npc:SelectWeightedSequence(act) < 0 then act = ACT_WALK end
+        if npc:SelectWeightedSequence(act) < 0 then return end
+
+        npc:SetIdealActivity(act)
+        npc:SetActivity(act)
+        npc:SetMovementActivity(act)
+    end
+
     local function pushSched(npc, pos, run)
+        if npc.ZBaseMove_LastPushPos and npc.ZBaseMove_LastPushPos:DistToSqr(pos) < 900 and npc.ZBaseMove_LastPushRun == run then
+            return
+        end
+
+        if npc.IsZBase_SNPC then
+            npc.CurrentSchedule = nil
+            npc.CurrentTask = nil
+            npc.CurrentTaskID = nil
+        end
+
+        npc.ZBaseMove_LastPushPos = pos
+        npc.ZBaseMove_LastPushRun = run
         npc:SetLastPosition(pos)
         npc:SetSchedule(run and SCHED_FORCED_GO_RUN or SCHED_FORCED_GO)
+        syncMoveAnim(npc, run)
     end
 
     local function advanceRoute(npc, destination)
@@ -399,7 +422,17 @@ if SERVER then
         npc.ZBaseMove_CanGroundMove = false
         npc.ZBaseMove_Stall = 0
         npc.ZBaseMove_LastPos = npc:GetPos()
+        npc.ZBaseMove_LastPushPos = nil
+        npc.ZBaseMove_LastPushRun = nil
         npc.ZBaseMove_TimeOut = CurTime() + math.Clamp(destination:Distance(npc:GetPos()) * 0.06, 8, 45)
+
+        if npc.IsZBase_SNPC then
+            npc.CurrentSchedule = nil
+            npc.CurrentTask = nil
+            npc.CurrentTaskID = nil
+        end
+
+        pushSched(npc, npc.ZBaseMove_WaypointPos, shouldRun(npc))
 
         local tid = moveTimerID(npc)
         timer.Create(tid, 0.12, 0, function()
@@ -438,7 +471,6 @@ if SERVER then
 
             local needWP = npcPos:DistToSqr(npc.ZBaseMove_WaypointPos or wp) < wpReachSqr
                 || (npc.ZBaseMove_Stall or 0) >= 3
-                || !npc:IsMoving()
 
             if needWP then
                 if (npc.ZBaseMove_Stall or 0) >= 3 then
@@ -453,6 +485,8 @@ if SERVER then
 
                 npc.ZBaseMove_WaypointPos = wp
                 pushSched(npc, wp, run)
+            elseif npc:IsMoving() then
+                syncMoveAnim(npc, run)
             end
 
             if canJump and !npc.ZBaseMove_CanGroundMove and !ZBaseNav.ClearAhead(npc, npcPos, wp - npcPos, 90) then
@@ -527,6 +561,8 @@ if SERVER then
         npc.ZBaseMove_RouteIdx = nil
         npc.ZBaseMove_WaypointPos = nil
         npc.ZBaseMove_Stall = nil
+        npc.ZBaseMove_LastPushPos = nil
+        npc.ZBaseMove_LastPushRun = nil
     end
 
     function ZBaseMoveIsActive(npc, identifier)
