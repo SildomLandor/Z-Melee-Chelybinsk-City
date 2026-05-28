@@ -314,10 +314,20 @@ hook.Add("Player Think", "karmagain", function(ply)
     if (ply.KarmaGainThink or 0) > CurTime() then return end
     ply.KarmaGainThink = CurTime() + 120
 
-    ply.Karma = math.Clamp(ply.Karma + (ply.Karma > 100 and 0.1 or (ply.KarmaGain or 0.75)), 0, zb.MaxKarma)// * (1 + ply:HasPurchase("zpremium")), 0, zb.MaxKarma)
-    
+    local karma = ply.Karma
+    if karma == nil then
+        karma = ply:guilt_GetValue()
+    end
+
+    karma = karma or 100
+
+    local gain = karma > 100 and 0.1 or (ply.KarmaGain or 0.75)
+    local newKarma = math.Clamp(karma + gain, 0, zb.MaxKarma)
+    if newKarma == karma then return end
+
+    ply.Karma = newKarma
     ply:SetNetVar("Karma", ply.Karma)
-    //ply:guilt_SetValue( ply.Karma or 100 )
+    ply:guilt_SetValue(ply.Karma)
 end)
 
 hook.Add("Org Clear","removekarmashaking",function(org)

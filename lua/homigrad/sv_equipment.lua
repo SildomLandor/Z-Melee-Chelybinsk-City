@@ -185,7 +185,9 @@ function hg.DropArmor(ply, equipment)
     if IsValid(ply) and ply.DropCD and ply.DropCD > CurTime() then return false end
 
     if hg.armor[placement][equipment] then
-        ply:DoAnimationEvent((placement == "head" or placement == "ears" or placement == "face") and ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND or ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
+        if ply.DoAnimationEvent then
+            ply:DoAnimationEvent((placement == "head" or placement == "ears" or placement == "face") and ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND or ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
+        end
 	    ply:ViewPunch(Angle(1,-2,1))
         ply.DropCD = CurTime() + 0.35
         --timer.Simple(0.3,function()

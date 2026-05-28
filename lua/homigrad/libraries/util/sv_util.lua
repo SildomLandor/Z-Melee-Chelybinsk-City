@@ -1093,18 +1093,23 @@ hook.Add( "Move", "hg_RagdollIntoWalls", function( ply, mv)
 end)
 
 if util.IsBinaryModuleInstalled("eightbit") then
-	require("eightbit")
+	local ok, err = pcall(require, "eightbit")
 
-	if eightbit.SetDamp1 then
-		eightbit.SetDamp1(0.85)
-	end
+	if ok and eightbit then
+		if eightbit.SetDamp1 then
+			eightbit.SetDamp1(0.85)
+		end
 
-	if eightbit.SetProotCutoff then
-		eightbit.SetProotCutoff(0.7)
-	end
+		if eightbit.SetProotCutoff then
+			eightbit.SetProotCutoff(0.7)
+		end
 
-	if eightbit.SetProotGain then
-		eightbit.SetProotGain(0.7)
+		if eightbit.SetProotGain then
+			eightbit.SetProotGain(0.7)
+		end
+	else
+		MsgC(Color(255, 0, 0), "[eightbit] Couldn't load module library! (" .. tostring(err) .. ")\n")
+		MsgC(Color(255, 180, 0), "[eightbit] Check lua/bin binary architecture and libstdc++ compatibility.\n")
 	end
 else
 	MsgC(Color(255, 0, 0), "Eightbit module is not found! You are furry!\n")

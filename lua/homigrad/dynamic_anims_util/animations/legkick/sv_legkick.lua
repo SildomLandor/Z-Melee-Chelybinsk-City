@@ -253,7 +253,9 @@ function PLAYER:LegAttack()
                         
                         if DoorIsOpen(ent) then
                             if !DoorIsOpen2(ent) then
-                                ent:FastOpenDoor(self, 5, true)
+                                if ent.FastOpenDoor then
+                                    ent:FastOpenDoor(self, 5, true)
+                                end
                                 local oldname = self:GetName()
                                 self:SetName(oldname..self:EntIndex())
                                 if ent:GetClass() == "func_door_rotating" then
@@ -263,7 +265,9 @@ function PLAYER:LegAttack()
                                 end
                                 self:SetName(oldname)
                             else
-                                ent:FastOpenDoor(self, 2, true)
+                                if ent.FastOpenDoor then
+                                    ent:FastOpenDoor(self, 2, true)
+                                end
                                 ent:Fire("Close", oldname, 0, self, self)
                             end
 

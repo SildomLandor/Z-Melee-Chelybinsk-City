@@ -137,10 +137,13 @@ local function giveWepAmmo(ply, cls, mul)
     local wep = ply:Give(cls)
     if not IsValid(wep) then return end
     mul = mul or 3
-    local clip = wep:GetMaxClip1()
+    local clip = wep.GetMaxClip1 and wep:GetMaxClip1() or 0
     if clip > 0 then
         wep:SetClip1(clip)
-        ply:GiveAmmo(clip * mul, wep:GetPrimaryAmmoType(), true)
+        local ammoType = wep.GetPrimaryAmmoType and wep:GetPrimaryAmmoType() or -1
+        if ammoType and ammoType >= 0 then
+            ply:GiveAmmo(clip * mul, ammoType, true)
+        end
     end
     return wep
 end
