@@ -1252,12 +1252,14 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
                 if perfectblock then
                     ent:EmitSound("parry.ogg", 75)
                 else
-                    if ent.organism then
+                    if ent.organism and ent.organism.stamina then
                         ent.organism.stamina.subadd = ent.organism.stamina.subadd + 15 * staminaLossMul
                     end
                 end
 
-                ent.organism.stamina.subadd = ent.organism.stamina.subadd + mul * math.Clamp(selfdmg / dmg, 0.1, 1) * selfdmg * (perfectblock and 0 or 1) * staminaLossMul
+                if ent.organism and ent.organism.stamina then
+                    ent.organism.stamina.subadd = ent.organism.stamina.subadd + mul * math.Clamp(selfdmg / dmg, 0.1, 1) * selfdmg * (perfectblock and 0 or 1) * staminaLossMul
+                end
 
                 if not owner:IsNPC() then
                     self:PunchPlayer(owner, attacktype, -owner:GetAimVector(), selfdmg / 2)
@@ -1278,6 +1280,82 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
     end
 
     return 1
+end
+
+-- NPC / zombi melee (ZBase, npc_zombie, etc.) — не проходит через trace атаки
+function SWEP:MeleeBlockIncomingNPC(attacker, dmgInfo, attacktype)
+    local defender = self:GetOwner()
+    if not IsValid(defender) then return 1 end
+    defender = hg.RagdollOwner(defender) or defender
+    if not defender:IsPlayer() then return 1 end
+    if not IsValid(attacker) or not attacker:IsNPC() then return 1 end
+    if not self:GetBlocking() or not self.SetStartedBlocking then return 1 end
+
+    local pos, aimvec = hg.eye(defender)
+    if not aimvec then return 1 end
+
+    local hitPos = dmgInfo:GetDamagePosition()
+    if hitPos == vector_origin then hitPos = defender:WorldSpaceCenter() end
+    if util.DistanceToLine(pos + aimvec * 100, pos, hitPos) >= 10 then return 1 end
+
+    local attackerTier = attacker.MeleeBlockTier or 1
+    local attWep = attacker:GetActiveWeapon()
+    if IsValid(attWep) and attWep.BlockTier then attackerTier = attWep.BlockTier end
+    if (self.BlockTier or 1) < attackerTier then return 1 end
+
+    local dmg = math.max(dmgInfo:GetDamage(), 1)
+    local selfdmg = (self.DamagePrimary or 20) * 0.2
+    local trace = {
+        HitPos = hitPos,
+        Normal = (defender:GetPos() - attacker:GetPos()):GetNormalized(),
+    }
+
+    if attacktype == 3 then
+        local defenderStamina = defender.organism and defender.organism.stamina and defender.organism.stamina[1] or 0
+        local heavyBreakChance = math.Clamp(attackerTier * 0.12, 0, 0.35)
+        if defenderStamina < 65 and math.random() <= heavyBreakChance then
+            defender:EmitSound("blockbreak.ogg", 65, 112)
+            if SERVER then
+                hg.drop(defender)
+                net.Start("MeleeBlockEffect")
+                net.WriteVector(trace.HitPos)
+                net.WriteString((self.MeleeMaterial or "none") .. "_broken")
+                net.Broadcast()
+            end
+            return 1
+        end
+    end
+
+    if self.BlockImpactSound then defender:EmitSound(self.BlockImpactSound, 60) end
+
+    if SERVER then
+        net.Start("MeleeBlockEffect")
+        net.WriteVector(trace.HitPos)
+        net.WriteString(self.MeleeMaterial or "none")
+        net.Broadcast()
+        net.Start("MeleeBlockPush")
+        net.WriteVector(trace.Normal)
+        net.Send(defender)
+    end
+
+    local perfectblock = CurTime() - self:GetStartedBlocking() < 0.5
+    local heavyBlockedNoBreak = attacktype == 3
+    local staminaLossMul = heavyBlockedNoBreak and 1.75 or 1
+    local blockerViewPunchMul = heavyBlockedNoBreak and 1.8 or 1
+
+    if perfectblock then
+        defender:EmitSound("parry.ogg", 75)
+    elseif defender.organism and defender.organism.stamina then
+        defender.organism.stamina.subadd = defender.organism.stamina.subadd + 15 * staminaLossMul
+    end
+
+    if defender.organism and defender.organism.stamina then
+        defender.organism.stamina.subadd = defender.organism.stamina.subadd + selfdmg * staminaLossMul
+    end
+
+    self:PunchPlayer(defender, attacktype, attacker:GetAimVector(), (selfdmg / 2) * blockerViewPunchMul)
+
+    return 0
 end
 
 local matBlood = Material("zbattle/blood")

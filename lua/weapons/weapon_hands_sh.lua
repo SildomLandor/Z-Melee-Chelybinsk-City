@@ -1596,6 +1596,14 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
 	return 1
 end
 
+function SWEP:MeleeBlockIncomingNPC(attacker, dmgInfo, attacktype)
+	local def = weapons.Get("weapon_melee")
+	if def and def.MeleeBlockIncomingNPC then
+		return def.MeleeBlockIncomingNPC(self, attacker, dmgInfo, attacktype)
+	end
+	return 1
+end
+
 --[[hook.Add("UpdateAnimation", "blockingfists", function(ply , vel, seq)//salat balbes
 	if IsValid(ply:GetActiveWeapon()) and ply:GetActiveWeapon().GetBlocking and ply:GetActiveWeapon():GetBlocking() then
 		//ply:DoAnimationEvent(ACT_HL2MP_FIST_BLOCK)

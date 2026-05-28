@@ -484,6 +484,19 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	end--]]
 	
 	--if ent:IsNPC() and npcDmg[ent:GetClass()] then hg.NPCDamage(ent,dmgInfo,npcDmg[ent:GetClass()]) return end
+	if ent:IsPlayer() and IsValid(attacker) and attacker:IsNPC() and dmgInfo:IsDamageType(DMG_SLASH + DMG_CLUB + DMG_GENERIC) then
+		local wep = ent:GetActiveWeapon()
+		if IsValid(wep) and wep.GetBlocking and wep:GetBlocking() then
+			local blockFn = wep.MeleeBlockIncomingNPC
+			if not blockFn then
+				local def = weapons.Get("weapon_melee")
+				blockFn = def and def.MeleeBlockIncomingNPC
+			end
+			if blockFn and blockFn(wep, attacker, dmgInfo, false) == 0 then
+				return true
+			end
+		end
+	end
 	if ent:IsPlayer() and IsValid(ent.FakeRagdoll) then ent.FakeRagdoll:TakeDamageInfo(dmgInfo) return true end
 	
 	if dmgInfo:IsDamageType(DMG_CRUSH) then
