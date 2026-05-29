@@ -235,7 +235,6 @@ local function send_bareinfo(org)
 	sendtable.noradrenalineActive = org.noradrenalineActive
 
 	local rf = RecipientFilter()
-	--rf:AddAllPlayers()
 	rf:AddPVS(org.owner:GetPos())
 	if org.owner:IsPlayer() then rf:RemovePlayer(org.owner) end
 

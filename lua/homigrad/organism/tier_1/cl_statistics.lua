@@ -59,6 +59,19 @@ net.Receive("organism_send", function()
 		org.health = ply:Health()
 	end
 
+	if ply:IsRagdoll() then
+		ply.organism = org
+		ply.new_organism = org
+		if hg.addbonecallback then hg.addbonecallback(ply) end
+	else
+		local rag = ply:GetNWEntity("FakeRagdoll")
+		if IsValid(rag) then
+			rag.organism = ply.organism
+			rag.new_organism = org
+			if hg.addbonecallback then hg.addbonecallback(rag) end
+		end
+	end
+
 	syncRagOrganism(ply)
 
 	--[[jit.on()

@@ -888,8 +888,12 @@ local IsValid = IsValid
 		local ply, ent
 
 		if self:IsRagdoll() then
-			ply = self:GetNWEntity("ply")		
+			ply = self:GetNWEntity("ply")
 			ent = self
+			if not IsValid(ply) then
+				if hg.GoreCalc then hg.GoreCalc(ent, ent) end
+				return
+			end
 		else
 			ply = self
 			ent = IsValid(self.FakeRagdoll) and self.FakeRagdoll or self

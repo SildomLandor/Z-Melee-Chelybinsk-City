@@ -990,23 +990,16 @@ for k, v in pairs(limbs) do
 end
 
 local vecFull = Vector(1, 1, 1)
-local goreMdls = {}
-
-hook.Add("EntityRemoved", "hg.gore_mdl_cleanup", function(ent)
-	local mdl = goreMdls[ent:EntIndex()]
-	if IsValid(mdl) then mdl:Remove() end
-	goreMdls[ent:EntIndex()] = nil
-end)
 
 function hg.GoreCalc(ent, ply)
 	local org = ent.new_organism or ent.organism
 	if !org then return end
 
 	for bone, nam in pairs(limbs) do
-		if !org[bone.."amputated"] then
-			local bon = ent:LookupBone(nam)
-			if not bon then continue end
+		local bon = ent:LookupBone(nam)
+		if not bon then continue end
 
+		if !org[bone.."amputated"] then
 			if !ent:GetManipulateBoneScale(bon):IsEqualTol(vecFull, 0.01) then
 				ent:ManipulateBoneScale(bon, vecFull)
 			end
@@ -1014,17 +1007,14 @@ function hg.GoreCalc(ent, ply)
 			continue
 		end
 		
-		local bon = ent:LookupBone(nam)
-		if not bon then continue end
 		local mat = ent:GetBoneMatrix(bon)
-		if not mat then continue end
 		local mat2 = ent:GetBoneMatrix(bon - 1)
-		if not mat2 then continue end
+		if not mat or not mat2 then continue end
 		mat:SetScale(vecalmostzero)
 		
 		hg.bone_apply_matrix(ent, bon, mat)
 		
-		if IsValid(ply) and ply:IsPlayer() and IsValid(ply.OldFakeRagdoll) then
+		if IsValid(ply) and IsValid(ply.OldFakeRagdoll) then
 			hg.bone_apply_matrix(ply, bon, mat)
 		end
 
@@ -1033,15 +1023,12 @@ function hg.GoreCalc(ent, ply)
 		if !modelPlacements[fem][nam] then continue end
 
 		local pos, ang = LocalToWorld(modelPlacements[fem][nam][1], modelPlacements[fem][nam][2], mat2:GetTranslation(), mat2:GetAngles())
-
-		local eid = ent:EntIndex()
-		local headboom_mdl = goreMdls[eid]
-		if not IsValid(headboom_mdl) then
+		
+		if !IsValid(headboom_mdl) then
 			headboom_mdl = ClientsideModel(grub)
 			headboom_mdl:SetNoDraw(true)
 			headboom_mdl:SetSubMaterial(0, "models/flesh")
 			headboom_mdl:SetModelScale(0.8)
-			goreMdls[eid] = headboom_mdl
 		end
 		
 		headboom_mdl:SetRenderOrigin(pos)
@@ -1052,19 +1039,10 @@ function hg.GoreCalc(ent, ply)
 end
 
 if CLIENT then
-	hook.Add("PostDrawOpaqueRenderables", "hg_npc_organism_gore", function()
-		local lply = LocalPlayer()
-		if not IsValid(lply) then return end
-
-		for _, ent in ipairs(ents.FindInSphere(lply:GetPos(), 2500)) do
-			if not IsValid(ent) or ent:IsPlayer() then continue end
-			if not (ent:IsNPC() or ent:IsRagdoll()) then continue end
-			local org = ent.new_organism or ent.organism
-			if not org then continue end
-			if not (org.llegamputated or org.rlegamputated or org.larmamputated or org.rarmamputated) then continue end
-			ent:SetupBones()
-			hg.GoreCalc(ent, ent)
-		end
+	hook.Add("NotifyShouldTransmit", "hg_ragdoll_gore_bones", function(ent, shouldTransmit)
+		if not shouldTransmit or not IsValid(ent) or not ent:IsRagdoll() then return end
+		if not (ent.organism or ent.new_organism) then return end
+		if hg.addbonecallback then hg.addbonecallback(ent) end
 	end)
 end
 

@@ -177,13 +177,22 @@ local math_random, math_Rand = math.random, math.Rand
 		end
 	end)--]]
 
+	local function getNpcOrganism(ent)
+		if not IsValid(ent) then return end
+		if ent.organism then return ent.organism end
+		local fake = ent.hgFakeRagdoll
+		if IsValid(fake) and fake.organism then return fake.organism end
+	end
+
 	local function transferNpcOrganismToRag(ent, rag)
-		if not IsValid(ent) or not IsValid(rag) or not ent.organism then return end
+		if not IsValid(ent) or not IsValid(rag) then return end
 		if rag.organism then return end
 
+		local srcOrg = getNpcOrganism(ent)
+		if not srcOrg then return end
+
 		local newOrg = hg.organism.Add(rag)
-		if not newOrg then return end
-		table.Merge(newOrg, ent.organism)
+		table.Merge(newOrg, srcOrg)
 
 		hook.Run("RagdollDeath", ent, rag)
 
@@ -195,11 +204,20 @@ local math_random, math_Rand = math.random, math.Rand
 		newOrg.alive = false
 		newOrg.owner = rag
 		rag:CallOnRemove("organism", hg.organism.Remove, rag)
-		newOrg.owner.fullsend = true
+		rag.fullsend = true
 		hg.send_bareinfo(newOrg)
 
 		ent.organism = nil
 
+		local fake = ent.hgFakeRagdoll
+		if IsValid(fake) and fake ~= rag then
+			fake.organism = nil
+			SafeRemoveEntity(fake)
+			ent.hgFakeRagdoll = nil
+			if ent.SetNWEntity then
+				ent:SetNWEntity("hgFakeRagdoll", NULL)
+			end
+		end
 	end
 
 	hook.Add("CreateEntityRagdoll", "npcloot", function(ent, rag)
@@ -235,8 +253,7 @@ local math_random, math_Rand = math.random, math.Rand
 	hook.Add("CreateEntityRagdoll", "hg_npc_organism_rag", function(ent, rag)
 		if hg_noorganismnpcs:GetBool() then return end
 		if not IsValid(ent) or not IsValid(rag) or not ent:IsNPC() then return end
-		if IsValid(ent.hgFakeRagdoll) then return end
-		if not ent.organism then return end
+		if not getNpcOrganism(ent) then return end
 
 		if ent.IsZBaseNPC then
 			ent.ZBase_WasGibbedOnDeath = false
