@@ -28,8 +28,17 @@ if CLIENT then
 	local fontAA = CreateClientConVar("zchat_fontaa", 1, true, false, "Font anti-aliasing", 0, 1)
 	local fontWeight = CreateClientConVar("zchat_fontweight", 1000, true, false, "Font weight", 0, 1000)
 
+	local function CloseChatSettings(chat)
+		if not IsValid(chat) then return end
+		if IsValid(chat.settingsFrame) then
+			chat.settingsFrame:Remove()
+			chat.settingsFrame = nil
+		end
+	end
+
 	local function CreateChat()
-		if (IsValid(hg.chat)) then
+		if IsValid(hg.chat) then
+			CloseChatSettings(hg.chat)
 			hg.chat:Remove()
 		end
 

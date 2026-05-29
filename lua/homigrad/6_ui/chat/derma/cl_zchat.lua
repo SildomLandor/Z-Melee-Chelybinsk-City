@@ -398,6 +398,8 @@ function PANEL:SetActive(bActive, bRemovePrev)
 
 		gui.EnableScreenClicker(false)
 
+		self:CloseSettingsPanel()
+
 		hook.Run("FinishChat")
 	end
 
@@ -425,6 +427,13 @@ function PANEL:SetRealAlpha(alpha)
 	self.realAlpha = alpha
 end
 
+function PANEL:CloseSettingsPanel()
+	if IsValid(self.settingsFrame) then
+		self.settingsFrame:Remove()
+		self.settingsFrame = nil
+	end
+end
+
 function PANEL:ToggleSettingsPanel()
 	if IsValid(self.settingsFrame) then
 		self.settingsFrame:SetVisible(not self.settingsFrame:IsVisible())
@@ -440,10 +449,15 @@ function PANEL:ToggleSettingsPanel()
 	local frame = vgui.Create("DFrame")
 	frame:SetSize(320, 210)
 	frame:SetTitle("Chat Settings")
-	frame:SetDeleteOnClose(false)
+	frame:SetDeleteOnClose(true)
 	frame:MakePopup()
 	local x, y = self:LocalToScreen(self:GetWide() + 8, 0)
 	frame:SetPos(math.Clamp(x, 0, ScrW() - frame:GetWide()), math.Clamp(y, 0, ScrH() - frame:GetTall()))
+	frame.OnRemove = function()
+		if IsValid(self) then
+			self.settingsFrame = nil
+		end
+	end
 
 	local settingsList = frame:Add("DScrollPanel")
 	settingsList:Dock(FILL)
@@ -489,12 +503,15 @@ function PANEL:ToggleSettingsPanel()
 	resetButton:SetText("Reset Chat Position and Size")
 	resetButton:DockMargin(0, 8, 0, 0)
 	resetButton.DoClick = function()
+		local chat = hg.chat
+		if not IsValid(chat) then return end
+
 		local w = math.max(minWidth, math.floor(ScrW() * 0.36))
 		local h = math.max(minHeight, math.floor(ScrH() * 0.26))
 		local xReset = math.floor(ScrW() * 0.02)
 		local yReset = math.floor(ScrH() * 0.62)
-		self:SetSize(w, h)
-		self:SetPos(xReset, yReset)
+		chat:SetSize(w, h)
+		chat:SetPos(xReset, yReset)
 		ChatPosX:SetInt(xReset)
 		ChatPosY:SetInt(yReset)
 		ChatSizeW:SetInt(w)
@@ -502,6 +519,10 @@ function PANEL:ToggleSettingsPanel()
 	end
 
 	self.settingsFrame = frame
+end
+
+function PANEL:OnRemove()
+	self:CloseSettingsPanel()
 end
 
 function PANEL:OnMousePressed()
