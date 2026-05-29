@@ -232,6 +232,22 @@ end
 
 local Round = math.Round -- Тут были плохие слова от деке...
 local red, green = Color(255, 0, 0), Color(0, 255, 0)
+
+local function formatStatValue(value)
+	if isnumber(value) then
+		return string.sub(string.format("%f", value), 1, -5)
+	end
+	if isbool(value) then
+		return value and "true" or "false"
+	end
+	if istable(value) then
+		local n = 0
+		for _ in pairs(value) do n = n + 1 end
+		return n > 0 and ("table(" .. n .. ")") or "table(0)"
+	end
+	return tostring(value)
+end
+
 local function getTextTable(org)
 	local textList = {}
 	for i, v in pairs(list) do
@@ -277,7 +293,7 @@ local function getTextTable(org)
 		else
 			if not org[v] then continue end
 			text1 = tostring(v)
-			text2 = isnumber(org[v]) and string.sub(string.format("%f", org[v]),1,-5) or org[v]
+			text2 = formatStatValue(org[v])
 		end
 		
 		textList[#textList + 1] = {text1, text2, r, g, b}
