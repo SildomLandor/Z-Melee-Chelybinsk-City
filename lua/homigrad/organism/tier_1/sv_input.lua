@@ -1166,13 +1166,13 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		end
 	end
 	
-	if ply and !ply:GetNetVar("headcrab") and (ply.PlayerClassName != "Gordon" or ply.armors.head != "gordon_helmet") and ply.PlayerClassName ~= "headcrabzombie" then
+	--[[if ply and !ply:GetNetVar("headcrab") and (ply.PlayerClassName != "Gordon" or ply.armors.head != "gordon_helmet") and ply.PlayerClassName ~= "headcrabzombie" then
 		local class = dmgInfo:GetAttacker():GetClass()
 
 		if dmgInfo:GetAttacker():IsNPC() and headcrabs[class] then
 			local armors = ply:GetNetVar("Armor",{})
-			local isHelm = armors["head"] and !hg.armor["head"][armors["head"]].nodrop
-			local isMask = armors["face"] and !hg.armor["face"][armors["face"]].nodrop
+			local isHelm = armors["head"] and !hg.armor["head"][armors["head"]]--[[.nodrop
+			local isMask = armors["face"] and !hg.armor["face"][armors["face"]]--[[.nodrop
 
 			if isHelm or isMask then
 				hg.DropArmorForce(ply, isHelm and armors["head"] or armors["face"])
@@ -1187,7 +1187,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 			
 			dmgInfo:GetAttacker():Remove()
 		end
-	end
+	end]]
 	
 	return !ent:IsNPC()
 end)
