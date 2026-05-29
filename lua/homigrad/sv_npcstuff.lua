@@ -11,6 +11,25 @@ local math_random, math_Rand = math.random, math.Rand
 		["npc_fastzombie"] = true,
 		["npc_poisonzombie"] = true,
 		["npc_zombine"] = true,
+		["zbase_armored_zombie"] = true,
+		["zbase_armored_zombie_torso"] = true,
+		["zbase_armored_zombine"] = true,
+		["zbase_combine_zombie"] = true,
+		["zbase_combine_zombie_torso"] = true,
+		["zbase_fast_zombie"] = true,
+		["zbase_fast_zombie_torso"] = true,
+		["zbase_classic_female_zombie"] = true,
+		["zbase_classic_female_zombie_torso"] = true,
+		["zbase_funguscrab_zombie"] = true,
+		["zbase_funguscrab_zombie_torso"] = true,
+		["zbase_metro_zombie"] = true,
+		["zbase_metro_zombie_grenade"] = true,
+		["zbase_poison_spitter_zombie"] = true,
+		["zbase_poison_spitter_zombie_torso"] = true,
+		["zbase_poison_zombie"] = true,
+		["zbase_classic_zombie"] = true,
+		["zbase_classic_zombie_torso"] = true,
+		["zbase_classic_zombine"] = true,
 	}
 
 	local lootNPCs = { --// Loot goes here
@@ -73,6 +92,25 @@ local math_random, math_Rand = math.random, math.Rand
 		npc_fastzombie_torso = true,
 		npc_poisonzombie = true,
 		npc_zombine = true,
+		zbase_armored_zombie = true,
+		zbase_armored_zombie_torso = true,
+		zbase_armored_zombine = true,
+		zbase_combine_zombie = true,
+		zbase_combine_zombie_torso = true,
+		zbase_fast_zombie = true,
+		zbase_fast_zombie_torso = true,
+		zbase_classic_female_zombie = true,
+		zbase_classic_female_zombie_torso = true,
+		zbase_funguscrab_zombie = true,
+		zbase_funguscrab_zombie_torso = true,
+		zbase_metro_zombie = true,
+		zbase_metro_zombie_grenade = true,
+		zbase_poison_spitter_zombie = true,
+		zbase_poison_spitter_zombie_torso = true,
+		zbase_poison_zombie = true,
+		zbase_classic_zombie = true,
+		zbase_classic_zombie_torso = true,
+		zbase_classic_zombine = true,
 	}
 
 	function hg.organism.NpcIsOrganismZombie(npc)
@@ -171,11 +209,7 @@ local math_random, math_Rand = math.random, math.Rand
 		end)
 	end)
 
-	--[[hook.Add("EntityTakeDamage", "npcdmg", function(ent, dmgInfo)
-		if ent:IsNPC() then
-			hg.organism.AddWound(ent, tr, bone, dmgInfo, dmgPos, hook_info.bleed, inputHole, outputHole)
-		end
-	end)--]]
+	
 
 	local function getNpcOrganism(ent)
 		if not IsValid(ent) then return end

@@ -6,13 +6,13 @@ MODE.randomSpawns = true
 MODE.LootSpawn = true
 MODE.LootOnTime = false
 MODE.ROUND_TIME = 1200
-MODE.start_time = 35
+MODE.start_time = 10
 MODE.ForBigMaps = false
 MODE.Chance = 0.02
 
 MODE.NPCList = {
-	{type = "zbase_classic_zombie", health = 80, min = 5, max = 5},
-	{type = "zbase_classic_zombie_torso", health = 40, min = 1, max = 2},
+	{type = "zbase_classic_zombie", health = 80, min = 2, max = 10},
+	{type = "zbase_classic_zombie_torso", health = 40, min = 2, max = 2},
 	{type = "zbase_classic_female_zombie", health = 70, min = 2, max = 4},
 	{type = "zbase_classic_female_zombie_torso", health = 35, min = 2, max = 4},
 	{type = "zbase_metro_zombie", health = 100, min = 2, max = 4},
@@ -34,7 +34,7 @@ MODE.NPCList = {
 	{type = "zbase_combine_zombie", health = 90, min = 2, max = 4},
 	{type = "zbase_combine_zombie_torso", health = 45, min = 2, max = 4},
 	--{type = "zbase_combine_headcrab", health = 20, min = 2, max = 4},
-	
+
 	{type = "zbase_funguscrab_zombie", health = 80, min = 1, max = 2},
 	{type = "zbase_funguscrab_zombie_torso", health = 40, min = 1, max = 2},
 	--{type = "zbase_funguscrab", health = 5, min = 1, max = 2},
