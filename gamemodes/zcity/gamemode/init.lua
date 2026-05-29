@@ -14,7 +14,7 @@ local function UpdateServerHostname()
 	local hostname = "CHELYABINSK | RU | BETA " .. version
 	local port = GetConVar("hostport"):GetInt()
 
-	if port == 27017 then
+	if port == 27735 then
 		hostname = hostname .. " | server 1"
 	elseif port == 27019 then
 		hostname = hostname .. " | server 2"
