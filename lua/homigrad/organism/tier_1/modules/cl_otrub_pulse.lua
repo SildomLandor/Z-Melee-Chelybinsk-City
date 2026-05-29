@@ -96,11 +96,11 @@ hook.Add("HUDPaint", "pulseotrub.draw", function()
 	if not o then return end
 
 	local sw, sh = ScrW(), ScrH()
-	local ww, hh = sw, e.h
+	local scale = 1.5
+	local ww, hh = sw, e.h * scale
 	local x = 0
-	local y = sh - hh - ScreenScaleH(6)
+	local y = sh - hh - ScreenScaleH(50 * scale)
 
-	--local bpm = math.Clamp(math.floor(o.heartbeat or o.pulse or 0), 0, 260)
 	local c = Color(255, 255, 255)
 
 	surface.SetDrawColor(c.r, c.g, c.b, 220)

@@ -92,7 +92,6 @@ local math_random, math_Rand = math.random, math.Rand
 		if not IsValid(npc) or not org or (limb ~= "lleg" and limb ~= "rleg") then return end
 
 		local other = limb == "lleg" and "rleg" or "lleg"
-		local needOtherGib = not org[other .. "amputated"]
 
 		org.llegamputated = true
 		org.rlegamputated = true
@@ -101,14 +100,6 @@ local math_random, math_Rand = math.random, math.Rand
 		org.legstrength = 0
 		org.alive = false
 		org[other .. "amputated"] = true
-
-		if needOtherGib and hg.organism.ApplyLimbGib then
-			hg.organism.ApplyLimbGib(npc, other)
-		end
-
-		if hg.organism.ApplyAllLimbGibs then
-			hg.organism.ApplyAllLimbGibs(npc, org)
-		end
 
 		hg.organism.KillNpc(npc)
 	end
@@ -207,11 +198,6 @@ local math_random, math_Rand = math.random, math.Rand
 
 		ent.organism = nil
 
-		timer.Simple(0, function()
-			if IsValid(rag) then
-				hg.organism.ApplyAllLimbGibs(rag, newOrg)
-			end
-		end)
 	end
 
 	hook.Add("CreateEntityRagdoll", "npcloot", function(ent, rag)

@@ -150,39 +150,6 @@ local limbs = {
 	["rarm"] = "ValveBiped.Bip01_R_Forearm",
 }
 
-hg.organism.limbHideBones = {
-	lleg = {
-		"ValveBiped.Bip01_L_Thigh",
-		"ValveBiped.Bip01_L_Calf",
-		"ValveBiped.Bip01_L_Foot",
-	},
-	rleg = {
-		"ValveBiped.Bip01_R_Thigh",
-		"ValveBiped.Bip01_R_Calf",
-		"ValveBiped.Bip01_R_Foot",
-	},
-	larm = {
-		"ValveBiped.Bip01_L_UpperArm",
-		"ValveBiped.Bip01_L_Forearm",
-		"ValveBiped.Bip01_L_Hand",
-	},
-	rarm = {
-		"ValveBiped.Bip01_R_UpperArm",
-		"ValveBiped.Bip01_R_Forearm",
-		"ValveBiped.Bip01_R_Hand",
-	},
-}
-
-local vecLimbHide = Vector(0, 0, 0)
-
-local function scaleHideBoneTree(ent, boneId)
-	if not boneId or boneId < 0 then return end
-	ent:ManipulateBoneScale(boneId, vecLimbHide)
-	for _, child in ipairs(ent:GetChildBones(boneId)) do
-		if child ~= 0 then scaleHideBoneTree(ent, child) end
-	end
-end
-
 local sounds = {
 	Sound("player/zombie_head_explode_01.wav"),
 	Sound("player/zombie_head_explode_02.wav"),
@@ -194,57 +161,15 @@ local sounds = {
 
 local ents_Create = ents.Create
 
-function hg.organism.ScaleLimbHide(ent, limb)
-	if not IsValid(ent) then return end
-	local names = hg.organism.limbHideBones[limb]
-	if not names then return end
-	for _, bonename in ipairs(names) do
-		scaleHideBoneTree(ent, ent:LookupBone(bonename))
-	end
-end
-
-function hg.organism.ApplyLimbGib(ent, limb)
-	if not IsValid(ent) then return end
-	hg.organism.ScaleLimbHide(ent, limb)
-	if not ent:IsRagdoll() or not Gib_RemoveBone then return end
-	local bonename = limbs[limb]
-	if not bonename then return end
-	local boneId = ent:LookupBone(bonename)
-	if not boneId then return end
-	local phys = ent:TranslateBoneToPhysBone(boneId)
-	if not phys or phys < 0 then return end
-	local physObj = ent:GetPhysicsObjectNum(phys)
-	if not IsValid(physObj) then return end
-	Gib_RemoveBone(ent, boneId, phys)
-end
-
-function hg.organism.ApplyAllLimbGibs(ent, org)
-	org = org or (IsValid(ent) and ent.organism)
-	if not IsValid(ent) or not org then return end
-	for _, limb in ipairs({"lleg", "rleg", "larm", "rarm"}) do
-		if org[limb .. "amputated"] then
-			hg.organism.ApplyLimbGib(ent, limb)
-		end
-	end
-	if org.headamputated and Gib_Input then
-		local bid = ent:LookupBone("ValveBiped.Bip01_Head1")
-		if bid then Gib_Input(ent, bid) end
-	end
-end
-
 function hg.organism.AmputateLimb(org, limb)
 	if org[limb.."amputated"] == nil then return end
 
 	local bone = limbs[limb]
 	if !IsValid(org.owner) then return end
-
-	local boneId = org.owner:LookupBone(bone)
-	if not boneId then return end
-	local len = org.owner:BoneLength(boneId) or 0
+	local len = org.owner:BoneLength(org.owner:LookupBone(bone))
 	local vec = Vector(len, 0, 0)
 	local ang = Angle()
-	local parentId = boneId - 1
-	local boneup = parentId >= 0 and org.owner:GetBoneName(parentId) or bone
+	local boneup = org.owner:GetBoneName(org.owner:LookupBone(bone) - 1)
 	
 	local wnds = {}
 
@@ -271,9 +196,8 @@ function hg.organism.AmputateLimb(org, limb)
 	
 	local ent = hg.GetCurrentCharacter(org.owner)
 	if IsValid(ent) then
-		local bpos = ent:GetBonePosition(ent:LookupBone(bone))
+		local bpos = select(1, ent:GetBonePosition(ent:LookupBone(bone)))
 		if bpos then SpawnMeatGore(ent, bpos, 4) end
-		hg.organism.ApplyLimbGib(ent, limb)
 	end
 
 	hook.Run("OnAmputateLimb", org, ent, limb)
@@ -290,10 +214,9 @@ function hg.organism.AmputateLimb(org, limb)
 	end
 
 	net.Start("organism_send")
-	local tbl = {owner = org.owner}
-	tbl[limb .. "amputated"] = true
-	if org.llegamputated then tbl.llegamputated = true end
-	if org.rlegamputated then tbl.rlegamputated = true end
+	local tbl = {}
+	tbl[limb.."amputated"] = true
+	tbl.owner = org.owner
 	net.WriteTable(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)

@@ -974,13 +974,6 @@ local limbs = {
 	["head"] = "ValveBiped.Bip01_Head1"
 }
 
-hg.organism.limbHideBones = hg.organism.limbHideBones or {
-	lleg = {"ValveBiped.Bip01_L_Thigh", "ValveBiped.Bip01_L_Calf", "ValveBiped.Bip01_L_Foot"},
-	rleg = {"ValveBiped.Bip01_R_Thigh", "ValveBiped.Bip01_R_Calf", "ValveBiped.Bip01_R_Foot"},
-	larm = {"ValveBiped.Bip01_L_UpperArm", "ValveBiped.Bip01_L_Forearm", "ValveBiped.Bip01_L_Hand"},
-	rarm = {"ValveBiped.Bip01_R_UpperArm", "ValveBiped.Bip01_R_Forearm", "ValveBiped.Bip01_R_Hand"},
-}
-
 function hg.amputatedbone(ent, bone)
 	if ent.organism and hg.amputatedlimbs2[bone] then
 		if ent.organism[hg.amputatedlimbs2[bone].."amputated"] then
