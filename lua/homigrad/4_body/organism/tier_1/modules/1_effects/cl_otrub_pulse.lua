@@ -44,8 +44,10 @@ end
 
 local function bpm(o)
 	if o.heartstop then return 0 end
+	local pulse = tonumber(o.pulse) or 0
+	if pulse <= 0.5 then return 0 end
 	local hb = tonumber(o.heartbeat)
-	if not hb or hb <= 0 then return 0 end
+	if not hb or hb <= 0.5 then return 0 end
 	return math.Clamp(hb, 8, 220)
 end
 
