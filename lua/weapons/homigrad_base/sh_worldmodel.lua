@@ -437,6 +437,9 @@ local function DrawWorldModel(self, force)
 		end
 		--hg.StartCaptureRender()
 		self.worldModel:SetupBones()
+		if self.Rsh12ApplyModel then
+			self.Rsh12ApplyModel(self.worldModel)
+		end
 		self.worldModel:DrawModel()
 		
 		if self.GetDebug and LocalPlayer():IsSuperAdmin() and self:ShouldUseFakeModel() and IsValid(self:GetWM()) then
@@ -487,8 +490,10 @@ function SWEP:CreateWorldModel()
 		print(mat:GetString("$color2"), mat:GetString("$phongalbedotint"))
 	end--]]
 
-	for i = 0, 6 do
-		model:SetBodygroup(i, self:GetBodygroup(i))
+	if not self.FakeBodyGroupsLock then
+		for i = 0, 6 do
+			model:SetBodygroup(i, self:GetBodygroup(i))
+		end
 	end
 
 	if self.WorldModelFake then
