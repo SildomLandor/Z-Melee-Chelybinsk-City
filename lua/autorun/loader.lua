@@ -105,7 +105,7 @@ local function Run()
     local allFiles = ProcessDirectoryOrdered("homigrad")
     local libFiles, otherFiles = {}, {}
     for _, f in ipairs(allFiles) do
-        -- libraries: 0_serialize -> 1_core -> 2_math -> 3_shared -> 4_client -> 5_data -> 6_util
+        -- libraries/0..6 first; homigrad: 0_core -> 1_server -> 2_client -> 3_sim -> 4_body -> 5_items -> 6_ui -> 7_world -> 8_audio -> 9_meta
         if f:match("^homigrad/libraries/") then
             table_insert(libFiles, f)
         else
