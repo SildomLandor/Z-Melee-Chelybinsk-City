@@ -113,18 +113,43 @@ end
 local CreateMenu
 
 local bomb
-net.Receive("bomb_look",function()
-	if IsValid(bomb) then
-		bomb.islooked = false
+
+local function defuseKitInHands(ply)
+	if not IsValid(ply) then return false end
+	local wep = ply:GetActiveWeapon()
+	return IsValid(wep) and wep:GetClass() == "weapon_zb_defusekit"
+end
+
+local function blockBombMenu(ply, ent)
+	return IsValid(ent) and defuseKitInHands(ply)
+end
+
+local function killBombMenu()
+	if IsValid(bombMenu) then
+		if IsValid(bombMenu.bomb) then bombMenu.bomb.islooked = nil end
+		bombMenu:Remove()
+		bombMenu = nil
 	end
+	bomb = nil
+end
+
+net.Receive("bomb_look", function()
+	if IsValid(bomb) then bomb.islooked = false end
 	bomb = net.ReadEntity()
-	bomb = IsValid(bomb) and bomb
-	
-	if bomb then
-		bomb.islooked = true
+	bomb = IsValid(bomb) and bomb or nil
+
+	if bomb and blockBombMenu(LocalPlayer(), bomb) then
+		killBombMenu()
+		return
 	end
-	
+
+	if bomb then bomb.islooked = true end
 	CreateMenu(bomb)
+end)
+
+hook.Add("Think", "zb_bomb_block_code_menu", function()
+	if not IsValid(bombMenu) then return end
+	if blockBombMenu(LocalPlayer(), bombMenu.bomb) then killBombMenu() end
 end)
 
 hook.Add("HUDPaint","Draw3D2DFrameBomb",function()
@@ -151,13 +176,18 @@ local colorBGBlacky = Color(40,40,40,255)
 local blurMat = Material("pp/blurscreen")
 local Dynamic = 0
 
-CreateMenu = function(bomb)
+CreateMenu = function(ent)
+	if ent and blockBombMenu(LocalPlayer(), ent) then
+		killBombMenu()
+		return
+	end
+
 	if IsValid(bombMenu) then
 		bombMenu:Remove()
 		bombMenu = nil
 	end
 
-	if not bomb then
+	if not ent then
 		if IsValid(bombMenu) then
 			bombMenu.bomb.islooked = nil
 			bombMenu:Remove()
@@ -169,7 +199,8 @@ CreateMenu = function(bomb)
 
 	Dynamic = 0
 	bombMenu = vgui.Create("DPanel")
-	bombMenu.bomb = bomb
+	bombMenu.bomb = ent
+	bomb = ent
 	local sizeX,sizeY = ScrW() ,ScrH()
 	local posX,posY = ScrW() / 2 - sizeX / 2,ScrH() / 2 - sizeY / 2
 	
@@ -179,9 +210,9 @@ CreateMenu = function(bomb)
 	bombMenu:MakePopup()
 	bombMenu:ParentToHUD()
 	--bombMenu:SetKeyboardInputEnabled(false)
-	
-	local x,y = sizeX / 2 + 60 * size, 100 * size
-	local w1,h1 = sizeX / 2 - 175 * size, sizeY / 2 - 125 * size
+
+	local x, y = sizeX / 2 + 60 * size, 100 * size
+	local w1, h1 = sizeX / 2 - 175 * size, sizeY / 2 - 125 * size
 
 	local txt = ""
 

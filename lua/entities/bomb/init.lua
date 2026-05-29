@@ -30,18 +30,51 @@ local function inBombSite(pos, site)
 	return zb and zb.BombInSite and zb.BombInSite(pos, site)
 end
 
+local function defuseKitInHands(ply)
+	if not IsValid(ply) then return false end
+	local wep = ply:GetActiveWeapon()
+	return IsValid(wep) and wep:GetClass() == "weapon_zb_defusekit"
+end
+
+function ENT:CloseBombPanel(ply)
+	if not IsValid(ply) then return end
+	if ply.bomb == self then ply.bomb = nil end
+	net.Start("bomb_look")
+	net.WriteEntity(NULL)
+	net.Send(ply)
+end
+
+function ENT:OpenBombPanel(ply)
+	if not IsValid(ply) or not ply:Alive() or not self.active then return false end
+	if ply:Team() == 0 then return false end
+	if defuseKitInHands(ply) then
+		self:CloseBombPanel(ply)
+		return false
+	end
+
+	self.user = ply
+	ply.bomb = self
+
+	net.Start("bomb_look")
+	net.WriteEntity(self)
+	net.Send(ply)
+
+	return true
+end
+
 net.Receive("bomb_enter",function(len, ply)
 	if !ply:Alive() then return end
-	
-	local org = ply.organism
+	if defuseKitInHands(ply) and IsValid(zb.bomb) and zb.bomb.active then return end
 
-	if !org.canmove then return end
+	local org = ply.organism
+	local ent = ply.bomb
+
+	if not IsValid(ent) or not ent.isbomb then return end
+
+	if not ent.active and org and not org.canmove then return end
 
 	local txt = net.ReadString()
 	local num = tonumber(txt)
-	
-	--ply:ChatPrint(txt)
-	local ent = ply.bomb
 	
 	if ent.isbomb then
 		if not ent.active then
@@ -60,14 +93,14 @@ net.Receive("bomb_enter",function(len, ply)
 				ply:ChatPrint("The bomb has been disarmed.")
 			else
 				local bombtxt = ent.code
-				local knownnumbers = ent:GetNetVar("knowncode","******")
+				local knownnumbers = ent:GetNetVar("knowncode", "******")
 				local newknownnumbers = ""
 
-				for i = 1,#bombtxt do
-					if (bombtxt[i] == txt[i]) then
-						newknownnumbers = newknownnumbers..(txt[i])
+				for i = 1, #bombtxt do
+					if bombtxt[i] == txt[i] then
+						newknownnumbers = newknownnumbers .. txt[i]
 					else
-						newknownnumbers = newknownnumbers..(knownnumbers[i] == bombtxt[i] and knownnumbers[i] or "*")
+						newknownnumbers = newknownnumbers .. (knownnumbers[i] == bombtxt[i] and knownnumbers[i] or "*")
 					end
 				end
 
@@ -78,20 +111,93 @@ net.Receive("bomb_enter",function(len, ply)
 	end
 end)
 
+function ENT:ExplodeNow()
+	if self.exploded then return end
+	self.Defuser = nil
+	self.exploded = true
+	zb.bombexploded = true
+
+	if self.tbl and self.tbl.OnBombExploded then
+		self.tbl:OnBombExploded()
+	end
+
+	util.ScreenShake(self:GetPos(), 95, 500, 4, 1000)
+	hg.PropExplosion(self, "Fire", 300, 100)
+end
+
 function ENT:DisableBomb()
+	self.Defuser = nil
 	local activetime = self.ExplodeTime - (self:GetNetVar("timer") - CurTime())
 	self:SetNetVar("timer", nil)
 	self.addtime = activetime
 	self.active = nil
 
+	self:SetMoveType(MOVETYPE_VPHYSICS)
 	local phys = self:GetPhysicsObject()
 	if IsValid(phys) then
 		phys:EnableMotion(true)
+		phys:Wake()
 	end
 end
 
-local offsetPos = Vector(0,0,0)
-local offsetAng = Angle(-90,0,180)
+local plantOffPos = Vector(0, 0, 0)
+local plantOffAng = Angle(-90, 0, 180)
+
+local function pushFromWalls(pos, mins, maxs, filter)
+	for i = 0, 7 do
+		local dir = Vector(math.cos(math.rad(i * 45)), math.sin(math.rad(i * 45)), 0)
+		local from = pos + Vector(0, 0, math.max(maxs.z * 0.35, 2))
+		local tr = util.TraceLine({
+			start = from,
+			endpos = from + dir * 24,
+			filter = filter,
+			mask = MASK_SOLID,
+		})
+		if tr.Hit then
+			pos = pos - dir * (24 - from:Distance(tr.HitPos) + 7)
+		end
+	end
+	return pos
+end
+
+function ENT:SnapToSurface(surfaceNormal)
+	local mins, maxs = self:OBBMins(), self:OBBMaxs()
+	local nrm = (surfaceNormal or self.PlantNormal or vector_up):GetNormalized()
+	local center = self:GetPos()
+
+	local tr = util.TraceHull({
+		start = center + nrm * 24,
+		endpos = center + nrm * 0.25,
+		mins = mins,
+		maxs = maxs,
+		filter = self,
+		mask = MASK_SOLID,
+	})
+
+	local pos = tr.Hit and (tr.HitPos + tr.HitNormal * 1.2) or (center + nrm * 1.2)
+	nrm = tr.Hit and tr.HitNormal or nrm
+
+	if nrm.z > 0.65 then
+		pos = pushFromWalls(pos, mins, maxs, self)
+		local down = util.TraceHull({
+			start = pos + Vector(0, 0, 12),
+			endpos = pos - Vector(0, 0, 64),
+			mins = mins,
+			maxs = maxs,
+			filter = self,
+			mask = MASK_SOLID,
+		})
+		if down.Hit then
+			pos = down.HitPos + down.HitNormal * 1.2
+			nrm = down.HitNormal
+		end
+	end
+
+	local wpos, wang = LocalToWorld(plantOffPos, plantOffAng, pos, nrm:Angle())
+	self:SetPos(wpos)
+	self:SetAngles(wang)
+end
+
 function ENT:ActivateBomb()
 	self:SetNetVar("timer", CurTime() + self.ExplodeTime - (self.addtime or 0))
 	self.active = true
@@ -117,43 +223,51 @@ function ENT:ActivateBomb()
 		phys:EnableMotion(false)
 	end
 
-	local tr = {}
-	tr.start = self:GetPos()
-	tr.endpos = tr.start - vector_up * 1000
-	tr.filter = self
-	tr.mask = MASK_SOLID
-	tr.mins = self:OBBMins()
-	tr.maxs = self:OBBMaxs()
-	
-	local trace = util.TraceHull(tr)
-	
-	local pos, ang = LocalToWorld(offsetPos,offsetAng,trace.HitPos,trace.HitNormal:Angle())
-
-	self:SetPos(pos)
-	self:SetAngles(ang)
+	self:SnapToSurface(self.PlantNormal)
+	self:SetMoveType(MOVETYPE_NONE)
 end
 
 function ENT:Use(activator)
+	if not IsValid(activator) or not activator:IsPlayer() then return end
+
+	if defuseKitInHands(activator) then
+		self:CloseBombPanel(activator)
+		return
+	end
+
+	if self.active and activator:Team() == 1 then
+		self:OpenBombPanel(activator)
+		return
+	end
+
 	local isSandbox = engine.ActiveGamemode() == "sandbox"
-	--if self:IsPlayerHolding() then return end
-	if not isSandbox then
-		if not inBombSite(self:GetPos(), 1) and not inBombSite(self:GetPos(), 2) then activator:PickupObject(self) return end
+	if self.active and activator:Team() == 0 then
+		activator:ChatPrint("The bomb's code is: " .. self.code)
+		return
 	end
-	if self.active then
-		if activator:Team() == 0 then
-			activator:ChatPrint("The bomb's code is: "..self.code)
-			return
-		end
+
+	if not isSandbox and not inBombSite(self:GetPos(), 1) and not inBombSite(self:GetPos(), 2) then
+		activator:PickupObject(self)
+		return
 	end
-	
+
 	activator:PickupObject(self)
 	self.user = activator
 	activator.bomb = self
+
+	if defuseKitInHands(activator) then return end
 
 	net.Start("bomb_look")
 	net.WriteEntity(self)
 	net.Send(activator)
 end
+
+hook.Add("PlayerUse", "zb_bomb_no_code_for_ct", function(ply, ent)
+	if not IsValid(ent) or ent:GetClass() ~= "bomb" then return end
+	if not defuseKitInHands(ply) then return end
+	if ent.CloseBombPanel then ent:CloseBombPanel(ply) end
+	return false
+end)
 
 ENT.nextbeep = 0
 
@@ -161,17 +275,7 @@ function ENT:Think()
 	self:NextThink(CurTime())
 	if self.active then
 		if self:GetNetVar("timer") < CurTime() then
-			if not self.exploded then
-				self.exploded = true
-				zb.bombexploded = true
-
-				if self.tbl and self.tbl.OnBombExploded then
-					self.tbl:OnBombExploded()
-				end
-
-				util.ScreenShake(self:GetPos(), 95, 500, 4, 1000)
-				hg.PropExplosion(self, "Fire", 300, 100)
-			end
+			self:ExplodeNow()
 		end
 
 		--;; WHAT THE FAK YUUUUUUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH

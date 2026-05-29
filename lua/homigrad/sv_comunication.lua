@@ -59,7 +59,7 @@ hook.Add("PlayerCanSeePlayersChat", "RealiticChar", function(text, teamOnly, lis
 end)
 
 local function funca(ply, txt)
-	if !ply:Alive() or !ply.organism then return end
+	if !ply:Alive() or !ply.organism then return txt end
 	local starttxt = txt
 
 	if ply.organism.pain > 80 then
@@ -134,7 +134,8 @@ hook.Add("HG_PlayerSay", "huy", function(ply, txt)
 	local text = txt[1]
 	if text == "" or not text:find("%S") then return end
 
-	txt[1] = funca(ply, text)
+	local out = funca(ply, text)
+	if out then txt[1] = out end
 end)
 
 hook.Add("HG_PlayerSay", "furrifyPhraseOwO", function(ply, txt)

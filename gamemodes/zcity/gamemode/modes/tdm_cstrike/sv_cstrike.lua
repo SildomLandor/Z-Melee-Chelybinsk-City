@@ -108,15 +108,23 @@ function MODE:Intermission()
     end
 
     if zb.rtype == "bomb" then
-        timer.Simple(3,function()
+        timer.Simple(3, function()
             local team_t = team.GetPlayers(0)
-            if #team_t == 0 then return end
-            local ply = team_t[math.random(#team_t)]
-            if not IsValid(ply) then return end
+            if #team_t > 0 then
+                local ply = team_t[math.random(#team_t)]
+                if IsValid(ply) then
+                    ply:Give("weapon_zb_bomb")
+                    ply:SelectWeapon("weapon_zb_bomb")
+                    ply:ChatPrint("У вас бомба. Поставьте её на зоне А или Б, смотря в пол — ЛКМ")
+                end
+            end
 
-            ply:Give("weapon_zb_bomb")
-            ply:SelectWeapon("weapon_zb_bomb")
-            ply:ChatPrint("У вас бомба. Поставьте её на зоне А или Б смотря в пол нажав ЛКМ")
+            for _, ply in ipairs(team.GetPlayers(1)) do
+                if IsValid(ply) then
+                    ply:Give("weapon_zb_defusekit")
+                    ply:ChatPrint("Набор разминирования: наведись на бомбу и зажми E")
+                end
+            end
         end)
     elseif zb.rtype == "hostage" then
         timer.Simple(3,function()
@@ -157,6 +165,17 @@ function MODE:Intermission()
     
     self.GameStarted = nil
 end
+
+local function giveDefuseKit(ply)
+	if not IsValid(ply) or not ply:Alive() then return end
+	if zb.CROUND ~= "cstrike" or zb.rtype ~= "bomb" or ply:Team() ~= 1 then return end
+	if ply:HasWeapon("weapon_zb_defusekit") then return end
+	ply:Give("weapon_zb_defusekit")
+end
+
+hook.Add("PlayerSpawn", "ZB_CStrike_DefuseKit", function(ply)
+	timer.Simple(0.15, giveDefuseKit)
+end)
 
 hook.Add("PlayerInitialSpawn", "ZB_CStrike_BombPoints", function(ply)
     timer.Simple(2, function()

@@ -113,10 +113,93 @@ function plyMeta:guilt_SetValue( zb_guilt )
     saveGuiltData()
 end
 
-local function IsLookingAt(ply, targetVec)
+local function IsLookingAt(ply, targetVec, minDot)
     if not IsValid(ply) or not ply:IsPlayer() then return false end
     local diff = targetVec - ply:GetShootPos()
-    return ply:GetAimVector():Dot(diff) / diff:Length() >= 0.8
+    local len = diff:Length()
+    if len < 1 then return false end
+    return ply:GetAimVector():Dot(diff) / len >= (minDot or 0.8)
+end
+
+function zb.IsHmcdAntagonist(ply)
+    return IsValid(ply) and ply.isTraitor
+end
+
+function zb.KarmaSkipTeamHarm(att, vic)
+    local rnd = CurrentRound()
+    if not rnd or rnd.GuiltDisabled or GetConVar("zb_dev"):GetBool() then return true end
+    if not IsValid(att) or not IsValid(vic) or att == vic or not vic:IsPlayer() then return true end
+    if zb.VictimIsHeadcrabThreat(vic) then return true end
+
+    if rnd.name == "hmcd" then
+        if zb.IsHmcdAntagonist(vic) and not zb.IsHmcdAntagonist(att) then return true end
+        if zb.IsHmcdAntagonist(att) and not zb.IsHmcdAntagonist(vic) then return true end
+    elseif att:Team() ~= vic:Team() then
+        return true
+    end
+
+    if zb.ROUND_STATE != 1 and (rnd.name != "cstrike" or not zb.RoundsLeft) then return true end
+    if att:IsBerserk() then return true end
+
+    return false
+end
+
+function zb.KarmaSync(ply, persist)
+    if not IsValid(ply) then return end
+    ply:SetNetVar("Karma", ply.Karma)
+    if persist and ply.guilt_SetValue then ply:guilt_SetValue(ply.Karma) end
+end
+
+local function karmaBanIfNeeded(att)
+    if not IsValid(att) or (att.Karma or 100) > 0 then return end
+
+    local steamID, name = att:SteamID(), att:Name()
+    att:guilt_SetValue(10)
+
+    timer.Create("simplewaitforkarmadrop" .. att:EntIndex(), 0, 1, function()
+        if ULib then
+            ULib.addBan(steamID, 60, "Kicked and banned for having too low karma.", name, "System")
+        end
+    end)
+end
+
+function zb.ApplyKarmaLoss(att, vic, amount, opts)
+    if not amount or amount <= 0 then return false end
+    opts = opts or {}
+    if zb.KarmaSkipTeamHarm(att, vic) then return false end
+
+    zb.GuiltTable[att] = zb.GuiltTable[att] or {}
+    zb.GuiltTable[vic] = zb.GuiltTable[vic] or {}
+
+    if not opts.skipProvoked then
+        local harmFromVictim = (zb.HarmDone[att] and zb.HarmDone[att][vic]) or 0
+        if harmFromVictim > 0 then return false end
+    end
+
+    if vic.Guilt and vic.Guilt > 1 and not zb.IsForce(att) then return false end
+
+    local guiltadd = opts.guiltadd or (amount / (zb.MaximumHarm or 10)) * 30
+    local retal = math.min((zb.GuiltTable[vic][att] or 0) / 60, 1)
+    local loss = amount * math.max(1 - retal, 0)
+    if loss <= 0 then return false end
+
+    zb.GuiltTable[att][vic] = math.Clamp((zb.GuiltTable[att][vic] or 0) + guiltadd, 0, 200)
+    att.Guilt = (att.Guilt or 0) + guiltadd
+    att.Karma = math.Clamp((att.Karma or 100) - loss, -60, zb.MaxKarma)
+    zb.KarmaSync(att, opts.persist)
+
+    if opts.trackHarm ~= false then
+        zb.HarmDoneKarma[vic] = zb.HarmDoneKarma[vic] or {}
+        zb.HarmDoneKarma[vic][att] = (zb.HarmDoneKarma[vic][att] or 0) + loss
+    end
+
+    karmaBanIfNeeded(att)
+
+    if opts.notify and att.Notify then
+        att:Notify(opts.notifyMsg or ("-" .. math.Round(loss, 0) .. " кармы."), opts.notifyTime or 5, opts.notifyIcon or "guilt", 1, nil, opts.notifyCol or Color(255, 80, 80))
+    end
+
+    return true, loss
 end
 
 function zb.VictimIsHeadcrabThreat(victim)
@@ -206,29 +289,15 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
         //Attacker:AddFrags(1) -- better make it a system that counts kills and gives frags at the end of the round
     end
 
-    local rnd, cround = CurrentRound()
-    
-    if rnd.GuiltDisabled or GetConVar("zb_dev"):GetBool() then return end
-
-    if Attacker == Victim then return end
-    if not Victim:IsPlayer() then return end
-    if zb.VictimIsHeadcrabThreat(Victim) then return end
+    local rnd = CurrentRound()
+    if zb.KarmaSkipTeamHarm(Attacker, Victim) then return end
 
     zb.GuiltTable[Attacker] = zb.GuiltTable[Attacker] or {}
     zb.GuiltTable[Victim] = zb.GuiltTable[Victim] or {}
-    
     Attacker.LastAttacked = CurTime()
-
-    if Victim.isTraitor and !Attacker.isTraitor and rnd.name == "hmcd" and !zb.IsForce(Attacker) then return end
-    if Attacker.isTraitor and !Victim.isTraitor and rnd.name == "hmcd" then return end
-    
-    if rnd.name != "hmcd" and Attacker:Team() ~= Victim:Team() then return end
-    if zb.ROUND_STATE != 1 and (rnd.name != "cstrike" or !zb.RoundsLeft) then return end
-    if Attacker:IsBerserk() then return end
 
     local harmFromVictim = (zb.HarmDone[Attacker] and zb.HarmDone[Attacker][Victim]) or 0
     local provoked = harmFromVictim > 0
-
     local victimWep = Victim:IsPlayer() and IsValid(Victim:GetActiveWeapon()) and Victim:GetActiveWeapon()
     
     if newharm >= maxharm and oldharmdone < newharm then
@@ -259,48 +328,19 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
 
     local retal = math.min((zb.GuiltTable[Victim][Attacker] or 0) / 60, 1)
+    local loss = add * math.max(1 - retal, 0)
+    if loss <= 0 then return end
+
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd
-    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - add * math.max(1 - retal, 0), -60, zb.MaxKarma)
+    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - loss, -60, zb.MaxKarma)
+    zb.KarmaSync(Attacker, false)
+    zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + loss
 
-    zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + add
-
-    if shouldBanGuilt and Attacker.Guilt >= 100 then
-		-- if ULib then
-        	ULib.addBan( Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker:Name(), "System" )
-		-- else
-		-- 	Attacker:Ban(30, true)
-		-- end
-
-       -- PrintMessage(HUD_PRINTTALK, "Player "..Attacker:Name().." has been banned for 30 minutes for RDMing in a team based gamemode.")
+    if shouldBanGuilt and Attacker.Guilt >= 100 and ULib then
+        ULib.addBan(Attacker:SteamID(), 30, "Kicked and banned for dealing too much team damage.", Attacker:Name(), "System")
     end
 
-    Attacker:SetNetVar("Karma", Attacker.Karma)
-
-    if Attacker.Karma <= 0 then
-        local steamID = Attacker:SteamID()
-        local name = Attacker:Name()
-        local karma = Attacker.Karma
-
-        Attacker:guilt_SetValue( 10 )
-
-        -- we wait one tick to make them pay for all the murders they've done
-        -- also makes sure the message is displayed only once
-        timer.Create("simplewaitforkarmadrop"..Attacker:EntIndex(), 0, 1, function()
-            if IsValid(Attacker) then -- if the player haven't left in that exact tick then we do him dirty
-                karma = Attacker.Karma
-            end
-
-            local time = math.Round(60 - karma * 4, 0)
-
-			-- if ULib then
-				ULib.addBan( steamID, 60, "Kicked and banned for having too low karma.", name, "System" )
-			-- else
-			-- 	Attacker:Ban(60, true)
-			-- end
-            
-           -- PrintMessage(HUD_PRINTTALK, "Player "..name.." has been banned for "..time.." minutes for having too low karma.")
-        end)
-    end
+    karmaBanIfNeeded(Attacker)
 end)
 
 function zb.IsForce(Attacker)
@@ -308,16 +348,12 @@ function zb.IsForce(Attacker)
     return cn == "police" or cn == "nationalguard" or cn == "swat"
 end
 
-local function IsLookingAt(ply, targetVec)
-    if not IsValid(ply) or not ply:IsPlayer() then return false end
-    local diff = targetVec - ply:GetShootPos()
-    return true--ply:GetAimVector():Dot(diff) / diff:Length() >= 0.6 
-end -- i dont think it should matter if he looks at you or not. just drop your weapon
-
 function zb.ForcesAttackedInnocent(self, Victim)
     local victimWep = Victim:IsPlayer() and IsValid(Victim:GetActiveWeapon()) and Victim:GetActiveWeapon()
+    local recent = Victim.LastAttacked and Victim.LastAttacked + 10 > CurTime()
+    local armed = victimWep and (ishgweapon(victimWep) or ((victimWep:GetClass() == "weapon_hands_sh" and victimWep:GetFists() or victimWep.ismelee2) and Victim:GetPos():DistToSqr(self:GetPos()) <= (72 * 72)))
 
-    return 1 * ((!Victim.LastAttacked or (Victim.LastAttacked + 10 > CurTime())) and 0 or 1) + 1 * (Victim:IsPlayer() and ((IsLookingAt(Victim, self:EyePos()) and (victimWep and (ishgweapon(victimWep) or ((victimWep:GetClass() == "weapon_hands_sh" and victimWep:GetFists() or victimWep.ismelee2) and Victim:GetPos():DistToSqr(self:GetPos()) <= (72 * 72))))) and 0 or 1) or 1)
+    return (recent and 0 or 1) + (armed and 0 or 1)
 end
 
 hook.Add("PlayerDisconnected","GuiltSaveOnDisconect",function(ply)
@@ -352,8 +388,7 @@ hook.Add("Player Think", "karmagain", function(ply)
     if newKarma == karma then return end
 
     ply.Karma = newKarma
-    ply:SetNetVar("Karma", ply.Karma)
-    ply:guilt_SetValue(ply.Karma)
+    zb.KarmaSync(ply, true)
 end)
 
 hook.Add("Org Clear","removekarmashaking",function(org)
@@ -453,9 +488,9 @@ concommand.Add("hg_setkarma",function(ply,cmd,args)
     local lenargs = #args
     local newply = player.GetListByName(lenargs > 1 and args[1] or ply:Name())[1]
 
-    newply.Karma = tonumber(lenargs > 1 and args[2] or args[1])
-    newply:SetNetVar("Karma",ply.Karma)
-    //newply:guilt_SetValue( ply.Karma or 100 )
+    if not IsValid(newply) then return end
+    newply.Karma = tonumber(lenargs > 1 and args[2] or args[1]) or 100
+    zb.KarmaSync(newply, true)
 end)
 
 util.AddNetworkString("open_guilt_menu")
@@ -492,7 +527,7 @@ net.Receive("forgive_player", function(_, ply)
     if not karma or karma <= 0 then return end
 
     ent.Karma = math.Clamp((ent.Karma or 100) + karma, 0, zb.MaxKarma)
-    ent:SetNetVar("Karma", ent.Karma)
+    zb.KarmaSync(ent, true)
 
     if zb.HarmDone[ply] then zb.HarmDone[ply][ent] = 0 end
     zb.HarmDoneKarma[ply][ent] = 0
@@ -502,18 +537,7 @@ net.Receive("forgive_player", function(_, ply)
 end)
 
 hook.Add("ZC_SomeoneGetFallBy","IdiotsMustBeKilled",function(Attacker,Victim)
-    local rnd = CurrentRound()
-    
-    if rnd.GuiltDisabled or GetConVar("zb_dev"):GetBool() then return end
-   
-    if Attacker == Victim then return end
-    if not Victim:IsPlayer() then return end
-    if zb.VictimIsHeadcrabThreat(Victim) then return end
-
-    if Victim.isTraitor and !Attacker.isTraitor and rnd.name == "hmcd" and !zb.IsForce(Attacker) then return end
-    if Attacker.isTraitor and !Victim.isTraitor and rnd.name == "hmcd" then return end
-    if rnd.name != "hmcd" and Attacker:Team() ~= Victim:Team() then return end
-    if zb.ROUND_STATE != 1 and (rnd.name != "cstrike" or !zb.RoundsLeft) then return end
+    if zb.KarmaSkipTeamHarm(Attacker, Victim) then return end
     if Victim.Guilt and Victim.Guilt > 1 then return end
 
     Attacker.Guilt = Attacker.Guilt or 0

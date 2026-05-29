@@ -47,31 +47,34 @@ end
 
 function MODE:HUDPaint()
     local StartTime = zb.ROUND_START or CurTime()
+    local sw, sh = ScrW(), ScrH()
+    local lply = LocalPlayer()
+    if not IsValid(lply) then return end
+
+    local teamInfo = teams[lply:Team()] or teams[0]
+    local ColorObj = teamInfo.color2
+
 	self:AddHudPaint()
 	if StartTime + 20 > CurTime() then
-		draw.SimpleText( string.FormattedTime(StartTime + 20 - CurTime(), "%02i:%02i:%02i"	), "ZB_HomicideMedium", sw * 0.5, sh * 0.95, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		draw.SimpleText( "Нажмите F3 чтобы открыть магазин", "ZB_HomicideMedium", sw * 0.5, sh * 0.9, Color(255,255,255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText(string.FormattedTime(StartTime + 20 - CurTime(), "%02i:%02i:%02i"), "ZB_HomicideMedium", sw * 0.5, sh * 0.95, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		draw.SimpleText("Нажмите F3 чтобы открыть магазин", "ZB_HomicideMedium", sw * 0.5, sh * 0.9, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	else
-		local time = string.FormattedTime( math.max(StartTime + (zb.ROUND_TIME or 400) - CurTime(), 0), "%02i:%02i:%02i" )
-		draw.SimpleText( time, "ZB_HomicideMedium", sw * 0.5, sh * 0.95, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		local time = string.FormattedTime(math.max(StartTime + (zb.ROUND_TIME or 400) - CurTime(), 0), "%02i:%02i:%02i")
+		draw.SimpleText(time, "ZB_HomicideMedium", sw * 0.5, sh * 0.95, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 	end
 
     if StartTime + 20 < CurTime() then return end
-	 
-	if not lply:Alive() then return end
-	zb.RemoveFade()
-    local fade = math.Clamp(StartTime + 8 - CurTime(),0,1)
-	local team_ = lply:Team()
-    draw.SimpleText("Мини игры | "..(self.PrintName or "Командный Бой"), "ZCity_Veteran_big", sw * 0.5, sh * 0.1, Color(0,162,255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-    local Rolename = teams[team_].name
-    local ColorRole = teams[team_].color1
-    ColorRole.a = 255 * fade
-    draw.SimpleText("Вы - "..Rolename , "ZCity_Veteran", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    if not lply:Alive() or lply:Team() == TEAM_SPECTATOR then return end
 
-    local Objective = teams[team_].objective
-    local ColorObj = teams[team_].color2
-    ColorObj.a = 255 * fade
-    draw.SimpleText( Objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, ColorObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+	zb.RemoveFade()
+    local fade = math.Clamp(StartTime + 8 - CurTime(), 0, 1)
+    draw.SimpleText("Мини игры | " .. (self.PrintName or "Командный Бой"), "ZCity_Veteran_big", sw * 0.5, sh * 0.1, Color(0, 162, 255, 255 * fade), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+    local ColorRole = Color(teamInfo.color1.r, teamInfo.color1.g, teamInfo.color1.b, 255 * fade)
+    draw.SimpleText("Вы - " .. teamInfo.name, "ZCity_Veteran", sw * 0.5, sh * 0.5, ColorRole, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+    local colObj = Color(teamInfo.color2.r, teamInfo.color2.g, teamInfo.color2.b, 255 * fade)
+    draw.SimpleText(teamInfo.objective, "ZCity_Veteran_hmcdobj", sw * 0.5, sh * 0.9, colObj, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 end
 
 function MODE:AddHudPaint()

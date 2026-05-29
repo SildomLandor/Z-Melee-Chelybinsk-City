@@ -76,23 +76,21 @@ local function chooseLimb(ply, trapPos)
 end
 
 function PAT_BEARTRAP.PunishGrief(owner, victim)
-    if not IsValid(owner) or not owner:IsPlayer() then return end
-    if not IsValid(victim) or not victim:IsPlayer() or victim == owner then return end
+    if not zb or not zb.ApplyKarmaLoss then return end
+    if not IsValid(owner) or not IsValid(victim) or victim == owner then return end
 
     owner.PAT_BeartrapKarmaCD = owner.PAT_BeartrapKarmaCD or {}
     local cdKey = victim:SteamID64()
     if owner.PAT_BeartrapKarmaCD[cdKey] and owner.PAT_BeartrapKarmaCD[cdKey] > CurTime() then return end
     owner.PAT_BeartrapKarmaCD[cdKey] = CurTime() + 8
 
-    local pen = PAT_BEARTRAP.KarmaGriefPenalty or 50
-    local maxK = (zb and zb.MaxKarma) or 120
-    owner.Karma = math.Clamp((owner.Karma or 100) - pen, -60, maxK)
-    owner:SetNetVar("Karma", owner.Karma)
-    if owner.guilt_SetValue then owner:guilt_SetValue(owner.Karma) end
-
-    if owner.Notify then
-        owner:Notify("Капкан под ноги: -" .. pen .. " кармы.", 5, "pat_beartrap", 1, nil, Color(255, 80, 80))
-    end
+    local pen = PAT_BEARTRAP.KarmaGriefPenalty or ((zb.MaximumHarm or 10) * 2)
+    zb.ApplyKarmaLoss(owner, victim, pen, {
+        notify = true,
+        notifyIcon = "pat_beartrap",
+        notifyMsg = "Капкан под ноги: -" .. math.Round(pen, 0) .. " кармы.",
+        notifyCol = Color(255, 80, 80),
+    })
 end
 
 local function resolveVictim(ent)

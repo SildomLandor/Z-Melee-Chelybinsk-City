@@ -231,6 +231,15 @@ function hg.updates.OpenPanel(force)
 		close:SetPos((w - close:GetWide()) * 0.5, (h - close:GetTall()) * 0.5)
 	end
 end
+hook.Add("InitPostEntity", "HG_Updates_OpenPanelOnSpawn", function()
+	if ShouldShow() then
+		timer.Simple(2, function()
+			if ShouldShow() then
+				hg.updates.OpenPanel()
+			end
+		end)
+	end
+end)
 
 concommand.Add("hg_updates", function()
 	hg.updates.OpenPanel(true)

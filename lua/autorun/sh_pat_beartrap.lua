@@ -37,7 +37,7 @@ PAT_BEARTRAP.ReleaseTime = 3
 PAT_BEARTRAP.BleedInterval = 1.4
 PAT_BEARTRAP.NPCDamage = 65
 PAT_BEARTRAP.LegRadiusSqr = 22 * 22
-PAT_BEARTRAP.KarmaGriefPenalty = 50
+PAT_BEARTRAP.KarmaGriefPenalty = 30
 
 PAT_BEARTRAP.LimbById = { [1] = "lleg", [2] = "rleg" }
 PAT_BEARTRAP.LimbId = { lleg = 1, rleg = 2 }

@@ -18,3 +18,13 @@ zb.Points.BOMB_ZONE_B.Name = "Bomb Site B"
 zb.Points.HOSTAGE_DELIVERY_ZONE = zb.Points.HOSTAGE_DELIVERY_ZONE or {}
 zb.Points.HOSTAGE_DELIVERY_ZONE.Color = Color(150,150,150)
 zb.Points.HOSTAGE_DELIVERY_ZONE.Name = "HOSTAGE_DELIVERY_ZONE"
+
+MODE.BuyItems["Gear"] = MODE.BuyItems["Gear"] or { Priority = 50 }
+MODE.BuyItems["Gear"]["Набор разминирования"] = {
+	Type = "Weapon",
+	ItemClass = "weapon_zb_defusekit",
+	Price = 300,
+	Category = "Gear",
+	Attachments = {},
+	TeamBased = 1,
+}

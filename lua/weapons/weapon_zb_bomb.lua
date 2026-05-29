@@ -2,7 +2,7 @@ if SERVER then AddCSLuaFile() end
 
 SWEP.Base = "weapon_base"
 SWEP.PrintName = "Бомба"
-SWEP.Instructions = "ЛКМ — положить бомбу"
+SWEP.Instructions = "ЛКМ - положить бомбу"
 SWEP.Category = "ZCity Other"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -128,12 +128,53 @@ if CLIENT then
 	end
 end
 
+local plantHullMins = Vector(-5, -5, -1)
+local plantHullMaxs = Vector(5, 5, 7)
+
+local function bombSpawnPos(tr, filter)
+	local nrm = tr.HitNormal
+	local pos = tr.HitPos
+
+	local flush = util.TraceHull({
+		start = pos + nrm * 14,
+		endpos = pos + nrm * 0.6,
+		mins = plantHullMins,
+		maxs = plantHullMaxs,
+		filter = filter,
+		mask = MASK_SOLID,
+	})
+	if flush.Hit then
+		pos = flush.HitPos + flush.HitNormal * 0.9
+		nrm = flush.HitNormal
+	end
+
+	if nrm.z > 0.65 then
+		for i = 0, 7 do
+			local dir = Vector(math.cos(math.rad(i * 45)), math.sin(math.rad(i * 45)), 0)
+			local from = pos + Vector(0, 0, 5)
+			local wall = util.TraceLine({
+				start = from,
+				endpos = from + dir * 20,
+				filter = filter,
+				mask = MASK_SOLID,
+			})
+			if wall.Hit then
+				pos = pos - dir * (20 - from:Distance(wall.HitPos) + 6)
+			end
+		end
+	end
+
+	return pos, nrm
+end
+
 local function SpawnBomb(ply, hitPos, hitNormal)
 	local ent = ents.Create("bomb")
 	if not IsValid(ent) then return end
 
-	ent:SetPos(hitPos + hitNormal * 2)
+	ent.PlantNormal = hitNormal
+	ent:SetPos(hitPos)
 	ent:Spawn()
+	ent.PlantNormal = hitNormal
 
 	local round = CurrentRound and CurrentRound()
 	if round then
@@ -165,8 +206,8 @@ function SWEP:PrimaryAttack()
 		start = ply:GetShootPos(),
 		endpos = ply:GetShootPos() + ply:GetAimVector() * 90,
 		filter = ply,
-		mins = Vector(-4, -4, 0),
-		maxs = Vector(4, 4, 8),
+		mins = plantHullMins,
+		maxs = plantHullMaxs,
 		mask = MASK_SOLID
 	})
 
@@ -175,7 +216,8 @@ function SWEP:PrimaryAttack()
 		return
 	end
 
-	local ent = SpawnBomb(ply, tr.HitPos, tr.HitNormal)
+	local pos, nrm = bombSpawnPos(tr, ply)
+	local ent = SpawnBomb(ply, pos, nrm)
 	if not IsValid(ent) then return end
 
 	ply:EmitSound("snd_jack_hmcd_bombrig.wav", 60, 100, 1, CHAN_ITEM)
