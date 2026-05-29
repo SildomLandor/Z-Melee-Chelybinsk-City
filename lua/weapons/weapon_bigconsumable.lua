@@ -23,6 +23,10 @@ SWEP.WorkWithFake = true
 SWEP.offsetVec = Vector(3.5, -1.8, -2)
 SWEP.offsetAng = Angle(180, 0, 0)
 SWEP.showstats = false
+SWEP.UsesBandageCheck = false
+SWEP.modeNames = {
+	[1] = "food"
+}
 
 SWEP.ofsV = Vector(-2,-10,8)
 SWEP.ofsA = Angle(90,-90,90)

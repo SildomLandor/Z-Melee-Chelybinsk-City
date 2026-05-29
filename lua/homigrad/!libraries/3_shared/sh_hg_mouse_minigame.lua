@@ -12,8 +12,15 @@ local bandageNameHints = {
 	["перевяз"] = true,
 }
 
+local skipBandageCheckClasses = {
+	["weapon_bigconsumable"] = true,
+	["weapon_smallconsumable"] = true,
+}
+
 local function IsBandageMode(wep)
 	if not IsValid(wep) then return false end
+	if skipBandageCheckClasses[wep:GetClass()] then return false end
+	if wep.UsesBandageCheck == false then return false end
 	if wep:GetClass() == "weapon_medkit_sh" then
 		return (wep.mode or 1) == 1
 	end
@@ -29,6 +36,10 @@ local function IsBandageMode(wep)
 		end
 	end
 	return false
+end
+
+function hg.WeaponUsesBandageCheck(wep)
+	return IsBandageMode(wep)
 end
 
 local function IsBandageMinigameWeapon(wep)
@@ -112,7 +123,10 @@ if SERVER then
 		wep.HgBandageCooldown = CurTime() + 0.2
 
 		local buddy = IsValid(target) and (hg.GetCurrentCharacter(target) or target) or ply
-		if not hg.CanBandage(buddy) then
+		if wep.CanUseOn and not wep:CanUseOn(buddy) then
+			ply:ChatPrint(hg.BandageRefuseChatMsg(ply, buddy))
+			return
+		elseif not wep.CanUseOn and not hg.CanBandage(buddy) then
 			ply:ChatPrint(hg.BandageRefuseChatMsg(ply, buddy))
 			return
 		end
@@ -402,7 +416,10 @@ local function GetEntityInjuryScore(target)
 	return 0
 end
 
-local function HasBandageMinigameNeed(target)
+local function HasBandageMinigameNeed(wep, target)
+	if IsValid(wep) and wep.CanUseOn then
+		return wep:CanUseOn(target)
+	end
 	return hg.CanBandage(target)
 end
 
@@ -411,7 +428,7 @@ local function GetBandageLoopsWithInjuries(wep, attackType)
 	local target = ResolveBandageTarget(wep, attackType)
 	if not IsValid(target) then return loops end
 
-	if not HasBandageMinigameNeed(target) then return loops end
+	if not HasBandageMinigameNeed(wep, target) then return loops end
 	local score = GetEntityInjuryScore(target)
 	return math.Clamp(loops + math.ceil(score * 0.1), 1, 8)
 end
@@ -437,7 +454,7 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 	if owner:GetActiveWeapon() ~= wep then return false end
 	local target = ResolveBandageTarget(wep, attackType)
 	if not IsValid(target) then return false end
-	if not HasBandageMinigameNeed(target) then
+	if not HasBandageMinigameNeed(wep, target) then
 		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, target))
 		return false
 	end
