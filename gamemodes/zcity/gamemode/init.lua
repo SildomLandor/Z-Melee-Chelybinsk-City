@@ -18,6 +18,8 @@ local function UpdateServerHostname()
 		hostname = hostname .. " | server 1"
 	elseif port == 27019 then
 		hostname = hostname .. " | server 2"
+	else
+		hostname = hostname .. " | non-official server"
 	end
 
 	RunConsoleCommand("hostname", hostname)
