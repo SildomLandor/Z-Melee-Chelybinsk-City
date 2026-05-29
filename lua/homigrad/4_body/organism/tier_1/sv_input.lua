@@ -217,11 +217,11 @@ function hg.organism.AmputateLimb(org, limb)
 	local tbl = {}
 	tbl[limb.."amputated"] = true
 	tbl.owner = org.owner
-	net.WriteTable(tbl)
+	hg.orgWritePacket(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)
 	net.WriteBool(false)
-	net.WriteBool(true) // вот эта шняга отвечает за то чтобы оно просто мерджнуло и всё
+	net.WriteBool(true)
 	net.Broadcast()
 end
 
@@ -814,10 +814,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 			timer.Create("Blood_burst_input"..ent:EntIndex(), 0.02, 1, function()
 				if not IsValid(ent) then return end
 				net.Start("hg_bloodimpact")
-				net.WriteVector(inputHole[1])
-				net.WriteVector(dir / 2)
-				net.WriteFloat(dmg)
-				net.WriteInt(ent.bloodamt2, 8)
+				hg.orgBloodSend(inputHole[1], dir / 2, dmg, ent.bloodamt2)
 				net.Broadcast()
 				ent.bloodamt2 = 0
 			end)
@@ -1083,20 +1080,12 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 					rag.bloodsquirted = true
 
 					net.Start("bloodsquirt")
-					net.WriteEntity(rag)
-					net.WriteString(bonename)
-					net.WriteMatrix(mat)
-					net.WriteVector(dmgPos + dirCool * 2)
-					net.WriteVector(-dirCool * 2)
+					hg.orgSquirtSend(rag, bonename, mat, dmgPos + dirCool * 2, -dirCool * 2)
 					net.Broadcast()
 
 					if outputHole and #outputHole > 0 then
 						net.Start("bloodsquirt")
-						net.WriteEntity(rag)
-						net.WriteString(bonename)
-						net.WriteMatrix(mat)
-						net.WriteVector(outputHole[1] - dirCool * 2)
-						net.WriteVector(dirCool * 2)
+						hg.orgSquirtSend(rag, bonename, mat, outputHole[1] - dirCool * 2, dirCool * 2)
 						net.Broadcast()
 					end
 				end
@@ -1147,10 +1136,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	if dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
 		if dmgBlood > 1 and #inputHole > 0 then
 			net.Start("hg_bloodimpact")
-			net.WriteVector(dmgPos)
-			net.WriteVector(dirCool / 15)
-			net.WriteFloat(dmg / 10)
-			net.WriteInt(1, 8)
+			hg.orgBloodSend(dmgPos, dirCool / 15, dmg / 10, 1)
 			net.Broadcast()
 
 			--[[if (hitgroup ~= HITGROUP_HEAD) then

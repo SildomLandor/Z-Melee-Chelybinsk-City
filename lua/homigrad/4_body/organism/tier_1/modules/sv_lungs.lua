@@ -46,11 +46,11 @@ local function insta_send_holdingbreath(org)
 	tbl.holdingbreath = org.holdingbreath
 	tbl.owner = org.owner
 
-	net.WriteTable(tbl)
+	hg.orgWritePacket(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)
 	net.WriteBool(false)
-	net.WriteBool(true) // вот эта шняга отвечает за то чтобы оно просто мерджнуло и всё
+	net.WriteBool(true)
 	net.Send(org.owner)
 end
 

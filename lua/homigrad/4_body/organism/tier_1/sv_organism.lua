@@ -183,7 +183,7 @@ local function send_organism(org, ply)
 	sendtable.coma_flicker = org.coma_flicker
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
-	net.WriteTable(not hg_developer:GetBool() and sendtable or org)
+	hg.orgWritePacket(not hg_developer:GetBool() and sendtable or org)
 	net.WriteBool(org.owner.fullsend)
 	net.WriteBool(false)
 	net.WriteBool(true)
@@ -239,7 +239,7 @@ local function send_bareinfo(org)
 	if org.owner:IsPlayer() then rf:RemovePlayer(org.owner) end
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
-	net.WriteTable(not hg_developer:GetBool() and sendtable or org)
+	hg.orgWritePacket(not hg_developer:GetBool() and sendtable or org)
 	net.WriteBool(org.owner.fullsend)
 	net.WriteBool(true)
 	net.WriteBool(false)

@@ -85,13 +85,11 @@ local function impact(pos,vel,mul)
 end
 
 net.Receive("hg_bloodimpact", function()
-	local pos = net.ReadVector()
-	local vel = net.ReadVector() * 500
-	local mul = net.ReadFloat()
-	local amt = net.ReadInt(8)
-	amt = math.Clamp(amt,0,32)
-	//debugoverlay.Line(pos, vel, 5, color_white)
-	for i = 1, amt do impact(pos,vel,mul) end
+	local pos, vel, mul, amt = hg.orgBloodRead()
+	if not pos then return end
+	vel = vel * 500
+	amt = math.Clamp(amt or 0, 0, 32)
+	for i = 1, amt do impact(pos, vel, mul) end
 end)
 
 local function explode(pos, size, force)
@@ -146,13 +144,7 @@ end)
 hg.explode = explode
 
 net.Receive("addfountain",function()
-	local ent = net.ReadEntity()
-	local force = net.ReadVector()
-	
-	--local bone = net.ReadInt(8)
-	--local lpos = net.ReadVector()
-	--local lang = net.ReadAngle()
-
+	local ent, force = hg.orgFountainRead()
 	if not IsValid(ent) then return end
 
 	local bone = ent:LookupBone("ValveBiped.Bip01_Neck1")
@@ -165,25 +157,14 @@ net.Receive("addfountain",function()
 end)
 
 net.Receive("bloodsquirt", function()
-	local ent = net.ReadEntity()
-	
-	if not IsValid(ent) then return end
+	local rag, boneName, mat, pos, dir = hg.orgSquirtRead()
+	if not IsValid(rag) then return end
 
-	local boneName = net.ReadString()
+	local ent = hg.RagdollOwner(rag) or rag
 	local bone = ent:LookupBone(boneName)
-	local mat = net.ReadMatrix()
-	local pos = net.ReadVector()
-	local dir = net.ReadVector()
+	if not isnumber(bone) or not mat then return end
+
 	local len = dir:Length()
-
-	local ent = hg.RagdollOwner(ent) or ent
-	if not isnumber(bone) then
-		bone = ent:LookupBone(boneName)
-	end
-	if not isnumber(bone) then return end
-	if not mat then return end
-
-	//local mat = ent:GetBoneMatrix(bone)
 	local localPos, localDir = WorldToLocal(pos, dir:Angle(), mat:GetTranslation(), mat:GetAngles())
 
 	local name = "squirtblood"..ent:EntIndex()..dir[1]
@@ -214,26 +195,15 @@ end)
 end)]]
 
 net.Receive("bloodsquirt2", function()
-	local ent = net.ReadEntity()
-	
-	if not IsValid(ent) then return end
+	local rag, boneName, mat, pos, dir = hg.orgSquirtRead()
+	if not IsValid(rag) then return end
 
-	local boneName = net.ReadString()
-	local bone = ent:LookupBone(boneName)
-	local mat = net.ReadMatrix()
-	local pos = net.ReadVector()
-	local dir = net.ReadVector()
-	local len = dir:Length()
-
-	local ent = hg.RagdollOwner(ent) or ent
+	local ent = hg.RagdollOwner(rag) or rag
 	local ply = ent
-	if not isnumber(bone) then
-		bone = ent:LookupBone(boneName)
-	end
-	if not isnumber(bone) then return end
-	if not mat then return end
+	local bone = ent:LookupBone(boneName)
+	if not isnumber(bone) or not mat then return end
 
-	//local mat = ent:GetBoneMatrix(bone)
+	local len = dir:Length()
 	local localPos, localDir = WorldToLocal(pos, dir:Angle(), mat:GetTranslation(), mat:GetAngles())
 
 	if ply == lply then

@@ -186,8 +186,7 @@ function Gib_Input(rag, bone, force)
 		rag:SetNWString("PlayerName", "Beheaded body")
 
 		net.Start("addfountain")
-		net.WriteEntity(rag)
-		net.WriteVector(force or vector_origin)
+		hg.orgFountainSend(rag, force or vector_origin)
 		net.Broadcast()
 
 		hg.fountains[rag] = {bone = rag:LookupBone("ValveBiped.Bip01_Neck1"), lpos = ThatPlyIsFemale(rag) and Vector(4,0,0) or Vector(5,0,0),lang = Angle(0,0,0)}

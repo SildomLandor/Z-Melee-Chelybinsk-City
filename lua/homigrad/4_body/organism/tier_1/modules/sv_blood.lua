@@ -74,11 +74,7 @@ module[2] = function(owner, org, mulTime)
 			org.vomitInThroat = nil
 
 			net.Start("bloodsquirt2")
-			net.WriteEntity(ent)
-			net.WriteString(bon)
-			net.WriteMatrix(mat)
-			net.WriteVector(mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1)
-			net.WriteVector(mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
+			hg.orgSquirtSend(ent, bon, mat, mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1, mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
 			net.Broadcast()
 
 			ent:EmitSound("vomit/vomit5.mp3")
@@ -253,11 +249,7 @@ function hg.organism.Vomit(owner, snd)
 	else
 		if !on_spine then
 			net.Start("bloodsquirt2")
-			net.WriteEntity(ent)
-			net.WriteString(bon)
-			net.WriteMatrix(mat)
-			net.WriteVector(mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1)
-			net.WriteVector(mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
+			hg.orgSquirtSend(ent, bon, mat, mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1, mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
 			net.Broadcast()
 		end
 	end
@@ -274,11 +266,7 @@ function hg.organism.CoughBlood(org)
 		org.vomitInThroat = nil
 
 		net.Start("bloodsquirt2")
-		net.WriteEntity(ent)
-		net.WriteString(bon)
-		net.WriteMatrix(mat)
-		net.WriteVector(mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1)
-		net.WriteVector(mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
+		hg.orgSquirtSend(ent, bon, mat, mat:GetTranslation() + mat:GetAngles():Right() * 6 + mat:GetAngles():Forward() * 1, mat:GetAngles():Right() * 2 * math.Clamp(org.pulse / 70, 0.4, 1))
 		net.Broadcast()
 
 		ent:EmitSound("vomit/vomit5.mp3")

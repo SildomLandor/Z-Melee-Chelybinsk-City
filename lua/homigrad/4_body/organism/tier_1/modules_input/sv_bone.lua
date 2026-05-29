@@ -348,10 +348,7 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 
 		--[[if dir then
 			net.Start("hg_bloodimpact")
-			net.WriteVector(dmgInfo:GetDamagePosition())
-			net.WriteVector(dir / 10)
-			net.WriteFloat(3)
-			net.WriteInt(1,8)
+			hg.orgBloodSend(dmgInfo:GetDamagePosition(), dir / 10, 3, 1)
 			net.Broadcast()
 		end--]]
 	end

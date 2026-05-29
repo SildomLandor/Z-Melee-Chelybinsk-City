@@ -23,7 +23,7 @@ function VirusModule.InfectPlayer(ply)
         NextOxygenIssueTime = CurTime() + math.random(10, 15)
     }
     net.Start("VirusStageUpdate")
-    net.WriteInt(ply.Virus.Stage, 8)
+    hg.orgWriteFx({ply.Virus.Stage})
     net.Send(ply)
     --print(ply:Nick() .. " has been infected with the virus.")
 end
@@ -68,7 +68,7 @@ function VirusModule.UpdateVirusStage(ply)
         end
 
         net.Start("VirusStageUpdate")
-        net.WriteInt(virus.Stage, 8)
+        hg.orgWriteFx({virus.Stage})
         net.Send(ply)
     end
 end

@@ -19,11 +19,8 @@ end
 hg.syncRagOrganism = syncRagOrganism
 
 net.Receive("organism_send", function()
-	local org = net.ReadTable()
-	local force = net.ReadBool()
-	local spectatov_ne_trogaem = net.ReadBool()
-	local moreinfopls = net.ReadBool()
-	local add = net.ReadBool()
+	local org, force, spectatov_ne_trogaem, moreinfopls, add = hg.orgReadPacket()
+	if not org then return end
 	local ply = org.owner
 
 	if not IsValid(ply) then return end
