@@ -214,6 +214,16 @@ function SWEP:Think()
 	end--]]
 end
 
+function SWEP:CanUseOn(target)
+	if self.CanHeal then
+		return self:CanHeal(target) ~= false
+	end
+	if hg.WeaponUsesBandageCheck and hg.WeaponUsesBandageCheck(self) then
+		return hg.CanBandage(target)
+	end
+	return true
+end
+
 function SWEP:DoBandageUse(attackType, target, fromMinigame)
 	if CLIENT then return false end
 
@@ -245,7 +255,7 @@ function SWEP:DoBandageUse(attackType, target, fromMinigame)
 	end
 
 	local buddy = hg.GetCurrentCharacter(self.healbuddy) or self.healbuddy
-	if not hg.CanBandage(buddy) then
+	if not self:CanUseOn(buddy) then
 		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, buddy))
 		return false
 	end
