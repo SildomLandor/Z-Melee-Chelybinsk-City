@@ -1,5 +1,5 @@
 if not RNDX then
-    include("homigrad/libraries/4_client/cl_rndx.lua")
+    include("homigrad/!libraries/4_client/cl_rndx.lua")
 end
 
 

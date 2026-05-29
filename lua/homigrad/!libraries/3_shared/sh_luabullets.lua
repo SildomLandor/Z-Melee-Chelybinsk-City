@@ -1,5 +1,5 @@
 gs = {
-	random = include("homigrad/libraries/2_math/minstd.lua")
+	random = include("homigrad/!libraries/2_math/minstd.lua")
 }
 
 
