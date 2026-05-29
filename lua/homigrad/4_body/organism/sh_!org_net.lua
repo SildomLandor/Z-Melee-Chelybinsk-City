@@ -16,7 +16,7 @@ hg.orgFullKeys = {
 	"noradrenalineActive", "lastPepperHit", "superfighter", "coma", "coma_depth", "coma_gcs", "coma_flicker",
 }
 
--- подмножество для PVS-зрителей (свой порядок индексов)
+-- подмножество для PVSviewers (свой порядок индексов)
 hg.orgBareKeys = {
 	"alive", "otrub", "owner", "bloodtype", "pulse", "blood", "heartbeat", "analgesia", "o2", "timeValue",
 	"superfighter", "lungsfunction", "lleg", "rleg", "rarm", "larm", "llegdislocation", "rlegdislocation",
