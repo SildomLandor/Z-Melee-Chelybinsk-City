@@ -86,6 +86,8 @@ if SERVER then
 		local owner = self:GetOwner()
 		local entOwner = IsValid(org.owner.FakeRagdoll) and org.owner.FakeRagdoll or org.owner
 		entOwner:EmitSound("snd_jack_hmcd_needleprick.wav", 60, math.random(95, 105))
+		org.adren_doses = math.min((org.adren_doses or 0) + 1, 6)
+		org.last_adren_dose = CurTime()
 		org.adrenalineAdd = math.Approach(org.adrenalineAdd, 4, self.modeValues[1] * 4)
 		self.modeValues[1] = 0
 

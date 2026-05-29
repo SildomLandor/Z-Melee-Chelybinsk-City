@@ -8,7 +8,11 @@ module[1] = function(org)
 	org.vfib = false
 	org.vfib_severity = 0
 	org.vfib_at = 0
+	org.vfib_until = 0
+	org.adren_vfib_cd = 0
 	org.heartrestart_at = 0
+	org.adren_tox = 0
+	org.adren_doses = 0
 	org.pulse = 70 -- that's the blood pressure
 	org.heartbeat = 70
 	org.spo2 = 100
@@ -20,6 +24,34 @@ end
 
 function hg.organism.should_gain_fear(org)
 	return ((org.pain > 30) or (org.blood < 3000) or (org.bleed > 1))// + (org.just_damaged_bone and ((org.just_damaged_bone + 10 - CurTime()) >= 10) and 10 or 0)
+end
+
+local function beginVfib(org, minSeverity)
+	if org.vfib or org.heartstop then return end
+	if (org.adren_doses or 0) < 2 then return end
+	if (org.adren_vfib_cd or 0) > CurTime() then return end
+	local tox = org.adren_tox or 0
+	if tox < 0.72 then return end
+	org.vfib = true
+	org.vfib_at = CurTime()
+	org.vfib_until = CurTime() + 18
+	if minSeverity then
+		org.vfib_severity = math.max(org.vfib_severity or 0, minSeverity)
+	end
+	if not org.isPly or not IsValid(org.owner) or not org.owner:Alive() then return end
+	local ply = org.owner
+	org.needotrub = true
+	org.needfake = true
+	org.consciousness = math.min(org.consciousness or 1, 0.05)
+	ply:Notify("Блять... Сердце....", true, "vfib", 0)
+	ply.fullsend = true
+	timer.Simple(0, function()
+		if not IsValid(ply) or not ply:Alive() then return end
+		local o = ply.organism
+		if o and o.vfib and not o.heartstop then
+			hg.Fake(ply, nil, true, true)
+		end
+	end)
 end
 
 module[2] = function(owner, org, timeValue)
@@ -66,6 +98,12 @@ module[2] = function(owner, org, timeValue)
 
 	org.heartbeat = math.Approach(org.heartbeat, heartbeat, heartbeat > org.heartbeat and timeValue * 5 or timeValue * 3)
 	local adren = org.adrenaline
+	local doses = org.adren_doses or 0
+
+	if doses > 0 and adren < 1.2 and (org.last_adren_dose or 0) + 90 < CurTime() then
+		org.adren_doses = math.max(doses - 1, 0)
+		doses = org.adren_doses
+	end
 
 	local vfibRisk = 0
 	vfibRisk = vfibRisk + math.Clamp((org.heartbeat - 230) / 100, 0, 1) * 0.7
@@ -73,12 +111,35 @@ module[2] = function(owner, org, timeValue)
 	vfibRisk = vfibRisk + math.Clamp(org.shock / 65, 0, 1) * 0.35
 	vfibRisk = vfibRisk + math.Clamp((12 - org.o2[1]) / 12, 0, 1) * 0.6
 	vfibRisk = vfibRisk + math.Clamp((org.brain - 0.45) / 0.55, 0, 1) * 0.3
+	if doses >= 2 then
+		vfibRisk = vfibRisk + math.Clamp((adren - 2.2) / 2.3, 0, 1) * 0.55
+	end
 
-	if not org.heartstop and not org.vfib and vfibRisk > 0 then
+	local toxIn = 0
+	if doses >= 2 then
+		toxIn = math.Clamp((adren - 2.8) / 1.8, 0, 1) + math.Clamp((org.adrenalineAdd or 0) / 4, 0, 1) * 0.25
+	end
+	if toxIn > 0.05 then
+		org.adren_tox = math.min((org.adren_tox or 0) + timeValue * toxIn * 0.22, 1)
+	else
+		org.adren_tox = math.max((org.adren_tox or 0) - timeValue * 0.06, 0)
+	end
+	if doses >= 2 then
+		vfibRisk = vfibRisk + (org.adren_tox or 0) * 0.65
+	end
+
+	if doses >= 2 and (org.adren_tox or 0) > 0.55 and (org.heart or 1) > 0 and not org.heartstop then
+		org.heart = math.max((org.heart or 1) - timeValue * 0.012 * org.adren_tox, 0)
+	end
+
+	if doses >= 2 and (org.adren_tox or 0) > 0.65 and adren < 1.6 and not org.heartstop and not org.vfib then
+		org.heartbeat = math.Approach(org.heartbeat, math.min(org.heartbeat, 58), timeValue * 14)
+	end
+
+	if not org.heartstop and not org.vfib and vfibRisk > 0 and doses >= 2 then
 		local chance = math.Clamp(vfibRisk * timeValue * 0.25, 0, 0.2)
 		if math.Rand(0, 1) < chance then
-			org.vfib = true
-			org.vfib_at = CurTime()
+			beginVfib(org)
 		end
 	end
 
@@ -87,27 +148,19 @@ module[2] = function(owner, org, timeValue)
 		org.pulse = math.Approach(org.pulse, 0, timeValue * (10 + org.vfib_severity * 45))
 		org.heartbeat = math.Approach(org.heartbeat, math.random(220, 320), timeValue * 90)
 
-		if (org.vfib_at or 0) + 6 < CurTime() then
-			local stopChance = math.Clamp(timeValue * (0.05 + org.vfib_severity * 0.22), 0, 0.35)
+		if (org.vfib_until or 0) < CurTime() and (org.vfib_at or 0) + 8 < CurTime() then
+			local stopChance = math.Clamp(timeValue * (0.04 + org.vfib_severity * 0.18), 0, 0.25)
 			if math.Rand(0, 1) < stopChance then
 				org.heartstop = true
-			end
-		end
-
-		if adren > 0 and (org.adrenaline_try or 0) < CurTime() then
-			org.adrenaline_try = CurTime() + 0.25
-			if math.Rand(0, 1) < math.Clamp(adren * 0.035, 0, 0.22) then
-				org.vfib = false
+				org.adren_vfib_cd = CurTime() + 90
 			end
 		end
 	else
-		org.vfib_severity = math.max((org.vfib_severity or 0) - timeValue * 0.8, 0)
+		org.vfib_severity = math.max((org.vfib_severity or 0) - timeValue * 0.35, 0)
 	end
 	
-	if org.heartbeat > 300 and not org.vfib then
-		org.vfib = true
-		org.vfib_severity = math.max(org.vfib_severity or 0, 0.45)
-		org.vfib_at = CurTime()
+	if org.heartbeat > 300 and not org.vfib and doses >= 2 and (org.adren_tox or 0) >= 0.72 then
+		beginVfib(org, 0.45)
 	end
 
 	if not org.vfib and not org.heartstop then
@@ -134,7 +187,7 @@ module[2] = function(owner, org, timeValue)
 	
 	local adrenK = max(1 + org.adrenaline, 1)
 
-	if org.pulse < 10 or org.brain >= 0.6 then org.heartstop = true end
+	if not org.vfib and (org.pulse < 10 or org.brain >= 0.6) then org.heartstop = true end
 	if org.temperature < 28 or org.temperature > 42 then org.heartstop = true end
 
 	if org.temperature < 34 or org.temperature > 38 or org.blood < 4000 or org.pain > 20 then
@@ -156,15 +209,16 @@ module[2] = function(owner, org, timeValue)
 	end
 
 	if org.heartstop and adren > 0 and (org.adrenaline_try or 0) < CurTime() then
-		local chance = math.Clamp(adren * 25,0,25)
-		local rand = math.random(100)
-
-		org.adrenaline_try = CurTime() + 0.1
-
-		if chance > rand then
-			org.heartstop = false
-			org.heartbeat = 0
-			org.heartrestart_at = CurTime() + 1.2
+		local blocked = doses >= 2 and ((org.adren_vfib_cd or 0) > CurTime() or (org.adren_tox or 0) > 0.55)
+		if not blocked then
+			local chance = math.Clamp(adren * 18, 0, 18)
+			local rand = math.random(100)
+			org.adrenaline_try = CurTime() + 0.35
+			if chance > rand then
+				org.heartstop = false
+				org.heartbeat = 0
+				org.heartrestart_at = CurTime() + 1.8
+			end
 		end
 	end
 

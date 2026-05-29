@@ -124,39 +124,39 @@ concommand.Add("-hmcd_holdbreath",function(ply)
 end)
 
 local lowoxy = {
-	"I'm gonna faint right now... There's not enough oxygen.",
-	"There's not enough oxygen... I can't hold much longer...",
-	"I really need some fresh air...",
-	"I'm gasping for air...",
-	"Need to breathe air... or I'm gonna faint right here..."
+	"Я сейчас вырублюсь... Не хватает кислорода.",
+	"Кислорода совсем мало... Я долго так не протяну...",
+	"Мне очень нужно свежего воздуха...",
+	"Я задыхаюсь...",
+	"Надо вдохнуть воздуха... А то прям тут свалюсь..."
 }
 
 local not_enough_intake = {
-	//"I have to breathe...",
-	//"I gotta take a break...",
-	//"Need a break from this... to breathe...",
-	//"Resting sounds like a nice idea.",
-	"I need to breathe...",
-	"I'm struggling to breathe...",
+	//"Надо бы подышать...",
+	//"Мне нужен перерыв...",
+	//"Надо немного отдохнуть... чтобы подышать...",
+	//"Отдохнуть сейчас — хорошая идея.",
+	"Мне нужно подышать...",
+	"Мне тяжело дышать...",
 }
 
 local drop_mask = {
-	"I can't breathe in this mask... I need to take it off.",
-	"Drop the mask, it's not worth it...",
-	"It's fucking disgusting... and I surely can't breathe in this...",
-	"Fucking stinks... Gotta take this mask off...",
+	"Я не могу дышать в этой маске... Нужно снять её.",
+	"Сбросить маску... оно того не стоит.",
+	"Это просто отвратительно... И уж точно, дышать тут невозможно...",
+	"Воняет ужасно... Надо снять эту маску...",
 }
 
 local drugged = {
-	"Ohhh hohoohoooo Ie-like it.....",
-	"Fukkenh awesomee..... ffffeeelin gooooood..",
-	"That's theh sStuffff DUDeeee",
-	"I reallly like whatEvER I'm feeling right now....",
-	"Oh yeahhhh this feels gooood!",
-	"I want to feel likhe this for theRRRREST of my life",
-	"Why am I here even?.. wWhatever whuhhh heh",
-	"Whoa re you? Gett outtaheree...",
-	"Don't want anything else... this is pERRRfect!..",
+	"Ооооо хо-хо-хоох... мне так нравится.....",
+	"Охрененно... ощущаю себя божественно..",
+	"Вот это да... Вот это вставило, чувак...",
+	"Я реально кайфую сейчас, что бы ни происходило....",
+	"О дааа, вот это хорошо!",
+	"Мне бы чувствовать себя вот так всю оставшуюся жизнь...",
+	"Зачем я вообще здесь?.. Ну и пофиг, гхехех...",
+	"Эй, ты кто? Убирайся отсюда...",
+	"Мне больше ничего не надо... это идеально!..",
 }
 
 local bit_band,util_PointContents = bit.band,util.PointContents
