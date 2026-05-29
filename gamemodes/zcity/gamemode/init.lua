@@ -11,7 +11,16 @@ include("loader.lua")
 
 local function UpdateServerHostname()
 	local version = tostring(hg and hg.Version or "")
-	RunConsoleCommand("hostname", "CHELYABINSK | RU | BETA " .. version)
+	local hostname = "CHELYABINSK | RU | BETA " .. version
+	local port = GetConVar("hostport"):GetInt()
+
+	if port == 27017 then
+		hostname = hostname .. " | server 1"
+	elseif port == 27019 then
+		hostname = hostname .. " | server 2"
+	end
+
+	RunConsoleCommand("hostname", hostname)
 end
 
 hook.Add("Initialize", "ZB_SetHostname", function()
