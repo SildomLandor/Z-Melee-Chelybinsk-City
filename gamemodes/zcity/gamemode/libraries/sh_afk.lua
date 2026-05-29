@@ -1,111 +1,60 @@
-zb.afk = zb.afk or {}
-
-local afkNet = "zb_afk_state"
-local reportDelay = 1
-local idleDelay = 12
-local timeoutDelay = 10
-local spawnGrace = 20
-
+z = z or {} -- ахуенно zb.afk = zb.afk or {}
+-- да все сакай хуй
 if SERVER then
-	util.AddNetworkString(afkNet)
-
-	local function SetAfk(ply, afk, minimized)
-		if not IsValid(ply) then return end
-		ply:SetNWBool("ZB_AFK", afk and true or false)
-		ply:SetNWBool("ZB_AFK_Minimized", minimized and true or false)
+	util.AddNetworkString("zb_afk_state")
+	local function f(p,a,m)
+		if not IsValid(p) then return end
+		p:SetNWBool("ZB_AFK",a and true or false)
+		p:SetNWBool("ZB_AFK_Minimized",m and true or false)
 	end
-
-	net.Receive(afkNet, function(_, ply)
-		if not IsValid(ply) or ply:IsBot() then return end
-
-		local afk = net.ReadBool()
-		local minimized = net.ReadBool()
-		if ply:Team() == TEAM_SPECTATOR then
-			afk = false
-			minimized = false
-		end
-
-		ply.zbAFKLastReport = CurTime()
-		SetAfk(ply, afk, minimized)
+	net.Receive("zb_afk_state",function(_,p)
+		if not IsValid(p) or p:IsBot() then return end
+		local a=net.ReadBool()
+		local m=net.ReadBool()
+		if p:Team()==TEAM_SPECTATOR then a=false m=false end
+		p.l=CurTime()
+		f(p,a,m)
 	end)
-
-	hook.Add("PlayerInitialSpawn", "zb_afk_init", function(ply)
-		ply.zbAFKLastReport = CurTime()
-		SetAfk(ply, false, false)
-	end)
-
-	hook.Add("PlayerSpawn", "zb_afk_clear_on_spawn", function(ply)
-		ply.zbAFKLastReport = CurTime()
-		SetAfk(ply, false, false)
-	end)
-
-	hook.Add("PlayerDisconnected", "zb_afk_cleanup", function(ply)
-		ply.zbAFKLastReport = nil
-	end)
-
-	timer.Create("zb_afk_timeout_check", 2, 0, function()
-		local now = CurTime()
-		for _, ply in player.Iterator() do
-			if not IsValid(ply) or ply:IsBot() then continue end
-			if ply:Team() == TEAM_SPECTATOR then
-				SetAfk(ply, false, false)
-				continue
-			end
-			if now - (ply.zbAFKLastReport or 0) <= timeoutDelay then continue end
-			SetAfk(ply, true, true)
+	hook.Add("PlayerInitialSpawn","afk",function(p) p.l=CurTime() f(p,false,false) end)
+	hook.Add("PlayerSpawn","afk2",function(p) p.l=CurTime() f(p,false,false) end)
+	hook.Add("PlayerDisconnected","afk3",function(p) p.l=nil end)
+	timer.Create("afk4",2,0,function()
+		local n=CurTime()
+		for _,p in player.Iterator() do
+			if not IsValid(p) or p:IsBot() then continue end
+			if p:Team()==TEAM_SPECTATOR then f(p,false,false) continue end
+			if n-(p.l or 0)<=10 then continue end
+			f(p,true,true)
 		end
 	end)
 else
-	local lastActive = CurTime()
-	local lastAfk
-	local lastMinimized
-	local graceUntil = 0
-	local wasAlive = false
-
-	local function Touch()
-		lastActive = CurTime()
-	end
-
-	hook.Add("CreateMove", "zb_afk_input", function(cmd)
-		if cmd:GetButtons() == 0 and cmd:GetMouseX() == 0 and cmd:GetMouseY() == 0 then return end
-		Touch()
-	end)
-
-	hook.Add("PlayerBindPress", "zb_afk_bind", function()
-		Touch()
-	end)
-
-	hook.Add("OnContextMenuOpen", "zb_afk_ctx_open", Touch)
-	hook.Add("OnContextMenuClose", "zb_afk_ctx_close", Touch)
-	hook.Add("StartChat", "zb_afk_chat_start", Touch)
-	hook.Add("FinishChat", "zb_afk_chat_finish", Touch)
-
-	timer.Create("zb_afk_report", reportDelay, 0, function()
-		local lp = LocalPlayer()
-		if not IsValid(lp) or lp:IsBot() then return end
-
-		local alive = lp:Alive()
-		if alive and not wasAlive then
-			graceUntil = CurTime() + spawnGrace
-			Touch()
-		end
-		wasAlive = alive
-
-		local spectator = lp:Team() == TEAM_SPECTATOR
-		local minimized = system and system.HasFocus and not system.HasFocus() or false
-		local afk = false
-		if not spectator then
-			afk = minimized or (CurTime() >= graceUntil and CurTime() - lastActive >= idleDelay)
-		end
-
-		if lastAfk == afk and lastMinimized == minimized then return end
-
-		lastAfk = afk
-		lastMinimized = minimized
-
-		net.Start(afkNet)
-		net.WriteBool(afk)
-		net.WriteBool(minimized)
+	local a=CurTime()
+	local l
+	local m
+	local g=0
+	local w=false
+	local function u() a=CurTime() end
+	hook.Add("CreateMove","afk",function(c) if c:GetButtons()==0 and c:GetMouseX()==0 and c:GetMouseY()==0 then return end u() end)
+	hook.Add("PlayerBindPress","afk1",u)
+	hook.Add("OnContextMenuOpen","afk2",u)
+	hook.Add("OnContextMenuClose","afk3",u)
+	hook.Add("StartChat","afk4",u)
+	hook.Add("FinishChat","afk5",u)
+	timer.Create("afk6",1,0,function()
+		local p=LocalPlayer()
+		if not IsValid(p) or p:IsBot() then return end
+		local v=p:Alive()
+		if v and not w then g=CurTime()+20 u() end
+		w=v
+		local sp=p:Team()==TEAM_SPECTATOR
+		local min=system and system.HasFocus and not system.HasFocus() or false
+		local af=false
+		if not sp then af=min or (CurTime()>=g and CurTime()-a>=12) end
+		if l==af and m==min then return end
+		l=af m=min
+		net.Start("zb_afk_state")
+		net.WriteBool(af)
+		net.WriteBool(min)
 		net.SendToServer()
 	end)
 end
