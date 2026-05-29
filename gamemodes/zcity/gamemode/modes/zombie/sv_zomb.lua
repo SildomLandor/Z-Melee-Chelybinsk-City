@@ -41,7 +41,8 @@ MODE.NPCList = {
 }
 
 local spawnMinDistSqr = 600 * 600
-local spawnMaxDist = 1400
+local npcHullMins = Vector(-16, -16, 0)
+local npcHullMaxs = Vector(16, 16, 72)
 
 local function getRandomSpawnPoints()
 	local spawns = {}
@@ -49,6 +50,44 @@ local function getRandomSpawnPoints()
 		spawns[#spawns + 1] = pt.pos or pt
 	end
 	return spawns
+end
+
+local function getZombieSpawnPoints()
+	local pts = getRandomSpawnPoints()
+	for _, pt in ipairs(zb.GetMapPoints("ZOMBIE_NPC_SPAWN") or {}) do
+		pts[#pts + 1] = pt.pos or pt
+	end
+	return pts
+end
+
+local function groundNPCPos(raw)
+	if not raw then return end
+
+	local tr = util.TraceLine({
+		start = raw + Vector(0, 0, 256),
+		endpos = raw - Vector(0, 0, 1024),
+		mask = MASK_SOLID,
+	})
+	if not tr.Hit or tr.HitSky then return end
+
+	local pos = tr.HitPos + Vector(0, 0, 2)
+	local hull = util.TraceHull({
+		start = pos,
+		endpos = pos,
+		mins = npcHullMins,
+		maxs = npcHullMaxs,
+		mask = MASK_NPCSOLID,
+	})
+	if hull.Hit then return end
+
+	return pos
+end
+
+local function farFromPlayers(pos, minSqr)
+	for _, ply in ipairs(zb:CheckAlive(true)) do
+		if pos:DistToSqr(ply:GetPos()) < minSqr then return false end
+	end
+	return true
 end
 
 function MODE:PlacePlayer(ply)
@@ -215,47 +254,30 @@ function MODE:GiveEquipment()
 end
 
 function MODE:FindSpawnPos()
-	local points = zb.GetMapPoints("ZOMBIE_NPC_SPAWN")
-	if points and #points > 0 then
-		local pt = table.Random(points)
-		return pt.pos or pt
-	end
+	local points = getZombieSpawnPoints()
 
-	local alive = zb:CheckAlive(true)
-	if #alive == 0 then
-		local spawns = getRandomSpawnPoints()
-		if #spawns > 0 then return zb:GetRandomSpawn(nil, spawns) end
-		return zb:GetRandomSpawn()
-	end
-
-	for _ = 1, 12 do
-		local ply = table.Random(alive)
-		local ang = Angle(0, math.random(360), 0)
-		local dist = math.random(700, spawnMaxDist)
-		local pos = ply:GetPos() + ang:Forward() * dist
-
-		local tr = util.TraceLine({
-			start = pos + Vector(0, 0, 64),
-			endpos = pos - Vector(0, 0, 512),
-			mask = MASK_SOLID_BRUSHONLY,
-		})
-
-		if not tr.Hit then continue end
-
-		local spawnPos = tr.HitPos + Vector(0, 0, 8)
-		local tooClose = false
-
-		for _, p in ipairs(alive) do
-			if spawnPos:DistToSqr(p:GetPos()) < spawnMinDistSqr then
-				tooClose = true
-				break
-			end
+	if #points == 0 then
+		for _, area in RandomPairs(navmesh.GetAllNavAreas() or {}) do
+			if area:IsUnderwater() then continue end
+			local pos = groundNPCPos(area:GetCenter())
+			if pos and farFromPlayers(pos, spawnMinDistSqr) then return pos end
 		end
-
-		if not tooClose then return spawnPos end
+		return
 	end
 
-	return alive[1]:GetPos() + Vector(math.random(-spawnMaxDist, spawnMaxDist), math.random(-spawnMaxDist, spawnMaxDist), 0)
+	local minSqr = spawnMinDistSqr
+	for _ = 1, 4 do
+		for _, raw in RandomPairs(points) do
+			local pos = groundNPCPos(raw)
+			if pos and farFromPlayers(pos, minSqr) then return pos end
+		end
+		minSqr = minSqr * 0.25
+	end
+
+	for _, raw in RandomPairs(points) do
+		local pos = groundNPCPos(raw)
+		if pos then return pos end
+	end
 end
 
 function MODE:SpawnZombie(class, health)
@@ -270,6 +292,7 @@ function MODE:SpawnZombie(class, health)
 	npc:SetKeyValue("incominghate", "1")
 	npc:Spawn()
 	npc:Activate()
+	if npc.DropToFloor then npc:DropToFloor() end
 
 	if health then
 		npc:SetHealth(health)
