@@ -39,6 +39,11 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 --//
 --\\ DrawPlayerRagdoll
 	local hg_ragdollcombat = ConVarExists("hg_ragdollcombat") and GetConVar("hg_ragdollcombat") or CreateConVar("hg_ragdollcombat", 0, FCVAR_REPLICATED, "Toggle ragdoll combat-like ragdoll mode (walking, running in ragdoll, etc.)", 0, 1)
+
+function hg.PlyInFake(ply)
+	if not IsValid(ply) or not ply:IsPlayer() then return false end
+	return IsValid(ply.FakeRagdoll)
+end
 	
 	function hg.RagdollCombatInUse(ply)
 		return hg_ragdollcombat:GetBool() and IsValid(ply.FakeRagdoll)
@@ -97,7 +102,17 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 			RenderArmors(ply, armors, ent)
 		end
 
-		hg.RenderBandages(ent, ply)
+		if hg.RenderBandages then
+			if ent:IsPlayer() then
+				if not hg.PlyInFake(ply) then
+					hg.RenderBandages(ent, ply)
+				elseif hg.RemoveBandageVisual then
+					hg.RemoveBandageVisual(ent)
+				end
+			else
+				hg.RenderBandages(ent, ply)
+			end
+		end
 
 		hg.RenderTourniquets(ent, ply)
 
@@ -130,3 +145,13 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 		if ply:GetNetVar("headcrab") then hg.RenderHeadcrab(ent, ply) end
 	end
 --//
+
+if CLIENT then
+	function hg.RemoveBandageVisual(ent)
+		if not IsValid(ent) then return end
+		if IsValid(ent.bandagesModel) then
+			ent.bandagesModel:Remove()
+		end
+		ent.bandagesModel = nil
+	end
+end

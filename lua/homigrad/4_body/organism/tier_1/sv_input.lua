@@ -181,7 +181,7 @@ function hg.organism.AmputateLimb(org, limb)
 	table.insert(wnds, {10, vec, ang, boneup, CurTime(), Vector(-100, 0, 0), bone.."artery"})
 	
 	org.arterialwounds = wnds
-	org.owner:SetNetVar("arterialwounds", wnds)
+	hg.organism.SyncWoundNetVars(org.owner, org)
 
 	org[limb.."amputated"] = true
 
@@ -228,21 +228,42 @@ end
 
 --hg.organism.AmputateLimb(Entity(2).organism, "rarm")
 
+function hg.organism.SyncWoundNetVars(owner, org)
+	if not IsValid(owner) or not org then return end
+	local wounds = org.wounds or {}
+	local arterial = org.arterialwounds or {}
+	owner:SetNetVar("wounds", wounds)
+	owner:SetNetVar("arterialwounds", arterial)
+	if not owner:IsPlayer() then return end
+	local rag = owner.FakeRagdoll or owner:GetNWEntity("FakeRagdoll")
+	if IsValid(rag) then
+		rag:SetNetVar("wounds", wounds)
+		rag:SetNetVar("arterialwounds", arterial)
+	end
+	if IsValid(owner.RagdollDeath) then
+		owner.RagdollDeath:SetNetVar("wounds", wounds)
+		owner.RagdollDeath:SetNetVar("arterialwounds", arterial)
+	end
+end
+
 local function queueWoundsSend(ent, org)
+	if not org.wounds then return end
 	if #org.wounds > 30 then return end
 	timer.Create("WoundsSend" .. ent:EntIndex(), 0.1, 1, function()
 		if not org.wounds then return end
 		table.sort(org.wounds, function(a, b) return a[1] > b[1] end)
-		local owner = org.owner
-		if not IsValid(owner) then return end
-		owner:SetNetVar("wounds", org.wounds)
-		if IsValid(owner.RagdollDeath) then owner.RagdollDeath:SetNetVar("wounds", org.wounds) end
+		if not IsValid(org.owner) then return end
+		hg.organism.SyncWoundNetVars(org.owner, org)
+		if org.owner:IsPlayer() and org.owner:Alive() and hg.send_organism then
+			hg.send_organism(org, org.owner)
+		end
 	end)
 end
 
 function hg.organism.AddWound(ent, tr, bone, dmgInfo, dmgPos, dmgBlood, inputHole, outputHole)
 	local org = ent.organism
 	if org.superfighter then return end
+	org.wounds = org.wounds or {}
 	
 	local physBone = bone != -1 and bone or math.random(0, ent:GetPhysicsObjectCount() - 1)
 	local skelBone = ent:TranslatePhysBoneToBone(physBone)
@@ -275,6 +296,7 @@ end
 function hg.organism.AddWoundManual(ent,dmgBlood,localPos,localAng,bone,time)
 	local org = ent.organism
 	if org.superfighter then return end
+	org.wounds = org.wounds or {}
 	
 	if isnumber(bone) then bone = ent:GetBoneName(bone) end
 

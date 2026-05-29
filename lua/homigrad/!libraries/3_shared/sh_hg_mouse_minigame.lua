@@ -81,28 +81,46 @@ end
 local function entIsBleeding(ent)
 	if not IsValid(ent) then return false end
 	if getEntOrgBleed(ent) > BLEED_NEED then return true end
-	if netHasBleedingWounds(ent) then return true end
 	if SERVER then
 		local org = ent.organism
 		if org and (tableHasActiveWounds(org.wounds) or tableHasActiveWounds(org.arterialwounds)) then
 			return true
 		end
 	end
-	if hg.GetCurrentCharacter then
-		local chr = hg.GetCurrentCharacter(ent)
-		if IsValid(chr) and chr ~= ent then
-			return entIsBleeding(chr)
-		end
-	end
 	if ent:IsRagdoll() and hg.RagdollOwner then
 		local ply = hg.RagdollOwner(ent)
-		if IsValid(ply) then return entIsBleeding(hg.GetBandageSelfEnt(ply)) end
+		if IsValid(ply) then
+			if getEntOrgBleed(ply) > BLEED_NEED then return true end
+			if SERVER and ply.organism and (tableHasActiveWounds(ply.organism.wounds) or tableHasActiveWounds(ply.organism.arterialwounds)) then
+				return true
+			end
+			if CLIENT and ply.organism and getEntOrgBleed(ply) <= BLEED_NEED then return false end
+		end
 	end
-	return false
+	if CLIENT and ent.organism and getEntOrgBleed(ent) <= BLEED_NEED then return false end
+	return netHasBleedingWounds(ent)
 end
 
 function hg.CanBandage(ent)
 	return entIsBleeding(ent)
+end
+
+function hg.GetEntOrgBleed(ent)
+	return getEntOrgBleed(ent)
+end
+
+function hg.NetHasBleedingWounds(ent)
+	return netHasBleedingWounds(ent)
+end
+
+function hg.EntNeedsBleedFX(ent)
+	if not IsValid(ent) then return false end
+	if getEntOrgBleed(ent) > BLEED_NEED then return true end
+	if ent:IsRagdoll() and hg.RagdollOwner then
+		local ply = hg.RagdollOwner(ent)
+		if IsValid(ply) and getEntOrgBleed(ply) > BLEED_NEED then return true end
+	end
+	return false
 end
 
 function hg.GetBandageSelfEnt(ply)
@@ -411,9 +429,7 @@ local function needsBandageMinigame(target)
 	if not IsValid(target) then return false end
 	local check = hg.GetBandageBleedEnt(target) or target
 	if not IsValid(check) then return false end
-	if getEntOrgBleed(check) > BLEED_NEED then return true end
-	if check.organism or check.new_organism then return false end
-	return netHasBleedingWounds(check)
+	return hg.EntNeedsBleedFX(check)
 end
 
 local function HasBandageMinigameNeed(wep, target)
@@ -761,6 +777,12 @@ hook.Add("CreateMove", "hg_mouse_minigame_basemove", function(cmd)
 			session.lastAngle = currentAngle
 			session.accumulatedAngle = math.max(session.accumulatedAngle - 0.1, 0)
 		end
+	end
+
+	if IsValid(session.weapon) and session.weapon.SetHolding then
+		local req = math.max(session.requiredLoops or 1, 1)
+		local prog = (session.completedLoops or 0) + (session.accumulatedAngle or 0) / 360
+		session.weapon:SetHolding(math_Clamp(prog / req * 100, 0, 100))
 	end
 
 	cmd:SetViewAngles(session.lockedAngles)

@@ -19,7 +19,7 @@ hg.orgFullKeys = {
 
 -- подмножество для PVSviewers (свой порядок индексов)
 hg.orgBareKeys = {
-	"alive", "otrub", "owner", "bloodtype", "pulse", "blood", "heartbeat", "spo2", "analgesia", "o2", "timeValue",
+	"alive", "otrub", "owner", "bloodtype", "pulse", "blood", "bleed", "heartbeat", "spo2", "analgesia", "o2", "timeValue",
 	"superfighter", "lungsfunction", "lleg", "rleg", "rarm", "larm", "llegdislocation", "rlegdislocation",
 	"rarmdislocation", "larmdislocation", "jawdislocation", "llegamputated", "rlegamputated", "rarmamputated",
 	"larmamputated", "headamputated", "LodgedEntities", "neckslit", "berserkActive2", "CantCheckPulse",

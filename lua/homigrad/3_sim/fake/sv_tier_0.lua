@@ -446,8 +446,12 @@ hook.Add("DoPlayerDeath", "Fake", function(ply)
 	if IsValid(ragdoll.bull) then ragdoll.bull:Remove() end
 	
 	ply:SetNWEntity("RagdollDeath", ragdoll)
-	ragdoll:SetNetVar("wounds", ply:GetNetVar("wounds"))
-	ragdoll:SetNetVar("arterialwounds", ply:GetNetVar("arterialwounds"))
+	if ply.organism then
+		hg.organism.SyncWoundNetVars(ply, ply.organism)
+	else
+		ragdoll:SetNetVar("wounds", ply:GetNetVar("wounds"))
+		ragdoll:SetNetVar("arterialwounds", ply:GetNetVar("arterialwounds"))
+	end
 	ply.RagdollDeath = ragdoll
 end)
 
@@ -553,6 +557,10 @@ function hg.Fake(ply, huyragdoll, no_freemove, force)
 	NET_Fake(ragdoll, ply)
 	
 	ply.FakeRagdoll = ragdoll
+	
+	if ply.organism then
+		hg.organism.SyncWoundNetVars(ply, ply.organism)
+	end
 	
 	if IsValid(ply.FakeRagdollOld) then
 		ply.FakeRagdollOld:Remove()
@@ -863,6 +871,76 @@ function hg.GetCurrentCharacter(ply)
 	local rag = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or IsValid(ply:GetNWEntity("FakeRagdoll",NULL)) and ply:GetNWEntity("FakeRagdoll",NULL)
 	return (IsValid(rag) and rag) or ply
 end
+
+function hg.PlyInFake(ply)
+	if not IsValid(ply) or not ply:IsPlayer() then return false end
+	return IsValid(ply.FakeRagdoll)
+end
+
+util.AddNetworkString("hg_bandage_limbs_sync")
+
+function hg.GetBandageRenderEnt(ent)
+	if not IsValid(ent) then return ent end
+	if ent:IsPlayer() and hg.PlyInFake(ent) and IsValid(ent.FakeRagdoll) then
+		return ent.FakeRagdoll
+	end
+	return ent
+end
+
+function hg.SyncBandagedLimbsNet(ent)
+	if not IsValid(ent) then return end
+
+	local limbs = ent.bandaged_limbs or {}
+	local synced = next(limbs) and table.Copy(limbs) or {}
+	local renderEnt = ent
+
+	if ent:IsPlayer() then
+		ent.bandaged_limbs = synced
+		if hg.PlyInFake(ent) then
+			local rag = ent.FakeRagdoll
+			renderEnt = rag
+			rag.bandaged_limbs = synced
+			rag:SetNetVar("bandaged_limbs", synced)
+			ent:SetNetVar("bandaged_limbs", {})
+		else
+			ent:SetNetVar("bandaged_limbs", synced)
+		end
+	elseif ent:IsRagdoll() then
+		ent.bandaged_limbs = synced
+		ent:SetNetVar("bandaged_limbs", synced)
+		local ply = hg.RagdollOwner and hg.RagdollOwner(ent)
+		if IsValid(ply) then
+			ply.bandaged_limbs = synced
+			ply:SetNetVar("bandaged_limbs", {})
+		end
+	end
+
+	if SERVER and IsValid(renderEnt) and next(synced) then
+		net.Start("hg_bandage_limbs_sync")
+		net.WriteEntity(renderEnt)
+		net.WriteTable(synced)
+		net.Broadcast()
+	end
+end
+
+hook.Add("Fake", "bandages-setfake", function(ply, ragdoll)
+	if not IsValid(ply) or not IsValid(ragdoll) then return end
+	ragdoll.bandaged_limbs = table.Copy(ply.bandaged_limbs or {})
+	ragdoll:SetNetVar("bandaged_limbs", ragdoll.bandaged_limbs)
+	ply:SetNetVar("bandaged_limbs", {})
+	ply.bandaged_limbs = {}
+end)
+
+hook.Add("Fake Up", "bandages-on-getup", function(ply, ragdoll)
+	if not IsValid(ply) then return end
+	if IsValid(ragdoll) and istable(ragdoll.bandaged_limbs) and next(ragdoll.bandaged_limbs) then
+		ply.bandaged_limbs = table.Copy(ragdoll.bandaged_limbs)
+		ply:SetNetVar("bandaged_limbs", ply.bandaged_limbs)
+	else
+		ply:SetNetVar("bandaged_limbs", {})
+		ply.bandaged_limbs = {}
+	end
+end)
 
 hook.Add("PlayerDisconnected", "Fake", function(ply) hg.ragdollFake[ply] = nil end)
 hook.Add("PlayerFootstep", "CustomFootstep", function(ply) if IsValid(ply.FakeRagdoll) then return true end end)

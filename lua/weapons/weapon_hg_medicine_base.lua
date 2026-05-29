@@ -409,10 +409,8 @@ if SERVER then
 		end
 		org.owner:SetNetVar("wounds",org.wounds)
 		timer.Create("bandage_limbs"..ent:EntIndex(),0.1,1,function()
-			ent:SetNetVar("bandaged_limbs",ent.bandaged_limbs)
-			if ent:IsRagdoll() and hg.RagdollOwner(ent) and hg.RagdollOwner(ent):Alive() then
-				hg.RagdollOwner(ent):SetNetVar("bandaged_limbs",ent.bandaged_limbs)
-			end
+			if not IsValid(ent) then return end
+			hg.SyncBandagedLimbsNet(ent)
 		end)
 
 		local who = (self:GetOwner() == org.owner) and "You" or ((owner.Profession == "doctor") and "A doctor" or "Someone")
@@ -762,14 +760,6 @@ if SERVER then
 		ragdoll:SetNetVar("Tourniquets",ragdoll.tourniquets)
 	end)
 
-	hook.Add("Fake", "bandages-setfake", function(ply,ragdoll)
-		if not IsValid(ragdoll) then return end	
-		
-		ragdoll.bandaged_limbs = table.Copy(ply.bandaged_limbs)
-		ply:SetNetVar("bandaged_limbs",ply.bandaged_limbs)
-		ragdoll:SetNetVar("bandaged_limbs",ragdoll.bandaged_limbs)
-	end)
-	
 else
 	local boneScale = {
 		["ValveBiped.Bip01_Head1"] = 1,
@@ -881,19 +871,16 @@ else
 	end
 
 	hook.Add("OnNetVarSet","bandage_netvar",function(index, key, var)
-		if key == "bandaged_limbs" then
-			local ent = Entity(index)
-	
-			if IsValid(ent) then
-	
-				remove_bandages(ent)
-	
-				ent.bandaged_limbs = var
-	
-				ent:CallOnRemove("remove_bandages",function()
-					remove_bandages(ent)
-				end)
+		if key ~= "bandaged_limbs" then return end
+		local ent = Entity(index)
+		if not IsValid(ent) then return end
+		if hg.ClientApplyBandagedLimbs then
+			if ent:IsPlayer() and hg.PlyInFake and hg.PlyInFake(ent) then
+				ent.bandaged_limbs = {}
+				if hg.RemoveBandageVisual then hg.RemoveBandageVisual(ent) end
+				return
 			end
+			hg.ClientApplyBandagedLimbs(ent, istable(var) and var or {})
 		end
 	end)
 
@@ -933,49 +920,89 @@ else
 		["ValveBiped.Bip01_R_Calf"] = "LegDownRught-f",
 	}
 
+	local function GetBandagedLimbs(ent, ply)
+		if ent.bandaged_limbs and next(ent.bandaged_limbs) then return ent.bandaged_limbs end
+
+		local limbs = ent.GetNetVar and ent:GetNetVar("bandaged_limbs")
+		if istable(limbs) and next(limbs) then
+			ent.bandaged_limbs = limbs
+			return limbs
+		end
+
+		if IsValid(ply) and ply ~= ent and ply.GetNetVar then
+			limbs = ply:GetNetVar("bandaged_limbs")
+			if istable(limbs) and next(limbs) then
+				ply.bandaged_limbs = limbs
+				return limbs
+			end
+		end
+	end
+
 	--hook.Add("PostDrawPlayerRagdoll", "draw_bandages", function(ent,ply)
 	function hg.RenderBandages(ent, ply)
-		--PrintTable(ent.bandaged_limbs)
-		if not ent.bandaged_limbs then return end
-		if !next(ent.bandaged_limbs) then return end
-		if not IsValid( ent.bandagesModel ) then
-			ent.bandagesModel = (ThatPlyIsFemale(ent) and ClientsideModel(BadagesModelFemale) or ClientsideModel(BadagesModelMale))
+		if not IsValid(ent) then return end
+		ply = IsValid(ply) and ply or ent
+
+		local limbs = GetBandagedLimbs(ent, ply)
+		if not limbs then return end
+
+		local femEnt = ply:IsPlayer() and ply or ent
+		local fem = ThatPlyIsFemale(femEnt)
+		if not IsValid(ent.bandagesModel) then
+			ent.bandagesModel = ClientsideModel(fem and BadagesModelFemale or BadagesModelMale)
 			local model = ent.bandagesModel
-			ent:CallOnRemove("removebandages",function()
+			ent:CallOnRemove("removebandages", function()
 				if IsValid(model) then
 					model:Remove()
 					model = nil
 				end
 			end)
 		end
-		
+
 		local model = ent.bandagesModel
 		model:SetNoDraw(true)
-		model:SetPos(ent:GetPos() + vector_up * 1)
-		model:SetParent(ent)
-		model:AddEffects(EF_BONEMERGE)
-		local dontmakehands = false
-		if !hg.Appearance.FuckYouModels[1][ent:GetModel()] and !hg.Appearance.FuckYouModels[2][ent:GetModel()] then dontmakehands = true end
-		
-		if not model.BodygroupsApplied then 
-			for k, v in pairs(ent.bandaged_limbs) do
-				if dontmakehands and (k == "ValveBiped.Bip01_L_Hand" or k == "ValveBiped.Bip01_R_Hand") then continue end -- ez
-				model:SetBodygroup(model:FindBodygroupByName( ThatPlyIsFemale(ent) and BodyGroupsFemale[k] or BodyGroupsMale[k] or ""), 1)
+
+		if model:GetParent() ~= ent then
+			model:SetParent(ent)
+			model:AddEffects(EF_BONEMERGE)
+		end
+
+		local entModel = ent:GetModel()
+		if entModel then
+			local parts = string.Split(string.sub(entModel, 1, -5), "/")
+			local mdl = parts[#parts]
+			if mdl then
+				local flex = model:GetFlexIDByName(mdl)
+				if flex then model:SetFlexWeight(flex, 1) end
+			end
+		end
+
+		local dontmakehands = not hg.Appearance.FuckYouModels[1][ent:GetModel()] and not hg.Appearance.FuckYouModels[2][ent:GetModel()]
+		local bodyMap = fem and BodyGroupsFemale or BodyGroupsMale
+
+		if not model.BodygroupsApplied then
+			for k in pairs(limbs) do
+				if dontmakehands and (k == "ValveBiped.Bip01_L_Hand" or k == "ValveBiped.Bip01_R_Hand") then continue end
+				local bg = model:FindBodygroupByName(bodyMap[k] or "")
+				if bg >= 0 then model:SetBodygroup(bg, 1) end
 			end
 
-			for k, v in pairs(hg.amputatedlimbs2) do
-				local children = hg.get_children(ent, k)
-				table.insert(children, k)
-				
-				for k2, v2 in ipairs(children) do
-					if ent.bandaged_limbs[v2] and ent.organism and ent.organism[hg.amputatedlimbs2[v2].."amputated"] then
-						model:SetBodygroup(model:FindBodygroupByName( ThatPlyIsFemale(ent) and BodyGroupsFemale[v2] or BodyGroupsMale[v2] or ""), 0)
+			for bone in pairs(hg.amputatedlimbs2) do
+				local children = hg.get_children(ent, bone)
+				children[#children + 1] = bone
+
+				for i = 1, #children do
+					local childBone = children[i]
+					if limbs[childBone] and ent.organism and ent.organism[hg.amputatedlimbs2[childBone] .. "amputated"] then
+						local bg = model:FindBodygroupByName(bodyMap[childBone] or "")
+						if bg >= 0 then model:SetBodygroup(bg, 0) end
 					end
 				end
 			end
 
 			model.BodygroupsApplied = true
 		end
+
 		model:DrawModel()
 	end
 	--end)

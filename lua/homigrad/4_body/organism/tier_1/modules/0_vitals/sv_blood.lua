@@ -103,7 +103,7 @@ module[2] = function(owner, org, mulTime)
 
 	local coagulatespeed = 0
 	local bleedoutspeed = 0
-	if #org.wounds > 0 then
+	if org.wounds and next(org.wounds) then
 		local ent = hg.GetCurrentCharacter(owner) or owner
 		
 		for i, wound in pairs(org.wounds) do
@@ -124,7 +124,10 @@ module[2] = function(owner, org, mulTime)
 					wound[1] = max(wound[1] - coagulate, 0)
 				end
 
-				if wound[1] == 0 then table.remove(org.wounds, i) owner:SetNetVar("wounds",org.wounds) end
+				if wound[1] == 0 then
+					table.remove(org.wounds, i)
+					hg.organism.SyncWoundNetVars(owner, org)
+				end
 			//end
 		end
 	end
@@ -161,8 +164,7 @@ module[2] = function(owner, org, mulTime)
 
 			if wound[1] == 0 then
 				table.remove(org.arterialwounds, i)
-				owner:SetNetVar("arterialwounds", org.arterialwounds)
-
+				hg.organism.SyncWoundNetVars(owner, org)
 				org[wound[7]] = 0
 			end
 		end

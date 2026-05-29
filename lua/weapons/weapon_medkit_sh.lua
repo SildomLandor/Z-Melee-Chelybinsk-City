@@ -65,7 +65,7 @@ function SWEP:Think()
 	if CLIENT and hg.MouseMinigame and hg.MouseMinigame:IsActive() then
 		local session = hg.MouseMinigame.ActiveSession
 		if session and session.weapon == self then
-			decay = true
+			decay = false
 		end
 	end
 

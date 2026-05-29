@@ -599,26 +599,19 @@ local function filterActiveWounds(wounds)
 end
 
 local function resolveClientBleedWounds(ent, ply)
-	local wounds = filterActiveWounds(ent:GetNetVar("wounds"))
+	local bleed = hg.GetEntOrgBleed and hg.GetEntOrgBleed(ent) or 0
+	if IsValid(ply) then bleed = math.max(bleed, hg.GetEntOrgBleed(ply) or 0) end
+	if bleed <= 0.05 then return nil, nil end
+
+	local src = (IsValid(ply) and ply ~= ent) and ply or ent
+	local wounds = filterActiveWounds(src:GetNetVar("wounds"))
 	if not woundsHasActive(wounds) then
-		wounds = filterActiveWounds(ent.wounds)
-	end
-	if not woundsHasActive(wounds) and IsValid(ply) and ply ~= ent then
-		wounds = filterActiveWounds(ply:GetNetVar("wounds"))
-	end
-	if not woundsHasActive(wounds) and IsValid(ply) and ply ~= ent then
-		wounds = filterActiveWounds(ply.wounds)
+		wounds = filterActiveWounds(src.wounds)
 	end
 
-	local arterial = filterActiveWounds(ent:GetNetVar("arterialwounds"))
+	local arterial = filterActiveWounds(src:GetNetVar("arterialwounds"))
 	if not woundsHasActive(arterial) then
-		arterial = filterActiveWounds(ent.arterialwounds)
-	end
-	if not woundsHasActive(arterial) and IsValid(ply) and ply ~= ent then
-		arterial = filterActiveWounds(ply:GetNetVar("arterialwounds"))
-	end
-	if not woundsHasActive(arterial) and IsValid(ply) and ply ~= ent then
-		arterial = filterActiveWounds(ply.arterialwounds)
+		arterial = filterActiveWounds(src.arterialwounds)
 	end
 
 	if not woundsHasActive(wounds) then wounds = nil end
@@ -658,10 +651,9 @@ hook.Add("OnNetVarSet","wounds_netvar",function(index, key, var)
 			end
 
 			ent.wounds = var
-			--PrintTable(ent.wounds)
-			local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")-- or IsValid(ent:GetNWEntity("RagdollDeath")) and ent:GetNWEntity("RagdollDeath")
+			local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")
 			if IsValid(rag) then
-				rag.wounds = rag:GetNetVar("wounds") or var
+				rag.wounds = var
 			end
 		end
 	end
@@ -698,10 +690,9 @@ hook.Add("OnNetVarSet","wounds_netvar2",function(index, key, var)
 			end
 
 			ent.arterialwounds = var
-			local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")-- or IsValid(ent:GetNWEntity("RagdollDeath")) and ent:GetNWEntity("RagdollDeath")
-			
+			local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")
 			if IsValid(rag) then
-				rag.arterialwounds = rag:GetNetVar("arterialwounds") or var
+				rag.arterialwounds = var
 			end
 		end
 	end
@@ -766,8 +757,9 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 
 	local bleed = tonumber(org.bleed) or 0
 	local wounds, arterialwounds
-	if bleed > 0.05 then
+	if hg.EntNeedsBleedFX and (hg.EntNeedsBleedFX(ent) or (IsValid(ply) and ply ~= ent and hg.EntNeedsBleedFX(ply))) then
 		wounds, arterialwounds = resolveClientBleedWounds(ent, ply)
+		bleed = math.max(bleed, hg.GetEntOrgBleed and hg.GetEntOrgBleed(ent) or 0)
 	end
 
 	local near = ply == lply or ent:GetPos():DistToSqr(lply:GetPos()) <= 512 * 512
@@ -987,7 +979,7 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 	end
 	
 	if near and bleed > 0.05 and org.blood and org.blood > 10 and arterialwounds then
-		for _, wound in pairs(arterialwounds) do
+		for i, wound in pairs(arterialwounds) do
 			if not wound or not wound[1] or wound[1] <= 0 or not wound[4] then continue end
 			local addtime = seen and 1 / math.Clamp(org.pulse or 70, 1,15) * 0.25 or 0.06
 			if (wound[5] or 0) + addtime < time and ent:LookupBone(wound[4]) then
