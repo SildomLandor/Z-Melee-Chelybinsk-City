@@ -182,11 +182,13 @@ local math_random, math_Rand = math.random, math.Rand
 		if rag.organism then return end
 
 		local newOrg = hg.organism.Add(rag)
+		if not newOrg then return end
 		table.Merge(newOrg, ent.organism)
 
 		hook.Run("RagdollDeath", ent, rag)
 
 		if zb and zb.net and zb.net.list and zb.net.list[ent] then
+			zb.net.list[rag] = zb.net.list[rag] or {}
 			table.Merge(zb.net.list[rag], zb.net.list[ent])
 		end
 
