@@ -36,6 +36,61 @@ local function IsBandageMinigameWeapon(wep)
 	if not bandageCircleClasses[wep:GetClass()] then return false end
 	return IsBandageMode(wep)
 end
+
+local function woundsNeedBandage(wounds)
+	if not istable(wounds) then return false end
+	for i = 1, #wounds do
+		local w = wounds[i]
+		if istable(w) and (tonumber(w[1]) or 0) > 0 then return true end
+	end
+	return false
+end
+
+local function orgNeedsBandage(org)
+	if not org then return false end
+	if (tonumber(org.bleed) or 0) > 0 then return true end
+	if istable(org.arterialwounds) and #org.arterialwounds > 0 then return true end
+	if woundsNeedBandage(org.wounds) then return true end
+	if org.skull and org.skull >= 0.6 then return true end
+	if org.chest == 1 then return true end
+	if org.lleg == 1 and not org.llegamputated then return true end
+	if org.rleg == 1 and not org.rlegamputated then return true end
+	if org.larm == 1 and not org.larmamputated then return true end
+	if org.rarm == 1 and not org.rarmamputated then return true end
+	return false
+end
+
+local function netNeedsBandage(ent)
+	if not IsValid(ent) or not ent.GetNetVar then return false end
+	if (tonumber(ent:GetNetVar("bleed", 0)) or 0) > 0 then return true end
+	local arterial = ent:GetNetVar("arterialwounds")
+	if istable(arterial) and #arterial > 0 then return true end
+	return woundsNeedBandage(ent:GetNetVar("wounds"))
+end
+
+function hg.CanBandage(ent)
+	if not IsValid(ent) then return false end
+	if orgNeedsBandage(ent.organism) then return true end
+	if netNeedsBandage(ent) then return true end
+	if hg.GetCurrentCharacter then
+		local chr = hg.GetCurrentCharacter(ent)
+		if IsValid(chr) and chr ~= ent then
+			return hg.CanBandage(chr)
+		end
+	end
+	return false
+end
+
+function hg.BandageRefuseChatMsg(owner, target)
+	if not IsValid(owner) then return "перевязка не нужна" end
+	target = IsValid(target) and (hg.GetCurrentCharacter and hg.GetCurrentCharacter(target) or target) or owner
+	local selfChr = hg.GetCurrentCharacter and hg.GetCurrentCharacter(owner) or owner
+	if target == owner or target == selfChr then
+		return "вроде не истекаю кровью"
+	end
+	return "перевязка не нужна"
+end
+
 -- тип который это делал пж не делай больше так я заебался фиксить
 if SERVER then
 	AddCSLuaFile()
@@ -55,6 +110,12 @@ if SERVER then
 		wep.HgBandageCooldown = wep.HgBandageCooldown or 0
 		if wep.HgBandageCooldown > CurTime() then return end
 		wep.HgBandageCooldown = CurTime() + 0.2
+
+		local buddy = IsValid(target) and (hg.GetCurrentCharacter(target) or target) or ply
+		if not hg.CanBandage(buddy) then
+			ply:ChatPrint(hg.BandageRefuseChatMsg(ply, buddy))
+			return
+		end
 
 		if wep.DoBandageUse then
 			wep:DoBandageUse(attackType, target, true)
@@ -342,43 +403,7 @@ local function GetEntityInjuryScore(target)
 end
 
 local function HasBandageMinigameNeed(target)
-	if not IsValid(target) then return false end
-	local org = target.organism
-	if org then
-		local bleed = tonumber(org.bleed) or 0
-		if bleed > 0 then return true end
-		if istable(org.arterialwounds) and #org.arterialwounds > 0 then return true end
-		if istable(org.wounds) and #org.wounds > 0 then
-			for i = 1, #org.wounds do
-				local wound = org.wounds[i]
-				if istable(wound) and tonumber(wound[1] or 0) > 0 then
-					return true
-				end
-			end
-		end
-	end
-	if target.GetNetVar then
-		local bleed = tonumber(target:GetNetVar("bleed", 0) or 0) or 0
-		if bleed > 0 then return true end
-		local arterial = target:GetNetVar("arterialwounds", nil)
-		if istable(arterial) and #arterial > 0 then return true end
-		local wounds = target:GetNetVar("wounds", nil)
-		if istable(wounds) then
-			for i = 1, #wounds do
-				local wound = wounds[i]
-				if istable(wound) and tonumber(wound[1] or 0) > 0 then
-					return true
-				end
-			end
-		end
-	end
-	if hg and hg.GetCurrentCharacter then
-		local chr = hg.GetCurrentCharacter(target)
-		if IsValid(chr) and chr ~= target then
-			return HasBandageMinigameNeed(chr)
-		end
-	end
-	return false
+	return hg.CanBandage(target)
 end
 
 local function GetBandageLoopsWithInjuries(wep, attackType)
@@ -413,7 +438,7 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 	local target = ResolveBandageTarget(wep, attackType)
 	if not IsValid(target) then return false end
 	if not HasBandageMinigameNeed(target) then
-		owner:Notify("я не думаю что мне это нужно...")
+		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, target))
 		return false
 	end
 

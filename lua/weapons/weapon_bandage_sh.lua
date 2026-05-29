@@ -244,6 +244,12 @@ function SWEP:DoBandageUse(attackType, target, fromMinigame)
 		end
 	end
 
+	local buddy = hg.GetCurrentCharacter(self.healbuddy) or self.healbuddy
+	if not hg.CanBandage(buddy) then
+		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, buddy))
+		return false
+	end
+
 	local done = self:Heal(self.healbuddy, self.mode)
 
 	if done and self.PostHeal then
@@ -527,31 +533,34 @@ if SERVER then
 		local bandaged = false
 		
 		if not bone then
-			--print(#org.wounds)
-			for i = 1, #org.wounds do
-				if self.modeValues[1] > 0 and #org.wounds > 0 then
-					local biggestWound = org.wounds[1][1]
-					local healedWound = math.max(biggestWound - self.modeValues[1], 0)
-					local woundHeal = self.modeValues[1] - (biggestWound - healedWound)-- * ((owner.Profession == "doctor") and 0.33 or 1)
-					org.bleed = math.max(org.bleed - (biggestWound - healedWound), 0)
-					org.wounds[1][1] = healedWound
-					self.modeValues[1] = woundHeal > 0.1 and woundHeal or 0
-					
-					if (biggestWound - healedWound) > 0.1 then
-						bandaged = true
-					end
+			while self.modeValues[1] > 0 and #org.wounds > 0 do
+				table.sort(org.wounds, function(a, b) return a[1] > b[1] end)
 
-					local owner = self:GetOwner()
-					if owner.Karma then
-						--owner.Karma = math.Clamp(owner.Karma + 0.25,0,zb.MaxKarma)
-					end
-					ent.bandaged_limbs = ent.bandaged_limbs or {}
-					local bone_name = org.wounds[1][4]
-					if not ent.bandaged_limbs[bone_name] then
-						ent.bandaged_limbs[bone_name] = true
-						done = true
-					end
-					if org.wounds[1][1] == 0 then table.remove(org.wounds, 1) end
+				local biggestWound = org.wounds[1][1]
+				if not biggestWound or biggestWound <= 0 then
+					table.remove(org.wounds, 1)
+					continue
+				end
+
+				local spent = math.min(self.modeValues[1], biggestWound)
+				local healedWound = biggestWound - spent
+				org.bleed = math.max(org.bleed - spent, 0)
+				org.wounds[1][1] = healedWound
+				self.modeValues[1] = self.modeValues[1] - spent
+
+				if spent > 0 then
+					bandaged = true
+				end
+
+				ent.bandaged_limbs = ent.bandaged_limbs or {}
+				local bone_name = org.wounds[1][4]
+				if bone_name and not ent.bandaged_limbs[bone_name] then
+					ent.bandaged_limbs[bone_name] = true
+					done = true
+				end
+
+				if healedWound <= 0 then
+					table.remove(org.wounds, 1)
 				end
 			end
 		else
@@ -563,32 +572,41 @@ if SERVER then
 				end
 			end
 			
-			for i = 1, #bonewounds do
-				if self.modeValues[1] ~= 0 and #bonewounds > 0 then
-					if org.wounds[bonewounds[1]] then
-						local biggestWound = org.wounds[bonewounds[1]][1]
-						local healedWound = math.max(biggestWound - self.modeValues[1], 0)
-						local woundHeal = self.modeValues[1] - (biggestWound - healedWound)
-						org.bleed = math.max(org.bleed - (biggestWound - healedWound), 0)
-						org.wounds[bonewounds[1]][1] = healedWound
-						self.modeValues[1] = woundHeal
+			while self.modeValues[1] > 0 and #bonewounds > 0 do
+				local woundIdx = bonewounds[1]
+				local wound = org.wounds[woundIdx]
+				if not wound then
+					table.remove(bonewounds, 1)
+					continue
+				end
 
-						org.pain = math.max(org.pain - (biggestWound - healedWound) / 4, 0)
+				local biggestWound = wound[1]
+				if not biggestWound or biggestWound <= 0 then
+					table.remove(org.wounds, woundIdx)
+					table.remove(bonewounds, 1)
+					continue
+				end
 
-						if (biggestWound - healedWound) > 0.1 then
-							bandaged = true
-						end
+				local spent = math.min(self.modeValues[1], biggestWound)
+				local healedWound = biggestWound - spent
+				org.bleed = math.max(org.bleed - spent, 0)
+				wound[1] = healedWound
+				self.modeValues[1] = self.modeValues[1] - spent
+				org.pain = math.max(org.pain - spent / 4, 0)
 
-						ent.bandaged_limbs = ent.bandaged_limbs or {}
-						local bone_name = ent:GetBoneName(ent:LookupBone(org.wounds[bonewounds[1]][4]))
-						
-						if not ent.bandaged_limbs[bone_name] then
-							ent.bandaged_limbs[bone_name] = true
-							done = true
-						end
+				if spent > 0 then
+					bandaged = true
+				end
 
-						if org.wounds[bonewounds[1]][1] == 0 then table.remove(org.wounds, bonewounds[1]) end
-					end
+				ent.bandaged_limbs = ent.bandaged_limbs or {}
+				local bone_name = ent:GetBoneName(ent:LookupBone(wound[4]))
+				if bone_name and not ent.bandaged_limbs[bone_name] then
+					ent.bandaged_limbs[bone_name] = true
+					done = true
+				end
+
+				if healedWound <= 0 then
+					table.remove(org.wounds, woundIdx)
 					table.remove(bonewounds, 1)
 				end
 			end

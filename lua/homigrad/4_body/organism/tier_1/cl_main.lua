@@ -583,10 +583,25 @@ hook.Add("OnNetVarSet","wounds_netvar",function(index, key, var)
 		--local ent = hg.RagdollOwner(ent) or ent
 		
 		if IsValid(ent) then
+			if not istable(var) or #var == 0 then
+				ent.wounds = {}
+				local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")
+				if IsValid(rag) then rag.wounds = {} end
+				return
+			end
+
 			if ent.wounds then
-				for i = 1, #ent.wounds do
-					if !var or !var[i] then continue end
-					var[i][5] = ent.wounds[i][5]
+				for i = 1, #var do
+					local nw, ow = var[i], ent.wounds[i]
+					if ow and nw and ow[4] == nw[4] and ow[5] then
+						nw[5] = ow[5]
+					elseif nw and not nw[5] then
+						nw[5] = CurTime()
+					end
+				end
+			else
+				for i = 1, #var do
+					if var[i] and not var[i][5] then var[i][5] = CurTime() end
 				end
 			end
 
@@ -606,10 +621,25 @@ hook.Add("OnNetVarSet","wounds_netvar2",function(index, key, var)
 		--local ent = hg.RagdollOwner(ent) or ent
 		
 		if IsValid(ent) then
+			if not istable(var) or #var == 0 then
+				ent.arterialwounds = {}
+				local rag = IsValid(ent:GetNWEntity("FakeRagdoll")) and ent:GetNWEntity("FakeRagdoll")
+				if IsValid(rag) then rag.arterialwounds = {} end
+				return
+			end
+
 			if ent.arterialwounds then
-				for i = 1, #ent.arterialwounds do
-					if not var or not var[i] then continue end
-					var[i][5] = ent.arterialwounds[i][5]
+				for i = 1, #var do
+					local nw, ow = var[i], ent.arterialwounds[i]
+					if ow and nw and ow[4] == nw[4] and ow[7] == nw[7] and ow[5] then
+						nw[5] = ow[5]
+					elseif nw and not nw[5] then
+						nw[5] = CurTime()
+					end
+				end
+			else
+				for i = 1, #var do
+					if var[i] and not var[i][5] then var[i][5] = CurTime() end
 				end
 			end
 
@@ -676,9 +706,22 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 	local organism = ply.organism
 	local new_organism = ply.new_organism
 	
-	local seen = ent.shouldTransmit-- and not ent.NotSeen
-	local wounds = ply.wounds
-	local arterialwounds = ply.arterialwounds
+	local seen = ent.shouldTransmit ~= false-- and not ent.NotSeen
+	local wounds = ent.wounds
+	if not istable(wounds) or #wounds == 0 then
+		wounds = ent:GetNetVar("wounds")
+	end
+	if (not istable(wounds) or #wounds == 0) and IsValid(ply) and ply ~= ent then
+		wounds = ply.wounds or ply:GetNetVar("wounds")
+	end
+
+	local arterialwounds = ent.arterialwounds
+	if not istable(arterialwounds) or #arterialwounds == 0 then
+		arterialwounds = ent:GetNetVar("arterialwounds")
+	end
+	if (not istable(arterialwounds) or #arterialwounds == 0) and IsValid(ply) and ply ~= ent then
+		arterialwounds = ply.arterialwounds or ply:GetNetVar("arterialwounds")
+	end
 
 	local org = ent.organism
 
@@ -853,9 +896,15 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 		if (owner:IsPlayer() and owner:Alive()) or not owner:IsPlayer() then
 			for i = 1, #wounds do
 				local wound = wounds[i]
+				if not wound or not wound[1] or wound[1] <= 0 or not wound[4] then continue end
 				local size = math.random(0, 1) * math.max(math.min(wound[1], 1), 0.5)
 				
-				if wound[5] + beatsPerSecond < time then
+				if (wound[5] or 0) + beatsPerSecond < time then
+					if not seen then
+						wound[5] = time
+						continue
+					end
+
 					if seen and ent:LookupBone(wound[4]) then
 						local bone = wound[4]
 						local should = !(hg.amputatedlimbs2[bone] and org[hg.amputatedlimbs2[bone].."amputated"])
@@ -898,8 +947,14 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 	if near and org and org.blood and org.blood > 10 and arterialwounds and #arterialwounds > 0 then
 		for i = 1, #arterialwounds do
 			local wound = arterialwounds[i]
+			if not wound or not wound[1] or wound[1] <= 0 or not wound[4] then continue end
 			local addtime = seen and 1 / math.Clamp(org.pulse or 70, 1,15) * 0.25 or 0.06
-			if wound[5] + addtime < time and ent:LookupBone(wound[4]) then
+			if (wound[5] or 0) + addtime < time and ent:LookupBone(wound[4]) then
+				if not seen then
+					wound[5] = time
+					continue
+				end
+
 				local pos, ang = ent:GetBonePosition(ent:LookupBone(wound[4]))
 				if (owner:IsPlayer() and owner:Alive()) or not owner:IsPlayer() then
 					local size = math.random(1, 2) * math.max(math.min(wound[1], 1), 0.5)
@@ -930,17 +985,6 @@ hook.Add("Player-Ragdoll think", "organism-think-client-blood", function(ply, en
 						end
 
 						wound[5] = time + (water and 2 or (0.5 * 1 / hg_blood_fps:GetInt()))
-					else
-						local pos = ent:GetPos()
-						
-						local water = bit.band(util.PointContents(pos), CONTENTS_WATER) == CONTENTS_WATER
-						if water then
-							hg.addBloodPart2(pos, VectorRand(-5, 5), nil, nil, nil, nil, true, nil, ent)
-						else
-							hg.addBloodPart(pos, VectorRand(-15, 15), nil, size, size, true, nil, ent)
-						end
-
-						wound[5] = time + (water and 2 or 0)
 					end
 				end
 			end
