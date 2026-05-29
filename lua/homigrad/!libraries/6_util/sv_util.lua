@@ -425,22 +425,39 @@ hook.Add("Player_Death","notarget_removebull",function(ply)
 	ply:AddFlags(FL_NOTARGET)
 end)
 
-hook.Add("Player Think", "homigrad-dropholstered", function(ply)
-	if (ply.thinkdropwep or 0) > CurTime() then return end
-	ply.thinkdropwep = CurTime() + 0.1
-	if ply.organism and ply.organism.allowholster then return end
+hook.Add("Player Think", "homigrad-dropholstered-fixed", function(ply)
 
-	local activewep = ply:GetActiveWeapon()
-	local weps = ply:GetWeapons()
-	local wep
-	for i = 1, #weps do
-		wep = weps[i]
-		
-		if wep.NoHolster and activewep ~= wep and wep.picked then 
-			ply:DropWeapon(wep)
-		end
-	end
+    if (ply.thinkdropwep or 0) > CurTime() then return end
+    ply.thinkdropwep = CurTime() + 0.1
+    
+    if ply.organism and ply.organism.allowholster then return end
+
+    local weps = ply:GetWeapons()
+    local heavyWeapons = {}
+
+    for i = 1, #weps do
+        local wep = weps[i]
+        if IsValid(wep) and wep.NoHolster and wep.picked then
+            table.insert(heavyWeapons, wep)
+        end
+    end
+
+    if #heavyWeapons > 1 then
+        local activewep = ply:GetActiveWeapon()
+
+        for i = 1, #heavyWeapons do
+            local wep = heavyWeapons[i]
+            
+
+            if wep ~= activewep then
+                ply:DropWeapon(wep)
+                break
+            end
+        end
+    end
 end)
+
+
 
 util.AddNetworkString( "DoPlayerFlinch" )
 
