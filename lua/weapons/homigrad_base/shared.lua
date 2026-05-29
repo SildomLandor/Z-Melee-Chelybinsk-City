@@ -753,8 +753,17 @@ end
 
 function SWEP:SetInfo(info)
 	if not info then return end
-	self:SetClip1(info[1] or self:GetMaxClip1())
-	self.attachments = info[2] or {}
+
+	local clip, attachments
+	if istable(info) then
+		clip = tonumber(info[1])
+		attachments = info[2]
+	else
+		clip = tonumber(info)
+	end
+
+	self:SetClip1(clip or self:GetMaxClip1())
+	self.attachments = istable(attachments) and attachments or {}
 	self:SetNetVar("attachments", self.attachments)
 end
 

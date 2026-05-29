@@ -137,11 +137,28 @@ end
 
 SWEP.usetime = 2
 local math = math
+
+local function NormalizeModeValues(wep, values)
+	if istable(values) then return values end
+	if isnumber(values) then return {[1] = values} end
+
+	local fallback = {}
+	for i, def in ipairs(wep.modeValuesdef or {}) do
+		fallback[i] = istable(def) and def[1] or def
+	end
+	if fallback[1] == nil then fallback[1] = 0 end
+	return fallback
+end
+
 function SWEP:Think()
 	self:SetHold(self.HoldType)
 
 	if self:GetClass() == "weapon_bandage_sh" then
-		self.ModelScale = math.Clamp(self.modeValues[1] / (self.modeValuesdef[1][1] * 0.8), 0.5, 1)
+		self.modeValues = NormalizeModeValues(self, self.modeValues)
+		local modeMax = self.modeValuesdef and self.modeValuesdef[1] and (istable(self.modeValuesdef[1]) and self.modeValuesdef[1][1] or self.modeValuesdef[1]) or 0
+		if modeMax > 0 then
+			self.ModelScale = math.Clamp((tonumber(self.modeValues[1]) or 0) / (modeMax * 0.8), 0.5, 1)
+		end
 	end
 
 	if not self:GetOwner():KeyDown(IN_ATTACK) and hg_healanims:GetBool() then
@@ -374,6 +391,7 @@ function SWEP:GetInfo()
 end
 
 function SWEP:SetInfo(info)
+	info = NormalizeModeValues(self, info)
 	self:SetNetVar("modeValues",info)
 	self.modeValues = info
 end
@@ -408,8 +426,9 @@ if CLIENT then
 	hook.Add("OnNetVarSet","bandage-net-var",function(index,key,var)
 		if key == "modeValues" then
 			local ent = Entity(index)
+			if not IsValid(ent) then return end
 
-			ent.modeValues = var
+			ent.modeValues = NormalizeModeValues(ent, var)
 		end
 	end)
 end
