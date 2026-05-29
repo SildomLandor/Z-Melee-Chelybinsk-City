@@ -28,6 +28,11 @@ if CLIENT then
 	local fontAA = CreateClientConVar("zchat_fontaa", 1, true, false, "Font anti-aliasing", 0, 1)
 	local fontWeight = CreateClientConVar("zchat_fontweight", 1000, true, false, "Font weight", 0, 1000)
 
+	local function IsLocalOtrub()
+		local ply = LocalPlayer()
+		return IsValid(ply) and ply.organism and ply.organism.otrub
+	end
+
 	local function CloseChatSettings(chat)
 		if not IsValid(chat) then return end
 		if IsValid(chat.settingsFrame) then
@@ -49,7 +54,7 @@ if CLIENT then
 		CreateChat()
 	end)
 
-	hook.Add("PlayerStartVoice","RemoveVoicePanles",function()
+	hook.Add("PlayerStartVoice","RemoveVoicePanles",function(ply)
 		if !IsValid(ply) then return end
 
 		local other_alive = (ply:Alive() and LocalPlayer() != ply) or (ply.organism and (ply.organism.otrub or (ply.organism.brain and ply.organism.brain > 0.05)))
@@ -63,9 +68,29 @@ if CLIENT then
 		bind = bind:lower()
 
 		if (bind:find("messagemode") and pressed) then
+			if IsLocalOtrub() then return true end
 			hg.chat:SetActive(true)
 
 			return true
+		end
+	end)
+
+	hook.Add("Think", "ZChatHideOnOtrub", function()
+		if not IsValid(hg.chat) then return end
+
+		if IsLocalOtrub() then
+			if hg.chat:GetActive() then
+				hg.chat:SetActive(false, true)
+			end
+
+			if hg.chat:IsVisible() then
+				hg.chat:SetVisible(false)
+			end
+			return
+		end
+
+		if not hg.chat:IsVisible() then
+			hg.chat:SetVisible(true)
 		end
 	end)
 
@@ -108,12 +133,14 @@ if CLIENT then
 	end)
 
 	hook.Add("ChatText", "ZChat", function(index, name, text, messageType)
+		if IsLocalOtrub() then return end
 		if (IsValid(hg.chat)) then
 			hg.chat:AddMessage(text)
 		end
 	end)
 
 	function chat.AddText(...)
+		if IsLocalOtrub() then return end
 		if (IsValid(hg.chat)) then
 			hg.chat:AddMessage(...)
 		end
