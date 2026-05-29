@@ -1205,9 +1205,10 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
         if wep.GetBlocking and wep:GetBlocking() and wep.SetStartedBlocking and dist < 10 then
             local defenderBlockTier = wep.BlockTier or 1
             local attackerBlockTier = self.BlockTier or 1
+            local perfectblock = CurTime() - wep:GetStartedBlocking() < 0.5
 
-            if defenderBlockTier >= attackerBlockTier then
-                if attacktype == 3 then
+            if defenderBlockTier >= attackerBlockTier or perfectblock then
+                if attacktype == 3 and not perfectblock then
                     local defenderStamina = ent.organism and ent.organism.stamina and ent.organism.stamina[1] or 0
                     local heavyBreakChance = math.Clamp(attackerBlockTier * 0.12, 0, 0.35)
                     if defenderStamina < 65 and math.random() <= heavyBreakChance then
@@ -1243,33 +1244,27 @@ function SWEP:BlockingLogic(ent, mul, attacktype, trace)
                     -- wep:SetLastBlocked(CurTime()) -- Removing this to ensure block doesn't stop
                 end
 
-                local perfectblock = CurTime() - wep:GetStartedBlocking() < 0.5
-                
-                local heavyBlockedNoBreak = attacktype == 3
-                local staminaLossMul = heavyBlockedNoBreak and 1.75 or 1
-                local blockerViewPunchMul = heavyBlockedNoBreak and 1.8 or 1
+                local blockerViewPunchMul = (attacktype == 3) and 1.8 or 1
 
                 if perfectblock then
                     ent:EmitSound("parry.ogg", 75)
+                    -- No stamina loss for perfect block
                 else
+                    -- Normal block: fixed stamina loss of 3
                     if ent.organism and ent.organism.stamina then
-                        ent.organism.stamina.subadd = ent.organism.stamina.subadd + 15 * staminaLossMul
+                        ent.organism.stamina.subadd = ent.organism.stamina.subadd + 15
                     end
-                end
-
-                if ent.organism and ent.organism.stamina then
-                    ent.organism.stamina.subadd = ent.organism.stamina.subadd + mul * math.Clamp(selfdmg / dmg, 0.1, 1) * selfdmg * (perfectblock and 0 or 1) * staminaLossMul
                 end
 
                 if not owner:IsNPC() then
                     self:PunchPlayer(owner, attacktype, -owner:GetAimVector(), selfdmg / 2)
                 end
                 self:PunchPlayer(ent, attacktype, owner:GetAimVector(), (selfdmg / 2) * blockerViewPunchMul)
-                
+
                 if perfectblock then
                     -- ent:EmitSound("tasty/empty.wav")
                 end
-                
+
                 -- if wep.SetLastBlocked then
                 --    wep:SetLastBlocked(CurTime())
                 -- end
@@ -1757,20 +1752,22 @@ function SWEP:CustomThink()
         end
     end
     
-    if CLIENT and owner ~= lply then return end
-
-    //if SERVER then
-        local oldblocking = self:GetBlocking()
-        local now = CurTime()
-        local feintLockActive = (self.HeavyAttackFeintLockEndTime or 0) > now
-        local blocking = not feintLockActive and ((now - self:GetStartedBlocking()) > 1 or oldblocking) and owner.organism and owner.organism.stamina and owner.organism.stamina[1] and owner.organism.stamina[1] > 90 and !self:GetInAttack() and (self:GetAttackTime() - now - 0) < 0 and self:CanBlock() and hg.KeyDown(owner, IN_ATTACK2)
-        --if self:CutDuct() then return end
-        self:SetBlocking(blocking)
-        
-        if self:GetBlocking() and !oldblocking then
-            self:SetStartedBlocking(CurTime())
-        end
-    //end
+     if CLIENT and owner ~= lply then return end
+ 
+      if SERVER then
+          local oldblocking = self:GetBlocking()
+          local now = CurTime()
+          local feintLockActive = (self.HeavyAttackFeintLockEndTime or 0) > now
+          -- For NPCs, always attempt to block when able; for players, check input
+          local wantsToBlock = owner:IsNPC() or hg.KeyDown(owner, IN_ATTACK2)
+          local blocking = not feintLockActive and ((now - self:GetStartedBlocking()) > 1 or oldblocking) and owner.organism and owner.organism.stamina and owner.organism.stamina[1] and (owner.organism.stamina[1] > 90 or (owner:IsPlayer() and IsValid(owner.FakeRagdoll))) and !self:GetInAttack() and (self:GetAttackTime() - now - 0) < 0 and self:CanBlock() and wantsToBlock
+          --if self:CutDuct() then return end
+          self:SetBlocking(blocking)
+          
+          if self:GetBlocking() and !oldblocking then
+              self:SetStartedBlocking(CurTime())
+          end
+      end
 
 	if self:GetBlocking() then
 		if not self.blockSound then

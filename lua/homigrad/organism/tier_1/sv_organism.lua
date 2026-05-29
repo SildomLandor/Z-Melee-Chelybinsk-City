@@ -78,6 +78,8 @@ hook.Add("Org Clear", "Main", function(org)
 	org.noradrenaline = 0
 
 	org.blindness = nil
+	org.neckslitSoundName = nil
+	org.neckslitSoundEnt = nil
 
 	if IsValid(org.owner) then
 		if org.owner:IsPlayer() and org.owner:Alive() then
@@ -145,6 +147,7 @@ local function send_organism(org, ply)
 	sendtable.timeValue = org.timeValue
 	sendtable.holdingbreath = org.holdingbreath
 	sendtable.arteria = org.arteria
+	sendtable.neckslit = org.neckslit
 	sendtable.recoilmul = org.recoilmul
 	sendtable.meleespeed = org.meleespeed
 	sendtable.temperature = org.temperature
@@ -226,6 +229,7 @@ local function send_bareinfo(org)
 	sendtable.larmamputated = org.larmamputated
 	sendtable.headamputated = org.headamputated
 	sendtable.LodgedEntities = org.LodgedEntities
+	sendtable.neckslit = org.neckslit
 	sendtable.berserkActive2 = org.berserkActive2
 	sendtable.CantCheckPulse = org.CantCheckPulse
 	sendtable.noradrenalineActive = org.noradrenalineActive
@@ -363,6 +367,16 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	--module.blood[3](owner,org,timeValue)--arteria
 	module.blood[2](owner, org, timeValue)
+	local neckslit = false
+	if org.arterialwounds then
+		for i, wound in pairs(org.arterialwounds) do
+			if wound[7] == "arteria" and wound[1] > 0 then
+				neckslit = true
+				break
+			end
+		end
+	end
+	org.neckslit = neckslit
 
 	module.pain[2](owner, org, timeValue)
 	if isPly then
@@ -483,6 +497,8 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 		end
 	end
 
+	if org.neckslit and not org.otrub then org.needfake = true end
+
 	local just_went_uncon = not org.otrub and org.needotrub
 
 	if org.posturing or org.coma then //-- decerebrate / coma posturing
@@ -535,6 +551,17 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 		if math.random(600) < org.brain * 20 then
 			org.needfake = true
 		end
+	end
+
+	if org.neckslitSoundName and (org.otrub or org.needotrub) then
+		if IsValid(org.neckslitSoundEnt) then
+			org.neckslitSoundEnt:StopSound(org.neckslitSoundName)
+		end
+		if IsValid(owner) then
+			owner:StopSound(org.neckslitSoundName)
+		end
+		org.neckslitSoundName = nil
+		org.neckslitSoundEnt = nil
 	end
 
 	org.otrub = org.needotrub

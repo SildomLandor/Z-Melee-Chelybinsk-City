@@ -10,6 +10,18 @@ MODE.start_time = 35
 MODE.ForBigMaps = false
 MODE.Chance = 0.02
 
+MODE.NPCList = {
+	{type = "zbase_classic_zombie", health = 60, min = 5, max = 5},
+	{type = "zbase_classic_zombie_torso", health = 30, min = 1, max = 2},
+	{type = "zbase_funguscrab_zombie", health = 80, min = 1, max = 2},
+	{type = "zbase_funguscrab_zombie_torso", health = 40, min = 1, max = 2},
+	{type = "zbase_funguscrab", health = 5, min = 1, max = 2},
+	{type = "npc_fastzombie", health = 95, min = 1, max = 2},
+	{type = "npc_poisonzombie", health = 280, min = 1, max = 2},
+	{type = "npc_zombine", health = 220, min = 1, max = 2},
+	{type = "zbase_armored_zombine", health = 500, min = 1, max = 2, boss = true},
+}
+
 local spawnMinDistSqr = 600 * 600
 local spawnMaxDist = 1400
 
@@ -29,27 +41,22 @@ end
 
 MODE.Waves = {
 	{
-		{type = "npc_zombie", count = 6, health = 120},
+		
 	},
 	{
-		{type = "npc_zombie", count = 8, health = 130},
-		{type = "npc_fastzombie", count = 3, health = 95},
+
 	},
 	{
-		{type = "npc_zombie", count = 8, health = 150},
-		{type = "npc_fastzombie", count = 5, health = 105},
+		
 	},
 	{
-		{type = "npc_fastzombie", count = 7, health = 115},
-		{type = "npc_poisonzombie", count = 2, health = 280},
+		
 	},
 	{
-		{type = "npc_fastzombie", count = 8, health = 125},
-		{type = "npc_zombine", count = 3, health = 190},
+		
 	},
 	{
-		{type = "npc_fastzombie", count = 10, health = 135},
-		{type = "npc_zombine", count = 5, health = 220},
+		
 	},
 }
 
@@ -264,7 +271,24 @@ end
 
 function MODE:StartWave(num)
 	local waveDef = self.Waves[num]
-	if not waveDef then
+	if not waveDef or #waveDef == 0 then
+		-- Generate a random wave: pick a random number of NPC types (between 2 and 4, or up to total types)
+		local typesCount = math.min(#MODE.NPCList, math.random(2, math.min(4, #MODE.NPCList)))
+		-- Shuffle list and take first typesCount
+		local shuffled = {}
+		for _, v in ipairs(MODE.NPCList) do
+			table.insert(shuffled, v)
+		end
+		for i = #shuffled, 2, -1 do
+			local j = math.random(i)
+			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+		end
+		waveDef = {}
+		for i = 1, typesCount do
+			table.insert(waveDef, shuffled[i].type)
+		end
+	end
+	if not waveDef or #waveDef == 0 then
 		self.WaveCompleted = true
 		return
 	end
@@ -286,15 +310,28 @@ function MODE:StartWave(num)
 	local mode = self
 	local delay = 0
 
-	for _, entry in ipairs(waveDef) do
-		for _ = 1, entry.count do
-			delay = delay + 0.6
-			timer.Simple(delay, function()
-				if zombieMode() ~= mode or not mode.WaveActive then return end
-				mode:SpawnZombie(entry.type, entry.health)
-			end)
+		for _, typeName in ipairs(waveDef) do
+			local npcDef = nil
+			for _, npc in ipairs(MODE.NPCList) do
+				if npc.type == typeName then
+					npcDef = npc
+					break
+				end
+			end
+			if not npcDef then
+				-- skip unknown type
+				continue
+			end
+			local countToSpawn = math.random(npcDef.min, npcDef.max)
+			local health = npcDef.health
+			for _ = 1, countToSpawn do
+				delay = delay + 0.6
+				timer.Simple(delay, function()
+					if zombieMode() ~= mode or not mode.WaveActive then return end
+					mode:SpawnZombie(typeName, health)
+				end)
+			end
 		end
-	end
 
 	timer.Simple(delay + 0.15, function()
 		if zombieMode() ~= mode then return end
