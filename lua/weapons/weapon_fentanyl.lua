@@ -20,6 +20,7 @@ SWEP.AutoSwitchFrom = false
 SWEP.Slot = 5
 SWEP.SlotPos = 1
 SWEP.WorkWithFake = true
+SWEP.UsesBandageCheck = false
 SWEP.offsetVec = Vector(2.8, -0.9, -1)
 SWEP.offsetAng = Angle(-30, 30, 180)
 SWEP.modeNames = {
@@ -31,7 +32,6 @@ SWEP.HolsterSnd = ""
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
-
 	self.modeValues = {
 		[1] = 1,
 	}
@@ -76,18 +76,14 @@ if SERVER then
 
 		local org = ent.organism
 		if not org then return end
-
 		if self.modeValues[1] <= 0 then return end
 
 		local owner = self:GetOwner()
 		if ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
 			self:SetHolding(math.Clamp(self:GetHolding() + 100, 0, 50))
-
-			--if self:GetHolding() < 100 then return end
 		end
-		
-		local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
 
+		local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
 		local injected = math.min(FrameTime() * 1, self.modeValues[1])
 		org.analgesiaAdd = math.min(org.analgesiaAdd + injected, 4)
 		self.modeValues[1] = math.max(self.modeValues[1] - injected, 0)
@@ -99,20 +95,16 @@ if SERVER then
 		if owner.injectedinto[org.owner] > 1 and injected > 0 then
 			local dmgInfo = DamageInfo()
 			dmgInfo:SetAttacker(owner)
-			hook.Run("HomigradDamage", org.owner, dmgInfo, HITGROUP_RIGHTARM, hg.GetCurrentCharacter(org.owner), injected * (zb.MaximumHarm or 10))
+			hook.Run("HomigradDamage", org.owner, dmgInfo, HITGROUP_RIGHTARM, hg.GetCurrentCharacter(org.owner), injected * (zb and zb.MaximumHarm or 10))
 		end
 
 		if self.poisoned2 then
 			org.poison4 = CurTime()
-
 			self.poisoned2 = nil
 		end
 
 		if self.modeValues[1] != 0 then
 			entOwner:EmitSound("pshiksnd")
-		else
-			//owner:SelectWeapon("weapon_hands_sh")
-			//self:Remove()
 		end
 	end
 end

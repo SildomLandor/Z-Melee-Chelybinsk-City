@@ -154,25 +154,43 @@ local function NormalizeModeValues(wep, values)
 	if not istable(values) then return fallback end
 
 	for i = 1, #fallback do
-		if values[i] == nil then
+		local val = values[i]
+		if val == nil then
 			values[i] = fallback[i]
+		elseif istable(val) then
+			values[i] = tonumber(val[1]) or fallback[i]
+		else
+			values[i] = tonumber(val) or fallback[i]
 		end
 	end
 	return values
+end
+
+local function IsGradualInject(wep, mode)
+	mode = mode or wep.mode or 1
+	local def = wep.modeValuesdef and wep.modeValuesdef[mode]
+	return istable(def) and def[2] == true
 end
 
 function SWEP:Think()
 	self:SetHold(self.HoldType)
 
 	if self:GetClass() == "weapon_bandage_sh" then
-		self.modeValues = NormalizeModeValues(self, self.modeValues)
-		local modeMax = self.modeValuesdef and self.modeValuesdef[1] and (istable(self.modeValuesdef[1]) and self.modeValuesdef[1][1] or self.modeValuesdef[1]) or 0
-		if modeMax > 0 then
-			self.ModelScale = math.Clamp((tonumber(self.modeValues[1]) or 0) / (modeMax * 0.8), 0.5, 1)
+		self.ModelScale = math.Clamp(self.modeValues[1] / (self.modeValuesdef[1][1] * 0.8), 0.5, 1)
+	end
+
+	local owner = self:GetOwner()
+	if not IsValid(owner) then return end
+
+	local decay = not owner:KeyDown(IN_ATTACK)
+	if CLIENT and hg.MouseMinigame and hg.MouseMinigame:IsActive() then
+		local session = hg.MouseMinigame.ActiveSession
+		if session and session.weapon == self then
+			decay = true
 		end
 	end
 
-	if not self:GetOwner():KeyDown(IN_ATTACK) and hg_healanims:GetBool() then
+	if decay and hg_healanims:GetBool() then
 		self:SetHolding(math.max(self:GetHolding() - 12, 0))
 	end
 
@@ -237,37 +255,43 @@ function SWEP:DoBandageUse(attackType, target, fromMinigame)
 
 		ent = target
 		if not IsValid(ent) then
-			local tr = hg.eyeTrace(owner)
-			ent = tr and tr.Entity or nil
+			ent = hg.ResolveBandageOtherTarget and hg.ResolveBandageOtherTarget(owner)
 		end
 
 		if not IsValid(ent) then return false end
-		if hg.GetCurrentCharacter(ent) == hg.GetCurrentCharacter(owner) then return false end
+		if hg.IsSameBandageSubject and hg.IsSameBandageSubject(ent, owner) then return false end
 
 		self.healbuddy = ent
 	else
-		ent = owner
+		ent = hg.GetBandageSelfEnt and hg.GetBandageSelfEnt(owner) or (hg.GetCurrentCharacter(owner) or owner)
 		self.healbuddy = ent
-
-		if fromMinigame and hg_healanims:GetBool() then
-			self:SetHolding(100)
-		end
 	end
 
-	local buddy = hg.GetCurrentCharacter(self.healbuddy) or self.healbuddy
+	local buddy = hg.GetBandageBleedEnt and hg.GetBandageBleedEnt(self.healbuddy) or (hg.GetCurrentCharacter(self.healbuddy) or self.healbuddy)
 	if not self:CanUseOn(buddy) then
 		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, buddy))
 		return false
 	end
 
-	local done = self:Heal(self.healbuddy, self.mode)
+	self.modeValues = NormalizeModeValues(self, self.modeValues)
+
+	if hg_healanims:GetBool() and not fromMinigame and self.UsesBandageCheck == false and not IsGradualInject(self) then
+		self:SetHolding(100)
+	end
+
+	local healEnt = IsValid(buddy) and buddy or self.healbuddy
+	local done = self:Heal(healEnt, self.mode, nil, fromMinigame)
+
+	if fromMinigame then
+		self:SetHolding(0)
+	end
 
 	if done and self.PostHeal then
 		self:PostHeal(self.healbuddy, self.mode)
 	end
 
 	if self.net_cooldown2 < CurTime() then
-		self:SetNetVar("modeValues", self.modeValues)
+		self:SetNetVar("modeValues", table.Copy(self.modeValues))
 	end
 
 	return done
@@ -276,7 +300,17 @@ end
 SWEP.net_cooldown2 = 0
 function SWEP:PrimaryAttack()
 	if SERVER then
-		self:DoBandageUse(1, self:GetOwner(), false)
+		if hg.WeaponUsesBandageCheck and hg.WeaponUsesBandageCheck(self) then return end
+		self.healbuddy = self:GetOwner()
+		local done = self:Heal(self.healbuddy, self.mode)
+
+		if done and self.PostHeal then
+			self:PostHeal(self.healbuddy, self.mode)
+		end
+
+		if self.net_cooldown2 < CurTime() then
+			self:SetNetVar("modeValues", table.Copy(self.modeValues))
+		end
 	end
 end
 
@@ -294,7 +328,11 @@ if CLIENT then
 		if !owner:IsPlayer() then return end
 		if GetViewEntity() ~= owner then return end
 		if owner:InVehicle() then return end
-		if not IsValid(modelshuy[self.Model or self.WorldModel]) then return end
+
+		self:DrawWorldModel2(true)
+		local mdl = modelshuy[self.Model or self.WorldModel]
+		if not IsValid(mdl) then return end
+
 		local Tr = hg.eyeTrace(owner)
 		if !Tr then return end
 		local Size = math.max(math.min(1 - Tr.Fraction, 0.5), 0.1)
@@ -314,47 +352,41 @@ if CLIENT then
 			draw.DrawText(Tr.Entity:IsPlayer() and Tr.Entity:GetPlayerName() or Tr.Entity:IsRagdoll() and Tr.Entity:GetPlayerName() or "", "HomigradFontLarge", x + 1, y + 31, coloutline, TEXT_ALIGN_CENTER)
 			draw.DrawText(Tr.Entity:IsPlayer() and Tr.Entity:GetPlayerName() or Tr.Entity:IsRagdoll() and Tr.Entity:GetPlayerName() or "", "HomigradFontLarge", x, y + 30, col, TEXT_ALIGN_CENTER)
 		end
-		local mdl = modelshuy[self.Model or self.WorldModel]
-		self:DrawWorldModel2(true)
-		local p,a = mdl:GetPos(), mdl:GetAngles()
-		local pos,ang = LocalToWorld(self.ofsV,self.ofsA,p,a)
-		if self.showstats and self.modeValues and istable(self.modeValues) then
-			//cam.Start3D()
-				//cam.Start3D2D(pos,ang,0.01)
-				render.PushFilterMag( TEXFILTER.LINEAR )
-				render.PushFilterMin( TEXFILTER.LINEAR )
-				local m = Matrix()
-				m:Translate( Vector(  ScrW() / 2-ScreenScale(60), ScrH() / 2 + ScreenScaleH(125), 0 ) )
-				m:Scale( vector_one * 0.5 )
+		local modeValues = self:GetNetVar("modeValues", self.modeValues)
+		if istable(modeValues) then
+			modeValues = NormalizeModeValues(self, modeValues)
+			self.modeValues = modeValues
+		end
+		if self.showstats and istable(modeValues) then
+			render.PushFilterMag(TEXFILTER.LINEAR)
+			render.PushFilterMin(TEXFILTER.LINEAR)
+			local m = Matrix()
+			m:Translate(Vector(ScrW() / 2-ScreenScale(60), ScrH() / 2 + ScreenScaleH(125), 0))
+			m:Scale(vector_one * 0.5)
 
-				cam.PushModelMatrix( m, true )
-					for i, val in ipairs(self.modeValues) do
-						if not isnumber(i) or not val or not self.modeValuesdef or not self.modeValuesdef[i][1] then continue end
-						local val = math.Round(val / self.modeValuesdef[i][1] * 100)
-						local x,y = 0, i * ScrH() / 20
-						local reveal = 1//math.Clamp(lply:EyeAngles()[1] / 90 - 0.25, 0, 1) * 4 / 3
-						colBrown.a = reveal * 185
-						draw.RoundedBox(2,x,y,x + ScreenScale(210) + ScrW() / 10,ScrH() / 25 + (#self.modeValues > 0 and 0 or 0),colBrown)
-						surface.SetFont("ZCity_Small")
-						surface.SetTextPos(x,y)
-						surface.SetTextColor(255,255,255,255 * reveal)
-						local txt = string.NiceName(tostring(self.modeNames[i]))
-						local w, h = surface.GetTextSize(txt)
-						--surface.DrawText(tostring(self.modeNames[i]))
-						colBrown.a = reveal * 255
-						draw.SimpleTextOutlined(txt, "ZCity_Small", x, y, Color(255,i == self.mode and 0 or 255,i == self.mode and 0 or 255, 255 * reveal), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1.5, colBrown)
-					
-						surface.SetDrawColor(0,100,0,255 * reveal)
-						surface.DrawRect(x + ScreenScale(210),y,ScrW() / 10 * val / 100,ScrH() / 25)
-						surface.SetDrawColor(0,0,0,255 * reveal)
-						surface.DrawOutlinedRect(x + ScreenScale(210),y,ScrW() / 10,ScrH() / 25, 4)
-					end
-				cam.PopModelMatrix()
+			cam.PushModelMatrix(m, true)
+				for i, val in ipairs(modeValues) do
+					local def = self.modeValuesdef and self.modeValuesdef[i]
+					local max = istable(def) and def[1] or def
+					if not max or max <= 0 then continue end
+					val = tonumber(istable(val) and val[1] or val) or 0
+					local pct = math.Clamp(math.Round(val / max * 100), 0, 100)
+					local bx,by = 0, i * ScrH() / 20
+					local reveal = 1
+					colBrown.a = reveal * 185
+					draw.RoundedBox(2, bx, by, bx + ScreenScale(210) + ScrW() / 10, ScrH() / 25, colBrown)
+					local txt = string.NiceName(tostring(self.modeNames[i]))
+					colBrown.a = reveal * 255
+					draw.SimpleTextOutlined(txt, "ZCity_Small", bx, by, Color(255,i == self.mode and 0 or 255,i == self.mode and 0 or 255, 255 * reveal), TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1.5, colBrown)
+					surface.SetDrawColor(0,100,0,255 * reveal)
+					surface.DrawRect(bx + ScreenScale(210), by, ScrW() / 10 * pct / 100, ScrH() / 25)
+					surface.SetDrawColor(0,0,0,255 * reveal)
+					surface.DrawOutlinedRect(bx + ScreenScale(210), by, ScrW() / 10, ScrH() / 25, 4)
+				end
+			cam.PopModelMatrix()
 
-				render.PopFilterMag()
-				render.PopFilterMin()
-				//cam.End3D2D()
-			//cam.End3D()
+			render.PopFilterMag()
+			render.PopFilterMin()
 		end
 	end
 end
@@ -419,15 +451,27 @@ end
 
 function SWEP:SetInfo(info)
 	info = NormalizeModeValues(self, info)
-	self:SetNetVar("modeValues",info)
+	self:SetNetVar("modeValues", table.Copy(info))
 	self.modeValues = info
 end
 
 function SWEP:SecondaryAttack()
 	if SERVER then
-		local tr = hg.eyeTrace(self:GetOwner())
-		local ent = tr and tr.Entity or nil
-		self:DoBandageUse(2, ent, false)
+		if hg.WeaponUsesBandageCheck and hg.WeaponUsesBandageCheck(self) then return end
+		if IsValid(self:GetNWEntity("fakeGun")) then return end
+		local owner = self:GetOwner()
+		local ent = hg.ResolveBandageOtherTarget and hg.ResolveBandageOtherTarget(owner)
+		self.healbuddy = ent
+		if not IsValid(self.healbuddy) then return end
+
+		local done = self:Heal(self.healbuddy, self.mode)
+		if done and self.PostHeal then
+			self:PostHeal(self.healbuddy, self.mode)
+		end
+
+		if self.net_cooldown2 < CurTime() then
+			self:SetNetVar("modeValues", table.Copy(self.modeValues))
+		end
 	end
 end
 
@@ -530,23 +574,49 @@ end
 -- WoundTBL = {dmgBlood / 2, localPos, localAng, bone, time}
 SWEP.ShouldDeleteOnFullUse = true
 if SERVER then
+	local function orgHasActiveWounds(org)
+		for _, wound in pairs(org.wounds or {}) do
+			if istable(wound) and (tonumber(wound[1]) or 0) > 0 then return true end
+		end
+		return false
+	end
+
+	local function orgHasTreatableInjury(org)
+		if not org then return false end
+		if orgHasActiveWounds(org) then return true end
+		return org.lleg == 1 or org.rleg == 1 or org.skull >= 0.6 or org.chest == 1 or org.rarm == 1 or org.larm == 1
+	end
+
+	local function orgWoundOwner(ent, org)
+		if IsValid(org.owner) then return org.owner end
+		if IsValid(ent) and ent:IsPlayer() then return ent end
+		if IsValid(ent) and ent:IsRagdoll() and hg.RagdollOwner then return hg.RagdollOwner(ent) end
+	end
+
 	function SWEP:Bandage(ent, bone)
 		local org = ent.organism
 		local owner = self:GetOwner()
 		if not org then return end
+
+		org.wounds = org.wounds or {}
+		org.bleed = org.bleed or 0
 		
 		-- Если растрелять труп а потом его взорвать гранатой, после перевязать - крашнет сервер why?
-		if self.modeValues[1] <= 0 or not (#org.wounds > 0 or org.lleg == 1 or org.rleg == 1 or org.skull >= 0.6 or org.chest == 1 or org.rarm == 1 or org.larm == 1) then return end
-		table.sort(org.wounds, function(a, b) return a[1] > b[1] end)
+		if self.modeValues[1] <= 0 or not orgHasTreatableInjury(org) then return end
+		if orgHasActiveWounds(org) then
+			table.sort(org.wounds, function(a, b) return (a[1] or 0) > (b[1] or 0) end)
+		end
 		
 		local done = false
 		local bandaged = false
 		
 		if not bone then
-			while self.modeValues[1] > 0 and #org.wounds > 0 do
-				table.sort(org.wounds, function(a, b) return a[1] > b[1] end)
+			while self.modeValues[1] > 0 and orgHasActiveWounds(org) do
+				table.sort(org.wounds, function(a, b) return (a[1] or 0) > (b[1] or 0) end)
 
-				local biggestWound = org.wounds[1][1]
+				local wound = org.wounds[1]
+				if not wound then break end
+				local biggestWound = wound[1]
 				if not biggestWound or biggestWound <= 0 then
 					table.remove(org.wounds, 1)
 					continue
@@ -563,7 +633,7 @@ if SERVER then
 				end
 
 				ent.bandaged_limbs = ent.bandaged_limbs or {}
-				local bone_name = org.wounds[1][4]
+				local bone_name = wound[4]
 				if bone_name and not ent.bandaged_limbs[bone_name] then
 					ent.bandaged_limbs[bone_name] = true
 					done = true
@@ -577,8 +647,11 @@ if SERVER then
 			local bonewounds = {}
 			
 			for i, tbl in pairs(org.wounds) do
-				if ent:GetBoneName(ent:LookupBone(tbl[4])) == bone then
-					table.insert(bonewounds,i)
+				if not istable(tbl) or not tbl[4] then continue end
+				local boneid = ent:LookupBone(tbl[4])
+				if not boneid then continue end
+				if ent:GetBoneName(boneid) == bone then
+					table.insert(bonewounds, i)
 				end
 			end
 			
@@ -609,7 +682,8 @@ if SERVER then
 				end
 
 				ent.bandaged_limbs = ent.bandaged_limbs or {}
-				local bone_name = ent:GetBoneName(ent:LookupBone(wound[4]))
+				local boneid = wound[4] and ent:LookupBone(wound[4])
+				local bone_name = boneid and ent:GetBoneName(boneid)
 				if bone_name and not ent.bandaged_limbs[bone_name] then
 					ent.bandaged_limbs[bone_name] = true
 					done = true
@@ -621,11 +695,15 @@ if SERVER then
 				end
 			end
 		end
-		org.owner:SetNetVar("wounds",org.wounds)
+		local woundOwner = orgWoundOwner(ent, org)
+		if IsValid(woundOwner) then
+			woundOwner:SetNetVar("wounds", org.wounds)
+		end
 		timer.Create("bandage_limbs"..ent:EntIndex(),0.1,1,function()
-			ent:SetNetVar("bandaged_limbs",ent.bandaged_limbs)
+			if not IsValid(ent) then return end
+			ent:SetNetVar("bandaged_limbs", ent.bandaged_limbs)
 			if ent:IsRagdoll() and hg.RagdollOwner(ent) and hg.RagdollOwner(ent):Alive() then
-				hg.RagdollOwner(ent):SetNetVar("bandaged_limbs",ent.bandaged_limbs)
+				hg.RagdollOwner(ent):SetNetVar("bandaged_limbs", ent.bandaged_limbs)
 			end
 		end)
 
@@ -688,7 +766,7 @@ if SERVER then
 		return done
 	end
 
-	function SWEP:Heal(ent, mode, bone)
+	function SWEP:Heal(ent, mode, bone, fromMinigame)
 		if ent:IsNPC() then
 			self:NPCHeal(ent, 0.15, "snd_jack_hmcd_bandage.wav")
 		end
@@ -697,7 +775,7 @@ if SERVER then
 		if not org then return end
 	
 		local owner = self:GetOwner()
-		if ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
+		if not fromMinigame and ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
 			self:SetHolding(math.min(self:GetHolding() + 10, 100))
 
 			if self:GetHolding() < 100 then return end

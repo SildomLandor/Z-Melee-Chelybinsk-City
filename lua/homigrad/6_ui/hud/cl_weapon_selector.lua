@@ -367,6 +367,10 @@ end)
 
 hook.Add( "StartCommand", "WeaponSelector_StartCommand", SetActuallyWeapon )
 
+function WS.IsOpen()
+	return Show > CurTime()
+end
+
 local tHideElements = {
     ["CHudWeaponSelection"] = true
 }

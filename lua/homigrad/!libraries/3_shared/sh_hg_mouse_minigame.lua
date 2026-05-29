@@ -48,48 +48,100 @@ local function IsBandageMinigameWeapon(wep)
 	return IsBandageMode(wep)
 end
 
-local function woundsNeedBandage(wounds)
+local BLEED_NEED = 0.05
+
+local function woundActive(wound)
+	return istable(wound) and (tonumber(wound[1]) or 0) > 0
+end
+
+local function tableHasActiveWounds(wounds)
 	if not istable(wounds) then return false end
-	for i = 1, #wounds do
-		local w = wounds[i]
-		if istable(w) and (tonumber(w[1]) or 0) > 0 then return true end
+	for _, wound in pairs(wounds) do
+		if woundActive(wound) then return true end
 	end
 	return false
 end
 
-local function orgNeedsBandage(org)
-	if not org then return false end
-	if (tonumber(org.bleed) or 0) > 0 then return true end
-	if istable(org.arterialwounds) and #org.arterialwounds > 0 then return true end
-	if woundsNeedBandage(org.wounds) then return true end
-	if org.skull and org.skull >= 0.6 then return true end
-	if org.chest == 1 then return true end
-	if org.lleg == 1 and not org.llegamputated then return true end
-	if org.rleg == 1 and not org.rlegamputated then return true end
-	if org.larm == 1 and not org.larmamputated then return true end
-	if org.rarm == 1 and not org.rarmamputated then return true end
+local function getEntOrgBleed(ent)
+	if not IsValid(ent) then return 0 end
+	local bleed = 0
+	local org, newOrg = ent.organism, ent.new_organism
+	if org then bleed = math.max(bleed, tonumber(org.bleed) or 0) end
+	if newOrg then bleed = math.max(bleed, tonumber(newOrg.bleed) or 0) end
+	return bleed
+end
+
+local function netHasBleedingWounds(ent)
+	if not IsValid(ent) or not ent.GetNetVar then return false end
+	if tableHasActiveWounds(ent:GetNetVar("wounds")) then return true end
+	if tableHasActiveWounds(ent:GetNetVar("arterialwounds")) then return true end
 	return false
 end
 
-local function netNeedsBandage(ent)
-	if not IsValid(ent) or not ent.GetNetVar then return false end
-	if (tonumber(ent:GetNetVar("bleed", 0)) or 0) > 0 then return true end
-	local arterial = ent:GetNetVar("arterialwounds")
-	if istable(arterial) and #arterial > 0 then return true end
-	return woundsNeedBandage(ent:GetNetVar("wounds"))
-end
-
-function hg.CanBandage(ent)
+local function entIsBleeding(ent)
 	if not IsValid(ent) then return false end
-	if orgNeedsBandage(ent.organism) then return true end
-	if netNeedsBandage(ent) then return true end
+	if getEntOrgBleed(ent) > BLEED_NEED then return true end
+	if netHasBleedingWounds(ent) then return true end
+	if SERVER then
+		local org = ent.organism
+		if org and (tableHasActiveWounds(org.wounds) or tableHasActiveWounds(org.arterialwounds)) then
+			return true
+		end
+	end
 	if hg.GetCurrentCharacter then
 		local chr = hg.GetCurrentCharacter(ent)
 		if IsValid(chr) and chr ~= ent then
-			return hg.CanBandage(chr)
+			return entIsBleeding(chr)
 		end
 	end
+	if ent:IsRagdoll() and hg.RagdollOwner then
+		local ply = hg.RagdollOwner(ent)
+		if IsValid(ply) then return entIsBleeding(hg.GetBandageSelfEnt(ply)) end
+	end
 	return false
+end
+
+function hg.CanBandage(ent)
+	return entIsBleeding(ent)
+end
+
+function hg.GetBandageSelfEnt(ply)
+	if not IsValid(ply) then return nil end
+	return hg.GetCurrentCharacter and (hg.GetCurrentCharacter(ply) or ply) or ply
+end
+
+function hg.IsSameBandageSubject(a, b)
+	if not IsValid(a) or not IsValid(b) then return false end
+	if a == b then return true end
+	local function norm(ent)
+		if ent:IsPlayer() then return hg.GetBandageSelfEnt(ent) end
+		if ent:IsRagdoll() and hg.RagdollOwner then
+			local ply = hg.RagdollOwner(ent)
+			if IsValid(ply) then return hg.GetBandageSelfEnt(ply) end
+		end
+		return hg.GetCurrentCharacter and (hg.GetCurrentCharacter(ent) or ent) or ent
+	end
+	return norm(a) == norm(b)
+end
+
+function hg.GetBandageBleedEnt(ent)
+	if not IsValid(ent) then return nil end
+	if ent.organism or ent.new_organism then return ent end
+	if ent:IsRagdoll() and hg.RagdollOwner then
+		local ply = hg.RagdollOwner(ent)
+		if IsValid(ply) then return hg.GetBandageSelfEnt(ply) end
+	end
+	if ent:IsPlayer() then return hg.GetBandageSelfEnt(ent) end
+	return ent
+end
+
+function hg.ResolveBandageOtherTarget(owner)
+	if not IsValid(owner) then return nil end
+	local tr = hg.eyeTrace and hg.eyeTrace(owner)
+	if not tr or not IsValid(tr.Entity) then return nil end
+	local ent = tr.Entity
+	if hg.IsSameBandageSubject(ent, owner) then return nil end
+	return ent
 end
 
 function hg.BandageRefuseChatMsg(owner, target)
@@ -122,7 +174,15 @@ if SERVER then
 		if wep.HgBandageCooldown > CurTime() then return end
 		wep.HgBandageCooldown = CurTime() + 0.2
 
-		local buddy = IsValid(target) and (hg.GetCurrentCharacter(target) or target) or ply
+		if attackType == 2 then
+			if not IsValid(target) or hg.IsSameBandageSubject(target, ply) then return end
+		end
+
+		local buddy = attackType == 1 and hg.GetBandageSelfEnt(ply)
+			or hg.GetBandageBleedEnt(target)
+
+		if not IsValid(buddy) then return end
+
 		if wep.CanUseOn and not wep:CanUseOn(buddy) then
 			ply:ChatPrint(hg.BandageRefuseChatMsg(ply, buddy))
 			return
@@ -238,6 +298,8 @@ local function GetDefaultSession(config)
 		armed = true,
 		weapon = config.weapon,
 		weaponClass = config.weaponClass,
+		target = config.target,
+		attackType = config.attackType,
 		lockedAngles = config.lockedAngles and Angle(config.lockedAngles.p, config.lockedAngles.y, config.lockedAngles.r) or nil,
 		onSuccess = config.onSuccess,
 		onCancel = config.onCancel,
@@ -277,6 +339,9 @@ function MouseMinigame:Cancel(reason)
 	if session.enabledScreenClicker then
 		gui.EnableScreenClicker(false)
 	end
+	if IsValid(session.weapon) then
+		session.weapon:SetHolding(0)
+	end
 	self.ActiveSession = nil
 	session.closing = true
 	session.closeReason = reason or "cancelled"
@@ -293,6 +358,9 @@ function MouseMinigame:Complete()
 	if not session then return end
 	if session.enabledScreenClicker then
 		gui.EnableScreenClicker(false)
+	end
+	if IsValid(session.weapon) then
+		session.weapon:SetHolding(0)
 	end
 	self.ActiveSession = nil
 	self.RenderSession = nil
@@ -335,14 +403,21 @@ end
 local function ResolveBandageTarget(wep, attackType)
 	local owner = wep:GetOwner()
 	if not IsValid(owner) then return nil end
-	if attackType ~= 2 then return owner end
+	if attackType ~= 2 then return hg.GetBandageSelfEnt(owner) end
+	return hg.ResolveBandageOtherTarget(owner)
+end
 
-	local trace = hg.eyeTrace(owner)
-	if trace and IsValid(trace.Entity) then
-		return trace.Entity
-	end
+local function needsBandageMinigame(target)
+	if not IsValid(target) then return false end
+	local check = hg.GetBandageBleedEnt(target) or target
+	if not IsValid(check) then return false end
+	if getEntOrgBleed(check) > BLEED_NEED then return true end
+	if check.organism or check.new_organism then return false end
+	return netHasBleedingWounds(check)
+end
 
-	return nil
+local function HasBandageMinigameNeed(wep, target)
+	return needsBandageMinigame(target)
 end
 
 local function GetOrganismInjuryScore(org)
@@ -416,13 +491,6 @@ local function GetEntityInjuryScore(target)
 	return 0
 end
 
-local function HasBandageMinigameNeed(wep, target)
-	if IsValid(wep) and wep.CanUseOn then
-		return wep:CanUseOn(target)
-	end
-	return hg.CanBandage(target)
-end
-
 local function GetBandageLoopsWithInjuries(wep, attackType)
 	local loops = GetBandageLoops(wep)
 	local target = ResolveBandageTarget(wep, attackType)
@@ -453,17 +521,21 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 	if not IsValid(owner) or owner ~= LocalPlayer() then return false end
 	if owner:GetActiveWeapon() ~= wep then return false end
 	local target = ResolveBandageTarget(wep, attackType)
+	if attackType == 2 and not IsValid(target) then return false end
 	if not IsValid(target) then return false end
-	if not HasBandageMinigameNeed(wep, target) then
-		owner:ChatPrint(hg.BandageRefuseChatMsg(owner, target))
-		return false
-	end
+	if not HasBandageMinigameNeed(wep, target) then return false end
 
 	local sessionId = "bandage_" .. wep:EntIndex()
 	if self:IsActive(sessionId) then
-		return true
+		if HasBandageMinigameNeed(wep, target) then return true end
+		self:Cancel("no_bleed")
+		return false
 	end
 	if self:IsActive() then return false end
+
+	if IsValid(wep) then
+		wep:SetHolding(0)
+	end
 
 	self:Start({
 		id = sessionId,
@@ -475,13 +547,14 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 		weapon = wep,
 		weaponClass = wep:GetClass(),
 		target = target,
+		attackType = attackType,
 		useScreenCursor = true,
 		lockedAngles = owner:EyeAngles(),
 		onSuccess = function(session)
 			if not IsValid(wep) then return end
 			net.Start("hg_bandage_circle_done")
 			net.WriteEntity(wep)
-			net.WriteUInt(attackType or 1, 2)
+			net.WriteUInt(session.attackType or 1, 2)
 			net.WriteEntity(IsValid(session.target) and session.target or NULL)
 			net.SendToServer()
 		end
@@ -498,6 +571,13 @@ hook.Add("Think", "hg_mouse_minigame_bandage_input", function()
 	if activeSession and activeSession.weaponClass and (not IsValid(wep) or wep:GetClass() ~= activeSession.weaponClass) then
 		MouseMinigame:Cancel("dropped")
 		return
+	end
+
+	if activeSession and IsValid(activeSession.target) and IsValid(wep) and IsBandageMinigameWeapon(wep) then
+		if not HasBandageMinigameNeed(wep, activeSession.target) then
+			MouseMinigame:Cancel("no_bleed")
+			return
+		end
 	end
 
 	if not IsValid(wep) then return end
@@ -550,6 +630,14 @@ local function TryCancelBandageSession(wep, blockKey)
 	return true
 end
 
+local function ShouldBlockBandageAttack(wep, attackType)
+	if hg.WeaponSelector and hg.WeaponSelector.IsOpen and hg.WeaponSelector.IsOpen() then return false end
+	local target = ResolveBandageTarget(wep, attackType)
+	if not IsValid(target) then return false end
+	if not HasBandageMinigameNeed(wep, target) then return false end
+	return MouseMinigame:TryStartBandageSession(wep, attackType)
+end
+
 hook.Add("PlayerBindPress", "hg_mouse_minigame_bandage_bindpress", function(ply, bind, pressed)
 	if not pressed then return end
 	if not IsValid(ply) or ply ~= LocalPlayer() then return end
@@ -560,10 +648,10 @@ hook.Add("PlayerBindPress", "hg_mouse_minigame_bandage_bindpress", function(ply,
 	bind = string.lower(bind or "")
 	if string.find(bind, "+attack2", 1, true) then
 		if TryCancelBandageSession(wep, "rmb") then return true end
-		if MouseMinigame:TryStartBandageSession(wep, 2) then return true end
+		if ShouldBlockBandageAttack(wep, 2) then return true end
 	elseif string.find(bind, "+attack", 1, true) then
 		if TryCancelBandageSession(wep, "lmb") then return true end
-		if MouseMinigame:TryStartBandageSession(wep, 1) then return true end
+		if ShouldBlockBandageAttack(wep, 1) then return true end
 	end
 end)
 

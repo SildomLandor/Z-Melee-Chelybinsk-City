@@ -19,6 +19,7 @@ SWEP.AutoSwitchFrom = false
 SWEP.Slot = 3
 SWEP.SlotPos = 1
 SWEP.WorkWithFake = true
+SWEP.UsesBandageCheck = false
 SWEP.offsetVec = Vector(2.5, -2.5, 0)
 SWEP.offsetAng = Angle(-30, 20, 180)
 SWEP.modeNames = {
@@ -93,7 +94,7 @@ if SERVER then
 		local org = ent.organism
 		if not org then return end
 		if ent ~= self:GetOwner() and !IsValid(org.owner.FakeRagdoll) then return end
-		if !org.analgesiaAdd or !self.modeValues or !self.modeValues[1] then return end
+		if not self.modeValues or self.modeValues[1] <= 0 then return end
 
 		local owner = self:GetOwner()
 		if ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then

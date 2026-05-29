@@ -19,6 +19,7 @@ SWEP.AutoSwitchFrom = false
 SWEP.Slot = 5
 SWEP.SlotPos = 1
 SWEP.WorkWithFake = true
+SWEP.UsesBandageCheck = false
 SWEP.offsetVec = Vector(2.8, -0.9, -1)
 SWEP.offsetAng = Angle(-30, 30, 180)
 SWEP.modeNames = {
@@ -30,7 +31,6 @@ SWEP.HolsterSnd = ""
 
 function SWEP:InitializeAdd()
 	self:SetHold(self.HoldType)
-
 	self.modeValues = {
 		[1] = 1,
 	}
@@ -58,14 +58,14 @@ function SWEP:Animation()
     self:BoneSet("r_forearm", vector_origin, Angle(-hold / 6, -hold * 2, -15))
 end
 
-sound.Add( {
+sound.Add({
 	name = "pshiksnd",
 	channel = CHAN_AUTO,
 	volume = 0.02,
 	level = 65,
 	pitch = {5555, 5555},
 	sound = "snd_jack_sss.wav",
-} )
+})
 
 function SWEP:OwnerChanged()
 	local owner = self:GetOwner()
@@ -84,18 +84,14 @@ if SERVER then
 
 		local org = ent.organism
 		if not org then return end
-
 		if self.modeValues[1] <= 0 then return end
 
 		local owner = self:GetOwner()
 		if ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
 			self:SetHolding(math.Clamp(self:GetHolding() + 100, 0, 50))
-
-			--if self:GetHolding() < 100 then return end
 		end
 
 		local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
-
 		local injected = math.min(FrameTime() * 0.5, self.modeValues[1])
 		org.analgesiaAdd = math.min(org.analgesiaAdd + injected, 4)
 		self.modeValues[1] = math.max(self.modeValues[1] - injected, 0)
@@ -112,15 +108,11 @@ if SERVER then
 
 		if self.poisoned2 then
 			org.poison4 = CurTime()
-
 			self.poisoned2 = nil
 		end
 
 		if self.modeValues[1] != 0 then
 			entOwner:EmitSound("pshiksnd")
-		else
-			//owner:SelectWeapon("weapon_hands_sh")
-			//self:Remove()
 		end
 	end
 end

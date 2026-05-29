@@ -56,7 +56,20 @@ SWEP.ShouldDeleteOnFullUse = true
 local math = math
 local hg_healanims = ConVarExists("hg_healanims") and GetConVar("hg_healanims") or CreateConVar("hg_healanims", 0, FCVAR_REPLICATED + FCVAR_ARCHIVE, "Toggle heal/food animations", 0, 1)
 function SWEP:Think()
-	if not self:GetOwner():KeyDown(IN_ATTACK) and hg_healanims:GetBool() then
+	self:SetHold(self.HoldType)
+
+	local owner = self:GetOwner()
+	if not IsValid(owner) then return end
+
+	local decay = not owner:KeyDown(IN_ATTACK)
+	if CLIENT and hg.MouseMinigame and hg.MouseMinigame:IsActive() then
+		local session = hg.MouseMinigame.ActiveSession
+		if session and session.weapon == self then
+			decay = true
+		end
+	end
+
+	if decay and hg_healanims:GetBool() then
 		self:SetHolding(math.max(self:GetHolding() - 12, 0))
 	end
 end
@@ -64,7 +77,7 @@ end
 local lang1, lang2 = Angle(0, -10, 0), Angle(0, 10, 0)
 function SWEP:Animation()
 	local owner = self:GetOwner()
-	if (owner.zmanipstart ~= nil and not owner.organism.larmamputated) then return end
+	if owner.zmanipstart ~= nil and owner.organism and not owner.organism.larmamputated then return end
 
 	local aimvec = owner:GetAimVector()
 	if not aimvec then return end
@@ -88,7 +101,7 @@ function SWEP:OwnerChanged()
 end
 
 if SERVER then
-	function SWEP:Heal(ent, mode)
+	function SWEP:Heal(ent, mode, bone, fromMinigame)
 		if ent:IsNPC() then
 			self:SpawnGarbage()
 			self:NPCHeal(ent, 0.6, "snd_jack_hmcd_bandage.wav")
@@ -98,7 +111,7 @@ if SERVER then
 		if not org then return end
 
 		local owner = self:GetOwner()
-		if ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
+		if not fromMinigame and ent == hg.GetCurrentCharacter(owner) and hg_healanims:GetBool() then
 			self:SetHolding(math.min(self:GetHolding() + 50, 100))
 
 			if self:GetHolding() < 100 then return end
@@ -138,7 +151,7 @@ if SERVER then
 				entOwner:EmitSound("snds_jack_gmod/ez_medical/" .. math.random(16, 18) .. ".wav", 60, math.random(95, 105))
 			end
 		elseif self.mode == 1 then
-			self:Bandage(ent, bone)
+			return self:Bandage(ent, bone)
 		elseif self.mode == 4 then
 			if self:Tourniquet(ent, bone) then self.modeValues[4] = 0 end
 		elseif self.mode == 5 then
