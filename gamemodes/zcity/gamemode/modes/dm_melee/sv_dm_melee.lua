@@ -28,11 +28,22 @@ meleeSet.weapon_hg_slayersword = true
 
 local fallbacks = {"weapon_melee", "weapon_pocketknife", "weapon_bat"}
 
-local function hasMeleeWeapon(ply)
+local function hasMelee(ply)
 	for _, wep in ipairs(ply:GetWeapons()) do
 		if meleeSet[wep:GetClass()] then return true end
 	end
-	return false
+end
+
+local function cleanWep(wep)
+	if not IsValid(wep) then return end
+	wep.IsSpawned = nil
+	wep.init = nil
+end
+
+local function giveWep(ply, cls)
+	local wep = ply:Give(cls)
+	cleanWep(wep)
+	return wep
 end
 
 local function giveRandomMelee(ply)
@@ -40,17 +51,25 @@ local function giveRandomMelee(ply)
 
 	for _ = 1, #melees do
 		local cls = melees[math.random(#melees)]
-		if not tried[cls] then
-			tried[cls] = true
-			local wep = ply:Give(cls)
-			if IsValid(wep) then return wep end
-		end
+		if tried[cls] then continue end
+		tried[cls] = true
+		local wep = giveWep(ply, cls)
+		if IsValid(wep) then return wep end
 	end
 
 	for _, cls in ipairs(fallbacks) do
-		local wep = ply:Give(cls)
+		local wep = giveWep(ply, cls)
 		if IsValid(wep) then return wep end
 	end
+end
+
+local function giveMelee(ply, trySlayer)
+	if trySlayer then
+		local wep = giveWep(ply, "weapon_hg_slayersword")
+		if IsValid(wep) then return wep end
+	end
+	if hasMelee(ply) then return end
+	return giveRandomMelee(ply)
 end
 
 function MODE:EquipPlayer(ply, trySlayer)
@@ -58,30 +77,23 @@ function MODE:EquipPlayer(ply, trySlayer)
 	if CurrentRound() ~= self then return false end
 
 	local tag = zb.ROUND_BEGIN or 0
-	if ply.zb_dm_melee_loadout == tag and hasMeleeWeapon(ply) then return true end
+
+	if ply.zb_dm_melee_loadout == tag then
+		if hasMelee(ply) then return true end
+		giveMelee(ply, trySlayer)
+		return hasMelee(ply)
+	end
 
 	ply:SetSuppressPickupNotices(true)
 	ply.noSound = true
 
-	local inv = ply:GetNetVar("Inventory", {}) or {}
-	inv.Weapons = inv.Weapons or {}
-	inv.Weapons.hg_sling = true
-	ply:SetNetVar("Inventory", inv)
+	ply:StripWeapons()
+	ply:RemoveAllAmmo()
+	hg.CreateInv(ply)
 
-	ply:Give("weapon_hands_sh")
-
-	if trySlayer then
-		local slayer = ply:Give("weapon_hg_slayersword")
-		if not IsValid(slayer) then
-			giveRandomMelee(ply)
-		end
-	elseif not hasMeleeWeapon(ply) then
-		giveRandomMelee(ply)
-	end
-
-	if not ply:HasWeapon("weapon_bandage_sh") then
-		ply:Give("weapon_bandage_sh")
-	end
+	giveWep(ply, "weapon_hands_sh")
+	giveMelee(ply, trySlayer)
+	giveWep(ply, "weapon_bandage_sh")
 
 	ply:SelectWeapon("weapon_hands_sh")
 	ply.zb_dm_melee_loadout = tag
@@ -93,7 +105,7 @@ function MODE:EquipPlayer(ply, trySlayer)
 		ply:SetSuppressPickupNotices(false)
 	end)
 
-	return hasMeleeWeapon(ply)
+	return hasMelee(ply)
 end
 
 function MODE:RoundStart()
@@ -102,29 +114,36 @@ function MODE:RoundStart()
 
 	local mode = self
 
-	local function tryAll()
+	local function roll()
 		if CurrentRound() ~= mode then return end
 
 		for _, ply in player.Iterator() do
+			if ply:Team() == TEAM_SPECTATOR or not ply:Alive() then continue end
+
 			local trySlayer = mode.slayerRoll and not mode.slayerGiven
-			if mode:EquipPlayer(ply, trySlayer) and trySlayer and hasMeleeWeapon(ply) then
+			if mode:EquipPlayer(ply, trySlayer) and trySlayer and hasMelee(ply) then
 				mode.slayerGiven = true
 			end
 		end
 	end
 
-	tryAll()
-	timer.Simple(0, tryAll)
-	timer.Simple(0.15, tryAll)
-	timer.Simple(0.35, tryAll)
+	roll()
+	timer.Simple(0, roll)
 end
 
+hook.Add("ZB_PreRoundStart", "ZB_DMMelee_Reset", function()
+	for _, ply in player.Iterator() do
+		ply.zb_dm_melee_loadout = nil
+	end
+end)
+
 hook.Add("PlayerSpawn", "ZB_DMMelee_Loadout", function(ply)
+	if zb.ROUND_STATE ~= 1 then return end
 	local mode = CurrentRound()
-	if not mode or mode.name ~= "dm_melee" or zb.ROUND_STATE ~= 1 then return end
+	if not mode or mode.name ~= "dm_melee" then return end
 
 	timer.Simple(0, function()
-		if not IsValid(ply) then return end
+		if not IsValid(ply) or not ply:Alive() then return end
 		local m = CurrentRound()
 		if m and m.EquipPlayer then m:EquipPlayer(ply, false) end
 	end)
