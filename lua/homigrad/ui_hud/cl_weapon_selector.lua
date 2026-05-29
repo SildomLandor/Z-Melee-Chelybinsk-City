@@ -3,7 +3,7 @@ hg.WeaponSelector = hg.WeaponSelector or {}
 local WS = hg.WeaponSelector
 
 if not RNDX then
-    include("homigrad/libraries/cl_rndx.lua")
+    include("homigrad/libraries/4_client/cl_rndx.lua")
 end
 
 local CORNER_RADIUS = 16
