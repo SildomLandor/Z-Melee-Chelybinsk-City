@@ -1,3 +1,5 @@
+local cooldown = 0.5
+
 concommand.Add("fake", function(ply)
 	if not ply:Alive() then return end
 	if ply.fakecd and ply.fakecd > CurTime() then return end

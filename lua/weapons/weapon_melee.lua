@@ -533,6 +533,10 @@ function SWEP:ModelAnim(model, pos, ang)
 
     local vel = ent:GetVelocity()
     local vellen = vel:Length()
+    if ent ~= owner and not hg.RagdollCombatInUse(owner) then
+        vellen = 0
+        self.walkTime = 0
+    end
 
     local vellenlerp = self.velocityAdd and self.velocityAdd:Length() or vellen
 
@@ -739,6 +743,7 @@ function SWEP:SetHandPos(noset)
     if not ply.shouldTransmit or ply.NotSeen then return end
 
     local ent = hg.GetCurrentCharacter(ply)
+    if ent ~= ply and not hg.RagdollCombatInUse(ply) then return end
 
 	local bones = hg.TPIKBonesLH
 

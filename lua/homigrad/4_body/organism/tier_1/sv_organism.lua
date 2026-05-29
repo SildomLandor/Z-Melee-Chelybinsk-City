@@ -492,7 +492,17 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	org.health = owner:Health()
 	local rag = owner:IsPlayer() and owner.FakeRagdoll or owner
-	if IsValid(rag) and rag:IsRagdoll() and (not owner.lastFake or owner.lastFake == 0) then rag:SetCollisionGroup((rag:GetVelocity():LengthSqr() > (200*200)) and COLLISION_GROUP_NONE or COLLISION_GROUP_WEAPON) end
+	if IsValid(rag) and rag:IsRagdoll() and (not owner.lastFake or owner.lastFake == 0) then
+		local vel = rag:GetVelocity():Length()
+		local wantNone = vel > 200
+		if owner:IsPlayer() and IsValid(owner.FakeRagdoll) and rag == owner.FakeRagdoll and vel < 150 then
+			wantNone = false
+		end
+		if rag._hg_collNone ~= wantNone then
+			rag._hg_collNone = wantNone
+			rag:SetCollisionGroup(wantNone and COLLISION_GROUP_NONE or COLLISION_GROUP_WEAPON)
+		end
+	end
 	if isPly then
 		if org.otrub or org.fake then hg.Fake(owner,nil,true) end
 		if not org.alive and owner:Alive() then owner:Kill() end

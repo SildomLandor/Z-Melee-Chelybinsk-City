@@ -631,6 +631,9 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     if not ply:IsPlayer() then return end
     if not ply.InVehicle then return end
 
+    if ent._hg_tpik_frame == FrameNumber() then return end
+    ent._hg_tpik_frame = FrameNumber()
+
     local should = hg.ShouldTPIK(ply, ent)
     local org = ply.organism or ent.organism
     if ent != ply and org and (org.otrub or org.canmove == false or (org.shock or 0) > 40) then
@@ -638,7 +641,7 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     end
     //print("shouldtpik func: ", SysTime() - systime)
 
-    if should then
+    if should and (not hg.FakeNeedsClientIK or hg.FakeNeedsClientIK(ply, ent, wpn)) then
         if ent != ply then
             //ent:SetupBones()
         end
@@ -702,7 +705,7 @@ function hg.MainTPIKFunction(ent, ply, wpn)
         //print("DoTPIK: ", SysTime() - systime)
     end
 
-    if ent ~= ply and hg.RagdollCombatInUse(ply) and ent.organism and ent.organism.stamina and ent.organism.stamina[1] and not ent.organism.otrub and ent.organism.canmove ~= false then
+    if ent ~= ply and hg.RagdollCombatInUse(ply) and ent.organism and ent.organism.stamina and ent.organism.stamina[1] and not ent.organism.otrub and ent.organism.canmove ~= false and IsValid(wpn) and wpn.InUse and wpn:InUse() then
         local stammul = math_Clamp(1 - ent.organism.stamina[1] / 90, 0, 1)
 
         local holdingrh = ent:GetManipulateBoneAngles(ent:LookupBone("ValveBiped.Bip01_R_Finger11"))[2] < 0

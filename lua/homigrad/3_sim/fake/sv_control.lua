@@ -135,21 +135,15 @@ local speedupbones = {
 local vecfive = Vector(5,5,5)
 
 local player_GetHumans = player.GetHumans
-local hg_fake_think_hz = CreateConVar("hg_fake_think_hz", "33", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Fake ragdoll control update rate (Hz)", 15, 66)
-
-local fakeThinkNext = 0
 
 hook.Add("Think", "Fake", function()
-	local t = CurTime()
-	local interval = 1 / hg_fake_think_hz:GetFloat()
-	if fakeThinkNext > t then return end
-	fakeThinkNext = t + interval
-
 	hg.humans_cached = player_GetHumans()
 
-	for ply, ragdoll in pairs(hg.ragdollFake) do
-		if not IsValid(ply) or not IsValid(ragdoll) then
-			hg.ragdollFake[ply] = nil
+	//for ply, ragdoll in pairs(hg.ragdollFake) do
+	for i, ply in player.Iterator() do
+		local ragdoll = hg.ragdollFake[ply]//ply.FakeRagdoll
+		if not IsValid(ragdoll) then
+			//hg.ragdollFake[ply] = nil
 			continue
 		end
 
@@ -179,6 +173,7 @@ hook.Add("Think", "Fake", function()
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()
+
 		local tr = {}
 		tr.start = ply:GetPos()
 		tr.endpos = ply:GetPos() - vector_up * 10
@@ -211,7 +206,7 @@ hook.Add("Think", "Fake", function()
 					local name = ragdoll:GetBoneName(bone)
 
 					if IsValid(physobj) then
-						local bone_impulse = ply.HitBones and ply.HitBones[name] or CurTime()
+						local bone_impulse = ply.HitBones and ply.HitBones[bonename] or CurTime()
 						local amt_impulse = (2 - math.Clamp(bone_impulse - CurTime(),0,2)) / 2
 						
 						local p = {}
@@ -326,16 +321,39 @@ hook.Add("Think", "Fake", function()
 		local back = ply:KeyDown(IN_BACK)
 		time = CurTime()
 		
-		if ply.organism and ply.organism.wounds and not table.IsEmpty(ply.organism.wounds) and org.canmove and vellen < 200 and (ply.fakecd and (ply.fakecd + 1) > CurTime()) and hg.RagdollCombatInUse(ply) then
+		if ply.organism and ply.organism.wounds and not table.IsEmpty(ply.organism.wounds) and org.canmove and (ply.fakecd and (ply.fakecd + 1) > CurTime()) then
 			local tr = {}
 			tr.start = ragdoll:GetPos()
 			tr.endpos = ragdoll:GetPos() - vector_up * 60
 			tr.filter = {ply,ragdoll}
 			local tracehuy = util.TraceLine(tr)
 
-			if tracehuy.Hit and not ply:KeyDown(IN_USE) then
-				shadowControl(ragdoll, 10, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 40, 10)
-				shadowControl(ragdoll, 1, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 00, 10)
+			if tracehuy.Hit then
+				local wounds = ply.organism.wounds
+				local wound = wounds[table.maxn(wounds) - 1] or wounds[table.maxn(wounds)]
+
+				if ragdoll:LookupBone(wound[4]) then
+					local pos, ang = LocalToWorld(wound[2], wound[3], ragdoll:GetBonePosition(ragdoll:LookupBone(wound[4])))
+					
+					if not ply:KeyDown(IN_ATTACK) and !left_arm[wound[4]] then
+						shadowControl(ragdoll, 3, 0.001, nil, nil, nil, spine:GetPos() + spine:GetAngles():Right() * -50, 25, 10)
+						shadowControl(ragdoll, 5, 0.001, nil, nil, nil, pos - (pos - lhand:GetPos()):GetNormalized() * 2, 100, 10)
+					end
+
+					if not ply:KeyDown(IN_ATTACK2) and !right_arm[wound[4]] then
+						shadowControl(ragdoll, 2, 0.001, nil, nil, nil,spine:GetPos() + spine:GetAngles():Right() * -50, 25, 10)
+						shadowControl(ragdoll, 7, 0.001, nil, nil, nil, pos - (pos - rhand:GetPos()):GetNormalized() * 2, 100, 10)
+					end
+
+					if not ply:KeyDown(IN_USE) then
+						shadowControl(ragdoll, 10, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 40, 10)
+						shadowControl(ragdoll, 1, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 00, 10)
+						shadowControl(ragdoll, 2, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 0, 10)
+						shadowControl(ragdoll, 3, 0.001, nil, nil, nil, ragdoll:GetPhysicsObjectNum(realPhysNum(ragdoll,8)):GetPos(), 20, 10)
+						shadowControl(ragdoll, 11, 0.001, nil, nil, nil, spine:GetPos() + spine:GetAngles():Forward() * 50, 30, 10)
+						shadowControl(ragdoll, 8, 0.001, nil, nil, nil, spine:GetPos() + spine:GetAngles():Forward() * 50, 30, 10)
+					end
+				end
 			end
 		end
 		
@@ -716,7 +734,6 @@ hook.Add("Think", "Fake", function()
 			local head = choking1:GetPhysicsObjectNum(realPhysNum(choking1, 10))
 			--lhand:SetPos(head:GetPos())
 			--rhand:SetPos(head:GetPos())
-			choking1.beingChokedUntil = CurTime() + 0.2
 			local org = choking1.organism
 			if org then
 				org.choking = true
@@ -847,9 +864,7 @@ hook.Add("Think", "Fake", function()
 		end
 		local vel = ragdoll:GetVelocity()
 		local vellen = vel:Length()
-		local recentBulletHit = org.lasthit and (org.lasthit + 2) > CurTime()
-		local recentFake = ply.fakecd and ply.fakecd > CurTime()
-		if hg.RagdollCombatInUse(ply) and org.canmove and vellen > 350 and !ply:InVehicle() and not recentBulletHit and not recentFake then
+		if org.canmove and vellen > 350 and !ply:InVehicle() then
 			--[[
 			
 				local defaultBones = {
@@ -908,7 +923,6 @@ hook.Add("Think", "Fake", function()
 				lleg:ApplyForceCenter(force)
 			end
 		end*/
-
 	end
 end)
 

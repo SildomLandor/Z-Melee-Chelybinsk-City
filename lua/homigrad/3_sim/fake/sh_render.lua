@@ -4,16 +4,14 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 --\\ Smooth UnRagdoll
 	local vecSmall = Vector(0.01, 0.01, 0.01)
 	function hg.SmoothUnfake(ent, ply)
-		local gettingup = ply.gettingup
-		if gettingup and (gettingup + 1 - CurTime()) > 0 and IsValid(ply) then
-			local headBone = ent:LookupBone("ValveBiped.Bip01_Head1")
+		if ply.gettingup and (ply.gettingup + 1 - CurTime()) > 0 and IsValid(ply) then
 			for i = 0, ent:GetBoneCount() - 1 do
 				local m1 = ent:GetBoneMatrix(i)
 				local m2 = ply:GetBoneMatrix(i)
 
 				if not m1 or not m2 then continue end
 
-				local k = math_Clamp(1 - (gettingup + 0.8 - CurTime()) / 0.8, 0, 1)
+				local k = math_Clamp(1 - (ply.gettingup + 0.8 - CurTime()) / 0.8, 0, 1)
 
 				local q1 = Quaternion()
 				q1:SetMatrix(m1)
@@ -28,7 +26,7 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 				newmat:SetAngles(q3:Angle())
 				newmat:SetScale(m1:GetScale())
 
-				if i == headBone and lply == GetViewEntity() and lply == ply then
+				if i == ent:LookupBone("ValveBiped.Bip01_Head1") and lply == GetViewEntity() and lply == ply then
 					newmat:SetScale(vecSmall)
 					//ply.headm = newmat
 				end
@@ -112,19 +110,17 @@ local IsValid, math_Clamp = IsValid, math.Clamp
 		--if !current:IsEqualTol(wawanted, 0.01) then
 			--ent:ManipulateBoneScale(lkp, wawanted)
 			local mat = ent:GetBoneMatrix(lkp)
-			if mat then
-				if !(Glide and Glide.Camera and !Glide.Camera.isInFirstPerson and lply == ply and lply:InVehicle() and hg_no_camera_in_cars:GetBool()) then
-					if (!hg_thirdperson:GetBool() and !hg_gopro:GetBool() and (ent == ply or (!hg_ragdollcombat:GetBool() or hg_firstperson_ragdoll:GetBool()))) or (hg_firstperson_death:GetBool() and follow == ent) then
-						mat:SetScale(wawanted)
-					end
+			if !(Glide and Glide.Camera and !Glide.Camera.isInFirstPerson and lply == ply and lply:InVehicle() and hg_no_camera_in_cars:GetBool()) then
+				if (!hg_thirdperson:GetBool() and !hg_gopro:GetBool() and (ent == ply or (!hg_ragdollcombat:GetBool() or hg_firstperson_ragdoll:GetBool()))) or (hg_firstperson_death:GetBool() and follow == ent) then
+					mat:SetScale(wawanted)
 				end
-				--angfuck[3] = -GetViewPunchAngles2()[2] - GetViewPunchAngles3()[2]
-
-				--local _, ang = LocalToWorld(vector_origin, angfuck, vector_origin, mat:GetAngles())
-				--mat:SetAngles(ang)
-
-				hg.bone_apply_matrix(ent, lkp, mat)
 			end
+			--angfuck[3] = -GetViewPunchAngles2()[2] - GetViewPunchAngles3()[2]
+
+			--local _, ang = LocalToWorld(vector_origin, angfuck, vector_origin, mat:GetAngles())
+			--mat:SetAngles(ang)
+
+			hg.bone_apply_matrix(ent, lkp, mat)
 		--end
 
 		--hg.CoolGloves(ent, ply, wep)

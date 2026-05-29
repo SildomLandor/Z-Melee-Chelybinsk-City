@@ -697,9 +697,9 @@ function SWEP:CustomThink()
     end
 
     if self:GetStrangling() then
-        local shakeMag = 0.015
-        
         local owner = self:GetOwner()
+        local shakeMag = (IsValid(owner) and IsValid(owner.FakeRagdoll)) and 0 or 0.015
+        
         if IsValid(owner) and not owner:KeyDown(IN_USE) then
             self.SlittingArteryTime = nil
         end

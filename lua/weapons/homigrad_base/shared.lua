@@ -2113,6 +2113,10 @@ function SWEP:SetHandPos(noset)
 
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	local inuse = self:InUse()
+	local fakeRag = ent ~= ply and not hg.RagdollCombatInUse(ply)
+
+	if fakeRag and (not inuse or self:IsResting()) then return end
+	if fakeRag and self.ismelee and not hg.RagdollCombatInUse(ply) then return end
 
 	//if (ent ~= ply and not (inuse)) and (self.lerped_positioning and self.lerped_positioning < 0.2) then return end
 	
@@ -2167,7 +2171,9 @@ function SWEP:SetHandPos(noset)
 		rhmat:SetAngles(ang1)
 	
 		if SERVER or CLIENT and self:IsLocal() then
-			addvec = LerpFT(0.1, addvec, VectorRand(-0.03,0.03) * (ply.organism and ply.organism.holdingbreath and 0 or 1) * ((ent.organism and (ent.organism.adrenaline or 0) + (36.6 - (ent.organism.temperature or 36.6)) or 0) + 3) / 5)
+			local handShake = (ply.organism and ply.organism.holdingbreath and 0 or 1)
+			if fakeRag then handShake = 0 end
+			addvec = LerpFT(0.1, addvec, VectorRand(-0.03,0.03) * handShake * ((ent.organism and (ent.organism.adrenaline or 0) + (36.6 - (ent.organism.temperature or 36.6)) or 0) + 3) / 5)
 			addvec2 = LerpFT(0.05 * ((ent.organism and (ent.organism.adrenaline or 0) + (36.6 - (ent.organism.temperature or 36.6)) or 0) + 1) * 15, addvec2, addvec)
 		end
 
