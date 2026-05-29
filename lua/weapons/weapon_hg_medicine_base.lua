@@ -90,6 +90,18 @@ end
 SWEP.usetime = 2
 local math = math
 
+local function NormalizeModeValues(wep, values)
+	if istable(values) then return values end
+	if isnumber(values) then return {[1] = values} end
+
+	local fallback = {}
+	for i, def in ipairs(wep.modeValuesdef or {}) do
+		fallback[i] = istable(def) and def[1] or def
+	end
+	if fallback[1] == nil then fallback[1] = 0 end
+	return fallback
+end
+
 function SWEP:Think()
 end
 
@@ -242,6 +254,7 @@ function SWEP:GetInfo()
 end
 
 function SWEP:SetInfo(info)
+	info = NormalizeModeValues(self, info)
 	self:SetNetVar("modeValues",info)
 	self.modeValues = info
 end
@@ -288,8 +301,8 @@ if CLIENT then
 	hook.Add("OnNetVarSet","bandage-net-var",function(index,key,var)
 		if key == "modeValues" then
 			local ent = Entity(index)
-
-			ent.modeValues = var
+			if not IsValid(ent) then return end
+			ent.modeValues = NormalizeModeValues(ent, var)
 		end
 	end)
 end

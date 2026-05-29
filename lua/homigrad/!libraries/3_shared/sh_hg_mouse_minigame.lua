@@ -4,7 +4,38 @@ hg.MouseMinigame = hg.MouseMinigame or {}
 local bandageCircleClasses = {
 	["weapon_bandage_sh"] = true,
 	["weapon_bigbandage_sh"] = true,
+	["weapon_medkit_sh"] = true,
 }
+
+local bandageNameHints = {
+	["bandag"] = true,
+	["перевяз"] = true,
+}
+
+local function IsBandageMode(wep)
+	if not IsValid(wep) then return false end
+	if wep:GetClass() == "weapon_medkit_sh" then
+		return (wep.mode or 1) == 1
+	end
+
+	local mode = wep.mode or 1
+	local modeName = wep.modeNames and wep.modeNames[mode]
+	if not isstring(modeName) then return true end
+
+	local lower = string.lower(modeName)
+	for hint in pairs(bandageNameHints) do
+		if string.find(lower, hint, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+local function IsBandageMinigameWeapon(wep)
+	if not IsValid(wep) then return false end
+	if not bandageCircleClasses[wep:GetClass()] then return false end
+	return IsBandageMode(wep)
+end
 -- тип который это делал пж не делай больше так я заебался фиксить
 if SERVER then
 	AddCSLuaFile()
@@ -15,9 +46,10 @@ if SERVER then
 		local wep = net.ReadEntity()
 		local attackType = net.ReadUInt(2)
 		local target = net.ReadEntity()
+		if attackType ~= 1 and attackType ~= 2 then return end
 		if not IsValid(wep) then return end
 		if wep:GetOwner() ~= ply then return end
-		if not bandageCircleClasses[wep:GetClass()] then return end
+		if not IsBandageMinigameWeapon(wep) then return end
 		if ply:GetActiveWeapon() ~= wep then return end
 
 		wep.HgBandageCooldown = wep.HgBandageCooldown or 0
@@ -25,7 +57,7 @@ if SERVER then
 		wep.HgBandageCooldown = CurTime() + 0.2
 
 		if wep.DoBandageUse then
-			wep:DoBandageUse(ply, attackType, target, true)
+			wep:DoBandageUse(attackType, target, true)
 		end
 	end)
 
@@ -374,7 +406,7 @@ function MouseMinigame:TryStartBandageSession(wep, attackType)
 	end
 
 	if not IsValid(wep) then return false end
-	if not bandageCircleClasses[wep:GetClass()] then return false end
+	if not IsBandageMinigameWeapon(wep) then return false end
 	local owner = wep:GetOwner()
 	if not IsValid(owner) or owner ~= LocalPlayer() then return false end
 	if owner:GetActiveWeapon() ~= wep then return false end
@@ -427,7 +459,7 @@ hook.Add("Think", "hg_mouse_minigame_bandage_input", function()
 	end
 
 	if not IsValid(wep) then return end
-	if not bandageCircleClasses[wep:GetClass()] then
+	if not IsBandageMinigameWeapon(wep) then
 		bandageLMBDown = false
 		bandageRMBDown = false
 		return
@@ -460,34 +492,36 @@ hook.Add("Think", "hg_mouse_minigame_bandage_input", function()
 	bandageRMBDown = rmbDown
 end)
 
+local function TryCancelBandageSession(wep, blockKey)
+	if not IsValid(wep) then return false end
+	local sessionId = "bandage_" .. wep:EntIndex()
+	if not MouseMinigame:IsActive(sessionId) then return false end
+
+	local session = MouseMinigame.ActiveSession
+	if not session or CurTime() <= ((session.startedAt or 0) + 0.2) then return true end
+	MouseMinigame:Cancel("manual_cancel")
+	if blockKey == "lmb" then
+		MouseMinigame.BlockStartLMB = true
+	else
+		MouseMinigame.BlockStartRMB = true
+	end
+	return true
+end
+
 hook.Add("PlayerBindPress", "hg_mouse_minigame_bandage_bindpress", function(ply, bind, pressed)
 	if not pressed then return end
 	if not IsValid(ply) or ply ~= LocalPlayer() then return end
 	local wep = ply:GetActiveWeapon()
 	if not IsValid(wep) then return end
-	if not bandageCircleClasses[wep:GetClass()] then return end
+	if not IsBandageMinigameWeapon(wep) then return end
 
 	bind = string.lower(bind or "")
 	if string.find(bind, "+attack2", 1, true) then
-		if MouseMinigame:IsActive("bandage_" .. wep:EntIndex()) then
-			local session = MouseMinigame.ActiveSession
-			if session and CurTime() > ((session.startedAt or 0) + 0.2) then
-				MouseMinigame:Cancel("manual_cancel")
-				MouseMinigame.BlockStartRMB = true
-			end
-		else
-			MouseMinigame:TryStartBandageSession(wep, 2)
-		end
+		if TryCancelBandageSession(wep, "rmb") then return true end
+		if MouseMinigame:TryStartBandageSession(wep, 2) then return true end
 	elseif string.find(bind, "+attack", 1, true) then
-		if MouseMinigame:IsActive("bandage_" .. wep:EntIndex()) then
-			local session = MouseMinigame.ActiveSession
-			if session and CurTime() > ((session.startedAt or 0) + 0.2) then
-				MouseMinigame:Cancel("manual_cancel")
-				MouseMinigame.BlockStartLMB = true
-			end
-		else
-			MouseMinigame:TryStartBandageSession(wep, 1)
-		end
+		if TryCancelBandageSession(wep, "lmb") then return true end
+		if MouseMinigame:TryStartBandageSession(wep, 1) then return true end
 	end
 end)
 
