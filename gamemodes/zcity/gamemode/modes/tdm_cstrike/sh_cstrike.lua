@@ -19,12 +19,15 @@ zb.Points.HOSTAGE_DELIVERY_ZONE = zb.Points.HOSTAGE_DELIVERY_ZONE or {}
 zb.Points.HOSTAGE_DELIVERY_ZONE.Color = Color(150,150,150)
 zb.Points.HOSTAGE_DELIVERY_ZONE.Name = "HOSTAGE_DELIVERY_ZONE"
 
-MODE.BuyItems["Gear"] = MODE.BuyItems["Gear"] or { Priority = 50 }
-MODE.BuyItems["Gear"]["Набор разминирования"] = {
-	Type = "Weapon",
-	ItemClass = "weapon_zb_defusekit",
-	Price = 300,
-	Category = "Gear",
-	Attachments = {},
-	TeamBased = 1,
-}
+function MODE:AfterBaseInheritance()
+	self.BuyItems = self.BuyItems or {}
+	self.BuyItems.Gear = self.BuyItems.Gear or { Priority = 50 }
+	self.BuyItems.Gear["Набор разминирования"] = {
+		Type = "Weapon",
+		ItemClass = "weapon_zb_defusekit",
+		Price = 300,
+		Category = "Gear",
+		Attachments = {},
+		TeamBased = 1,
+	}
+end
