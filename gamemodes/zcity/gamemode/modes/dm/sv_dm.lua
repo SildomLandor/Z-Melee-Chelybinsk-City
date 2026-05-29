@@ -227,6 +227,7 @@ end
 
 local cooldown = CurTime()
 hook.Add("Think","bober",function(ply)
+	if zb.ROUND_STATE ~= 1 then return end
 	local rnd = CurrentRound()
 	if not MODE.IsDMFamily(rnd) then return end
 	if (zb.ROUND_START or 0) + 20 > CurTime() then return end

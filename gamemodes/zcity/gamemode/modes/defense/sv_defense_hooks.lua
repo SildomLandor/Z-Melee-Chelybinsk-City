@@ -5,6 +5,7 @@ util.AddNetworkString("defense_highlight_last_npcs")
 
 local npc_autoseek_timer = 0
 hook.Add("Think", "NPCAutoSeekPlayer", function()
+    if zb.ROUND_STATE ~= 1 then return end
     local currentRound = CurrentRound()
     if not currentRound or currentRound.name ~= "defense" then return end
     if npc_autoseek_timer > CurTime() then return end
@@ -335,6 +336,7 @@ local lastSentTime = 0
 local lastCleanupCheck = 0
 
 hook.Add("Think", "DefenseNPCValidityCheck", function()
+    if zb.ROUND_STATE ~= 1 then return end
     if CurTime() < lastNPCUpdate then return end
     lastNPCUpdate = CurTime() + 5
     
@@ -411,6 +413,7 @@ hook.Add("Think", "DefenseNPCValidityCheck", function()
 end)
 
 hook.Add("Think", "DefenseCleanupCheck", function()
+    if zb.ROUND_STATE ~= 1 then return end
     if CurTime() < lastCleanupCheck then return end
     lastCleanupCheck = CurTime() + 15
     

@@ -145,6 +145,11 @@ hg.ConVars = hg.ConVars or {}
 	hook.Add("PostCleanupMap","remove_this_stupid_clside_ragdolls",function()
 		for k,v in ipairs(ents.FindByClass('class C_ClientRagdoll')) do v:Remove() end
 	end)
+	hook.Add("PostCleanupMap", "zb_cl_round_reset", function()
+		hg.ragdolls = {}
+		if hg.organism_ents then table.Empty(hg.organism_ents) end
+		game.RemoveRagdolls()
+	end)
 --//
 
 --\\ Fake status info for scare mode
@@ -419,6 +424,8 @@ players : 1 humans, 0 bots (20 max)
 	end)
 
 	hook.Add("Think", "hg-playerthink", function()
+		if isnumber(zb.ROUND_STATE) and zb.ROUND_STATE ~= 1 then return end
+
 		local time = CurTime()
 		local dtime = SysTime() - lastcall
 		lastcall = SysTime()
@@ -580,6 +587,7 @@ players : 1 humans, 0 bots (20 max)
 	local table_Add = table.Add
 
 	hook.Add("Think", "CanBeSeenOrNot", function()
+		if isnumber(zb.ROUND_STATE) and zb.ROUND_STATE ~= 1 then return end
 		if checkcd > CurTime() then return end
 		checkcd = CurTime() + 0.15
 

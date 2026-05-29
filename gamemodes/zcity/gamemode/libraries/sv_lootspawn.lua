@@ -709,7 +709,13 @@ end)
 
 hook.Add("PostCleanupMap", "addboxs", function()
 	if timer.Exists("SpawnTheBoxes") then timer.Remove("SpawnTheBoxes") end
-	timer.Simple(.5,function()
+	timer.Simple(.5, function()
+		local pts = zb.Points.RandomSpawns and zb.Points.RandomSpawns.Points
+		if pts and #pts > 0 then
+			LOOT.StartTimer()
+			return
+		end
+
 		spawns = {}
 		for i, ent in pairs(ents.FindByClass("info_*")) do
 			table.insert(spawns, ent:GetPos())

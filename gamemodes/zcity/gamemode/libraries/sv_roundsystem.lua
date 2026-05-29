@@ -148,8 +148,8 @@ function zb:EndRoundThink()
 
 		if zb.END_TIME < CurTime() then
 			zb.ROUND_STATE = 0
-
 			zb.SHOULD_FADE = true
+			zb.END_TIME = nil
 
 			hook.Run("ZB_PreRoundStart")
 			hook.Run("TTTPrepareRound") -- stormfox2 random_round_weather
@@ -157,23 +157,26 @@ function zb:EndRoundThink()
 			zb.CROUND = zb.nextround or "hmcd"
 			if CurrentRound().shouldfreeze then zb:Freeze() end
 
-			--PrintMessage(HUD_PRINTTALK, "Gamemode: " .. CurrentRound().PrintName or "None")
-
-			local mode, round = CurrentRound()
+			local mode = CurrentRound()
 			net.Start("RoundInfo")
 				net.WriteString(mode.name or "hmcd")
 				net.WriteInt(zb.ROUND_STATE, 4)
 			net.Broadcast()
 
-			hg.UpdateRoundTime(CurrentRound().ROUND_TIME, CurTime(), CurTime() + (CurrentRound().start_time or 5))
+			hg.UpdateRoundTime(mode.ROUND_TIME, CurTime(), CurTime() + (mode.start_time or 5))
 
 			self:KillPlayers()
 			self:AutoBalance()
+			mode.saved = {}
 
-			CurrentRound().saved = {}
-
-			CurrentRound():Intermission()
-			CurrentRound():GiveEquipment()
+			timer.Simple(0, function()
+				if not mode then return end
+				mode:Intermission()
+				timer.Simple(0, function()
+					if not mode then return end
+					mode:GiveEquipment()
+				end)
+			end)
 		end
 	end
 end
@@ -210,11 +213,12 @@ function zb:KillPlayers()
 
 		if ply:Alive() and mode.DontKillPlayer and mode:DontKillPlayer(ply) then
 			hg.organism.Clear(ply.organism)
-			hg.FakeUp(ply,true,true)
-
+			hg.FakeUp(ply, true, true)
 			continue
 		end
-		
+
+		if IsValid(ply.FakeRagdoll) then hg.FakeUp(ply, true, true) end
+		if ply.organism then hg.organism.Clear(ply.organism) end
 		if ply:FlashlightIsOn() then ply:Flashlight(false) end
 
 		ply:KillSilent()

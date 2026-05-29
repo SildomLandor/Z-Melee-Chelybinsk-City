@@ -187,3 +187,8 @@ hook.Add("HG_OnOtrub", "pulseotrub.reset", function(ply)
 	reset()
 	e.on = true
 end)
+
+hook.Add("zbClientModeCleanup", "pulseotrub.off", function()
+	e.on = false
+	reset(0)
+end)
