@@ -1755,8 +1755,8 @@ function NPC:ZBaseSyncMoveAnim()
     end
 
     local act = run and ACT_RUN or ACT_WALK
-    if self:SelectWeightedSequence(act) < 0 then act = ACT_WALK end
-    if self:SelectWeightedSequence(act) < 0 then return end
+    if (self:SelectWeightedSequence(act) or -1) < 0 then act = ACT_WALK end
+    if (self:SelectWeightedSequence(act) or -1) < 0 then return end
 
     local cur, moveAct = self:GetActivity(), self:GetMovementActivity()
     if cur == ACT_IDLE or cur == ACT_RESET or moveAct == ACT_IDLE or moveAct == -1 or moveAct == ACT_RESET then
@@ -1767,7 +1767,7 @@ function NPC:ZBaseSyncMoveAnim()
 end
 
 function NPC:DoMoveSpeed()
-    local mult = self.MoveSpeedMultiplier * ZBCVAR.MoveSpeedMult:GetFloat()
+    local mult = (self.MoveSpeedMultiplier or 1) * ZBCVAR.MoveSpeedMult:GetFloat()
 
     if !self.DoingPlayAnim then
         local act = self:GetActivity()
