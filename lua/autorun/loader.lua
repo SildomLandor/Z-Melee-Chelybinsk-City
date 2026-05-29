@@ -1,5 +1,5 @@
 hg = hg or {}
-hg.Version = "Beta 3.0"
+hg.Version = "Beta 3.1"
 hg.GitHub_ReposOwner = "Rastawontfix, Sildom_Landor"
 hg.GitHub_ReposName = "Meleecity: Delicacy Reworked" 
 -- А силдом гей
