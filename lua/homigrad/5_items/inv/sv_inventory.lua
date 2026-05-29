@@ -191,7 +191,7 @@ hook.Add("PlayerDropWeapon", "homigrad-inventory", function(ply)
         local enta = ply:Alive() and (ply.organism and !ply.organism.otrub) and ply or ent
         local inv = enta:GetNetVar("Inventory", {})
         if not inv["Weapons"] then return end
-        if inv["Weapons"]["hg_sling"] and ishgweapon(wep) and not wep:IsPistolHoldType() then
+        if inv["Weapons"]["hg_sling"] and ((ishgweapon(wep) and not wep:IsPistolHoldType()) or wep.ismelee2) then
             constraint.Rope(wep, ent, 0, physbonetorso, vector_origin, vector_origin, 10, 5, 0, 0, "null", true, color_white)
             wep.sling = true
             ent.rope_attach = wep

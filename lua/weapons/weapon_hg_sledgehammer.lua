@@ -44,7 +44,8 @@ SWEP.NeckBreakChance = 0.1
 SWEP.DamageSecondary = 16
 SWEP.BreakBoneMul = 1.05
 SWEP.PainMultiplier = 0.85
-
+SWEP.holsteredPos = Vector(-5, -3, -2)
+SWEP.holsteredAng = Angle(250, -5, 180)
 SWEP.PenetrationPrimary = 4
 SWEP.PenetrationSecondary = 1.6
 

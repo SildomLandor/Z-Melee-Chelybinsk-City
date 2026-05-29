@@ -45,6 +45,11 @@ end
 SWEP.supportTPIK = true
 SWEP.ismelee = true
 SWEP.ismelee2 = true
+SWEP.weaponInvCategory = 3
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
+SWEP.holsteredPos = Vector(-14, 3, -8.3)
+SWEP.holsteredAng = Angle(0, 90, 180)
 
 SWEP.AttackTime = 0.2
 SWEP.DrawAnimTime = 1.25
@@ -267,6 +272,79 @@ if CLIENT then
 
     SWEP.Current = 1
 
+	function SWEP:DrawWorldModelHolstered()
+		local owner = self:GetOwner()
+		if not IsValid(owner) then return end
+
+		local WorldModel = self:GetWM()
+		if not IsValid(WorldModel) then return end
+
+		WorldModel:SetNoDraw(true)
+		WorldModel:SetModelScale(self.modelscale2)
+
+		local ent = hg.GetCurrentCharacter(owner)
+		if not IsValid(ent) then return end
+
+		local bone = ent:LookupBone(self.holsteredBone or "ValveBiped.Bip01_Spine2")
+		if not bone then return end
+
+		local matrix = ent:GetBoneMatrix(bone)
+		if not matrix then return end
+
+		local eyeAng = owner:IsPlayer() and owner:EyeAngles() or owner:GetAngles()
+		eyeAng.p = 0
+
+		self.addAngle = self.addAngle or Angle(0, 0, 0)
+		if owner:IsPlayer() then
+			local vel = ent:GetVelocity()
+			local sway = Angle(
+				math.Clamp(vel:Dot(eyeAng:Right()) / 3, -10, 10),
+				math.Clamp(-vel:Dot(eyeAng:Forward()) / 3, -1, 10) + math.abs(math.Clamp(vel:Dot(eyeAng:Right()), -3, 3)),
+				0
+			)
+			self.addAngle = LerpAngleFT(0.05, self.addAngle, sway)
+		else
+			self.addAngle:Zero()
+		end
+
+		local holPos = self.holsteredPos or Vector(5, 7, -4)
+		local holAng = self.holsteredAng or Angle(210, 0, 180)
+		local pos, ang = LocalToWorld(holPos, holAng, matrix:GetTranslation(), matrix:GetAngles())
+		ang:RotateAroundAxis(eyeAng:Right(), self.addAngle[2])
+		ang:RotateAroundAxis(eyeAng:Forward(), self.addAngle[1])
+
+		local offsetPos = self.holsterWorldPos or self.weaponPos or vector_origin
+		local offsetAng = self.holsterWorldAng or self.weaponAng or angle_zero
+		pos, ang = LocalToWorld(offsetPos, offsetAng, pos, ang)
+
+		if self.WorldModelExchange then
+			if not IsValid(self.worldModel2) then
+				self.worldModel2 = ClientsideModel(self.WorldModelExchange)
+				self.worldModel2:SetNoDraw(true)
+				local mdl = self.worldModel2
+				self:CallOnRemove("remove_worldmodel2", function()
+					if IsValid(mdl) then mdl:Remove() end
+				end)
+			end
+
+			self.worldModel2:SetModelScale(self.modelscale)
+			self.worldModel2:SetRenderOrigin(pos)
+			self.worldModel2:SetRenderAngles(ang)
+			self.worldModel2:SetPos(pos)
+			self.worldModel2:SetAngles(ang)
+			self.worldModel2:SetupBones()
+			self.worldModel2:DrawModel()
+		else
+			WorldModel:SetModel(self.WorldModel)
+			WorldModel:SetRenderOrigin(pos)
+			WorldModel:SetRenderAngles(ang)
+			WorldModel:SetPos(pos)
+			WorldModel:SetAngles(ang)
+			WorldModel:SetupBones()
+			WorldModel:DrawModel()
+		end
+	end
+
 	function SWEP:DrawWorldModel2()
 		local owner = self:GetOwner()
         
@@ -278,6 +356,11 @@ if CLIENT then
         
         if IsValid(owner) and (not owner.shouldTransmit or owner.NotSeen) then return end
         if not IsValid(owner) and (not self.shouldTransmit or self.NotSeen) then return end
+
+		if IsValid(owner) and owner.GetActiveWeapon and owner:GetActiveWeapon() ~= self and not self.shouldntDrawHolstered and not self.Concealed then
+			self:DrawWorldModelHolstered()
+			return
+		end
 
 		local WorldModel = self.worldModel
         
@@ -740,6 +823,9 @@ function SWEP:SetHandPos(noset)
 	self.lhandik = false
     
     if not IsValid(ply) or not IsValid(self.worldModel) then return end
+
+	local actwep = ply.GetActiveWeapon and ply:GetActiveWeapon()
+	if IsValid(actwep) and actwep ~= self then return end
     if not ply.shouldTransmit or ply.NotSeen then return end
 
     local ent = hg.GetCurrentCharacter(ply)
@@ -1394,6 +1480,9 @@ function SWEP:SetupMove(ply, mv, cmd)
     end
 end
 
+local hg_slings_melee = ConVarExists("hg_slings") and GetConVar("hg_slings") or CreateConVar("hg_slings", 0, FCVAR_SERVER_CAN_EXECUTE + FCVAR_ARCHIVE, "Toggle sling system", 0, 1)
+local gamemod_melee = engine.ActiveGamemode()
+
 function SWEP:CustomThink()
     local owner = self:GetOwner()
     if not IsValid(owner) then return end
@@ -1404,10 +1493,30 @@ function SWEP:CustomThink()
         self.ShakeAng = Angle(0,0,0)
     end
 
+	if owner:IsPlayer() and hg_slings_melee:GetBool() and (zb.CROUND and zb.CROUND == "hmcd" or gamemod_melee == "sandbox") then
+		local inv = owner:GetNetVar("Inventory")
+		local noSling = inv and (not inv["Weapons"] or not inv["Weapons"]["hg_sling"])
+
+		if not noSling then owner.holdingWeapon = nil end
+
+		if not self.shouldntDrawHolstered and noSling then
+			owner.holdingWeapon = actwep ~= self and self or nil
+		end
+	end
+
 	if SERVER and not owner:IsNPC() and owner.organism and (not owner.organism.canmove or ((owner.organism.stun - CurTime()) > 0) or (owner.organism.larm == 1 and owner.organism.rarm == 1)) and IsValid(actwep) and self == actwep then
 		self:RemoveFake()
-		
-		hg.drop(owner)
+
+		if hg_slings_melee:GetBool() and (zb.CROUND and zb.CROUND == "hmcd" or gamemod_melee == "sandbox") then
+			local inv = owner:GetNetVar("Inventory", {})
+			if inv["Weapons"] and inv["Weapons"]["hg_sling"] then
+				owner:SetActiveWeapon(owner:GetWeapon("weapon_hands_sh"))
+			else
+				hg.drop(owner, self)
+			end
+		else
+			hg.drop(owner, self)
+		end
 
 		return
 	end

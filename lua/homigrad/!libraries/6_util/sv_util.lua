@@ -691,7 +691,7 @@ concommand.Add("hg_dropsling",function(ply)
 
 	local activewep = ply:GetActiveWeapon()
 	for i,wep in ipairs(ply:GetWeapons()) do
-		if not wep.bigNoDrop and wep.weaponInvCategory == 1 and activewep ~= wep then
+		if not wep.bigNoDrop and (wep.weaponInvCategory == 1 or wep.ismelee2) and activewep ~= wep then
 			ply:DropWeapon(wep)
 		end
 	end

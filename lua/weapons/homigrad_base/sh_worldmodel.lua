@@ -857,8 +857,11 @@ function hg.RenderWeapons(ent, owner)
 		local weps = owner:GetWeapons()
 		for i = 1, #weps do
 			local wep2 = weps[i]
-			if wep2.ishgweapon and wep2 ~= wep then
+			if wep2 == wep then continue end
+			if wep2.ishgweapon then
 				DrawWorldModel(wep2)
+			elseif wep2.ismelee2 and wep2.DrawWorldModel2 and not wep2.shouldntDrawHolstered then
+				wep2:DrawWorldModel2()
 			end
 		end
 	end

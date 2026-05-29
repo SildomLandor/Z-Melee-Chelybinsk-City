@@ -77,7 +77,7 @@ hook.Add("PlayerSwitchInFake","slingDrop",function(ply,oldWeapon,newWeapon)
 	if zb.CROUND and zb.CROUND == "hmcd" or gamemod == "sandbox" then
 		local inv = ply:GetNetVar("Inventory")
 
-		if SERVER and not oldWeapon.bigNoDrop and oldWeapon.weaponInvCategory == 1 and not inv["Weapons"]["hg_sling"] then
+		if SERVER and not oldWeapon.bigNoDrop and (oldWeapon.weaponInvCategory == 1 or oldWeapon.ismelee2) and not inv["Weapons"]["hg_sling"] then
 			timer.Simple(0,function()
 				if oldWeapon:GetOwner() == ply then
 					hg.drop(ply, oldWeapon, newWeapon)
