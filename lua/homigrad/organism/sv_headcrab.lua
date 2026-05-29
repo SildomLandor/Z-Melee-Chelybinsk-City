@@ -1,4 +1,4 @@
-
+--[[
 local PLAYER = FindMetaTable("Player")
 util.AddNetworkString("hg_headcrab")
 function PLAYER:AddHeadcrab(headcrab)
@@ -12,7 +12,7 @@ function PLAYER:AddHeadcrab(headcrab)
     --[[net.Start("hg_headcrab")
     net.WriteEntity(self)
     net.WriteString(headcrab)
-    net.Broadcast()--]]
+    net.Broadcast()--
 end
 
 hook.Add("RagdollDeath","headcrab",function(ply,rag)
@@ -108,3 +108,4 @@ hook.Add("Org Think", "Headcrab",function(owner, org, timeValue)
 		end
     end
 end)
+]]

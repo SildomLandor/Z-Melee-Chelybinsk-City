@@ -11,15 +11,33 @@ MODE.ForBigMaps = false
 MODE.Chance = 0.02
 
 MODE.NPCList = {
-	{type = "zbase_classic_zombie", health = 60, min = 5, max = 5},
-	{type = "zbase_classic_zombie_torso", health = 30, min = 1, max = 2},
+	{type = "zbase_classic_zombie", health = 80, min = 5, max = 5},
+	{type = "zbase_classic_zombie_torso", health = 40, min = 1, max = 2},
+	{type = "zbase_classic_female_zombie", health = 70, min = 2, max = 4},
+	{type = "zbase_classic_female_zombie_torso", health = 35, min = 2, max = 4},
+	{type = "zbase_metro_zombie", health = 100, min = 2, max = 4},
+	{type = "zbase_metro_zombie_grenade", health = 100, min = 2, max = 4},
+	{type = "zbase_poison_spitter_zombie", health = 20, min = 2, max = 4},
+	{type = "zbase_poison_spitter_zombie_torso", health = 10, min = 2, max = 4},
+	{type = "zbase_poison_zombie", health = 120, min = 2, max = 4},
+	--{type = "npc_headcrab", health = 20, min = 2, max = 4},
+
+	{type = "zbase_fast_zombie", health = 30, min = 2, max = 4},
+	{type = "zbase_fast_zombie_torso", health = 15, min = 2, max = 4},
+	--{type = "npc_headcrab_fast", health = 20, min = 2, max = 4},
+	
+	{type = "zbase_armored_zombie", health = 100, min = 2, max = 4},
+	{type = "zbase_armored_zombie_torso", health = 50, min = 2, max = 4},
+	{type = "zbase_armored_zombine", health = 200, min = 2, max = 4},
+	--{type = "zbase_armor_headcrab", health = 20, min = 2, max = 4},
+
+	{type = "zbase_combine_zombie", health = 90, min = 2, max = 4},
+	{type = "zbase_combine_zombie_torso", health = 45, min = 2, max = 4},
+	--{type = "zbase_combine_headcrab", health = 20, min = 2, max = 4},
+	
 	{type = "zbase_funguscrab_zombie", health = 80, min = 1, max = 2},
 	{type = "zbase_funguscrab_zombie_torso", health = 40, min = 1, max = 2},
-	{type = "zbase_funguscrab", health = 5, min = 1, max = 2},
-	{type = "npc_fastzombie", health = 95, min = 1, max = 2},
-	{type = "npc_poisonzombie", health = 280, min = 1, max = 2},
-	{type = "npc_zombine", health = 220, min = 1, max = 2},
-	{type = "zbase_armored_zombine", health = 500, min = 1, max = 2, boss = true},
+	--{type = "zbase_funguscrab", health = 5, min = 1, max = 2},
 }
 
 local spawnMinDistSqr = 600 * 600
@@ -271,9 +289,13 @@ end
 
 function MODE:StartWave(num)
 	local waveDef = self.Waves[num]
-	if not waveDef or #waveDef == 0 then
-		-- Generate a random wave: pick a random number of NPC types (between 2 and 4, or up to total types)
-		local typesCount = math.min(#MODE.NPCList, math.random(2, math.min(4, #MODE.NPCList)))
+	if not waveDef or type(waveDef) ~= "table" or #waveDef == 0 then
+		-- Generate a random wave: pick a random number of NPC types (between 1 and 4, or up to total types, but at least 2 if possible)
+		local minTypes = 1
+		if #MODE.NPCList >= 2 then
+			minTypes = 2
+		end
+		local typesCount = math.min(#MODE.NPCList, math.random(minTypes, math.min(4, #MODE.NPCList)))
 		-- Shuffle list and take first typesCount
 		local shuffled = {}
 		for _, v in ipairs(MODE.NPCList) do
@@ -288,7 +310,7 @@ function MODE:StartWave(num)
 			table.insert(waveDef, shuffled[i].type)
 		end
 	end
-	if not waveDef or #waveDef == 0 then
+	if not waveDef or type(waveDef) ~= "table" or #waveDef == 0 then
 		self.WaveCompleted = true
 		return
 	end
@@ -302,9 +324,13 @@ function MODE:StartWave(num)
 	self.ZombieCount = 0
 	self.nextZombieCheck = CurTime() + 2
 
+	local waveCount = 0
+	if type(self.Waves) == "table" then
+		waveCount = #self.Waves
+	end
 	net.Start("zombie_newwave")
 		net.WriteInt(num, 8)
-		net.WriteInt(#self.Waves, 8)
+		net.WriteInt(waveCount, 8)
 	net.Broadcast()
 
 	local mode = self
