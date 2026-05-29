@@ -917,7 +917,7 @@ function GM:ScoreboardShow()
 	local function PlayersHash()
 		local parts = {}
 		for _, ply in player.Iterator() do
-			parts[#parts + 1] = ply:SteamID() .. ply:Team() .. tostring(ply:Alive()) .. ply:Frags() .. ply:Ping() .. math.floor(tonumber(ply.exp) or 0) .. (ply:Name() or "")
+			parts[#parts + 1] = ply:SteamID() .. ply:Team() .. tostring(ply:Alive()) .. ply:Frags() .. ply:Ping() .. math.floor(tonumber(ply.exp) or 0) .. math.Round(tonumber(ply.skill) or 0, 3) .. (ply:Name() or "")
 		end
 		return table.concat(parts, "|")
 	end
@@ -942,6 +942,10 @@ function GM:ScoreboardShow()
 				lastHash = newHash
 				self:RebuildRows()
 			end
+		end
+
+		if zb.Experience and zb.Experience.RequestMissing then
+			zb.Experience.RequestMissing()
 		end
 	end
 
@@ -1167,9 +1171,9 @@ function GM:ScoreboardShow()
 	local spectatorListPanel = CreateListPanel(rightPanelX, listTopY, rightPanelW, listH)
 
 	local playerColumns = {
-		{ key = "name",  label = "Имя",      frac = 0.50, align = TEXT_ALIGN_LEFT },
+		{ key = "name",  label = "Имя",      frac = 0.46, align = TEXT_ALIGN_LEFT },
 		{ key = "frags", label = "Убийства", frac = 0.16, align = TEXT_ALIGN_CENTER, defaultDesc = true },
-		{ key = "xp",   label = "XP",       frac = 0.14, align = TEXT_ALIGN_CENTER, defaultDesc = true },
+		{ key = "xp",   label = "XP / Skill", frac = 0.18, align = TEXT_ALIGN_CENTER, defaultDesc = true },
 		{ key = "ping", label = "Пинг",     frac = 0.10, align = TEXT_ALIGN_CENTER },
 	}
 
@@ -1270,11 +1274,11 @@ function GM:ScoreboardShow()
 				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, col.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 				draw.SimpleText(tostring(ply:Ping()) .. "ms", "ZCity_Veteran", pingX + pingW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 			else
-				local nameW = math.floor(rw * 0.50) - nameX
-				local fragsX = math.floor(rw * 0.50)
+				local nameW = math.floor(rw * 0.46) - nameX
+				local fragsX = math.floor(rw * 0.46)
 				local fragsW = math.floor(rw * 0.16)
 				local xpX = fragsX + fragsW
-				local xpW = math.floor(rw * 0.14)
+				local xpW = math.floor(rw * 0.18)
 				local pingX = xpX + xpW
 				local pingW = math.floor(rw * 0.10)
 
@@ -1290,7 +1294,8 @@ function GM:ScoreboardShow()
 				local nameCol = looksAlive and col.text or col.textBlood
 				draw.SimpleText(fitted, "ZCity_Veteran", nameX + waveX, rh * 0.5 + waveY, nameCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 				draw.SimpleText(tostring(ply:Frags()), "ZCity_Veteran", fragsX + fragsW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText(tostring(math.floor(ply.exp or 0)), "ZCity_Veteran", xpX + xpW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				local xpText = ply.exp == nil and "…" or (math.floor(ply.exp) .. " / " .. string.format("%.2f", ply.skill or 0))
+				draw.SimpleText(xpText, "ZB_InterfaceSmall", xpX + xpW * 0.5 + waveX, rh * 0.5 + waveY, col.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
 				local p = ply:Ping()
 				local pingCol = p < 80 and col.textDim or (p < 150 and Color(220, 180, 60, 200) or col.textBlood)
@@ -1468,12 +1473,24 @@ function GM:ScoreboardShow()
 	end
 
 	scoreBoardMenu.RebuildRows = RebuildRows
+
+	hook.Add("ZB_XP_Updated", scoreBoardMenu, function()
+		if not IsValid(scoreBoardMenu) then return end
+		lastHash = ""
+		scoreBoardMenu:RebuildRows()
+	end)
+
+	if zb.Experience and zb.Experience.RequestAll then
+		zb.Experience.RequestAll()
+	end
+
 	RebuildRows()
 	return true
 end
 
 function GM:ScoreboardHide()
 	if IsValid(scoreBoardMenu) then
+		hook.Remove("ZB_XP_Updated", scoreBoardMenu)
 		scoreBoardMenu:Close()
 		scoreBoardMenu = nil
 	end

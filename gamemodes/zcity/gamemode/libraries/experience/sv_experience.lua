@@ -211,25 +211,41 @@ end
 
 
 util.AddNetworkString("zb_xp_get")
+util.AddNetworkString("zb_xp_get_all")
 
-net.Receive("zb_xp_get",function(len,ply)
+local function sendXpBulk(requester)
+    local list = player.GetAll()
+    net.Start("zb_xp_get_all")
+        net.WriteUInt(#list, 8)
+        for _, p in ipairs(list) do
+            net.WriteEntity(p)
+            net.WriteFloat(p:GetSkill())
+            net.WriteInt(p:GetExp(), 19)
+        end
+    net.Send(requester)
+end
 
-    local steamID64 = ply:SteamID64()
-
-    if not zb.Experience.Active then
-        zb.Experience.PlayerInstances[steamID64] = {}
-        return
-    end 
+net.Receive("zb_xp_get", function(len, ply)
+    if not zb.Experience.Active then return end
 
     local get_ply = net.ReadEntity()
+    if not IsValid(get_ply) or not get_ply:IsPlayer() then return end
 
     net.Start("zb_xp_get")
-        --print( ply:GetExp() )
-        net.WriteEntity( get_ply )
-        net.WriteFloat( get_ply:GetSkill() )
-        net.WriteInt( get_ply:GetExp(), 19 )
+        net.WriteEntity(get_ply)
+        net.WriteFloat(get_ply:GetSkill())
+        net.WriteInt(get_ply:GetExp(), 19)
     net.Send(ply)
+end)
 
+net.Receive("zb_xp_get_all", function(len, ply)
+    if not zb.Experience.Active then return end
+
+    ply.zbXpBulkNext = ply.zbXpBulkNext or 0
+    if ply.zbXpBulkNext > CurTime() then return end
+    ply.zbXpBulkNext = CurTime() + 0.35
+
+    sendXpBulk(ply)
 end)
 
 
