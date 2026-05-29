@@ -139,15 +139,26 @@ SWEP.usetime = 2
 local math = math
 
 local function NormalizeModeValues(wep, values)
-	if istable(values) then return values end
-	if isnumber(values) then return {[1] = values} end
-
 	local fallback = {}
 	for i, def in ipairs(wep.modeValuesdef or {}) do
 		fallback[i] = istable(def) and def[1] or def
 	end
 	if fallback[1] == nil then fallback[1] = 0 end
-	return fallback
+
+	if isnumber(values) then
+		if #fallback > 1 then return fallback end
+		fallback[1] = values
+		return fallback
+	end
+
+	if not istable(values) then return fallback end
+
+	for i = 1, #fallback do
+		if values[i] == nil then
+			values[i] = fallback[i]
+		end
+	end
+	return values
 end
 
 function SWEP:Think()

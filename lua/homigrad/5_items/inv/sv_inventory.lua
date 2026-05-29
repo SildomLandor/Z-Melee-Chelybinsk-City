@@ -247,13 +247,39 @@ hook.Add("PostPlayerDeath", "homigrad-inventory", function(ply)
     ply:RemoveAllAmmo()
 end)
 
+local function NormalizeWeaponLootValue(value)
+	if isentity(value) then
+		return IsValid(value) and value or nil
+	end
+	if istable(value) or isbool(value) then
+		return value
+	end
+	if isnumber(value) then
+		return true
+	end
+	return nil
+end
+
+local function NormalizeInventoryWeapons(inv)
+	if not istable(inv) then return inv end
+	if not istable(inv.Weapons) then return inv end
+
+	for class, value in pairs(inv.Weapons) do
+		local normalized = NormalizeWeaponLootValue(value)
+		inv.Weapons[class] = normalized
+	end
+	return inv
+end
+
 local functions = {
     ["Weapons"] = function(ply, ent, wep)
         if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == wep then return end
         if not ent.inventory or not ent.inventory.Weapons or not ent.inventory.Weapons[wep] then return end
 
         local weapon
-        local invWeapon = ent.inventory.Weapons[wep]
+        local invWeapon = NormalizeWeaponLootValue(ent.inventory.Weapons[wep])
+        ent.inventory.Weapons[wep] = invWeapon
+        if invWeapon == nil then return end
         local weaponIsEnt = isentity(invWeapon) and IsValid(invWeapon) and invWeapon:IsWeapon()
         if not weaponIsEnt then
             local weaponData = weapons.Get(wep) or scripted_ents.GetStored(wep)
@@ -275,8 +301,9 @@ local functions = {
             weapon:SetPos(ent:GetPos())
             weapon:SetAngles(ent:GetAngles())
 
-            local tbl = ent.inventory.Weapons[wep]
-            if weapon.SetInfo then weapon:SetInfo(tbl) end
+            if weapon.SetInfo and invWeapon ~= true then
+                weapon:SetInfo(invWeapon)
+            end
         else
             weapon = invWeapon
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
@@ -411,6 +438,7 @@ net.Receive("ply_take_item", function(len, ply)
     ply.lootTakePending[key] = nil
 
     ent.inventory = ent.inventory or ent:GetNetVar("Inventory") or hg.EnsureLootInventory(ply, ent)
+    NormalizeInventoryWeapons(ent.inventory)
     if not ent.inventory then return end
 
     local func = functions[tblIndex]
@@ -433,6 +461,7 @@ function hg.EnsureLootInventory(ply, ent)
     if not IsValid(ent) then return end
 
     ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
+    NormalizeInventoryWeapons(ent.inventory)
     if ent.inventory then
         ent:SetNetVar("Inventory", ent.inventory)
         if IsValid(ply) then ent:SendNetVar("Inventory", ply) end
@@ -443,6 +472,7 @@ function hg.EnsureLootInventory(ply, ent)
         local owner = hg.RagdollOwner and hg.RagdollOwner(ent)
         if IsValid(owner) then
             local ownerInv = owner:GetNetVar("Inventory")
+            NormalizeInventoryWeapons(ownerInv)
             if ownerInv then
                 ent.inventory = ownerInv
                 ent.armors = owner:GetNetVar("Armor", {})
@@ -463,6 +493,7 @@ function hg.EnsureLootInventory(ply, ent)
     hook.Run("ZB_InventoryChecked", ply, ent)
 
     ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
+    NormalizeInventoryWeapons(ent.inventory)
     if ent.inventory then
         ent:SetNetVar("Inventory", ent.inventory)
         if IsValid(ply) then ent:SendNetVar("Inventory", ply) end

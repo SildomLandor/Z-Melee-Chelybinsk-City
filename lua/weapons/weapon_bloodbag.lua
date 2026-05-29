@@ -72,10 +72,21 @@ function SWEP:GetInfo()
 end
 
 function SWEP:SetInfo(info)
-	self:SetNetVar("modeValues",info)
-	self.modeValues = info
-	self.bloodtype = ""..(self.modeValues.bloodtype or "o-")
-	self.modeValues.bloodtype = nil
+	local modeValues
+	if istable(info) then
+		modeValues = table.Copy(info)
+	elseif isnumber(info) then
+		modeValues = {[1] = info}
+	else
+		modeValues = {[1] = 0}
+	end
+
+	self.bloodtype = tostring(modeValues.bloodtype or "o-")
+	modeValues.bloodtype = nil
+	modeValues[1] = tonumber(modeValues[1]) or 0
+
+	self:SetNetVar("modeValues", modeValues)
+	self.modeValues = modeValues
 end
 
 function SWEP:OwnerChanged()
