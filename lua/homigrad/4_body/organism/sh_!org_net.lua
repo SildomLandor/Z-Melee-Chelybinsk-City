@@ -34,6 +34,28 @@ function hg.orgPick(org, keys)
 	return t
 end
 
+hg.orgDefaults = {
+	pain = 0, brain = 0, blood = 5000, bleed = 0, hurt = 0, shock = 0,
+	pulse = 70, heartbeat = 70, disorientation = 0, adrenaline = 0, adrenalineAdd = 0,
+	analgesia = 0, consciousness = 1, fear = 0, immobilization = 0, temperature = 36.7,
+	recoilmul = 1, meleespeed = 1, timeValue = 0, CO = 0, berserk = 0, noradrenaline = 0,
+	coma_depth = 0, coma_gcs = 15, assimilated = 0, lastPepperHit = 0,
+	lleg = 0, rleg = 0, larm = 0, rarm = 0, pelvis = 0,
+	alive = true, otrub = false, lungsfunction = true, canmove = true, superfighter = false,
+	critical = false, incapacitated = false, berserkActive2 = false, noradrenalineActive = false,
+	CantCheckPulse = false, holdingbreath = false, coma = false, coma_flicker = false,
+	llegdislocation = false, rlegdislocation = false, larmdislocation = false, rarmdislocation = false,
+	jawdislocation = false, llegamputated = false, rlegamputated = false, rarmamputated = false,
+	larmamputated = false, headamputated = false, neckslit = false,
+}
+
+function hg.orgEnsureDefaults(org)
+	if not istable(org) then return end
+	for k, v in pairs(hg.orgDefaults) do
+		if org[k] == nil then org[k] = v end
+	end
+end
+
 local function pack(t)
 	if not sfs then
 		ErrorNoHalt("sh_!org_net.lua: нет sfs\n")
@@ -145,6 +167,7 @@ function hg.orgReadPacket(base, keys)
 
 	if mode == 1 then
 		org = hg.orgRead()
+		hg.orgEnsureDefaults(org)
 	elseif mode == 2 and keys then
 		local n = net.ReadUInt(7)
 		local idx = {}
@@ -157,6 +180,7 @@ function hg.orgReadPacket(base, keys)
 		for j = 1, n do
 			org[keys[idx[j]]] = vals[j]
 		end
+		hg.orgEnsureDefaults(org)
 	elseif mode == 0 then
 		org = base
 	else

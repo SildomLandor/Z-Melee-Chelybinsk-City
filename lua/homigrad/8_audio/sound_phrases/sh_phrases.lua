@@ -308,19 +308,20 @@ if CLIENT then
 
 	hook.Add("radialOptions", "4", function()
 		local organism = lply.organism or {}
+		local pain = organism.pain or 0
 
 		if lply:Alive() and not organism.otrub and lply.PlayerClassName ~= "Gordon" then
 			--hg.radialOptions[#hg.radialOptions + 1] = {randomPhrase, (LocalPlayer().PlayerClassName == "Slugcat" and "Wáaaaǎa\nWāaaàaâ") or (LocalPlayer().PlayerClassName == "Gordon" and "...") or "Say something"}
 			hg.radialOptions[#hg.radialOptions + 1] = {
 				[1] = function(mouseClick)
-					if mouseClick == 1 or organism.pain > 60 then
+					if mouseClick == 1 or pain > 60 then
 						randomPhrase()
 					else
 						--print(lply:GetPlayerClass())
 						if lply.PlayerClassName and lply:GetPlayerClass() and !lply:GetPlayerClass().CanUseDefaultPhrase then return end
 						local tbl = {}
 						for context, phrases in pairs(contextPhrases[1]) do
-							if lply.organism.pain > 30 and (context == "Удовлетворение" or context == "Радость") then continue end
+							if 00 > 30 and (context == "Удовлетворение" or context == "Радость") then continue end
 							
 							tbl[#tbl + 1] = {
 								[1] = function()
@@ -332,7 +333,7 @@ if CLIENT then
 						hg.CreateRadialMenu(tbl)
 					end
 				end,
-				[2] = organism.pain > 60 and (organism.pain <= 100 and "Кричать от боли" or "Стонать от боли") or (lply.PlayerClassName == "furry" and "Мяу") or "Сказать\nПКМ - Меню"
+				[2] = pain > 60 and (pain <= 100 and "Кричать от боли" or "Стонать от боли") or (lply.PlayerClassName == "furry" and "Мяу") or "Сказать\nПКМ - Меню"
 			}
 		end
 	end)

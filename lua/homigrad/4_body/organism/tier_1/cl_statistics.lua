@@ -22,7 +22,7 @@ net.Receive("organism_send", function()
 	local oid, isBare = hg.orgNetReadHeader()
 	local ply = Entity(oid)
 	local keys = isBare and hg.orgBareKeys or hg.orgFullKeys
-	local base = IsValid(ply) and ply.new_organism or nil
+	local base = IsValid(ply) and (ply.new_organism or ply.organism) or nil
 	local org, force, spectatov_ne_trogaem, moreinfopls, add = hg.orgReadPacket(base, keys)
 	if not org then return end
 	if not IsValid(org.owner) and IsValid(ply) then org.owner = ply end
@@ -39,6 +39,8 @@ net.Receive("organism_send", function()
 		
 		table.Merge(org.owner.organism, org, true)
 		table.Merge(org.owner.new_organism, org, true)
+		hg.orgEnsureDefaults(org.owner.organism)
+		hg.orgEnsureDefaults(org.owner.new_organism)
 
 		syncRagOrganism(org.owner)
 		
@@ -48,13 +50,22 @@ net.Receive("organism_send", function()
 	if ply.is_lookedat and not moreinfopls then return end
 	if spectatov_ne_trogaem and (ply == LocalPlayer():GetNWEntity("spect",nil)) and not LocalPlayer():Alive() then return end
 
-	local old_org = ply.organism and table.Copy(ply.organism) or nil
 	ply.new_organism = org
 
-	if not old_org or force then
-		ply.organism = org
+	if ply == LocalPlayer() then
+		if not ply.organism or force then
+			ply.organism = table.Copy(org)
+		else
+			table.Merge(ply.organism, org, true)
+			hg.orgEnsureDefaults(ply.organism)
+		end
 	else
-		ply.organism = old_org
+		local old_org = ply.organism and table.Copy(ply.organism) or nil
+		if not old_org or force then
+			ply.organism = org
+		else
+			ply.organism = old_org
+		end
 	end
 
 	if ply:IsPlayer() and ply:Alive() then
