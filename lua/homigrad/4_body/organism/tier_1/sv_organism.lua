@@ -99,6 +99,7 @@ hook.Add("Org Clear", "Main", function(org)
 	org.dmgstack = {}
 
 	org.SpawnedBrainChunks = nil
+	org._sentFull = nil
 end)
 
 hook.Add("Should Fake Up", "organism", function(ply)
@@ -117,73 +118,16 @@ local nullTbl = {}
 local hg_developer = ConVarExists("hg_developer") and GetConVar("hg_developer") or CreateConVar("hg_developer", 0, FCVAR_SERVER_CAN_EXECUTE, "Toggle developer mode (enables damage traces)", 0, 1)
 local function send_organism(org, ply)
 	if not IsValid(org.owner) then return end
-	local sendtable = {}
 
-	sendtable.alive = org.alive
-	sendtable.otrub = org.otrub
-	sendtable.owner = org.owner
-	sendtable.stamina = org.stamina
-	sendtable.immobilization = org.immobilization
-	sendtable.adrenaline = org.adrenaline
-	sendtable.adrenalineAdd = org.adrenalineAdd
-	sendtable.analgesia = org.analgesia
-	sendtable.lleg = org.lleg
-	sendtable.rleg = org.rleg
-	sendtable.rarm = org.rarm
-	sendtable.larm = org.larm
-	sendtable.pelvis = org.pelvis
-	sendtable.disorientation = org.disorientation
-	sendtable.brain = org.brain
-	sendtable.o2 = org.o2
-	sendtable.CO = org.CO
-	sendtable.blood = org.blood
-	sendtable.bloodtype = org.bloodtype
-	sendtable.bleed = org.bleed
-	sendtable.hurt = org.hurt
-	sendtable.pain = org.pain
-	sendtable.shock = org.shock
-	sendtable.pulse = org.pulse
-	sendtable.heartbeat = org.heartbeat
-	sendtable.timeValue = org.timeValue
-	sendtable.holdingbreath = org.holdingbreath
-	sendtable.arteria = org.arteria
-	sendtable.neckslit = org.neckslit
-	sendtable.recoilmul = org.recoilmul
-	sendtable.meleespeed = org.meleespeed
-	sendtable.temperature = org.temperature
-	sendtable.canmove = org.canmove
-	sendtable.fear = org.fear
-	sendtable.llegdislocation = org.llegdislocation
-	sendtable.rlegdislocation = org.rlegdislocation
-	sendtable.rarmdislocation = org.rarmdislocation
-	sendtable.larmdislocation = org.larmdislocation
-	sendtable.jawdislocation = org.jawdislocation
-	sendtable.llegamputated = org.llegamputated
-	sendtable.rlegamputated = org.rlegamputated
-	sendtable.rarmamputated = org.rarmamputated
-	sendtable.larmamputated = org.larmamputated
-	sendtable.headamputated = org.headamputated
-	sendtable.lungsfunction = org.lungsfunction
-	sendtable.consciousness = org.consciousness
-	sendtable.assimilated = org.assimilated
-	sendtable.berserk = org.berserk
-	sendtable.noradrenaline = org.noradrenaline
-	sendtable.LodgedEntities = org.LodgedEntities
-	sendtable.CantCheckPulse = org.CantCheckPulse
-	sendtable.blindness = org.blindness
-	sendtable.critical = org.critical
-	sendtable.incapacitated = org.incapacitated
-	sendtable.berserkActive2 = org.berserkActive2
-	sendtable.noradrenalineActive = org.noradrenalineActive
-	sendtable.lastPepperHit = org.lastPepperHit
-	sendtable.superfighter = org.superfighter
-	sendtable.coma = org.coma
-	sendtable.coma_depth = org.coma_depth
-	sendtable.coma_gcs = org.coma_gcs
-	sendtable.coma_flicker = org.coma_flicker
+	local keys = hg.orgFullKeys
+	local payload = not hg_developer:GetBool() and hg.orgPick(org, keys) or org
+	local force = org.owner.fullsend
+	if force then org._sentFull = nil end
+	if not force and not hg.orgNeedsSend(payload, org._sentFull, keys) then return end
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
-	hg.orgWritePacket(not hg_developer:GetBool() and sendtable or org)
+	hg.orgNetHeader(org.owner, false)
+	org._sentFull = hg.orgWritePacket(payload, org._sentFull, keys, force)
 	net.WriteBool(org.owner.fullsend)
 	net.WriteBool(false)
 	net.WriteBool(true)
@@ -200,46 +144,17 @@ end
 
 local function send_bareinfo(org)
 	if not IsValid(org.owner) then return end
-	local sendtable = {}
 
-	sendtable.alive = org.alive
-	sendtable.otrub = org.otrub
-	sendtable.owner = org.owner
-	sendtable.bloodtype = org.bloodtype
-	sendtable.pulse = org.pulse
-	sendtable.blood = org.blood
-	sendtable.heartbeat = org.heartbeat
-	sendtable.analgesia = org.analgesia
-	sendtable.o2 = org.o2
-	sendtable.timeValue = org.timeValue
-	sendtable.superfighter = org.superfighter
-	sendtable.lungsfunction = org.lungsfunction
-	sendtable.lleg = org.lleg
-	sendtable.rleg = org.rleg
-	sendtable.rarm = org.rarm
-	sendtable.larm = org.larm
-	sendtable.llegdislocation = org.llegdislocation
-	sendtable.rlegdislocation = org.rlegdislocation
-	sendtable.rarmdislocation = org.rarmdislocation
-	sendtable.larmdislocation = org.larmdislocation
-	sendtable.jawdislocation = org.jawdislocation
-	sendtable.llegamputated = org.llegamputated
-	sendtable.rlegamputated = org.rlegamputated
-	sendtable.rarmamputated = org.rarmamputated
-	sendtable.larmamputated = org.larmamputated
-	sendtable.headamputated = org.headamputated
-	sendtable.LodgedEntities = org.LodgedEntities
-	sendtable.neckslit = org.neckslit
-	sendtable.berserkActive2 = org.berserkActive2
-	sendtable.CantCheckPulse = org.CantCheckPulse
-	sendtable.noradrenalineActive = org.noradrenalineActive
+	local keys = hg.orgBareKeys
+	local payload = not hg_developer:GetBool() and hg.orgPick(org, keys) or org
 
 	local rf = RecipientFilter()
 	rf:AddPVS(org.owner:GetPos())
 	if org.owner:IsPlayer() then rf:RemovePlayer(org.owner) end
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
-	hg.orgWritePacket(not hg_developer:GetBool() and sendtable or org)
+	hg.orgNetHeader(org.owner, true)
+	hg.orgWritePacket(payload, nil, keys, true)
 	net.WriteBool(org.owner.fullsend)
 	net.WriteBool(true)
 	net.WriteBool(false)

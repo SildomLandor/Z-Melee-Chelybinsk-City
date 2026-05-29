@@ -168,11 +168,12 @@ function hg.ExplosionDisorientation(enta, tinnitus, disorientation)
 	enta.organism.disorientation = enta.organism.disorientation + (disorientation)
 
 	net.Start("organism_send") // отправляем только дизориентацию (чтобы не нагружать нет), и сразу
+	hg.orgNetHeader(enta.organism.owner, false)
 	local tbl = {}
 	tbl.disorientation = enta.organism.disorientation
 	tbl.shock = enta.organism.shock
 	tbl.owner = enta.organism.owner
-	net.WriteTable(tbl)
+	hg.orgWritePacket(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)
 	net.WriteBool(false)

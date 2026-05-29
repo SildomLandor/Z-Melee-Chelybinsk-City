@@ -214,6 +214,7 @@ function hg.organism.AmputateLimb(org, limb)
 	end
 
 	net.Start("organism_send")
+	hg.orgNetHeader(org.owner, false)
 	local tbl = {}
 	tbl[limb.."amputated"] = true
 	tbl.owner = org.owner

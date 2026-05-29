@@ -870,6 +870,7 @@ function hg.RenderWeapons(ent, owner)
 	
 		for i, wep in pairs(inv["Weapons"]) do
 			if isbool(wep) then continue end
+			if isnumber(wep) then wep = Entity(wep) end
 			if not IsValid(wep) or not wep.ishgweapon then continue end
 			wep:SetOwner(ent)
 			DrawWorldModel(wep)

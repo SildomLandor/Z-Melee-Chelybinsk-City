@@ -92,12 +92,11 @@ if SERVER then
 			}
 
 			net.Start("organism_send")
-	
+			hg.orgNetHeader(org.owner, false)
 			local tbl = {}
 			tbl.LodgedEntities = org.LodgedEntities
 			tbl.owner = org.owner
-		
-			net.WriteTable(tbl)
+			hg.orgWritePacket(tbl)
 			net.WriteBool(true)
 			net.WriteBool(false)
 			net.WriteBool(false)
@@ -243,12 +242,11 @@ if SERVER then
 		end
 
 		net.Start("organism_send")
-
+		hg.orgNetHeader(org.owner, false)
 		local tbl = {}
 		tbl.LodgedEntities = org.LodgedEntities
 		tbl.owner = org.owner
-	
-		net.WriteTable(tbl)
+		hg.orgWritePacket(tbl)
 		net.WriteBool(true)
 		net.WriteBool(false)
 		net.WriteBool(false)

@@ -41,11 +41,10 @@ end
 
 local function insta_send_holdingbreath(org)
 	net.Start("organism_send") // отправляем только дизориентацию (чтобы не нагружать нет), и сразу
-	
+	hg.orgNetHeader(org.owner, false)
 	local tbl = {}
 	tbl.holdingbreath = org.holdingbreath
 	tbl.owner = org.owner
-
 	hg.orgWritePacket(tbl)
 	net.WriteBool(true)
 	net.WriteBool(false)

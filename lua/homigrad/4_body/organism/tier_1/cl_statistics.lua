@@ -19,9 +19,14 @@ end
 hg.syncRagOrganism = syncRagOrganism
 
 net.Receive("organism_send", function()
-	local org, force, spectatov_ne_trogaem, moreinfopls, add = hg.orgReadPacket()
+	local oid, isBare = hg.orgNetReadHeader()
+	local ply = Entity(oid)
+	local keys = isBare and hg.orgBareKeys or hg.orgFullKeys
+	local base = IsValid(ply) and ply.new_organism or nil
+	local org, force, spectatov_ne_trogaem, moreinfopls, add = hg.orgReadPacket(base, keys)
 	if not org then return end
-	local ply = org.owner
+	if not IsValid(org.owner) and IsValid(ply) then org.owner = ply end
+	ply = org.owner
 
 	if not IsValid(ply) then return end
 

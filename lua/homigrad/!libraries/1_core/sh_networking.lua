@@ -1,5 +1,19 @@
 zb = zb or {}
 
+zb.netSFSKeys = {
+    Inventory = true,
+    wounds = true,
+    arterialwounds = true,
+    Armor = true,
+}
+
+zb.netSFSLim = {
+    Inventory = 16384,
+    wounds = 8192,
+    arterialwounds = 8192,
+    Armor = 4096,
+}
+
 if (CLIENT) then
     local entityMeta = FindMetaTable("Entity")
     local playerMeta = FindMetaTable("Player")
@@ -24,13 +38,26 @@ if (CLIENT) then
         zb.net[index] = zb.net[index] or {}
         zb.net[index][key] = var
 
-		-- print(index, key)
-		
 		if IsValid(Entity(index)) then
 			hook.Run("OnNetVarSet", index, key, var)
 		else
 			zb.net[index].waiting = true
 		end
+    end)
+
+    net.Receive("zbNetVarSetSFS", function()
+        local index = net.ReadUInt(16)
+        local key = net.ReadString()
+        local var = hg.netReadSFS(zb.netSFSLim[key])
+
+        zb.net[index] = zb.net[index] or {}
+        zb.net[index][key] = var
+
+        if IsValid(Entity(index)) then
+            hook.Run("OnNetVarSet", index, key, var)
+        else
+            zb.net[index].waiting = true
+        end
     end)
 	
     net.Receive("zbNetVarDelete", function()
@@ -105,7 +132,69 @@ else
     util.AddNetworkString("zbGlobalVarSet")
     util.AddNetworkString("zbLocalVarSet")
     util.AddNetworkString("zbNetVarSet")
+    util.AddNetworkString("zbNetVarSetSFS")
     util.AddNetworkString("zbNetVarDelete")
+
+    local function invForNet(inv)
+        if not istable(inv) then return inv end
+        local w = inv.Weapons
+        if not w then return inv end
+        local out = {
+            Ammo = inv.Ammo,
+            Armor = inv.Armor,
+            Attachments = inv.Attachments,
+            Money = inv.Money,
+            Weapons = {},
+        }
+        for k, v in pairs(w) do
+            if isbool(v) or istable(v) then
+                out.Weapons[k] = v
+            elseif IsEntity(v) then
+                out.Weapons[k] = IsValid(v) and v:EntIndex() or nil
+            else
+                out.Weapons[k] = v
+            end
+        end
+        return out
+    end
+
+    hg.InvForNet = hg.InvForNet or invForNet
+
+    local function netVarEq(key, a, b)
+        if a == b then return true end
+        if not istable(a) or not istable(b) then return false end
+        if not hg.sfs then return false end
+        local ea, eb = hg.sfs.encode(a), hg.sfs.encode(b)
+        return ea and eb and ea == eb
+    end
+
+    local function prepNetVar(ent, key, value)
+        if key == "Inventory" and istable(value) then
+            ent.inventory = value
+            value = invForNet(value)
+        end
+        return value
+    end
+
+    local function sendNetVarData(index, key, var, receiver)
+        if zb.netSFSKeys[key] and hg.netWriteSFS then
+            net.Start("zbNetVarSetSFS")
+            net.WriteUInt(index, 16)
+            net.WriteString(key)
+            if not hg.netWriteSFS(var, zb.netSFSLim[key]) then return end
+        else
+            net.Start("zbNetVarSet")
+            net.WriteUInt(index, 16)
+            net.WriteString(key)
+            net.WriteType(var)
+        end
+
+        if receiver == nil then
+            net.Broadcast()
+        else
+            net.Send(receiver)
+        end
+    end
 
     local function CheckBadType(name, object)
 		return false
@@ -165,10 +254,17 @@ else
     			local index = entity:EntIndex()
 
     			for k, v in pairs(data) do
-    				net.Start("zbNetVarSet")
-    					net.WriteUInt(index, 16)
-    					net.WriteString(k)
-    					net.WriteType(v)
+                    if zb.netSFSKeys[k] and hg.netWriteSFS then
+                        net.Start("zbNetVarSetSFS")
+                        net.WriteUInt(index, 16)
+                        net.WriteString(k)
+                        hg.netWriteSFS(v, zb.netSFSLim[k])
+                    else
+                        net.Start("zbNetVarSet")
+                        net.WriteUInt(index, 16)
+                        net.WriteString(k)
+                        net.WriteType(v)
+                    end
     				net.Send(self)
     			end
 			else
@@ -209,27 +305,19 @@ else
     	if (CheckBadType(key, value)) then return end
 
 		zb.net.list[self] = zb.net.list[self] or {}
+        value = prepNetVar(self, key, value)
 
-		--if not hg.IsChanged(value, key, zb.net.list[self]) then return end
+        local old = zb.net.list[self][key]
+        if old == value then return end
+        if istable(value) and istable(old) and zb.netSFSKeys[key] and netVarEq(key, old, value) then return end
 
-    	if (zb.net.list[self][key] != value) then
-    		zb.net.list[self][key] = value 
-    	end
-		
+    	zb.net.list[self][key] = value
 		self:SendNetVar(key, receiver)
 	end
 
     function entityMeta:SendNetVar(key, receiver)
-    	net.Start("zbNetVarSet")
-    	net.WriteUInt(self:EntIndex(), 16)
-    	net.WriteString(key)
-    	net.WriteType(zb.net.list[self] and zb.net.list[self][key])
-
-    	if (receiver == nil) then
-    		net.Broadcast()
-    	else
-    		net.Send(receiver)
-    	end
+        local var = zb.net.list[self] and zb.net.list[self][key]
+        sendNetVarData(self:EntIndex(), key, var, receiver)
     end
 
     function entityMeta:ClearNetVars(receiver)
