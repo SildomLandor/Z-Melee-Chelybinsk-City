@@ -4,8 +4,10 @@ hg.organism.module.coma = {}
 local module = hg.organism.module.coma
 
 local function gcs(org)
-	local eye = org.coma and 1 or (org.otrub and 2 or 4)
-	local verbal = org.coma and 1 or Clamp(math.floor(5 - org.brain * 4 - org.shock / 25), 1, 5)
+	local consciousness = Clamp(org.consciousness or 1, 0, 1)
+	local eye = org.coma and 1 or Clamp(math.floor(consciousness * 4 + 0.5), 1, 4)
+	if org.otrub and not org.coma then eye = min(eye, 2) end
+	local verbal = org.coma and 1 or Clamp(math.floor(1 + consciousness * 4 - org.brain * 2 - org.shock / 40), 1, 5)
 	local motor = Clamp(math.floor(6 - (org.lleg + org.rleg + org.larm + org.rarm) * 1.2 - (org.spine2 >= 0.5 and 2 or 0)), 1, 6)
 	return Clamp(eye + verbal + motor, 3, 15)
 end
@@ -149,7 +151,16 @@ module[2] = function(owner, org, timeValue)
 		org.disorientation = max(org.disorientation or 0, 3 + (org.coma_after - CurTime()) / 15)
 	end
 
-	if not org.coma then return end
+	if not org.coma then
+		org.coma_gcs = gcs(org)
+		if (org.consciousness or 1) < 0.12 then
+			org.incapacitated = true
+			if (org.brain or 0) > 0.5 or (org.o2 and org.o2[1] or 30) < 6 then
+				org.needotrub = true
+			end
+		end
+		return
+	end
 
 	org.coma_time = (org.coma_time or 0) + timeValue
 	org.needotrub = true

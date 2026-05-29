@@ -16,6 +16,7 @@ local e = {
 	hm = 0,
 	rr = 0,
 	flash = 0,
+	stopAt = 0,
 }
 
 for i = 1, e.n do e.buf[i] = 0 end
@@ -31,6 +32,7 @@ local function reset(rt)
 	e.sweep = 0
 	e.dispBpm = 70
 	e.idx = 0
+	e.stopAt = 0
 	for i = 1, e.n do e.buf[i] = 0 end
 end
 
@@ -42,8 +44,18 @@ local function org()
 	return o
 end
 
+local function vfib(o)
+	if o.vfib then return true end
+	local hb = tonumber(o.heartbeat) or 0
+	local pulse = tonumber(o.pulse) or 0
+	return not o.heartstop and hb > 220 and pulse < 15
+end
+
 local function bpm(o)
 	if o.heartstop then return 0 end
+	if vfib(o) then
+		return math.Clamp(tonumber(o.heartbeat) or 240, 160, 260)
+	end
 	local pulse = tonumber(o.pulse) or 0
 	if pulse <= 0.5 then return 0 end
 	local hb = tonumber(o.heartbeat)
@@ -77,7 +89,15 @@ local function push(v)
 	e.buf[e.idx] = math.Clamp(v, -1.4, 1.4)
 end
 
-local function sample(t, hb, m)
+local function sample(t, hb, m, isVfib)
+	if isVfib then
+		local sev = math.Clamp(tonumber(m.vfib) or 0.5, 0.2, 1)
+		local chaos = math.sin(t * 22) * 0.12 + math.sin(t * 37 + 1.5) * 0.1 + math.sin(t * 56 + 0.7) * 0.06
+		local noise = (math.random() - 0.5) * 0.12
+		push((chaos + noise) * (0.8 + sev * 0.45))
+		return
+	end
+
 	local n = 0
 	while t >= e.tNext and n < 2 do
 		local gap = 60 / hb
@@ -121,6 +141,7 @@ local function metrics(o)
 		amp = math.Clamp(1 - e.hm * 0.55, 0.25, 1),
 		qrs = math.Clamp(1 - e.hm * 0.45, 0.35, 1) * math.Clamp(lungs * 0.4 + 0.6, 0.5, 1),
 		sc = 1 + e.hm * 0.12 + e.rr * 0.06,
+		vfib = o.vfib_severity or 0,
 	}
 end
 
@@ -139,9 +160,16 @@ hook.Add("Think", "pulseotrub.update", function()
 		e.on = true
 	end
 
+	local isVfib = vfib(o)
 	local hb = bpm(o)
 	e.dispBpm = Lerp(FrameTime() * 6, e.dispBpm, hb)
-	local stop = hb <= 0
+	local rt = RealTime()
+	if hb <= 0 and not isVfib then
+		if e.stopAt == 0 then e.stopAt = rt end
+	else
+		e.stopAt = 0
+	end
+	local stop = e.stopAt ~= 0 and (rt - e.stopAt) >= 0.55
 
 	if stop then
 		if not e.flat then
@@ -153,7 +181,6 @@ hook.Add("Think", "pulseotrub.update", function()
 		e.flat = false
 	end
 
-	local rt = RealTime()
 	if system.HasFocus and not system.HasFocus() then
 		e.hold = e.hold or rt
 		return
@@ -172,7 +199,7 @@ hook.Add("Think", "pulseotrub.update", function()
 	local n = 0
 	while rt >= e.tSample + e.step and n < 4 do
 		e.tSample = e.tSample + e.step
-		sample(e.tSample, hb, m)
+		sample(e.tSample, hb, m, isVfib)
 		n = n + 1
 	end
 end)
@@ -189,8 +216,8 @@ hook.Add("HUDPaint", "pulseotrub.draw", function()
 	local x, y = 0, sh - hh - ScreenScaleH(36 * scale)
 	local mid = y + hh * 0.5
 	local gain = hh * 0.46
-	local hb = bpm(o)
-	local stop = hb <= 0
+	local isVfib = vfib(o)
+	local stop = e.stopAt ~= 0 and (RealTime() - e.stopAt) >= 0.55
 	local a = math.floor(255 * e.show)
 
 	local x0 = x + pad
@@ -226,7 +253,7 @@ hook.Add("HUDPaint", "pulseotrub.draw", function()
 	local lblX = xStart + ScreenScaleH(4)
 	local lblY = y + pad
 	local beatA = math.Clamp(1 - (RealTime() - e.flash) * 9, 0, 1) * e.show
-	if beatA > 0 and not stop then
+	if beatA > 0 and not stop and not isVfib then
 		local bs = ScreenScaleH(5)
 		surface.SetDrawColor(255, 255, 255, math.floor(255 * beatA))
 		surface.DrawRect(lblX, lblY + ScreenScaleH(2), bs, bs)

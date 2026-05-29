@@ -269,10 +269,6 @@ input_list.trachea = function(org, bone, dmg, dmgInfo)
 
 	hg.AddHarmToAttacker(dmgInfo, (org.trachea - oldDmg) * 8, "Trachea damage harm")
 
-	if org.trachea - oldDmg >= 0.12 and hg.organism.ThroatClutchGasp then
-		hg.organism.ThroatClutchGasp(org, true)
-	end
-
 	//org.internalBleed = org.internalBleed + dmg * 2
 
 	return result

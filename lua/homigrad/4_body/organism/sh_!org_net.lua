@@ -8,17 +8,18 @@ local maxFx = 512
 hg.orgFullKeys = {
 	"alive", "otrub", "owner", "stamina", "immobilization", "adrenaline", "adrenalineAdd", "analgesia",
 	"lleg", "rleg", "rarm", "larm", "pelvis", "disorientation", "brain", "o2", "CO", "blood", "bloodtype",
-	"bleed", "hurt", "pain", "shock", "pulse", "heartbeat", "timeValue", "holdingbreath", "arteria", "neckslit",
+	"bleed", "hurt", "pain", "shock", "pulse", "heartbeat", "spo2", "timeValue", "holdingbreath", "arteria", "neckslit",
 	"recoilmul", "meleespeed", "temperature", "canmove", "fear", "llegdislocation", "rlegdislocation",
 	"rarmdislocation", "larmdislocation", "jawdislocation", "llegamputated", "rlegamputated", "rarmamputated",
 	"larmamputated", "headamputated", "lungsfunction", "consciousness", "assimilated", "berserk", "noradrenaline",
 	"LodgedEntities", "CantCheckPulse", "blindness", "critical", "incapacitated", "berserkActive2",
 	"noradrenalineActive", "lastPepperHit", "superfighter", "coma", "coma_depth", "coma_gcs", "coma_flicker",
+	"vfib", "vfib_severity",
 }
 
 -- подмножество для PVSviewers (свой порядок индексов)
 hg.orgBareKeys = {
-	"alive", "otrub", "owner", "bloodtype", "pulse", "blood", "heartbeat", "analgesia", "o2", "timeValue",
+	"alive", "otrub", "owner", "bloodtype", "pulse", "blood", "heartbeat", "spo2", "analgesia", "o2", "timeValue",
 	"superfighter", "lungsfunction", "lleg", "rleg", "rarm", "larm", "llegdislocation", "rlegdislocation",
 	"rarmdislocation", "larmdislocation", "jawdislocation", "llegamputated", "rlegamputated", "rarmamputated",
 	"larmamputated", "headamputated", "LodgedEntities", "neckslit", "berserkActive2", "CantCheckPulse",
@@ -36,11 +37,12 @@ end
 
 hg.orgDefaults = {
 	pain = 0, brain = 0, blood = 5000, bleed = 0, hurt = 0, shock = 0,
-	pulse = 70, heartbeat = 70, disorientation = 0, adrenaline = 0, adrenalineAdd = 0,
+	pulse = 70, heartbeat = 70, spo2 = 100, disorientation = 0, adrenaline = 0, adrenalineAdd = 0,
 	analgesia = 0, consciousness = 1, fear = 0, immobilization = 0, temperature = 36.7,
 	recoilmul = 1, meleespeed = 1, timeValue = 0, CO = 0, berserk = 0, noradrenaline = 0,
 	coma_depth = 0, coma_gcs = 15, assimilated = 0, lastPepperHit = 0,
 	lleg = 0, rleg = 0, larm = 0, rarm = 0, pelvis = 0,
+	vfib = false, vfib_severity = 0,
 	alive = true, otrub = false, lungsfunction = true, canmove = true, superfighter = false,
 	critical = false, incapacitated = false, berserkActive2 = false, noradrenalineActive = false,
 	CantCheckPulse = false, holdingbreath = false, coma = false, coma_flicker = false,

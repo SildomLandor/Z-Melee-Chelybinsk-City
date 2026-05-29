@@ -253,7 +253,8 @@ local functions = {
         if not ent.inventory or not ent.inventory.Weapons or not ent.inventory.Weapons[wep] then return end
 
         local weapon
-        local weaponIsEnt = (not isbool(ent.inventory.Weapons[wep])) and IsValid(ent.inventory.Weapons[wep]) and ent.inventory.Weapons[wep]:IsWeapon()
+        local invWeapon = ent.inventory.Weapons[wep]
+        local weaponIsEnt = isentity(invWeapon) and IsValid(invWeapon) and invWeapon:IsWeapon()
         if not weaponIsEnt then
             local weaponData = weapons.Get(wep) or scripted_ents.GetStored(wep)
             if not weaponData then
@@ -277,7 +278,7 @@ local functions = {
             local tbl = ent.inventory.Weapons[wep]
             if weapon.SetInfo then weapon:SetInfo(tbl) end
         else
-            weapon = ent.inventory.Weapons[wep]
+            weapon = invWeapon
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
 
             weapon:SetParent(NULL)

@@ -5,8 +5,13 @@ local module = hg.organism.module.pulse
 module[1] = function(org)
 	org.heart = 0
 	org.heartstop = false
+	org.vfib = false
+	org.vfib_severity = 0
+	org.vfib_at = 0
+	org.heartrestart_at = 0
 	org.pulse = 70 -- that's the blood pressure
 	org.heartbeat = 70
+	org.spo2 = 100
 
 	org.tempchanging = 0
 	org.heatbuff = 30 -- seconds of heat supply
@@ -22,6 +27,7 @@ module[2] = function(owner, org, timeValue)
 	local brain = math.Clamp(1 - org.brain * 1.5,0,1)
 	local o2 = org.o2
 	local o2 = halfValue2(o2[1], o2.range, o2.k)
+	org.spo2 = math.Clamp(math.Round((org.o2[1] / math.max(org.o2.range, 1)) * 100), 0, 100)
 
 	//if org.isPly and not org.otrub and (heart == 0) then org.owner:Notify("My torso hurts.",true,"heart",6) end
 	//if org.isPly and not org.otrub and org.heartstop then org.owner:Notify("",true,"heartstop",6) end
@@ -59,12 +65,63 @@ module[2] = function(owner, org, timeValue)
 	heartbeat = heartbeat - 160 * (1 - math.Clamp(math.Remap(org.temperature, 28, 36.7, 0, 1), 0, 1))
 
 	org.heartbeat = math.Approach(org.heartbeat, heartbeat, heartbeat > org.heartbeat and timeValue * 5 or timeValue * 3)
+	local adren = org.adrenaline
+
+	local vfibRisk = 0
+	vfibRisk = vfibRisk + math.Clamp((org.heartbeat - 230) / 100, 0, 1) * 0.7
+	vfibRisk = vfibRisk + math.Clamp((org.temperature - 39) / 2, 0, 1) * 0.45
+	vfibRisk = vfibRisk + math.Clamp(org.shock / 65, 0, 1) * 0.35
+	vfibRisk = vfibRisk + math.Clamp((12 - org.o2[1]) / 12, 0, 1) * 0.6
+	vfibRisk = vfibRisk + math.Clamp((org.brain - 0.45) / 0.55, 0, 1) * 0.3
+
+	if not org.heartstop and not org.vfib and vfibRisk > 0 then
+		local chance = math.Clamp(vfibRisk * timeValue * 0.25, 0, 0.2)
+		if math.Rand(0, 1) < chance then
+			org.vfib = true
+			org.vfib_at = CurTime()
+		end
+	end
+
+	if org.vfib and not org.heartstop then
+		org.vfib_severity = math.Clamp((org.vfib_severity or 0) + timeValue * (0.3 + vfibRisk * 0.9), 0, 1)
+		org.pulse = math.Approach(org.pulse, 0, timeValue * (10 + org.vfib_severity * 45))
+		org.heartbeat = math.Approach(org.heartbeat, math.random(220, 320), timeValue * 90)
+
+		if (org.vfib_at or 0) + 6 < CurTime() then
+			local stopChance = math.Clamp(timeValue * (0.05 + org.vfib_severity * 0.22), 0, 0.35)
+			if math.Rand(0, 1) < stopChance then
+				org.heartstop = true
+			end
+		end
+
+		if adren > 0 and (org.adrenaline_try or 0) < CurTime() then
+			org.adrenaline_try = CurTime() + 0.25
+			if math.Rand(0, 1) < math.Clamp(adren * 0.035, 0, 0.22) then
+				org.vfib = false
+			end
+		end
+	else
+		org.vfib_severity = math.max((org.vfib_severity or 0) - timeValue * 0.8, 0)
+	end
 	
-	if org.heartbeat > 300 then -- fibrillation into cardiac arrest
-		org.heartstop = true
+	if org.heartbeat > 300 and not org.vfib then
+		org.vfib = true
+		org.vfib_severity = math.max(org.vfib_severity or 0, 0.45)
+		org.vfib_at = CurTime()
+	end
+
+	if not org.vfib and not org.heartstop then
+		local minHeartbeat = 0
+		if (org.heartrestart_at or 0) <= CurTime() and org.pulse > 12 then
+			minHeartbeat = 25
+		end
+		org.heartbeat = math.Clamp(org.heartbeat, minHeartbeat, 220)
 	end
 
 	if org.heartstop then
+		org.vfib = false
+		org.vfib_severity = 0
+		org.heartrestart_at = 0
 		org.heartbeat = 0
 	end
 
@@ -76,7 +133,6 @@ module[2] = function(owner, org, timeValue)
 	org.fearadd = math.Approach(org.fearadd, 1, gainfear and timeValue / 5 or 0)
 	
 	local adrenK = max(1 + org.adrenaline, 1)
-	local adren = org.adrenaline
 
 	if org.pulse < 10 or org.brain >= 0.6 then org.heartstop = true end
 	if org.temperature < 28 or org.temperature > 42 then org.heartstop = true end
@@ -105,7 +161,11 @@ module[2] = function(owner, org, timeValue)
 
 		org.adrenaline_try = CurTime() + 0.1
 
-		if chance > rand then org.heartstop = false end
+		if chance > rand then
+			org.heartstop = false
+			org.heartbeat = 0
+			org.heartrestart_at = CurTime() + 1.2
+		end
 	end
 
 	if org.heartstop then

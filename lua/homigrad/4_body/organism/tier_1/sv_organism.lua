@@ -539,6 +539,62 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	end
 end)
 
+hook.Add("Org Clear", "stroke", function(org)
+	org.stroke = 0
+	org.stroke_damage = 0
+	org.stroke_nextblackout = 0
+end)
+
+hook.Add("Org Think", "stroke", function(owner, org, timeValue)
+	if not owner:IsPlayer() or not owner:Alive() or not org.alive then
+		org.stroke = math.max((org.stroke or 0) - timeValue * 0.08, 0)
+		return
+	end
+
+	local hb = tonumber(org.heartbeat) or 0
+	local pulse = tonumber(org.pulse) or 0
+	local o2 = tonumber(org.o2 and org.o2[1]) or 30
+	local blood = tonumber(org.blood) or 5000
+	local shock = tonumber(org.shock) or 0
+	local temp = tonumber(org.temperature) or 36.7
+
+	local stress = 0
+	stress = stress + math.Clamp((hb - 185) / 95, 0, 1) * 1.1
+	stress = stress + math.Clamp((pulse - 165) / 70, 0, 1) * 0.9
+	stress = stress + math.Clamp((12 - o2) / 12, 0, 1) * 1.4
+	stress = stress + math.Clamp((3000 - blood) / 1500, 0, 1) * 0.9
+	stress = stress + math.Clamp(shock / 60, 0, 1) * 0.6
+	stress = stress + math.Clamp(math.abs(temp - 36.7) / 3.5, 0, 1) * 0.5
+	if org.heartstop then stress = stress + 0.5 end
+
+	org.stroke = org.stroke or 0
+	local grow = stress > 0 and (timeValue / 16) * stress or 0
+	local fall = timeValue / 30
+	org.stroke = math.Clamp(org.stroke + grow - fall, 0, 1)
+
+	if org.stroke < 0.2 then return end
+
+	local sev = math.Remap(org.stroke, 0.2, 1, 0, 1)
+	org.disorientation = math.Clamp((org.disorientation or 0) + timeValue * 0.12 * sev, 0, 1)
+
+	local brainDmg = timeValue / (sev > 0.75 and 140 or 260) * sev
+	org.brain = math.Clamp(org.brain + brainDmg, 0, 1)
+	org.stroke_damage = (org.stroke_damage or 0) + brainDmg
+
+	if org.stroke > 0.68 then
+		org.incapacitated = true
+	end
+
+	if org.stroke > 0.8 and (org.stroke_nextblackout or 0) <= CurTime() then
+		org.needotrub = true
+		org.stroke_nextblackout = CurTime() + math.Rand(8, 16)
+	end
+
+	if org.stroke > 0.92 and math.random() < math.Clamp(timeValue * 0.08, 0, 0.2) then
+		org.heartstop = true
+	end
+end, HOOK_LOW)
+
 hook.Add("Org Think", "regenerationberserk", function(owner, org, timeValue)
 	if not owner:IsPlayer() or not owner:Alive() then return end
 	if !owner:IsBerserk() then return end

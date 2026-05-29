@@ -134,15 +134,6 @@ local speedupbones = {
 
 local vecfive = Vector(5,5,5)
 
-local throatClutchArmBones = {
-	["ValveBiped.Bip01_L_UpperArm"] = true,
-	["ValveBiped.Bip01_L_Forearm"] = true,
-	["ValveBiped.Bip01_L_Hand"] = true,
-	["ValveBiped.Bip01_R_UpperArm"] = true,
-	["ValveBiped.Bip01_R_Forearm"] = true,
-	["ValveBiped.Bip01_R_Hand"] = true,
-}
-
 local player_GetHumans = player.GetHumans
 local hg_fake_think_hz = CreateConVar("hg_fake_think_hz", "33", FCVAR_ARCHIVE + FCVAR_NOTIFY, "Fake ragdoll control update rate (Hz)", 15, 66)
 
@@ -188,8 +179,6 @@ hook.Add("Think", "Fake", function()
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()
-		local throatClutch = hg.organism and hg.organism.IsThroatClutchActive and hg.organism.IsThroatClutchActive(ragdoll, org)
-
 		local tr = {}
 		tr.start = ply:GetPos()
 		tr.endpos = ply:GetPos() - vector_up * 10
@@ -220,7 +209,6 @@ hook.Add("Think", "Fake", function()
 					local mass = physobj:GetMass() / 5
 					
 					local name = ragdoll:GetBoneName(bone)
-					if throatClutch and throatClutchArmBones[name] then continue end
 
 					if IsValid(physobj) then
 						local bone_impulse = ply.HitBones and ply.HitBones[name] or CurTime()
@@ -338,7 +326,7 @@ hook.Add("Think", "Fake", function()
 		local back = ply:KeyDown(IN_BACK)
 		time = CurTime()
 		
-		if not throatClutch and ply.organism and ply.organism.wounds and not table.IsEmpty(ply.organism.wounds) and org.canmove and vellen < 200 and (ply.fakecd and (ply.fakecd + 1) > CurTime()) and hg.RagdollCombatInUse(ply) then
+		if ply.organism and ply.organism.wounds and not table.IsEmpty(ply.organism.wounds) and org.canmove and vellen < 200 and (ply.fakecd and (ply.fakecd + 1) > CurTime()) and hg.RagdollCombatInUse(ply) then
 			local tr = {}
 			tr.start = ragdoll:GetPos()
 			tr.endpos = ragdoll:GetPos() - vector_up * 60
@@ -351,7 +339,7 @@ hook.Add("Think", "Fake", function()
 			end
 		end
 		
-		if not throatClutch and not wep.RagdollFunc then
+		if not wep.RagdollFunc then
 			local force = math.max(1 - org.larm / 1.3, 0)
 			if !IsValid(ragdoll.ConsLH) and (ply:KeyDown(IN_ATTACK) and !ishgweapon(wep)) or (((ishgweapon(wep) and (!wep:IsResting() or ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK))) or wep.ismelee2) and (ply:KeyDown(IN_USE) or ply:KeyDown(IN_ATTACK2))) then// || ply:InVehicle() then
 				if org.canmove then
@@ -861,7 +849,7 @@ hook.Add("Think", "Fake", function()
 		local vellen = vel:Length()
 		local recentBulletHit = org.lasthit and (org.lasthit + 2) > CurTime()
 		local recentFake = ply.fakecd and ply.fakecd > CurTime()
-		if hg.RagdollCombatInUse(ply) and org.canmove and vellen > 350 and !ply:InVehicle() and not throatClutch and not recentBulletHit and not recentFake then
+		if hg.RagdollCombatInUse(ply) and org.canmove and vellen > 350 and !ply:InVehicle() and not recentBulletHit and not recentFake then
 			--[[
 			
 				local defaultBones = {
@@ -921,9 +909,6 @@ hook.Add("Think", "Fake", function()
 			end
 		end*/
 
-		if hg.organism and hg.organism.ThroatClutchRagdoll and hg.organism.ShouldThroatClutchRagdollPose(ragdoll, org) then
-			hg.organism.ThroatClutchRagdoll(ragdoll, org)
-		end
 	end
 end)
 
