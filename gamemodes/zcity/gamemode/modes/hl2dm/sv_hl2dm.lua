@@ -55,6 +55,22 @@ function MODE:ShouldRoundEnd()
 end
 
 function MODE:RoundStart()
+    local mode = self
+
+    for _, ply in player.Iterator() do
+        ply.zb_hl2dm_equip = nil
+    end
+
+    local function tryAll()
+        if CurrentRound() ~= mode then return end
+        for _, ply in player.Iterator() do
+            mode:EquipPlayer(ply)
+        end
+    end
+
+    timer.Simple(0, tryAll)
+    timer.Simple(0.15, tryAll)
+    timer.Simple(0.35, tryAll)
 end
 
 function MODE:GetPlySpawn(ply)
@@ -171,7 +187,6 @@ function MODE:EquipPlayer(ply)
 end
 
 function MODE:GiveEquipment()
-    local mode = self
     local players = zb:CheckPlaying()
 
     for _, ply in ipairs(players) do
@@ -179,17 +194,6 @@ function MODE:GiveEquipment()
     end
 
     assignHl2dmRoles(players)
-
-    local function tryAll()
-        if CurrentRound() ~= mode then return end
-        for _, ply in player.Iterator() do
-            mode:EquipPlayer(ply)
-        end
-    end
-
-    timer.Simple(0, tryAll)
-    timer.Simple(0.15, tryAll)
-    timer.Simple(0.35, tryAll)
 end
 
 hook.Add("PlayerSpawn", "ZB_HL2DM_Loadout", function(ply)

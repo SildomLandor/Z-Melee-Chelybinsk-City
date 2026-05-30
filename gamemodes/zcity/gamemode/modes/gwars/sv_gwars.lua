@@ -32,6 +32,8 @@ function MODE:Intermission()
 	table.CopyFromTo(zb.GetMapPoints( "HMCD_TDM_T" ),self.TPoints)
 	
 	for i, ply in player.Iterator() do
+		ply.zb_gwars_loadout = nil
+		ply.zb_gwars_swat_loadout = nil
 		ply:SetupTeam(ply:Team())
 	end
 
@@ -130,6 +132,10 @@ end
 
 local function gwars_equip_ply(ply)
 	if not IsValid(ply) or not ply:Alive() then return end
+	if ply:Team() == TEAM_SPECTATOR or ply:Team() == 2 then return end
+
+	local roundTag = zb.ROUND_BEGIN or 0
+	if ply.zb_gwars_loadout == roundTag then return end
 
 	ply:SetSuppressPickupNotices(true)
 	ply.noSound = true
@@ -162,6 +168,8 @@ local function gwars_equip_ply(ply)
 		ply:SelectWeapon("weapon_hands_sh")
 	end
 
+	ply.zb_gwars_loadout = roundTag
+
 	timer.Simple(0.1, function()
 		if not IsValid(ply) then return end
 		ply.noSound = false
@@ -190,6 +198,7 @@ end
 local function gwars_equip_swat(ply)
 	if not IsValid(ply) or not ply:Alive() or ply:Team() ~= 2 then return end
 	if CurrentRound() ~= MODE then return end
+	if ply.zb_gwars_swat_loadout then return end
 
 	ply:SetSuppressPickupNotices(true)
 	ply.noSound = true
@@ -226,6 +235,8 @@ local function gwars_equip_swat(ply)
 	if IsValid(hands) then
 		ply:SelectWeapon("weapon_hands_sh")
 	end
+
+	ply.zb_gwars_swat_loadout = true
 
 	timer.Simple(0.1, function()
 		if not IsValid(ply) then return end
