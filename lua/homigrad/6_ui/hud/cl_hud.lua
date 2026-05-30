@@ -618,16 +618,15 @@ hook.Add("radialOptions", "Afflictions", function()
 end)
 
 local randomGestures = {
-    "wave",
-    "salute",
-    "halt",
-    "group",
-    "forward",
-    "disagree",
-    "becon",
-    {"point", function() RunConsoleCommand("hg_hand_gesture", "point") end},
-    {"fuck you", function() RunConsoleCommand("hg_hand_gesture", "fuckyou") end},
-    {"thumb_up", function() RunConsoleCommand("hg_hand_gesture" , "thumb_up") end},
+	{"Привет", function() RunConsoleCommand("hg_hand_gesture", "ofges_hello") end},
+	{"Подожди", function() RunConsoleCommand("hg_hand_gesture", "ofges_wait") end},
+	{"Вперёд", function() RunConsoleCommand("hg_hand_gesture", "ofges_omw") end},
+	{"Ко мне", function() RunConsoleCommand("hg_hand_gesture", "ofges_help") end},
+	{"Осторожно", function() RunConsoleCommand("hg_hand_gesture", "ofges_danger") end},
+	{"Указать", function() RunConsoleCommand("hg_hand_gesture", "point") end},
+	{"Палец вверх", function() RunConsoleCommand("hg_hand_gesture", "thumb_up") end},
+	{"Пошёл ты", function() RunConsoleCommand("hg_hand_gesture", "fuckyou") end},
+	{"Перегруппировка", function() RunConsoleCommand("hg_hand_gesture", "ofges_regroup") end},
 }
 
 concommand.Add("hg_randomgesture",function()

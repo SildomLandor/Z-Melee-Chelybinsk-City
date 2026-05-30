@@ -6,24 +6,37 @@ end
 
 local models = {
     -- Male
-    ["male 01"] = "models/monolithservers/mpd/male_01.mdl",
-    ["male 03"] = "models/monolithservers/mpd/male_03.mdl",
-    ["male 04"] = "models/monolithservers/mpd/male_04_2.mdl",
-    ["male 05"] = "models/monolithservers/mpd/male_05.mdl",
-    ["male 07"] = "models/monolithservers/mpd/male_07_2.mdl",
-    ["male 08"] = "models/monolithservers/mpd/male_08.mdl",
-    ["male 09"] = "models/monolithservers/mpd/male_09_2.mdl",
+    ["male 01"] = "models/player/kerry/policeru_01_patrol.mdl",
+    ["male 02"] = "models/player/kerry/policeru_02_patrol.mdl",
+    ["male 03"] = "models/player/kerry/policeru_03_patrol.mdl",
+    ["male 04"] = "models/player/kerry/policeru_04_patrol.mdl",
+    ["male 05"] = "models/player/kerry/policeru_05_patrol.mdl",
+    ["male 06"] = "models/player/kerry/policeru_06_patrol.mdl",
+    ["male 07"] = "models/player/kerry/policeru_07_patrol.mdl",
     -- FEMKI
 }
 
 local ranks = {
-    {name = "Chief", chance = 5},
-    {name = "Cmdr.", chance = 5},
-    {name = "Cpt.", chance = 15},
-    {name = "Lt.", chance = 35},
-    {name = "Sgt.", chance = 45},
-    {name = "Officer", chance = 80}
+    {name = "Ряд", chance = 25, rankbg = 0},      -- Рядовой
+    {name = "М.С", chance = 20, rankbg = 0},      -- Младший сержант
+    {name = "Сер", chance = 18, rankbg = 0},      -- Сержант
+    {name = "С.С", chance = 12, rankbg = 0},      -- Старший сержант
+    {name = "Ста", chance = 8, rankbg = 0},       -- Старшина
+    {name = "Пра", chance = 7, rankbg = 0},       -- Прапорщик
+    {name = "С.П", chance = 4, rankbg = 1},       -- Старший прапорщик
+    {name = "М.Л", chance = 2.5, rankbg = 1},     -- Младший лейтенант
+    {name = "Лей", chance = 1.2, rankbg = 1},     -- Лейтенант
+    {name = "С.Л", chance = 0.8, rankbg = 1},     -- Старший лейтенант
+    {name = "Кап", chance = 0.5, rankbg = 1},     -- Капитан
+    {name = "Май", chance = 0.3, rankbg = 1},     -- Майор
+    {name = "П.П", chance = 0.1, rankbg = 1},     -- Подполковник
+    {name = "Пол", chance = 0.3, rankbg = 2},     -- Полковник
+    {name = "Г.М", chance = 0.2, rankbg = 2},     -- Генерал-майор
+    {name = "Г.Л", chance = 0.08, rankbg = 2},    -- Генерал-лейтенант
+    {name = "Г.П", chance = 0.02, rankbg = 2},    -- Генерал-полковник
+    {name = "Г.Р", chance = 0.01, rankbg = 2},    -- Генерал РФ
 }
+
 
 local clr = Color(10, 10, 100):ToVector()
 function CLASS.On(self)
@@ -35,12 +48,14 @@ function CLASS.On(self)
 
     local randomValue = math.random(100)
     local cumulativeChance = 0
-    local rank = "Officer"
+    local rank = "ЛОХ"
+    local rankBg = 0
 
     for _, rankInfo in ipairs(ranks) do
         cumulativeChance = cumulativeChance + rankInfo.chance
         if randomValue <= cumulativeChance then
             rank = rankInfo.name
+            rankBg = rankInfo.bg
             break
         end
     end
@@ -48,7 +63,7 @@ function CLASS.On(self)
     self:SetNWString("PlayerName", rank .. " " .. Appearance.AName)
     self:SetPlayerColor(clr)
     self:SetModel(models[string.lower(Appearance.AModel)] or table.Random(models))
-    self:SetBodyGroups("000000000000000000")
+    self:SetBodyGroups(rankBg)
     self:SetSubMaterial()
     self:SetNetVar("Accessories", Appearance.AAttachmets or "none")
     self.CurAppearance = Appearance

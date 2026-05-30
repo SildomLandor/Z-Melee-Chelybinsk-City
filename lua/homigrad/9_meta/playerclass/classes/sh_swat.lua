@@ -5,7 +5,7 @@ function CLASS.Off(self)
 end
 
 local models = {
-    "models/css_seb_swat/css_swat.mdl",
+    "models/sobr/sobr_player.mdl",
 }
 
 function CLASS.On(self)
@@ -15,7 +15,7 @@ function CLASS.On(self)
     self:SetModel(models[math.random(#models)])
     self:SetSubMaterial()
     timer.Simple(0,function()
-        self:SetBodyGroups("00000000000")
+        self:SetBodyGroups("31200000000000000")
     end)
     local Appearance = self.CurAppearance or hg.Appearance.GetRandomAppearance()
     Appearance.AAttachments = ""

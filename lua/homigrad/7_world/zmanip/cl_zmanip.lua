@@ -273,7 +273,8 @@ function hg.DoZManip(ent, ply)
 
 	local lhmat = ent:GetBoneMatrix(lh)
 	local wmlhmat = WorldModel:GetBoneMatrix(wmlh)
-	if not lhmat or not wmlhmat then return end
+
+	local lpos, lang = WorldToLocal(lhmat:GetTranslation(), lhmat:GetAngles(), wmlhmat:GetTranslation(), angle_zero)
 
 	if ply.zmanipdrawFunc then
 		ply.zmanipdrawFunc(ent, ply, WorldModel, time)
