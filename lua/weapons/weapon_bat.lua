@@ -44,6 +44,11 @@ SWEP.StaminaSecondary = 21
 SWEP.HoldPos = Vector(-8,0,0)
 SWEP.HoldAng = Angle(0,0,-10)
 
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
+SWEP.holsteredPos = Vector(10, -4, 3)
+SWEP.holsteredAng = Angle(-10, 0, 0)
+
 SWEP.AttackTime = 0.6
 SWEP.AnimTime1 = 1.85
 SWEP.WaitTime1 = 1.65
@@ -91,6 +96,7 @@ SWEP.HitFleshExtraPitch = 112
 SWEP.AttackPos = Vector(0,0,0)
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.BreakBoneMul = 0.55
 SWEP.PainMultiplier = 0.9

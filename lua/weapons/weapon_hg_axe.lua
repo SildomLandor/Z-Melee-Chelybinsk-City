@@ -106,6 +106,7 @@ SWEP.SwingSoundPitch = {85, 95}
 SWEP.AttackPos = Vector(0,0,0)
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.AttackTimeLength = 0.155
 SWEP.Attack2TimeLength = 0.01

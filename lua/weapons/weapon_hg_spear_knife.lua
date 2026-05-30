@@ -12,6 +12,7 @@ SWEP.WorldModelExchange = "models/distac/spear_wood_knife.mdl"
 SWEP.ViewModel = ""
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.HoldType = "revolver"
 

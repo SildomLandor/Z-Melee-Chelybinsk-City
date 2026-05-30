@@ -34,6 +34,7 @@ SWEP.setrh = true
 SWEP.TwoHanded = false
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.AttackPos = Vector(0,0,0)
 SWEP.DamageType = DMG_CLUB

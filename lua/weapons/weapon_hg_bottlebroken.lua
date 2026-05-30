@@ -38,6 +38,7 @@ SWEP.setrh = true
 SWEP.TwoHanded = false
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.DamagePrimary = 9
 

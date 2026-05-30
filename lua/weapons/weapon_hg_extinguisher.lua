@@ -249,4 +249,5 @@ function SWEP:CustomBlockAnim(addPosLerp, addAngLerp)
 end
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 SWEP.MinSensivity = 0.75

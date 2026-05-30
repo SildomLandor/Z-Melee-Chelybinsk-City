@@ -157,6 +157,7 @@ function SWEP:CustomAttack2()
 end
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 function SWEP:PrimaryAttackAdd(ent)
     if hgIsDoor(ent) and math.random(6) > 3 then

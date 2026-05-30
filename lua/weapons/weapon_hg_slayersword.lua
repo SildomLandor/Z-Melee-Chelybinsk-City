@@ -17,6 +17,7 @@ SWEP.CanSuicide = false
 SWEP.bloodID = 3
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.HoldType = "melee"
 

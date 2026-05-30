@@ -156,6 +156,7 @@ SWEP.AttackLen1 = 40
 SWEP.AttackLen2 = 30
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.AttackTimeLength = 0.155
 SWEP.Attack2TimeLength = 0.1
