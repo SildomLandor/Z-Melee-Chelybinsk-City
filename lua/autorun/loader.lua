@@ -1,6 +1,6 @@
 hg = hg or {}
-hg.Version = "Beta 3.1"
-hg.GitHub_ReposOwner = "Rastawontfix, Sildom_Landor"
+hg.Version = "Beta 3.7"
+hg.GitHub_ReposOwner = "Rastawontfix, Sildom_Landor, informal1337"
 hg.GitHub_ReposName = "Meleecity: Delicacy Reworked" 
 -- А силдом гей
 local print = print
