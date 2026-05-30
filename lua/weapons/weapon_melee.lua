@@ -12,6 +12,18 @@ SWEP.weight = 0.4
 SWEP.AutoSwitchTo = false
 SWEP.AutoSwitchFrom = false
 
+SWEP.CooldownDeploy = 0.5
+SWEP.CooldownHolster = 0.75
+SWEP.HolsterSnd = {"homigrad/weapons/holster_rifle.mp3", 55, 100, 110}
+
+
+
+
+
+
+
+
+
 SWEP.Primary.ClipSize = -1
 SWEP.Primary.DefaultClip = -1
 SWEP.Primary.Automatic = true
@@ -46,10 +58,11 @@ SWEP.supportTPIK = true
 SWEP.ismelee = true
 SWEP.ismelee2 = true
 SWEP.weaponInvCategory = 3
-SWEP.shouldntDrawHolstered = false
+
+SWEP.shouldntDrawHolstered = true
 SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
-SWEP.holsteredPos = Vector(-14, 3, -8.3)
-SWEP.holsteredAng = Angle(0, 90, 180)
+SWEP.holsteredPos = Vector(10, -4, 3)
+SWEP.holsteredAng = Angle(-10, 0, 0)
 
 SWEP.AttackTime = 0.2
 SWEP.DrawAnimTime = 1.25
@@ -84,8 +97,8 @@ SWEP.StaminaPrimary = 10
 SWEP.StaminaSecondary = 8.5
 
 SWEP.BlockTier = 1
-SWEP.MeleeMaterial = "none"
-SWEP.BlockImpactSound = nil
+SWEP.MeleeMaterial = "metal"
+SWEP.BlockImpactSound = "physics/metal/metal_solid_impact_bullet1.wav"
 
 SWEP.ViewPunch1 = Angle(2,0,0)
 SWEP.ViewPunch2 = Angle(0,1,0)
