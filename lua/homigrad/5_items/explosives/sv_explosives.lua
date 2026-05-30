@@ -19,8 +19,8 @@ local dmgBurnCoop = dmgBurn + DMG_BULLET + DMG_BUCKSHOT + DMG_AIRBOAT
 local ents_FindInSphere = ents.FindInSphere
 local math_random = math.random
 local math_min = math.min
+local math_max = math.max
 local math_Clamp = math.Clamp
-local SysTime = SysTime
 local IsValid = IsValid
 
 local function boomNet(pos, kind)
@@ -97,16 +97,32 @@ local function blastSphere(selfPos, ent, dis, fireOrg)
 end
 
 local shrapJobs = {}
+local SHRAPNEL_PER_TICK = 8
 
 local function shrapnelPump()
 	for i = #shrapJobs, 1, -1 do
 		local job = shrapJobs[i]
-		if not IsValid(job.ent) then
+		local ent = job.ent
+		if not IsValid(ent) then
 			table.remove(shrapJobs, i)
 		else
-			coroutine.resume(job.co)
-			if job.ent.ShrapnelDone then
-				SafeRemoveEntity(job.ent)
+			local bullet = job.bullet
+			local shots = math_min(job.left, SHRAPNEL_PER_TICK)
+
+			for _ = 1, shots do
+				bullet.Dir = (ent:GetForward() + VectorRand() * 0.75):GetNormalized()
+				bullet.Spread = vecCone * ((job.fired + 1) / job.mass / 5)
+				ent:FireLuaBullets(bullet, true)
+				job.fired = job.fired + 1
+			end
+
+			job.left = job.left - shots
+			if job.left <= 0 then
+				ent.ShrapnelDone = true
+			end
+
+			if ent.ShrapnelDone then
+				SafeRemoveEntity(ent)
 				table.remove(shrapJobs, i)
 			end
 		end
@@ -140,26 +156,17 @@ local function shrapnelBurst(ent, selfPos, owner, force, mass, countMul, shakeRa
 		Filter = shrapFilter(ent),
 	}
 
-	local shots = multi * countMul
-	local fwd = ent:GetAngles():Forward()
-	local co = coroutine.create(function()
-		local last
-		for n = 1, shots do
-			last = SysTime()
-			if not IsValid(ent) then return end
-			bullet.Dir = fwd * math_random(-1, 1)
-			bullet.Spread = vecCone * (n / mass / 5)
-			ent:FireLuaBullets(bullet, true)
-			last = SysTime() - last
-			if last > 0.001 then coroutine.yield() end
-		end
-		ent.ShrapnelDone = true
-	end)
+	local shots = math_max(8, math_min(multi * countMul, 64))
+	ent.ShrapnelDone = nil
 
 	util.ScreenShake(selfPos, 100, 900, 1, shakeRad)
-	coroutine.resume(co)
-
-	shrapJobs[#shrapJobs + 1] = { ent = ent, co = co }
+	shrapJobs[#shrapJobs + 1] = {
+		ent = ent,
+		bullet = bullet,
+		left = shots,
+		fired = 0,
+		mass = math_max(mass, 1),
+	}
 	if #shrapJobs == 1 then
 		hook.Add("Think", "hg_shrapnel", shrapnelPump)
 	end

@@ -72,15 +72,62 @@ if SERVER then
 	local pathThinkNext = 0
 	local ents_FindInSphere = ents.FindInSphere
 	local IGNITE_SPREAD_SQR = 2048
+	local PATH_GRID = 96
+	local MAX_PATH_PER_TICK = 64
+	local MAX_GAS_PATH = 2048
+	local pathCursor = 1
+	local pathSyncAt = 0
+
+	local function pathCell(x, y)
+		return x .. "|" .. y
+	end
+
+	local function pathCellFromVec(pos)
+		return math.floor(pos[1] / PATH_GRID), math.floor(pos[2] / PATH_GRID)
+	end
+
+	local function syncGasPath(now)
+		if not hg.gasPathDirty or pathSyncAt > now then return end
+		hg.gasPathDirty = false
+		pathSyncAt = now + 0.25
+		net.Start("gasoline_path")
+		net.WriteTable(hg.gasolinePath)
+		net.Broadcast()
+	end
 
 	hook.Add("Think", "path_think", function()
 		local t = CurTime()
 		if pathThinkNext > t then return end
-		pathThinkNext = t + 1
+		pathThinkNext = t + 0.1
 
 		local path = hg.gasolinePath
-		for i = 1, #path do
+		local pathCount = #path
+		if pathCount == 0 then return end
+		if pathCursor > pathCount then pathCursor = 1 end
+
+		local grid = {}
+		for i = 1, pathCount do
 			local tbl = path[i]
+			if not tbl then continue end
+			local pos = tbl[1]
+			local cx, cy = pathCellFromVec(pos)
+			local key = pathCell(cx, cy)
+			local bucket = grid[key]
+			if not bucket then
+				bucket = {}
+				grid[key] = bucket
+			end
+			bucket[#bucket + 1] = i
+		end
+
+		local processed = 0
+		while processed < MAX_PATH_PER_TICK and pathCount > 0 do
+			local tbl = path[pathCursor]
+			pathCursor = pathCursor + 1
+			if pathCursor > pathCount then pathCursor = 1 end
+			processed = processed + 1
+
+			if not tbl then continue end
 			local pos, ignited = tbl[1], tbl[2]
 
 			if isnumber(ignited) and ignited + 60 < t then
@@ -91,13 +138,19 @@ if SERVER then
 
 			if not isnumber(ignited) then continue end
 
-			for j = 1, #path do
-				if i == j then continue end
-				local other = path[j]
-				if not other[2] and (pos - other[1]):LengthSqr() < IGNITE_SPREAD_SQR then
-					other[2] = t
-					other[3] = tbl[3] or other[3]
-					markGasPathDirty()
+			local cx, cy = pathCellFromVec(pos)
+			for x = cx - 1, cx + 1 do
+				for y = cy - 1, cy + 1 do
+					local near = grid[pathCell(x, y)]
+					if not near then continue end
+
+					for _, j in ipairs(near) do
+						local other = path[j]
+						if not other or other == tbl or other[2] or (pos - other[1]):LengthSqr() >= IGNITE_SPREAD_SQR then continue end
+						other[2] = t
+						other[3] = tbl[3] or other[3]
+						markGasPathDirty()
+					end
 				end
 			end
 
@@ -110,12 +163,7 @@ if SERVER then
 			end
 		end
 
-		if hg.gasPathDirty then
-			hg.gasPathDirty = false
-			net.Start("gasoline_path")
-			net.WriteTable(path)
-			net.Broadcast()
-		end
+		syncGasPath(t)
 	end)
 
 	hook.Add("PostCleanupMap", "removetrailsofevidence", function()
@@ -178,21 +226,23 @@ if SERVER then
 				leakTr.filter = ent
 				local tr = util.TraceLine(leakTr)
 
-				if tr.Hit and tr.Entity == Entity(0) then
-					if (drum.lastFireCreated or 0) < CurTime() then
-						drum.lastFireCreated = CurTime() + 0.2
-						hg.gasolinePath[#hg.gasolinePath + 1] = {tr.HitPos, false}
-						markGasPathDirty()
-					end
+				if tr.Hit and tr.Entity == Entity(0) and (drum.lastFireCreated or 0) < CurTime() then
+					drum.lastFireCreated = CurTime() + 0.2
+					hg.gasolinePath[#hg.gasolinePath + 1] = {tr.HitPos, false}
+					if #hg.gasolinePath > MAX_GAS_PATH then table.remove(hg.gasolinePath, 1) end
+					markGasPathDirty()
 				elseif tr.Entity != Entity(0) then
 					tr.Entity.shouldburn = (tr.Entity.shouldburn or 0) + 1
 				end
 
-				net.Start("gas particle")
-				net.WriteVector(pos + high_point)
-				net.WriteVector(ent:GetVelocity() + VectorRand(-15, 15) + (pos + high_point - (center + ent:GetPos())):GetNormalized() * 60)
-				net.WriteEntity(ent)
-				net.Broadcast()
+				if (drum.lastParticleNet or 0) < CurTime() then
+					drum.lastParticleNet = CurTime() + 0.05
+					net.Start("gas particle")
+					net.WriteVector(pos + high_point)
+					net.WriteVector(ent:GetVelocity() + VectorRand(-15, 15) + (pos + high_point - (center + ent:GetPos())):GetNormalized() * 60)
+					net.WriteEntity(ent)
+					net.SendPVS(pos + high_point)
+				end
 			elseif drum.loopsound then
 				drum.loopsound:Stop()
 				drum.leaking = false
