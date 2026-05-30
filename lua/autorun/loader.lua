@@ -143,13 +143,13 @@ font = function() -- hg_coolvetica:GetBool() and "Coolvetica" or "Bahnschrift"
     return usefont
 end
 
-local FONT_DEFAULT = font()
 function CreateFontFamily(base, fonts)
     base = base or {}
+    local typeface = base.font or font()
 
     for name, overrides in pairs(fonts) do
         local opts = {
-            font      = base.font or FONT_DEFAULT,
+            font      = overrides.font or typeface,
             size      = overrides.size,              -- size обязателен
             weight    = overrides.weight or base.weight or 400,
             outline   = (overrides.outline ~= nil) and overrides.outline or (base.outline ~= nil and base.outline or false),
@@ -161,6 +161,50 @@ function CreateFontFamily(base, fonts)
     end
 end
 
+function hg.CreateVeteranFonts()
+    local typeface = font()
+    local function sz(n)
+        return math.max(math.Round(n), 8)
+    end
+
+    surface.CreateFont("ZCity_Veteran", {
+        font = typeface,
+        size = sz(ScreenScaleH(15)),
+        weight = 500,
+        extended = true,
+        antialias = true,
+    })
+    surface.CreateFont("ZCity_Veteran_small", {
+        font = typeface,
+        size = sz(ScreenScale(10)),
+        weight = 500,
+        extended = true,
+        antialias = true,
+    })
+    surface.CreateFont("ZCity_Veteran_hmcdobj", {
+        font = typeface,
+        size = sz(ScreenScale(14)),
+        weight = 500,
+        extended = true,
+        antialias = true,
+    })
+    surface.CreateFont("ZCity_Veteran_big", {
+        font = typeface,
+        size = sz(ScreenScale(20)),
+        weight = 500,
+        extended = true,
+        antialias = true,
+    })
+end
+
+if CLIENT then
+    hg.CreateVeteranFonts()
+    hook.Add("OnScreenSizeChanged", "hg_veteran_fonts", hg.CreateVeteranFonts)
+    hook.Add("InitPostEntity", "hg_veteran_fonts", hg.CreateVeteranFonts)
+    cvars.AddChangeCallback("hg_font", function()
+        hg.CreateVeteranFonts()
+    end, "hg_veteran_fonts")
+end
 
 Run()
 

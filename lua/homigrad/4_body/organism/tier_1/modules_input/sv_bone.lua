@@ -31,44 +31,10 @@ local function damageBone(org, bone, dmg, dmgInfo, key, boneindex, dir, hit, ric
 end
 
 local huyasd = {
-	["spine1"] = "I don't feel anything below my hips.",
-	["spine2"] = "I cant't feel or move anything below my torso.",
-	["spine3"] = "I can't move at all. I can barely even breathe.",
-	["skull"] = "My head is aching.",
-}
-
-local broke_arm = {
-	"AAAAH OH GOD, IT'S BROKEN! MY ARM! IT'S BROKEN!",
-	"FUCK MY FUCKING ARM IS BROKEN!",
-	"NONONO MY ARM IS BENT ALL WRONG!",
-	"IT'S.. MY ARM.. SNAPPED- I HEARD IT SNAP!",
-	"MY ARM IS NOT SUPPOSED TO BEND IN HALF!",
-}
-
-local dislocated_arm = {
-	"MY ARM- GOD, IT'S POPPED OUT OF THE SOCKET!",
-	"FUCK- THE SHOULDER'S JUST- HANGING LOOSE!",
-	"MY ARM..! IT'S DISLOCATED! I CAN SEE THE BULGE WHERE IT'S WRONG!",
-	"THE ARM'S JUST- DEAD WEIGHT- IT'S NOT ATTACHED RIGHT!",
-	"SHIT! I CAN FEEL THE BONE OUT OF PLACE!",
-}
-
-local broke_leg = {
-	"MY LEG- FUCK, IT'S BROKEN- I HEARD THE SNAP!",
-	"FUCK! THE SHIN'S SNAPPED CLEAN THROUGH!",
-	"THE KNEE'S WRONG- THE WHOLE LEG'S TWISTED WRONG!",
-	"MY LEG..! IT'S JUST- HANGING BY MUSCLE AND SKIN!",
-	"THE PAIN'S SHOOTING UP TO MY HIP- FUCK, IT'S BAD!",
-	"I CAN'T MOVE MY FOOT- THE ANKLE'S BROKEN TOO!",
-}
-
-local dislocated_leg = {
-	"MY LEG- FUCK, IT'S DISLOCATED AT THE KNEE!",
-	"I CAN SEE THE KNEECAP IN THE WRONG PLACE!",
-	"AGHH- THE HIP'S POPPED OUT- IT'S STUCK OUTWARD!",
-	"IT'S BENT BACKWARD- THE KNEE SHOULDN'T BEND THIS WAY!",
-	"FUCK! THE HIP'S DISLOCATED!",
-	"THE ANKLE'S TWISTED- BUT THE KNEE'S THE REAL PROBLEM!",
+	["spine1"] = "Я не чувствую ничего ниже бёдер.",
+	["spine2"] = "Я не чувствую и не могу пошевелить ничем ниже торса.",
+	["spine3"] = "Я вообще не могу двигаться. Едва дышу.",
+	["skull"] = "У меня болит голова.",
 }
 
 local function legs(org, bone, dmg, dmgInfo, key, boneindex, dir, hit, ricochet)
@@ -359,13 +325,6 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 
 	return result,vecrand
 end
-
-local ribs = {
-	"MY CHEST... SNAPPED",
-	"SOMETHING SNAPPED IN MY TORSO",
-	"THERE'S SOMETHING SHARP IN MY CHEST...",
-	"I FEEL SOMETHING SHARP IN MY TORSO",
-}
 
 input_list.chest = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricochet)	
 	local oldDmg = org.chest

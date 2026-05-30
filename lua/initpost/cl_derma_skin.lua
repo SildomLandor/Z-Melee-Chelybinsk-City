@@ -142,29 +142,9 @@ surface.CreateFont("ZCity_Fixed_Icons_Small", {
 	weight = 500
 })
 
-surface.CreateFont("ZCity_Veteran_hmcdobj", {
-    font = "TrixiePro-Heavy",
-    size = ScreenScale(14),
-    weight = 500,
-    extended = true,
-    antialias = true
-})
-
-surface.CreateFont("ZCity_Veteran_small", {
-    font = "TrixiePro-Heavy",
-    size = ScreenScale(10),
-    weight = 500,
-    extended = true,
-    antialias = true
-})
-
-surface.CreateFont("ZCity_Veteran_big", {
-    font = "TrixiePro-Heavy",
-    size = ScreenScale(20),
-    weight = 500,
-    extended = true,
-    antialias = true
-})
+if hg.CreateVeteranFonts then
+    hg.CreateVeteranFonts()
+end
 
 --//
 

@@ -387,13 +387,16 @@ local function ZB_CreateUIFonts()
         ZB_InterfaceMediumLarge = { size = 35 },
         ZB_InterfaceLarge       = { size = ScreenScaleH(22) },
         ZB_InterfaceHumongous   = { size = 200 },
-        ZCity_Veteran             = { size = ScreenScaleH(15), weight = 700 },
         ZB_ScoreboardHeader       = { size = ScreenScaleH(12), weight = 600 },
     })
 end
 
 ZB_CreateUIFonts()
-hook.Add("OnScreenSizeChanged", "zcity_ui_fonts", ZB_CreateUIFonts)
+if hg.CreateVeteranFonts then hg.CreateVeteranFonts() end
+hook.Add("OnScreenSizeChanged", "zcity_ui_fonts", function()
+    ZB_CreateUIFonts()
+    if hg.CreateVeteranFonts then hg.CreateVeteranFonts() end
+end)
 
 
 hg.playerInfo = hg.playerInfo or {}

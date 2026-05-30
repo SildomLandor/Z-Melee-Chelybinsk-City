@@ -53,14 +53,6 @@ local Selects = {
     end},
 }
 
-surface.CreateFont("ZCity_Veteran", {
-    font = "TrixiePro-Heavy",
-    size = ScreenScaleH(18),
-    weight = 500,
-    extended = true,
-    antialias = true
-})
-
 surface.CreateFont("ZC_MM_Title", {
     font = "JMH Typewriter",
     size = ScreenScaleH(40),
