@@ -53,7 +53,7 @@ SWEP.HeadbuttConcussionTarget = 1.85
 SWEP.HeadbuttConcussionSelf = 1
 SWEP.HeadbuttDisorientationTarget = 1.15
 SWEP.HeadbuttDisorientationSelf = 0.55
-
+SWEP.SuicideWT = false
 SWEP.BlockTier = 1
 SWEP.MeleeMaterial = "none"
 SWEP.BlockImpactSound = nil

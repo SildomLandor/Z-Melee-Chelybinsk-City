@@ -50,7 +50,7 @@ SWEP.PenetrationPrimary = 4
 SWEP.PenetrationSecondary = 1.6
 
 SWEP.MaxPenLen = 6
-
+SWEP.SuicideWT = false
 SWEP.PenetrationSizePrimary = 3
 SWEP.PenetrationSizeSecondary = 1.25
 

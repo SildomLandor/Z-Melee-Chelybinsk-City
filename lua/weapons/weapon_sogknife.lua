@@ -19,6 +19,7 @@ SWEP.SuicideCutVec = Vector(1, -5, 4)
 SWEP.SuicideCutAng = Angle(10, 0, 0)
 SWEP.SuicideTime = 0.5
 SWEP.CanSuicide = true
+SWEP.SuicideWT = true
 
 SWEP.BleedMultiplier = 1.35
 SWEP.PainMultiplier = 1.55

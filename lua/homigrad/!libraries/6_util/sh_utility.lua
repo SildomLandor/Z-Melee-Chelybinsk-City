@@ -1154,10 +1154,26 @@ local IsValid = IsValid
 		end)
 	end
 
+	function hg.CanSuicideWeapon(wep)
+		if not IsValid(wep) then return false end
+		local tbl = weapons.Get(wep:GetClass())
+		return tbl and tbl.SuicideWT == true
+	end
+
+	function hg.CanGunSuicide(wep)
+		return IsValid(wep) and ishgweapon(wep) and wep.CanSuicide
+	end
+
+	function hg.CanStartSuicide(ply)
+		if not IsValid(ply) then return false end
+		local wep = ply:GetActiveWeapon()
+		return hg.CanSuicideWeapon(wep) or hg.CanGunSuicide(wep)
+	end
+
 	function hg.CanSuicide(ply)
 		if not IsValid(ply) or not ply.GetActiveWeapon then return false end
 		local wep = ply:GetActiveWeapon()
-		return ishgweapon(wep) and wep.CanSuicide and not wep.reload
+		return hg.CanGunSuicide(wep) and not wep.reload
 	end
 --//
 --\\ Calculate Weight 

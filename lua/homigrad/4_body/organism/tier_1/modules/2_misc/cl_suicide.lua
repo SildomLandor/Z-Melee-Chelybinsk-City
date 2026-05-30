@@ -104,7 +104,7 @@ surface.CreateFont("SuicideHintFont", {
 })
 
 hook.Add("StartCommand", "HG_SuicideCutsceneInput", function(ply, cmd)
-    if active then
+    if active and ply == LocalPlayer() then
         cmd:ClearMovement()
         if not cancelRequested and cmd:KeyDown(IN_USE) then
             net.Start("HG_SuicideCancel")
@@ -149,14 +149,25 @@ hook.Add("HUDShouldDraw", "HG_HideHUDSuicide", function(name)
     end
 end)
 
-hook.Add("CalcView", "HG_SuicideCutsceneView", function(ply, origin, angles, fov)
-    if active then
-        local view = {}
-        view.origin = origin
-        view.angles = Angle(60, angles[2], 0)
-        view.fov = fov
-        return view
-    end
+hook.Add("PostPostHGCalcView", "HG_SuicideCutsceneView", function(ply, view)
+    if not active or ply ~= LocalPlayer() or not view then return end
+
+    local elapsed = CurTime() - startTime
+    local pitch = math.min(elapsed * 6, 22)
+
+    view.angles = Angle(math.Clamp(view.angles.p + pitch, -89, 40), view.angles.y, 0)
+    view.drawviewer = true
+
+    local back = view.angles:Forward() * -math.min(elapsed * 12, 36)
+    local tr = util.TraceLine({
+        start = view.origin,
+        endpos = view.origin + back,
+        filter = ply,
+        mask = MASK_SOLID,
+    })
+    view.origin = tr.HitPos + tr.HitNormal * 1
+
+    return view
 end)
 
 hook.Add("DrawOverlay", "HG_SuicideCutsceneText", function()

@@ -603,7 +603,8 @@ SWEP.SuicideCutVec = Vector(2, -5, 6)
 SWEP.SuicideCutAng = Angle(10, 0, 0)
 SWEP.SuicideTime = 0.5
 
-SWEP.CanSuicide = false -- for weapon_melee its configured in Initialize
+SWEP.CanSuicide = false
+SWEP.SuicideWT = true
 
 function SWEP:ModelAnim(model, pos, ang)
     local owner = self:GetOwner()
@@ -2589,6 +2590,7 @@ function SWEP:Initialize()
         self.PainMultiplier = 2
 
         self.CanSuicide = true
+        self.SuicideWT = true
 
         function self:Reload()
             if SERVER then

@@ -19,6 +19,7 @@ SWEP.SuicideCutAng = Angle(10, 0, 0)
 SWEP.SuicideTime = 0.5
 SWEP.SuicideSound = "player/flesh/flesh_bullet_impact_03.wav"
 SWEP.CanSuicide = true
+SWEP.SuicideWT = true
 SWEP.SuicideNoLH = true
 SWEP.SuicidePunchAng = Angle(5, -15, 0)
 SWEP.WorldModel = "models/hatedmekkr/boneworks/weapons/melee/blunts/hammers/bw_wpn_hmr_hammer.mdl"

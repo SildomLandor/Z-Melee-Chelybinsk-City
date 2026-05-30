@@ -19,6 +19,7 @@ SWEP.SuicideCutVec = Vector(-1, -5, 1)
 SWEP.SuicideCutAng = Angle(10, 0, 0)
 SWEP.SuicideTime = 0.5
 SWEP.CanSuicide = true
+SWEP.SuicideWT = true
 SWEP.SuicideNoLH = true
 SWEP.SuicidePunchAng = Angle(5, -15, 0)
 

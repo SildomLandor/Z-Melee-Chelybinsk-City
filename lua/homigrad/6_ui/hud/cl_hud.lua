@@ -596,7 +596,7 @@ end)
 
 hook.Add("radialOptions", "88", function()
 	local organism = lply.organism or {}
-	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" then
+	if not organism.otrub and hg.CanStartSuicide(lply) then
 		local tbl = {suicide, "Смерть"}
 		hg.radialOptions[#hg.radialOptions + 1] = tbl
 	end

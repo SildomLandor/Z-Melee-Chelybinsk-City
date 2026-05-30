@@ -7,12 +7,12 @@ concommand.Add("suicide", function(ply)
     if ply.suicideCutscene then return end
 
     local wep = ply:GetActiveWeapon()
-    if not IsValid(wep) then
+    if not hg.CanStartSuicide(ply) then
         ply:Notify("Я... не могу закончить этим...", true, "suicide", 0)
         return
     end
 
-    if wep.ishgweapon and wep:Clip1() <= 0 then
+    if hg.CanGunSuicide(wep) and wep:Clip1() <= 0 then
         ply:Notify("Пусто...", true, "suicide", 0)
         return
     end
@@ -44,10 +44,8 @@ concommand.Add("suicide", function(ply)
         if not IsValid(ply) or not ply:Alive() or not ply.suicideCutscene then return end
         local activeWep = ply:GetActiveWeapon()
         if IsValid(ply.suicideCutsceneWep) and activeWep == ply.suicideCutsceneWep then
-            if activeWep.ismelee or activeWep.CanSuicide then
-                if activeWep.CanSuicide and ply.suiciding then
-                    activeWep.SuicideRequest = false
-                end
+            if hg.CanSuicideWeapon(activeWep) and activeWep.CanSuicide and ply.suiciding then
+                activeWep.SuicideRequest = true
             end
         end
     end)
