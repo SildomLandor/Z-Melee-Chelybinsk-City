@@ -185,19 +185,15 @@ if CLIENT then
 				return
 			end
 
-			local entModel = ent:GetModel()
-			if entModel then
-				local mdl = string.Split(string.sub(entModel, 1, -5), "/")[#string.Split(string.sub(entModel, 1, -5), "/")]
-				if mdl and model:GetFlexIDByName(mdl) then
-					model:SetFlexWeight(model:GetFlexIDByName(mdl), 1)
-				end
+			local mdl = string.Split(string.sub(ent:GetModel(),1,-5),"/")[#string.Split(string.sub(ent:GetModel(),1,-5),"/")]
+			if mdl and model:GetFlexIDByName(mdl) then
+				model:SetFlexWeight(model:GetFlexIDByName(mdl),1)
 			end
 			
-			local boneId = ent:LookupBone(armorData["bone"])
-			if not boneId then continue end
-
-			local matrix = ent:GetBoneMatrix(boneId)
-			if not matrix then continue end
+			local matrix = ent:GetBoneMatrix(ent:LookupBone(armorData["bone"]))
+			if not matrix then
+				return
+			end
 			
 			local bonePos, boneAng = matrix:GetTranslation(), matrix:GetAngles()
 			bonePos:Add(boneAng:Forward() * (fem and armorData.femPos[1] or 0) + boneAng:Up() * (fem and armorData.femPos[2] or 0) + boneAng:Right() * (fem and armorData.femPos[3] or 0))
@@ -392,45 +388,36 @@ if CLIENT then
 		end
 	end)
 	
-	local function getEquipDropTbl(ply)
-		ply = IsValid(ply) and ply or LocalPlayer()
-		local tblcpy = {}
-		local armors = ply:GetNetVar("Armor", {})
-		local inventory = ply:GetNetVar("Inventory", {}) or {}
-		inventory["Weapons"] = inventory["Weapons"] or {}
-
-		for _, att in pairs(armors) do
-			if att then tblcpy[#tblcpy + 1] = att end
-		end
-
-		if inventory["Weapons"]["hg_flashlight"] then
-			tblcpy["hg_flashlight"] = inventory["Weapons"]["hg_flashlight"]
-		end
-		if inventory["Weapons"]["hg_sling"] then
-			tblcpy["hg_sling"] = inventory["Weapons"]["hg_sling"]
-		end
-		if inventory["Weapons"]["hg_brassknuckles"] then
-			tblcpy["hg_brassknuckles"] = inventory["Weapons"]["hg_brassknuckles"]
-		end
-
-		return tblcpy
-	end
-
 	local function equipmentMenu()
 		RunConsoleCommand("hg_get_equipment")
+
 		return 0
 	end
-
+	
 	hook.Add("radialOptions", "equipment", function()
-		local ply = LocalPlayer()
-		if not IsValid(ply) or not ply:Alive() then return end
-		if hg.GetCurrentCharacter and hg.GetCurrentCharacter(ply) ~= ply then return end
+		local armors = LocalPlayer().armors or {}
+		local inventory = LocalPlayer():GetNetVar("Inventory",{})
+		inventory["Weapons"] = inventory["Weapons"] or {}
+		local organism = LocalPlayer().organism or {}
+	
+		local tbl = table.Copy(armors)
+		if inventory["Weapons"]["hg_flashlight"] then
+			tbl["hg_flashlight"] = inventory["Weapons"]["hg_flashlight"]
+		end
 
-		local organism = ply.organism or {}
-		if organism.otrub or not ply:KeyDown(IN_WALK) then return end
-		if not next(getEquipDropTbl(ply)) then return end
+		if inventory["Weapons"]["hg_sling"] then
+			tbl["hg_sling"] = inventory["Weapons"]["hg_sling"]
+		end
 
-		hg.radialOptions[#hg.radialOptions + 1] = {equipmentMenu, "Выкинуть экипировку"}
+		if inventory["Weapons"]["hg_brassknuckles"] then
+			tbl["hg_brassknuckles"] = inventory["Weapons"]["hg_brassknuckles"]
+		end
+	
+		if not organism.otrub and table.Count(tbl) > 0 and lply:KeyDown(IN_WALK) then
+			hg.radialOptions = hg.radialOptions or {}
+			local newEntry = {equipmentMenu, "Drop Equipment"}
+			hg.radialOptions[#hg.radialOptions + 1] = newEntry
+		end
 	end)
 	
 	
@@ -469,7 +456,31 @@ if CLIENT then
 	BlurBackground = BlurBackground or hg.DrawBlur
 
 	local function refreshtbl()
-		return getEquipDropTbl(lply)
+		local tblcpy = {}
+
+		local tbl = lply:GetNetVar("Armor", {})
+		local inventory = lply:GetNetVar("Inventory", {})
+
+		inventory["Weapons"] = inventory["Weapons"] or {}
+
+		for i, att in pairs(tbl) do
+			if !att then continue end
+			table.insert(tblcpy, att)
+		end
+
+		if inventory["Weapons"]["hg_flashlight"] then
+			tblcpy["hg_flashlight"] = inventory["Weapons"]["hg_flashlight"]
+		end
+
+		if inventory["Weapons"]["hg_sling"] then
+			tblcpy["hg_sling"] = inventory["Weapons"]["hg_sling"]
+		end
+
+		if inventory["Weapons"]["hg_brassknuckles"] then
+			tblcpy["hg_brassknuckles"] = inventory["Weapons"]["hg_brassknuckles"]
+		end
+
+		return tblcpy
 	end
 
 	hook.Add("OnNetVarSet", "equipmentPanelRefresh", function(index, key, var)
@@ -514,7 +525,7 @@ if CLIENT then
 		lbl:DockMargin(10,0,0,10)
 
 		lbl.Paint = function(self, w, h)
-			draw.SimpleText("ЛКМ - Выкинуть экипировку", "ZCity_Tiny", w * 0.5, h * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+			draw.SimpleText("LMB - Drop equipment", "ZCity_Tiny", w * 0.5, h * 0.5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		end
 
 		local scroll = vgui.Create("DScrollPanel",frame)
@@ -596,7 +607,7 @@ if CLIENT then
 		if ply:Alive() and not organism.otrub then
 			local tbl = {function(mouseClick)
 				RunConsoleCommand("hg_enable_nvg")
-			end, ply:GetNWBool("NVG_Enabled", false) and "Выключить НВГ" or "Включить НВГ"}
+			end, ply:GetNWBool("NVG_Enabled", false) and "Disable NVG" or "Enable NVG"}
 			hg.radialOptions[#hg.radialOptions + 1] = tbl
 		end
 	end)

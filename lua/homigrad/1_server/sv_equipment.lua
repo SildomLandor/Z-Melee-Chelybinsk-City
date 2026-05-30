@@ -185,9 +185,7 @@ function hg.DropArmor(ply, equipment)
     if IsValid(ply) and ply.DropCD and ply.DropCD > CurTime() then return false end
 
     if hg.armor[placement][equipment] then
-        if ply.DoAnimationEvent then
-            ply:DoAnimationEvent((placement == "head" or placement == "ears" or placement == "face") and ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND or ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
-        end
+        ply:DoAnimationEvent((placement == "head" or placement == "ears" or placement == "face") and ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND or ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
 	    ply:ViewPunch(Angle(1,-2,1))
         ply.DropCD = CurTime() + 0.35
         --timer.Simple(0.3,function()
@@ -221,26 +219,6 @@ end
 
 -- armorstuff
 util.AddNetworkString("AddFlash")
-util.AddNetworkString("send_tinnitus")
-
-local function GiveTinnitus(ply, time, needSound)
-	if not IsValid(ply) then return end
-	if not ply:IsPlayer() then
-		ply = hg.RagdollOwner(ply)
-	end
-	if not IsValid(ply) or not ply:IsPlayer() then return end
-
-	local add = FindMetaTable("Player").AddTinnitus
-	if add then
-		add(ply, time, needSound or false)
-		return
-	end
-
-	net.Start("send_tinnitus")
-		net.WriteFloat(time)
-		net.WriteBool(needSound or false)
-	net.Send(ply)
-end
 
 local ArmorEffect
 local force
@@ -260,7 +238,7 @@ local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scalepro
 			
 			org.owner:EmitSound("homigrad/physics/shield/bullet_hit_shield_0"..math.random(7)..".wav", 80, math.random(95, 105))
 
-			GiveTinnitus(org.owner, 3, true)
+			org.owner:AddTinnitus(3, true)
 			net.Start("AddFlash")
 				net.WriteVector(hg.eye(org.owner) + org.owner:GetForward() * 3)
 				net.WriteFloat(3)

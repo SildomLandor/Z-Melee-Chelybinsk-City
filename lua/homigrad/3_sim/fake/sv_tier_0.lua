@@ -868,21 +868,29 @@ end
 
 function hg.GetCurrentCharacter(ply)
 	if not IsValid(ply) then return false end
-	local rag = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or IsValid(ply:GetNWEntity("FakeRagdoll",NULL)) and ply:GetNWEntity("FakeRagdoll",NULL)
-	return (IsValid(rag) and rag) or ply
+	local rag = ply.FakeRagdoll
+	if not isentity(rag) or not IsValid(rag) then
+		rag = ply:GetNWEntity("FakeRagdoll", NULL)
+	end
+
+	return isentity(rag) and IsValid(rag) and rag or ply
 end
 
 function hg.PlyInFake(ply)
 	if not IsValid(ply) or not ply:IsPlayer() then return false end
-	return IsValid(ply.FakeRagdoll)
+	local rag = ply.FakeRagdoll
+	return isentity(rag) and IsValid(rag)
 end
 
 util.AddNetworkString("hg_bandage_limbs_sync")
 
 function hg.GetBandageRenderEnt(ent)
 	if not IsValid(ent) then return ent end
-	if ent:IsPlayer() and hg.PlyInFake(ent) and IsValid(ent.FakeRagdoll) then
-		return ent.FakeRagdoll
+	if ent:IsPlayer() and hg.PlyInFake(ent) then
+		local rag = ent.FakeRagdoll
+		if isentity(rag) and IsValid(rag) then
+			return rag
+		end
 	end
 	return ent
 end
@@ -898,10 +906,14 @@ function hg.SyncBandagedLimbsNet(ent)
 		ent.bandaged_limbs = synced
 		if hg.PlyInFake(ent) then
 			local rag = ent.FakeRagdoll
+			if isentity(rag) and IsValid(rag) then
 			renderEnt = rag
 			rag.bandaged_limbs = synced
 			rag:SetNetVar("bandaged_limbs", synced)
 			ent:SetNetVar("bandaged_limbs", {})
+			else
+				ent:SetNetVar("bandaged_limbs", synced)
+			end
 		else
 			ent:SetNetVar("bandaged_limbs", synced)
 		end

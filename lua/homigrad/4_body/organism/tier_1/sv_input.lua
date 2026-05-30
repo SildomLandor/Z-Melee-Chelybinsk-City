@@ -1650,6 +1650,7 @@ function hg.BreakNeck(ent)
 end
 
 hook.Add("OnAmputateLimb", "amputate_cuffs", function(org, ent, limb)
+	if not IsValid(ent) then return end
 	if (limb == "larm" or limb == "rarm") and (org.handcuffed and ent:GetNetVar("handcuffed", false)) then
 		if ent.handcuffs then
 			if IsValid(ent.handcuffs[1]) then ent.handcuffs[1]:Remove() end
@@ -1671,6 +1672,7 @@ hook.Add("OnAmputateLimb", "amputate_cuffs", function(org, ent, limb)
 end)
 
 hook.Add("OnAmputateLimb", "amputate_flashlight", function(org, ent, limb)
+	if not IsValid(ent) then return end
 	local inv = ent:GetNetVar("Inventory", {})
 	if limb == "larm" and inv["Weapons"] and inv["Weapons"]["hg_flashlight"] and ent:GetNetVar("flashlight", false) then
 		local flashlight = ents.Create("hg_flashlight")
