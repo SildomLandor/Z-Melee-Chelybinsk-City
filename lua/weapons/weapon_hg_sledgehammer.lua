@@ -149,6 +149,7 @@ function SWEP:CustomBlockAnim(addPosLerp, addAngLerp)
 end
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.AttackTimeLength = 0.155
 SWEP.Attack2TimeLength = 0.01

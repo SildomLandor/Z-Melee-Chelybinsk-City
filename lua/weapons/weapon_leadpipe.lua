@@ -106,6 +106,7 @@ SWEP.AttackLen1 = 52
 SWEP.AttackLen2 = 30
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 function SWEP:CanSecondaryAttack()
     return true

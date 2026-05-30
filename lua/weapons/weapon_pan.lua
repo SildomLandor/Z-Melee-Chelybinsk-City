@@ -12,6 +12,7 @@ SWEP.WorldModelExchange = "models/props_c17/metalPot002a.mdl"
 SWEP.ViewModel = ""
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.BreakBoneMul = 0.35
 

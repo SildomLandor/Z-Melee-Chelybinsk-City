@@ -23,6 +23,7 @@ SWEP.SuicideNoLH = true
 SWEP.SuicidePunchAng = Angle(5, -15, 0)
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.HoldType = "melee"
 

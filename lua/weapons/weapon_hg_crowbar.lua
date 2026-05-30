@@ -24,6 +24,7 @@ SWEP.SuicideNoLH = false
 SWEP.SuicideHoldType = "slam"
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.HoldType = "revolver"
 

@@ -12,6 +12,7 @@ SWEP.WorldModelExchange = "models/hatedmekkr/boneworks/weapons/melee/blunts/shar
 SWEP.ViewModel = ""
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 
 SWEP.HoldType = "revolver"

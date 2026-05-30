@@ -94,6 +94,7 @@ SWEP.HitFleshPlus = "baseballbat/hitplus.ogg"
 SWEP.AttackPos = Vector(0,0,0)
 
 SWEP.NoHolster = true
+SWEP.shouldntDrawHolstered = false
 
 SWEP.BreakBoneMul = 1
 SWEP.PainMultiplier = 1.17
