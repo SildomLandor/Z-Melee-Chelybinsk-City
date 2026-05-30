@@ -736,21 +736,64 @@ if SERVER then
 		ply.tourniquets = {}
 	end)
 
+	local function collectBandagedLimbs(ply, ragdoll)
+		local limbs = ply.bandaged_limbs
+		if not istable(limbs) or not next(limbs) then
+			limbs = ply:GetNetVar("bandaged_limbs")
+		end
+		if (not istable(limbs) or not next(limbs)) and IsValid(ragdoll) then
+			limbs = ragdoll.bandaged_limbs
+			if not istable(limbs) or not next(limbs) then
+				limbs = ragdoll:GetNetVar("bandaged_limbs")
+			end
+		end
+		if not istable(limbs) or not next(limbs) then return end
+		return table.Copy(limbs)
+	end
+
+	local function applyBandagesToCorpse(ply, ragdoll, limbs)
+		if not IsValid(ragdoll) or not istable(limbs) or not next(limbs) then return end
+		ragdoll.bandaged_limbs = limbs
+		hg.SyncBandagedLimbsNet(ragdoll)
+		if IsValid(ply) then
+			ply.bandaged_limbs = {}
+			ply:SetNetVar("bandaged_limbs", {})
+		end
+	end
+
+	local function deathCorpseRagdoll(ply)
+		if IsValid(ply.RagdollDeath) then return ply.RagdollDeath end
+		local rag = ply:GetNWEntity("RagdollDeath")
+		if IsValid(rag) then return rag end
+		if IsValid(ply.FakeRagdoll) then return ply.FakeRagdoll end
+	end
+
 	hook.Add("Player Spawn", "remove-bandages", function(ply)
 		if OverrideSpawn then return end
+		ply.deathBandagedLimbs = nil
 		ply:SetNetVar("bandaged_limbs",{})
 		ply.bandaged_limbs = {}
 	end)
 
 	hook.Add("Player_Death", "remove-bandageshuy", function(ply)
-		if IsValid(ply.FakeRagdoll) then
-			ply.FakeRagdoll.bandaged_limbs = table.Copy(ply.bandaged_limbs)
-			ply.FakeRagdoll:SetNetVar("bandaged_limbs",ply:GetNetVar("bandaged_limbs",ply.FakeRagdoll.bandaged_limbs))
+		local ragdoll = deathCorpseRagdoll(ply)
+		ply.deathBandagedLimbs = collectBandagedLimbs(ply, ragdoll)
+		if ply.deathBandagedLimbs and IsValid(ragdoll) then
+			applyBandagesToCorpse(ply, ragdoll, ply.deathBandagedLimbs)
+		else
+			ply:SetNetVar("bandaged_limbs", {})
+			ply.bandaged_limbs = {}
 		end
-		ply:SetNetVar("bandaged_limbs",{})
-		ply.bandaged_limbs = {}
 	end)
-	
+
+	hook.Add("RagdollDeath", "bandages-death-corpse", function(ply, ragdoll)
+		if not IsValid(ply) or not IsValid(ragdoll) then return end
+		local limbs = ply.deathBandagedLimbs or collectBandagedLimbs(ply, ragdoll)
+		if limbs then
+			applyBandagesToCorpse(ply, ragdoll, limbs)
+		end
+		ply.deathBandagedLimbs = nil
+	end)
 
 	hook.Add("Fake", "rtourniquetsss", function(ply,ragdoll)
 		if not IsValid(ragdoll) then return end	

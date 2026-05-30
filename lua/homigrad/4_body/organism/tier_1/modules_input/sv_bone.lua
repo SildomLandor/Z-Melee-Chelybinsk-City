@@ -1,3 +1,5 @@
+util.AddNetworkString("hg_chest_udar")
+
 --local Organism = hg.organism
 local function isCrush(dmgInfo)
 	return (not dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_BLAST)) or dmgInfo:GetInflictor().RubberBullets
@@ -371,8 +373,15 @@ input_list.chest = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 	if dmgInfo:IsDamageType(DMG_SLASH+DMG_BULLET+DMG_BUCKSHOT) and math.random(5) == 1 then return 0, vector_origin end --random chance it passed through ribs
 
 	local result, vecrand = damageBone(org, 0.1, dmg / 4, dmgInfo, "chest", boneindex, dir, hit, ricochet, true)
-	
-	hg.AddHarmToAttacker(dmgInfo, (org.chest - oldDmg) * 3, "Ribs bone damage harm")
+	local chestDmg = org.chest - oldDmg
+
+	if org.otrub and org.isPly and IsValid(org.owner) and chestDmg > 0.001 then
+		net.Start("hg_chest_udar")
+		net.WriteFloat(math.Clamp(chestDmg * 5 + dmg * 0.12, 0.12, 1.6))
+		net.Send(org.owner)
+	end
+
+	hg.AddHarmToAttacker(dmgInfo, chestDmg * 3, "Ribs bone damage harm")
 
 	org.painadd = org.painadd + dmg * 1
 	org.shock = org.shock + dmg * 1

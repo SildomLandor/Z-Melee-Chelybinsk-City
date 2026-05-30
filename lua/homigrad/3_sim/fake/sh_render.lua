@@ -153,5 +153,10 @@ if CLIENT then
 			ent.bandagesModel:Remove()
 		end
 		ent.bandagesModel = nil
+		local ply = ent:IsPlayer() and ent or ent.ply
+		if IsValid(ply) and ply ~= ent and IsValid(ply.bandagesModel) then
+			ply.bandagesModel:Remove()
+			ply.bandagesModel = nil
+		end
 	end
 end

@@ -34,7 +34,7 @@ function hg.orgPick(org, keys)
 	end
 	return t
 end
-
+-- это ваще нужно для того чтобы ошибок не было
 hg.orgDefaults = {
 	pain = 0, brain = 0, blood = 5000, bleed = 0, hurt = 0, shock = 0,
 	pulse = 70, heartbeat = 70, spo2 = 100, disorientation = 0, adrenaline = 0, adrenalineAdd = 0,

@@ -125,8 +125,12 @@ hook.Add("HG_OrganismChanged", "explodelegs", function(oldorg, org)
 			local bone = ent:LookupBone(nam)
 
 			timer.Simple(0, function()
-				if IsValid(ent.bandagesModel) and ent.bandagesModel.BodygroupsApplied then
-					ent.bandagesModel.BodygroupsApplied = false
+				if IsValid(ent.bandagesModel) then
+					ent.bandagesModel.BandagedLimbsSig = nil
+				end
+				local ply = ent:IsPlayer() and ent or ent.ply
+				if IsValid(ply) and IsValid(ply.bandagesModel) then
+					ply.bandagesModel.BandagedLimbsSig = nil
 				end
 			end)
 

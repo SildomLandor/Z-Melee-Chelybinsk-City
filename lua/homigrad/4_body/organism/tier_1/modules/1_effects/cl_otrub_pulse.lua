@@ -21,6 +21,7 @@ local e = {
 	beatJ = { amp = 1, qrs = 1, morph = 0 },
 	adrenTox = 0,
 	pvcAt = 0,
+	chestHit = nil,
 }
 -- ради реализма на такое идти... Я думаю это круто
 for i = 1, e.n do e.buf[i] = 0 end
@@ -58,6 +59,7 @@ local function reset(rt)
 	e.beatJ.morph = 0
 	e.adrenTox = 0
 	e.pvcAt = 0
+	e.chestHit = nil
 	rollBeatJ(60 / 70)
 	for i = 1, e.n do e.buf[i] = 0 end
 end
@@ -141,6 +143,12 @@ local function ecgWave(phase, rr, m)
 	return 0
 end
 
+local function chestSpike(age, mag)
+	local p = age / 0.09
+	if p >= 1 then return 0 end
+	return mag * (1.55 * bell(p - 0.035, 0.012) - 0.35 * bell(p - 0.065, 0.016))
+end
+
 local function push(v)
 	if e.idx < e.n then
 		e.idx = e.idx + 1
@@ -153,6 +161,15 @@ local function push(v)
 end
 
 local function sample(t, hb, m, isVfib)
+	if e.chestHit then
+		local age = t - e.chestHit.at
+		if age < 0.11 then
+			push(chestSpike(age, e.chestHit.mag))
+			return
+		end
+		if age > 0.14 then e.chestHit = nil end
+	end
+
 	if isVfib then
 		local sev = math.Clamp(tonumber(m.vfib) or 0.5, 0.2, 1)
 		local chaos = math.sin(t * 22) * 0.12 + math.sin(t * 37 + 1.5) * 0.1 + math.sin(t * 56 + 0.7) * 0.06
@@ -410,4 +427,12 @@ hook.Add("zbClientModeCleanup", "pulseotrub.off", function()
 	e.on = false
 	e.show = 0
 	reset(0)
+end)
+
+net.Receive("hg_chest_udar", function()
+	if not otrubActive() then return end
+	local mag = net.ReadFloat()
+	local prev = e.chestHit and e.chestHit.mag or 0
+	mag = math.Clamp(0.95 + mag * 0.28, 1.05, 1.4)
+	e.chestHit = { at = e.tSample, mag = math.max(prev, mag) }
 end)
