@@ -1,5 +1,5 @@
 GM.Name = "ZCity"
-GM.Author = "uzelezz, sadsalat, Mr. Point, Zac90, Deka, Mannytko"
+GM.Author = "uzelezz, sadsalat, Mr. Point, Zac90, Deka, Mannytko, Sildom Landor, Раста, informal1337, frex"
 GM.Email = "N/A"
 GM.Website = "N/A"
 

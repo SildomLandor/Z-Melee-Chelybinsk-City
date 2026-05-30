@@ -89,7 +89,7 @@ function zb.RTVMenu()
     sideTitle:DockMargin(16, 18, 16, 6)
     sideTitle:SetTall(36)
     sideTitle.Paint = function(_, w, h)
-        local txt = "VOTE CONTROL"
+        local txt = "КОНТРОЛЬ ГОЛОСОВАНИЯ"
         local font = PickFontForWidth(txt, w - 2, "ZCity_Veteran", "ZCity_Small")
         surface.SetFont(font)
         surface.SetTextColor(212, 212, 212, 255)
@@ -104,11 +104,11 @@ function zb.RTVMenu()
     timerLabel:SetTall(30)
     timerLabel.Paint = function(_, w, h)
         local left = math.max(0, math.ceil(time - CurTime()))
-        local txt = "TIME LEFT: " .. left .. "s"
+        local txt = "ВРЕМЯ: " .. left .. "с"
         local font = "ZCity_Veteran"
         surface.SetFont(font)
         if surface.GetTextSize(txt) > (w - 2) then
-            txt = "TIME: " .. left .. "s"
+            txt = "ВРЕМЯ: " .. left .. "с"
             font = PickFontForWidth(txt, w - 2, "ZCity_Veteran", "ZCity_Small")
         end
         surface.SetFont(font)
@@ -218,7 +218,7 @@ function zb.RTVMenu()
     closeBtn:Dock(BOTTOM)
     closeBtn:DockMargin(16, 12, 16, 16)
     closeBtn:SetTall(36)
-    closeBtn:SetText("EXIT")
+    closeBtn:SetText("ВЫХОД")
     closeBtn:SetFont("ZCity_Veteran")
     closeBtn:SetTextColor(Color(215, 215, 215))
     closeBtn.Paint = function(self, w, h)
@@ -292,7 +292,7 @@ function zb.RTVMenu()
         mapGrid:Add(MapButton)
         
         if v == "random" then
-            MapButton.DisplayName = "Random Map"
+            MapButton.DisplayName = "Случайная карта"
             MapButton.Map = "random"
             MapButton.MapIcon = Material("icon64/random.png")
             if MapButton.MapIcon:IsError() then
@@ -347,7 +347,7 @@ function zb.RTVMenu()
         empty:Dock(TOP)
         empty:SetFont("ZCity_Veteran")
         empty:SetTextColor(Color(165, 165, 165))
-        empty:SetText("No maps available right now.")
+        empty:SetText("Карты недоступны прямо сейчас")
         empty:SetContentAlignment(5)
     end
 end

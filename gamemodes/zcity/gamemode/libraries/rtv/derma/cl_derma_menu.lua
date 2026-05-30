@@ -55,14 +55,14 @@ function PANEL:Paint(w, h)
     surface.DrawRect(0, 0, 2, h)
     surface.DrawRect(w - 2, 0, 2, h)
 
-    local title = "ROCK THE VOTE"
+    local title = "ГОЛОСОВАНИЕ"
     surface.SetFont("ZC_MM_Title")
     surface.SetTextColor(220, 220, 220, 255 * t)
     local tw, th = surface.GetTextSize(title)
     surface.SetTextPos((w - tw) * 0.5, h * 0.055)
     surface.DrawText(title)
 
-    local subtitle = "SELECT THE NEXT MAP"
+    local subtitle = "ВЫБЕРИТЕ СЛЕДУЮЩУЮ КАРТУ"
     surface.SetFont("ZCity_Veteran")
     surface.SetTextColor(140, 140, 140, 210 * t)
     local sw, _ = surface.GetTextSize(subtitle)
