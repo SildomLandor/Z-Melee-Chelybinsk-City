@@ -632,7 +632,10 @@ function hg.MainTPIKFunction(ent, ply, wpn)
     if not ply.InVehicle then return end
     
     //local systime = SysTime()
-    local should = hg.ShouldTPIK(ply)
+    local should = hg.ShouldTPIK(ply, ent)
+    if ent ~= ply and (IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdoll"))) then
+        should = true
+    end
     //print("shouldtpik func: ", SysTime() - systime)
 
     if should then

@@ -830,7 +830,7 @@ function SWEP:SetHandPos(noset)
     if not ply.shouldTransmit or ply.NotSeen then return end
 
     local ent = hg.GetCurrentCharacter(ply)
-    if ent ~= ply and not hg.RagdollCombatInUse(ply) then return end
+    if ent ~= ply and not (IsValid(ply.FakeRagdoll) or IsValid(ply:GetNWEntity("FakeRagdoll")) or hg.RagdollCombatInUse(ply)) then return end
 
 	local bones = hg.TPIKBonesLH
 

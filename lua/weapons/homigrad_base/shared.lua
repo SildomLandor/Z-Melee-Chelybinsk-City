@@ -2116,7 +2116,6 @@ function SWEP:SetHandPos(noset)
 	local fakeRag = ent ~= ply and not hg.RagdollCombatInUse(ply)
 
 	if fakeRag and (not inuse or self:IsResting()) then return end
-	if fakeRag and self.ismelee and not hg.RagdollCombatInUse(ply) then return end
 
 	//if (ent ~= ply and not (inuse)) and (self.lerped_positioning and self.lerped_positioning < 0.2) then return end
 	
