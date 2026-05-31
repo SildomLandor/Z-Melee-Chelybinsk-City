@@ -74,6 +74,8 @@ function DMusic:Stop()
 end
 
 local hg_sound = ConVarExists("hg_dmusic") and GetConVar("hg_dmusic") or CreateClientConVar("hg_dmusic","1",true,false,"Enable dynamic music (Enable music in gmod settings)",0,1)
+if not ConVarExists("hg_dmusic_ambientvol") then CreateClientConVar("hg_dmusic_ambientvol","1",true,false,"Dynamic music ambient volume",0,2) end
+if not ConVarExists("hg_dmusic_combatvol") then CreateClientConVar("hg_dmusic_combatvol","1",true,false,"Dynamic music combat volume",0,2) end
 
 concommand.Add("hg_dmusic_skip",function()
     if not DMusic.Tracks then return end 
@@ -81,8 +83,6 @@ concommand.Add("hg_dmusic_skip",function()
         song[3] = false
     end
 end)
-local ambientMul = GetConVar("hg_dmusic_ambientvol"):GetFloat()
-local combatMul = GetConVar("hg_dmusic_combatvol"):GetFloat()
 local MusicVolume = GetConVar("snd_musicvolume")
 hook.Add( "Think", "DMusic.Think", function()
     if not DMusic.Tracks then return end 
