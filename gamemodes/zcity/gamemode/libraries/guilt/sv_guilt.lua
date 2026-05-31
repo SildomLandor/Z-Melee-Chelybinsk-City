@@ -158,7 +158,7 @@ local function karmaBanIfNeeded(att)
 
     timer.Create("simplewaitforkarmadrop" .. att:EntIndex(), 0, 1, function()
         if ULib then
-            ULib.addBan(steamID, 60, "Kicked and banned for having too low karma.", name, "System")
+            ULib.addBan(steamID, 60, "Слишком низкая карма", name, "System")
         end
     end)
 end

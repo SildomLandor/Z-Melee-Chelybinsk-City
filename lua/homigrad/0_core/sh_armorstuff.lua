@@ -1,5 +1,34 @@
 hg.armor = {}
 local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like first-person camera view", 0, 1)
+local hg_armor_debug = ConVarExists("hg_armor_debug") and GetConVar("hg_armor_debug") or (SERVER and CreateConVar("hg_armor_debug", "0", FCVAR_ARCHIVE + FCVAR_REPLICATED, "Armor debug prints (equip, sync, render, damage)", 0, 1) or CreateClientConVar("hg_armor_debug", "0", true, false, "Armor debug prints (equip, sync, render, damage)", 0, 1))
+
+function hg.ArmorDbg(src, msg)
+	if not hg_armor_debug:GetBool() then return end
+	print(tostring(src) .. ": " .. tostring(msg))
+end
+
+function hg.GetPlayerArmor(ply)
+	if not IsValid(ply) then return {} end
+
+	local json = ply:GetNWString("HG_ArmorJSON", "")
+	if json ~= "" then
+		local t = util.JSONToTable(json)
+		if istable(t) then
+			ply.armors = t
+			return t
+		end
+	end
+
+	local armors = ply.GetNetVar and ply:GetNetVar("Armor")
+	if istable(armors) and next(armors) then
+		ply.armors = armors
+		return armors
+	end
+
+	if istable(ply.armors) and next(ply.armors) then return ply.armors end
+
+	return {}
+end
 
 local vecAdjust2 = Vector(5, -6.3, -5)
 local function DrawFirstPersonHelmet(ply, strModel, vecAdjust, fFov, setMat)
@@ -806,15 +835,76 @@ local armorIcons = {
 }
 hg.armorIcons = armorIcons
 
+if SERVER then
+	util.AddNetworkString("hg_armor_sync")
+end
+
+local function applyClientArmor(index, armors)
+	if not index or not armors then return end
+	zb = zb or {}
+	zb.net = zb.net or {}
+	zb.net[index] = zb.net[index] or {}
+	zb.net[index]["Armor"] = armors
+	local ent = Entity(index)
+	if IsValid(ent) then
+		ent.armors = armors
+		local owner = ent:IsRagdoll() and hg.RagdollOwner and hg.RagdollOwner(ent) or ent
+		if IsValid(owner) and owner ~= ent then
+			owner.armors = armors
+		end
+		hook.Run("OnNetVarSet", index, "Armor", armors)
+	end
+end
+
+if CLIENT then
+	net.Receive("hg_armor_sync", function()
+		local index = net.ReadUInt(16)
+		local armors = net.ReadTable()
+		hg.ArmorDbg("sh_armorstuff.lua", "hg_armor_sync: ent=" .. index .. " -> " .. util.TableToJSON(armors, true))
+		applyClientArmor(index, armors)
+	end)
+
+	hook.Add("InitPostEntity", "hg_armor_shouldTransmit", function()
+		local ply = LocalPlayer()
+		if IsValid(ply) then ply.shouldTransmit = true end
+	end)
+end
+
 local entityMeta = FindMetaTable("Entity")
 function entityMeta:SyncArmor()
-	if self.armors then
-		self:SetNetVar("Armor", self.armors)
-		local rag = hg.GetCurrentCharacter(self)
-		if IsValid(rag) and rag:IsRagdoll() then
-			rag:SetNetVar("Armor", self.armors)
-			rag:SetNetVar("HideArmorRender", self:GetNetVar("HideArmorRender", false))
+	self.armors = self.armors or {}
+	local netArmors = table.Copy(self.armors)
+	self:SetNetVar("Armor", netArmors)
+
+	if self:IsPlayer() then
+		self:SetNWString("HG_ArmorJSON", util.TableToJSON(self.armors))
+	end
+
+	if SERVER then
+		net.Start("hg_armor_sync")
+		net.WriteUInt(self:EntIndex(), 16)
+		net.WriteTable(self.armors)
+		net.Broadcast()
+	end
+
+	local synced = self:GetNetVar("Armor")
+	if synced == nil then
+		hg.ArmorDbg("sh_armorstuff.lua", "SyncArmor: SetNetVar Armor не записался у " .. tostring(self) .. " armors=" .. util.TableToJSON(self.armors, true))
+	else
+		hg.ArmorDbg("sh_armorstuff.lua", "SyncArmor: " .. tostring(self) .. " -> " .. util.TableToJSON(self.armors, true))
+	end
+	local rag = hg.GetCurrentCharacter(self)
+	if IsValid(rag) and rag:IsRagdoll() then
+		local ragArmors = table.Copy(self.armors)
+		rag:SetNetVar("Armor", ragArmors)
+		rag:SetNetVar("HideArmorRender", self:GetNetVar("HideArmorRender", false))
+		if SERVER then
+			net.Start("hg_armor_sync")
+			net.WriteUInt(rag:EntIndex(), 16)
+			net.WriteTable(self.armors)
+			net.Broadcast()
 		end
+		hg.ArmorDbg("sh_armorstuff.lua", "SyncArmor: ragdoll " .. tostring(rag) .. " получил те же armors")
 	end
 end
 

@@ -55,6 +55,8 @@ function ENT:TakeByPlayer(activator)
 
 		self:EmitSound("snd_jack_hmcd_disguise.wav", 75, math.random(90,110), 1, CHAN_ITEM)
         self:Remove()
+	else
+		hg.ArmorDbg("armor_base/init.lua", "TakeByPlayer: AddArmor fail — " .. tostring(self.name) .. " у " .. activator:Nick() .. " (can=" .. tostring(can) .. ")")
 	end
 end
 

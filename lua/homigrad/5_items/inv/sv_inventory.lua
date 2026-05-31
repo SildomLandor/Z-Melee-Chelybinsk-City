@@ -361,9 +361,21 @@ local functions = {
         end
     end,
     ["Armor"] = function(ply, ent, placement, armor)
+        if not hg.armor[placement] or not hg.armor[placement][armor] then
+            hg.ArmorDbg("sv_inventory.lua", "Armor transfer: нет данных для [" .. tostring(placement) .. "][" .. tostring(armor) .. "]")
+            return
+        end
         if hg.armor[placement][armor].nodrop then return end
-        if (not ent.armors[placement]) or (ent.armors[placement] ~= armor) or ply.armors[placement] then return end
-        if !hg.AddArmor(ply, armor) then return end
+        ent.armors = ent.armors or {}
+        ply.armors = ply.armors or {}
+        if (not ent.armors[placement]) or (ent.armors[placement] ~= armor) or ply.armors[placement] then
+            hg.ArmorDbg("sv_inventory.lua", "Armor transfer: отказ — ent[" .. tostring(placement) .. "]=" .. tostring(ent.armors[placement]) .. " ply[" .. tostring(placement) .. "]=" .. tostring(ply.armors[placement]))
+            return
+        end
+        if !hg.AddArmor(ply, armor) then
+            hg.ArmorDbg("sv_inventory.lua", "Armor transfer: AddArmor fail — " .. tostring(armor))
+            return
+        end
         ent.armors[placement] = nil
 
         if placement == "face" and ent:GetNetVar("zableval_masku", false) and armor != "nightvision1" then

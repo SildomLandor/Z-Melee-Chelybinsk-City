@@ -96,12 +96,6 @@ end
 			if wep.DrawWorldModel2 then wep:DrawWorldModel2() end
 		end
 
-		local armors = ply:GetNetVar("Armor") or ent.PredictedArmor
-		local hideArmorRender = ply:GetNetVar("HideArmorRender", false) or ent.PredictedHideArmorRender
-		if armors and next(armors) and not hideArmorRender then
-			RenderArmors(ply, armors, ent)
-		end
-
 		if hg.RenderBandages then
 			if ent:IsPlayer() then
 				if not hg.PlyInFake(ply) then

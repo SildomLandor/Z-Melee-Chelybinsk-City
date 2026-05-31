@@ -4,14 +4,12 @@ zb.netSFSKeys = {
     Inventory = true,
     wounds = true,
     arterialwounds = true,
-    Armor = true,
 }
 
 zb.netSFSLim = {
     Inventory = 16384,
     wounds = 8192,
     arterialwounds = 8192,
-    Armor = 4096,
 }
 
 if (CLIENT) then
@@ -181,7 +179,13 @@ else
             net.Start("zbNetVarSetSFS")
             net.WriteUInt(index, 16)
             net.WriteString(key)
-            if not hg.netWriteSFS(var, zb.netSFSLim[key]) then return end
+            if not hg.netWriteSFS(var, zb.netSFSLim[key]) then
+                ErrorNoHalt("sh_networking.lua: SFS fail key=" .. tostring(key) .. ", fallback WriteType\n")
+                net.Start("zbNetVarSet")
+                net.WriteUInt(index, 16)
+                net.WriteString(key)
+                net.WriteType(var)
+            end
         else
             net.Start("zbNetVarSet")
             net.WriteUInt(index, 16)
@@ -308,8 +312,13 @@ else
         value = prepNetVar(self, key, value)
 
         local old = zb.net.list[self][key]
-        if old == value then return end
-        if istable(value) and istable(old) and zb.netSFSKeys[key] and netVarEq(key, old, value) then return end
+        if istable(value) and istable(old) and old == value then
+            if zb.netSFSKeys[key] and netVarEq(key, old, value) then return end
+        elseif old == value then
+            return
+        elseif istable(value) and istable(old) and zb.netSFSKeys[key] and netVarEq(key, old, value) then
+            return
+        end
 
     	zb.net.list[self][key] = value
 		self:SendNetVar(key, receiver)

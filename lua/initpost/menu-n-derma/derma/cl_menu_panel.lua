@@ -2719,6 +2719,7 @@ function PANEL:Paint(w,h)
         end
 
         local bgMat5 = Material("vgui/background5.png")
+        
         if not bgMat5:IsError() then
             surface.SetMaterial( bgMat5 )
             local scale = 1.1

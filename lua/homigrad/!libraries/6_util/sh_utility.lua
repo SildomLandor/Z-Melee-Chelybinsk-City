@@ -909,7 +909,7 @@ local IsValid = IsValid
 		if bit.band(flags, STUDIO_RENDER) != STUDIO_RENDER then return end
 		--if self == lply and !selfdraw then return end
 		--debug.Trace()
-		if !self.shouldTransmit then return end
+		if self.shouldTransmit == false then return end
 
 		ent = IsValid(ent) and ent or self
 		if ent:GetMaterial() == "NULL" then ent:DrawShadow( false ) return end
