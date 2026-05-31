@@ -60,7 +60,7 @@ local sharp_pain = {
 
 hg.sharp_pain = sharp_pain
 
-blood_react_phrases = {
+hg.blood_react_phrases = {
 	"Пахнет... Метталом?",
 	"Такой резкий запах меди и мускуса... странно",
 	"Пахнет... Кровью?",
