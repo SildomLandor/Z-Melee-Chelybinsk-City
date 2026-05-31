@@ -31,6 +31,7 @@ function SWEP:Deploy_End()
 	self.deploy = nil
 	self.handPos = nil
 	self.handAng = nil
+	self.gripFromBone = nil
 	if SERVER and self.SetDeployEnd then
 		self:SetDeployEnd(0)
 	end
@@ -359,40 +360,41 @@ if CLIENT then
 		return pos, ang
 	end
 
-	function SWEP:UpdateDeployHandPos(modelPos, modelAng)
+	function SWEP:UpdateGripHandPos(wm, fallbackPos, fallbackAng)
+		if not IsValid(wm) then return end
+
+		local gripBone = self.GripBone or "ValveBiped.Bip01_R_Hand"
+		local bone = wm:LookupBone(gripBone)
+		local mat = bone and wm:GetBoneMatrix(bone)
+		if mat then
+			self.handPos = mat:GetTranslation()
+			self.handAng = mat:GetAngles()
+			self.gripFromBone = true
+			return
+		end
+
+		self.gripFromBone = nil
+		if not fallbackPos or not fallbackAng then return end
+
 		local offsetPos = self.holsterWorldPos or self.weaponPos or vector_origin
 		local offsetAng = self.holsterWorldAng or self.weaponAng or angle_zero
 		local matrix = Matrix()
 		matrix:SetTranslation(offsetPos)
 		matrix:SetAngles(offsetAng)
 		local inv = matrix:GetInverse()
-		local ang = Angle(modelAng.p, modelAng.y, modelAng.r)
+		local ang = Angle(fallbackAng.p, fallbackAng.y, fallbackAng.r)
 		ang:RotateAroundAxis(ang:Forward(), 180)
-		self.handPos, self.handAng = LocalToWorld(inv:GetTranslation(), inv:GetAngles(), modelPos, ang)
-	end
-
-	function SWEP:ClearDeployHandPos()
-		self.handPos = nil
-		self.handAng = nil
+		self.handPos, self.handAng = LocalToWorld(inv:GetTranslation(), inv:GetAngles(), fallbackPos, ang)
 	end
 
 	function SWEP:ApplyDeployDrawLerp(ent, owner, endPos, endAng)
 		local lerp = self:GetDeployDrawLerp()
-		if not lerp then
-			self:ClearDeployHandPos()
-			return endPos, endAng
-		end
+		if not lerp then return endPos, endAng end
 
 		local holPos, holAng = self:GetHolsterWorldTransform(ent, owner)
-		if not holPos then
-			self:ClearDeployHandPos()
-			return endPos, endAng
-		end
+		if not holPos then return endPos, endAng end
 
-		local pos = LerpVector(lerp, holPos, endPos)
-		local ang = LerpAngle(lerp, holAng, endAng)
-		self:UpdateDeployHandPos(pos, ang)
-		return pos, ang
+		return LerpVector(lerp, holPos, endPos), LerpAngle(lerp, holAng, endAng)
 	end
 
 	function SWEP:DrawWorldModelHolstered()
@@ -625,6 +627,20 @@ if CLIENT then
             self.worldModel2:SetupBones()
             self.worldModel2:DrawModel()
         end
+
+		if IsValid(owner) and IsValid(ent) and inuse then
+			local fbPos, fbAng
+			if self.WorldModelExchange and IsValid(self.worldModel2) then
+				fbPos, fbAng = self.worldModel2:GetPos(), self.worldModel2:GetAngles()
+			else
+				fbPos, fbAng = WorldModel:GetPos(), WorldModel:GetAngles()
+			end
+			self:UpdateGripHandPos(WorldModel, fbPos, fbAng)
+		elseif IsValid(owner) then
+			self.handPos = nil
+			self.handAng = nil
+			self.gripFromBone = nil
+		end
 		
 		if(self.DrawPostWorldModel)then
 			self:DrawPostWorldModel()
@@ -918,6 +934,30 @@ function SWEP:Camera(eyePos, eyeAng, view, vellen)
 end
 
 local ang180, ang1 = Angle(0,180,0), Angle(-135,-90,0)
+
+function SWEP:ApplyGripHandRH(ent, owner)
+	if not CLIENT or not self.handPos or not self.handAng then return end
+	local rh = ent:LookupBone("ValveBiped.Bip01_R_Hand")
+	local rhmat = rh and ent:GetBoneMatrix(rh)
+	if not rhmat then return end
+
+	local vec1, ang1 = Vector(self.handPos), Angle(self.handAng)
+	if not self.gripFromBone then
+		vec1:Add(ang1:Up() * -1)
+	end
+
+	local rhOff = self.DeployRHPos or self.RHPos
+	local rhAngOff = self.DeployRHAng or self.RHAng or angle_zero
+	if rhOff and rhOff:LengthSqr() > 0 then
+		vec1, ang1 = LocalToWorld(rhOff, rhAngOff, vec1, ang1)
+	end
+
+	rhmat:SetTranslation(vec1)
+	rhmat:SetAngles(ang1)
+	hg.bone_apply_matrix(ent, rh, rhmat)
+	hg.set_holdrh(ent, self.DeployHoldRH or "ak_hold")
+end
+
 function SWEP:SetHandPos(noset)
 	local ply = self:GetOwner()
 	local owner = self:GetOwner()
@@ -945,27 +985,14 @@ function SWEP:SetHandPos(noset)
 	local wm = self:GetWM()
 	if !IsValid(wm) then return end
 
-	local deployLerp = self.GetDeployDrawLerp and self:GetDeployDrawLerp()
-	if deployLerp and self.handPos and self.handAng and owner.holdingWeapon ~= self then
-		self.rhandik = self.setrh and IsValid(owner)
-		local rh = ent:LookupBone("ValveBiped.Bip01_R_Hand")
-		local rhmat = rh and ent:GetBoneMatrix(rh)
-		if rhmat then
-			local vec1, ang1 = Vector(self.handPos), Angle(self.handAng)
-			vec1:Add(ang1:Up() * -1)
-			local rhOff = self.DeployRHPos or self.RHPos or vector_origin
-			local rhAngOff = self.DeployRHAng or self.RHAng or angle_zero
-			vec1, ang1 = LocalToWorld(rhOff, rhAngOff, vec1, ang1)
-			rhmat:SetTranslation(vec1)
-			rhmat:SetAngles(ang1)
-			hg.bone_apply_matrix(ent, rh, rhmat)
-			hg.set_holdrh(ent, self.DeployHoldRH or "ak_hold")
-		end
-		return
-	end
+	local useGripRH = self.setrh and self.handPos and self.handAng and owner.holdingWeapon ~= self and self:InUse()
 
 	self.rhandik = self.setrh and IsValid(owner)
 	self.lhandik = self.setlh and IsValid(owner) and (ply:GetTable().ChatGestureWeight < 0.1) and hg.CanUseLeftHand(ply) and !(owner.suiciding and self.SuicideNoLH)
+
+	if useGripRH then
+		self:ApplyGripHandRH(ent, owner)
+	end
 
     local rhmat, lhmat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_R_Hand")), ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_L_Hand"))
 
@@ -1020,7 +1047,7 @@ function SWEP:SetHandPos(noset)
 
 	local bones = hg.TPIKBonesRH
 
-	if self.rhandik and self:InUse() then
+	if self.rhandik and self:InUse() and not useGripRH then
 		for _, bone in ipairs(bones) do
 			local wm_boneindex = wm:LookupBone(bone)
 			if !wm_boneindex then continue end
