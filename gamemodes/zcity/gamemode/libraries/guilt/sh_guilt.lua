@@ -1,3 +1,3 @@
 zb = zb or {}
-zb.MaximumHarm = 10
+zb.MaximumHarm = 100
 zb.MaxKarma = 120
