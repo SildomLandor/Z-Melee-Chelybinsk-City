@@ -147,36 +147,7 @@ function zb:EndRoundThink()
 		end
 
 		if zb.END_TIME < CurTime() then
-			zb.ROUND_STATE = 0
-			zb.SHOULD_FADE = true
-			zb.END_TIME = nil
-
-			hook.Run("ZB_PreRoundStart")
-			hook.Run("TTTPrepareRound") -- stormfox2 random_round_weather
-
-			zb.CROUND = zb.nextround or "hmcd"
-			if CurrentRound().shouldfreeze then zb:Freeze() end
-
-			local mode = CurrentRound()
-			net.Start("RoundInfo")
-				net.WriteString(mode.name or "hmcd")
-				net.WriteInt(zb.ROUND_STATE, 4)
-			net.Broadcast()
-
-			hg.UpdateRoundTime(mode.ROUND_TIME, CurTime(), CurTime() + (mode.start_time or 5))
-
-			self:KillPlayers()
-			self:AutoBalance()
-			mode.saved = {}
-
-			timer.Simple(0, function()
-				if not mode then return end
-				mode:Intermission()
-				timer.Simple(0, function()
-					if not mode then return end
-					mode:GiveEquipment()
-				end)
-			end)
+			self:PrepareNextRound()
 		end
 	end
 end
@@ -204,21 +175,52 @@ end
 
 hook.Add("Think", "zb-think", function() zb:Think(CurTime()) end)
 
+function zb:PrepareNextRound()
+	zb.ROUND_STATE = 0
+	zb.SHOULD_FADE = true
+	zb.END_TIME = nil
+
+	hook.Run("ZB_PreRoundStart")
+	hook.Run("TTTPrepareRound") -- stormfox2 random_round_weather
+
+	zb.CROUND = zb.nextround or "hmcd"
+
+	local mode = CurrentRound()
+	if mode.shouldfreeze then zb:Freeze() end
+
+	net.Start("RoundInfo")
+		net.WriteString(mode.name or "hmcd")
+		net.WriteInt(zb.ROUND_STATE, 4)
+	net.Broadcast()
+
+	hg.UpdateRoundTime(mode.ROUND_TIME, CurTime(), CurTime() + (mode.start_time or 5))
+
+	self:KillPlayers()
+	self:AutoBalance()
+	mode.saved = {}
+
+	timer.Simple(0, function()
+		if CurrentRound() ~= mode then return end
+		mode:Intermission()
+		mode:GiveEquipment()
+	end)
+end
+
 function zb:KillPlayers()
 	local mode = CurrentRound()
 	for i, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
 
-		ply:GiveExp(math.random(4,15))
+		ply:GiveExp(math.random(4, 15))
+
+		if ply.organism then ply.organism.godmode = nil end
 
 		if ply:Alive() and mode.DontKillPlayer and mode:DontKillPlayer(ply) then
 			hg.organism.Clear(ply.organism)
-			hg.FakeUp(ply, true, true)
+			if IsValid(ply.FakeRagdoll) then hg.FakeUp(ply, true, true) end
 			continue
 		end
 
-		if IsValid(ply.FakeRagdoll) then hg.FakeUp(ply, true, true) end
-		if ply.organism then hg.organism.Clear(ply.organism) end
 		if ply:FlashlightIsOn() then ply:Flashlight(false) end
 
 		ply:KillSilent()
