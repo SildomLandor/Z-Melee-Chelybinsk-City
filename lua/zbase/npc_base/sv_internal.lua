@@ -147,7 +147,7 @@ function NPC:EngineNPC_StartLuaThink()
                 self:Patch_Think()
             end
 
-            self.EngineNPC_NextLUAThink = CurTime()+0.1
+            self.EngineNPC_NextLUAThink = CurTime() + (self.IsZombieModeNPC and 0.25 or 0.1)
         end
     end, 
     "EngineNPC_LUAThink")
@@ -564,6 +564,7 @@ function NPC:ZBaseThink()
 end
 
 function NPC:FrameTick()
+    if self.IsZombieModeNPC then return end
     if ai_disabled:GetBool() then return end
 
     local ene = self:GetEnemy()

@@ -58,6 +58,8 @@ SWEP.BreakBoneMul = 0.5
 SWEP.ImmobilizationMul = 0.45
 SWEP.StaminaMul = 0.5
 SWEP.HadBackBonus = true
+SWEP.shouldntDrawHolstered = true
+SWEP.Concealed = true
 
 SWEP.BlockTier = 2
 SWEP.MeleeMaterial = "metal"

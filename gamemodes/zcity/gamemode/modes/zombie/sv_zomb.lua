@@ -287,6 +287,7 @@ function MODE:SpawnZombie(class, health)
 	local npc = ents.Create(class)
 	if not IsValid(npc) then return end
 
+	npc.IsZombieModeNPC = true
 	npc:SetPos(pos)
 	npc:SetKeyValue("spawnflags", "256")
 	npc:SetKeyValue("incominghate", "1")
@@ -299,7 +300,10 @@ function MODE:SpawnZombie(class, health)
 		npc:SetMaxHealth(health)
 	end
 
-	npc.IsZombieModeNPC = true
+	if npc.organism then
+		hg.organism.Remove(npc)
+		npc.organism = nil
+	end
 	self.Zombies[npc:EntIndex()] = npc
 	self.ZombieCount = (self.ZombieCount or 0) + 1
 

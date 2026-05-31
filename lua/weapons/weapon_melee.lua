@@ -59,7 +59,7 @@ SWEP.ismelee = true
 SWEP.ismelee2 = true
 SWEP.weaponInvCategory = 3
 
-SWEP.shouldntDrawHolstered = true
+SWEP.shouldntDrawHolstered = false
 SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
 SWEP.holsteredPos = Vector(10, -4, 3)
 SWEP.holsteredAng = Angle(-10, 0, 0)

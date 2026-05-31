@@ -101,6 +101,7 @@ hook.Add("Think", "homigrad-organism", function()
 			continue
 		end
 		if org.godmode then continue end
+		if owner.IsZombieModeNPC then continue end
 		if not hg.organism.CorpseNeedsThink(owner, org) then continue end
 		hook_Run("Org Think", owner, org, mulTime)
 	end

@@ -860,7 +860,7 @@ function hg.RenderWeapons(ent, owner)
 			if wep2 == wep then continue end
 			if wep2.ishgweapon then
 				DrawWorldModel(wep2)
-			elseif wep2.ismelee2 and wep2.DrawWorldModel2 and not wep2.shouldntDrawHolstered then
+			elseif wep2.ismelee2 and wep2.DrawWorldModel2 and not wep2.shouldntDrawHolstered and not wep2.Concealed then
 				wep2:DrawWorldModel2()
 			end
 		end

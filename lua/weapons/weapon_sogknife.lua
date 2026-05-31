@@ -171,6 +171,8 @@ SWEP.BreakBoneMul = 0.5
 SWEP.ImmobilizationMul = 0.45
 SWEP.StaminaMul = 0.5
 SWEP.HadBackBonus = true
+SWEP.shouldntDrawHolstered = true
+SWEP.Concealed = true
 
 SWEP.attack_ang = Angle(0,0,0)
 function SWEP:Initialize()

@@ -80,6 +80,7 @@ local math_random, math_Rand = math.random, math.Rand
 
 	local function npcWantsOrganism(ent)
 		if not ent:IsNPC() then return false end
+		if ent.IsZombieModeNPC then return false end
 		if organismNPCs[ent:GetClass()] then return true end
 		if ent.IsZBaseNPC or ent:GetNWBool("IsZBaseNPC", false) then return true end
 		return false
