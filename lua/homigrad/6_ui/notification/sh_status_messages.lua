@@ -70,6 +70,13 @@ hg.blood_react_phrases = {
 	"Воздух резко стал тяжелым... Это запах меттала?",
 }
 
+hg.blood_slash_phrases = {
+	"Ему наверное больно...",
+	"ему же больно...",
+	"Боже, сколько крови...",
+	"Почему он ещё держится...",
+}
+
 local random_phrase = {
 	"Что-то не так... Но что?",
 	"Слишком тихо вокруг... Меня это напрягает",
@@ -513,6 +520,13 @@ end
 
 function hg.get_blood_react_message()
 	local phrases = hg.blood_react_phrases
+	if not phrases or #phrases < 1 then return "" end
+
+	return phrases[math.random(#phrases)]
+end
+
+function hg.get_blood_slash_message()
+	local phrases = hg.blood_slash_phrases
 	if not phrases or #phrases < 1 then return "" end
 
 	return phrases[math.random(#phrases)]

@@ -377,55 +377,10 @@ hook.Add("Player Think", "karmagain", function(ply)
     zb.KarmaSync(ply, true)
 end)
 
-hook.Add("Org Clear","removekarmashaking",function(org)
-    org.start_shaking = nil
-end)
-
-hook.Add("Should Fake Up", "karma", function(ply)
-    if ply.organism and ply.organism.start_shaking then return false end
-end)
-
-local seizuremsgs = {
-    "бллллхлхмммббммммбмбмб",
-    "ббб б-бббббб бллмбмммб",
-    "ддгдгг-д бббглгггг",
-    "ммммаммммм аагхбгбблллллб",
-    "ххел-бббпхпппппх",
-    "зззззблзззззззззз",
-}
-
-hook.Add("Org Think", "Its_Karma_Bro",function(owner, org, timeValue)
-    if not owner or not owner:IsPlayer() or org.otrub or not org.isPly then return end
-    if not owner:IsPlayer() or not owner:Alive() then return end
-
-    local ply = owner
-
-    if (ply.Karma or 100) < 50 then
-        if (math.random(math.Clamp(ply.Karma or 100),20,zb.MaxKarma * 300) == 1 or org.start_shaking) then
-            hg.StunPlayer(ply)
-            local time = 15
-
-            ply:Notify(seizuremsgs[math.random(#seizuremsgs)], 16, "seizure", 1, function()
-                if !IsValid(ply) then return end
-            end)
-
-            org.start_shaking = org.start_shaking or (CurTime() + time)
-            local ent = hg.GetCurrentCharacter(owner)
-            local mul = (org.start_shaking - CurTime()) / time
-
-            if mul > 0 then
-                ent:GetPhysicsObjectNum(math.random(ent:GetPhysicsObjectCount()) - 1):ApplyForceCenter(VectorRand(-750 * mul,750 * mul))
-            else
-                org.start_shaking = nil
-            end
-        else
-            org.start_shaking = nil
-        end
-    end
-
-    if (ply.Karma or 100) < 35 and math.random(2000) == 1 then
-        hg.organism.Vomit(owner)
-    end
+hook.Add("Org Think", "Its_Karma_Bro", function(owner, org)
+    if not owner:IsPlayer() or not owner:Alive() or org.otrub or not org.isPly then return end
+    if (owner.Karma or 100) >= 35 or math.random(2000) ~= 1 then return end
+    hg.organism.Vomit(owner)
 end)
 
 hook.Add("ZB_EndRound","savevalues",function()
