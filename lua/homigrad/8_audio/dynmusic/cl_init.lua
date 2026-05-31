@@ -10,6 +10,26 @@
 hg = hg or {}
 hg.DynaMusic = hg.DynaMusic or {}
 local DMusic = hg.DynaMusic
+-- Загрузка пользовательских паков музыки
+local customPacks = file.Read("meleecity_custom_music_packs.txt", "DATA")
+if customPacks then
+    local data = util.JSONToTable(customPacks)
+    if data then
+        for packName, info in pairs(data) do
+            if not DMusic.Pack[packName] then
+                local musicTbl = DMusic.MusicMeta:CreateTbl()
+                for _, f in ipairs(info.amb or {}) do
+                    DMusic.MusicMeta:AddMusic(musicTbl, 0, packName .. "/" .. f, 0.25)
+                end
+                for _, f in ipairs(info.comb or {}) do
+                    DMusic.MusicMeta:AddMusic(musicTbl, 1, packName .. "/" .. f, 1, 3)
+                end
+                DMusic:AddPack(packName)
+                DMusic:AddSequence(packName, "01", musicTbl)
+            end
+        end
+    end
+end
 
 DMusic.MusicMeta = DMusic.MusicMeta or {}
 local musMeta = DMusic.MusicMeta
@@ -61,6 +81,8 @@ concommand.Add("hg_dmusic_skip",function()
         song[3] = false
     end
 end)
+local ambientMul = GetConVar("hg_dmusic_ambientvol"):GetFloat()
+local combatMul = GetConVar("hg_dmusic_combatvol"):GetFloat()
 local MusicVolume = GetConVar("snd_musicvolume")
 hook.Add( "Think", "DMusic.Think", function()
     if not DMusic.Tracks then return end 
@@ -70,20 +92,18 @@ hook.Add( "Think", "DMusic.Think", function()
     local Keys = table.GetKeys(DMusic.Tracks)
     local PlyAdr = (ply.organism and ply.organism.adrenalineAdd) or 0
     local musicVolume = MusicVolume:GetFloat()
-    --print(PlyAdr/15)
-    --print(math.max(PlyAdr*100,10))
+
+    -- Безопасно получаем громкости (если ConVar ещё нет, используем 1)
+    local cvAmb = GetConVar("hg_dmusic_ambientvol")
+    local ambientMul = cvAmb and cvAmb:GetFloat() or 1
+    local cvCom = GetConVar("hg_dmusic_combatvol")
+    local combatMul = cvCom and cvCom:GetFloat() or 1
+
     DMusic.threaded = math.min(DMusic.threaded + FrameTime() * 100 * (PlyAdr / (math.max((PlyAdr*25)-.2,20))),4)
-    --print(math.Round(threaded,0.1))
 
     for adr,song in pairs(DMusic.Tracks) do
         if not ply.organism then song[1]:Pause() return end
-        --print(PlyAdr)
-        --print(adr,Keys[i])
-        --print(song[1],PlyAdr <= Keys[i] and PlyAdr >= adr)
-        --print(song[1],PlyAdr <= (Keys[i+1] or math.huge) and PlyAdr >= adr)
-        --print(math.Round(threaded,1))
-        --print(adr)
-        --print(threaded, ( Keys[i+1] or 5 ),threaded < ( Keys[i+1] or 5 ))
+
         if DMusic.threaded < ( Keys[i+1] or 5 ) and
             DMusic.threaded >= adr and 
             ply:Alive() and not 
@@ -92,36 +112,28 @@ hook.Add( "Think", "DMusic.Think", function()
             (song[3]) 
         then
             if song[1]:GetTime() > song[1]:GetLength() - 1 then
-                --song[3] = song[3] + 1
                 if ( song[3] and song[3] >= song[4] ) then
                     song[3] = false
                 else
                     song[3] = song[3] + 1
                 end
                 song[1]:SetTime(1)
-                --song[1]:Play()
             end
-            if song[1]:GetState() != GMOD_CHANNEL_PLAYING then
-                --song[1]:SetTime(0)
+            if song[1]:GetState() ~= GMOD_CHANNEL_PLAYING then
                 song[1]:Play()
             end
-            song[1]:SetVolume( math.min( song[1]:GetVolume() + math.max(DMusic.threaded/1000,0.001), (song[2] or 1) * musicVolume ) )
+            song[1]:SetVolume( math.min( song[1]:GetVolume() + math.max(DMusic.threaded/1000,0.001), (song[2] or 1) * musicVolume * (adr < 0.5 and ambientMul or combatMul) ) )
         else
-            if song[1]:GetState() != GMOD_CHANNEL_PAUSED and song[1]:GetVolume() <= 0.01 then
+            if song[1]:GetState() ~= GMOD_CHANNEL_PAUSED and song[1]:GetVolume() <= 0.01 then
                 song[1]:Pause()
                 if ( not song[3] ) then
                     DMusic:Start( DMusic.CurrentPack )
                 end
-                --song[1]:SetTime(0)
             else
-                --print(song[1],song[1]:GetVolume())
-                song[1]:SetVolume( math.min( song[1]:GetVolume() - ( math.max(DMusic.threaded/1000,0.001) ), (song[2] or 1) * musicVolume) )
+                song[1]:SetVolume( math.min( song[1]:GetVolume() - ( math.max(DMusic.threaded/1000,0.001) ), (song[2] or 1) * musicVolume * (adr < 0.5 and ambientMul or combatMul) ) )
             end
         end
         i = i + 1
     end 
-    --if PlyAdr < 0.01 then
     DMusic.threaded = math.max(DMusic.threaded - FrameTime()*0.2,0)
-    --end
-    --print(threaded)
 end)

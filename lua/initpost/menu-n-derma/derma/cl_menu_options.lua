@@ -39,20 +39,21 @@ hg.settings:AddOpt("Кровь","hg_blood_fps", "FPS крови")
 --hg.settings:AddOpt("Интерфейс","hg_font", "Сменить шрифт", false, true)
 
 hg.settings:AddOpt("Оружие","hg_weaponshotblur_enable", "Размытие при стрельбе")
+hg.settings:AddOpt("Оружие","hg_weaponshotblur_mul", "Размытие при стрельбе")
 hg.settings:AddOpt("Оружие","hg_dynamic_mags", "Динамический осмотр магазина")
 
 hg.settings:AddOpt("Вид","hg_firstperson_death", "Смерть от первого лица")
 hg.settings:AddOpt("Вид","hg_fov", "Угол обзора")
-hg.settings:AddOpt("Вид","hg_coolgloves", "Крутые перчатки")
+--hg.settings:AddOpt("Вид","hg_coolgloves", "Крутые перчатки")
 hg.settings:AddOpt("Вид","hg_newspectate", "Плавная камера наблюдателя")
-hg.settings:AddOpt("Вид","hg_change_gloves", "Модель перчаток")
+--hg.settings:AddOpt("Вид","hg_change_gloves", "Модель перчаток")
 hg.settings:AddOpt("Вид","hg_cshs_fake", "Камера тряпичной куклы C'sHS")
-hg.settings:AddOpt("Вид","hg_gun_cam", "Камера оружия (ТОЛЬКО АДМИНАМ)")
+--hg.settings:AddOpt("Вид","hg_gun_cam", "Камера оружия (ТОЛЬКО АДМИНАМ)")
 hg.settings:AddOpt("Вид","hg_nofovzoom", "Отключить/Включить зум FOV")
 
 --hg.settings:AddOpt("Звук","volume", "Общая громкость", true)
 --hg.settings:AddOpt("Звук","snd_musicvolume", "Громкость музыки", true)
-hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
+--hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
 
 hg.settings:AddOpt("Звук","hg_quietshots", "Вкл/Выкл тихие звуки выстрелов (ДЛЯ СЛАБАКОВ)")
 
