@@ -161,35 +161,6 @@ function CreateFontFamily(base, fonts)
     end
 end
 
-surface.CreateFont("ZCity_Veteran", {
-    font = typeface,
-    size = sz(ScreenScaleH(15)),
-    weight = 500,
-    extended = true,
-    antialias = true,
-})
-surface.CreateFont("ZCity_Veteran_small", {
-    font = typeface,
-    size = sz(ScreenScale(10)),
-    weight = 500,
-    extended = true,
-    antialias = true,
-})
-    surface.CreateFont("ZCity_Veteran_hmcdobj", {
-    font = typeface,
-    size = sz(ScreenScale(14)),
-    weight = 500,
-    extended = true,
-    antialias = true,
-})
-surface.CreateFont("ZCity_Veteran_big", {
-    font = typeface,
-    size = sz(ScreenScale(20)),
-    weight = 500,
-    extended = true,
-    antialias = true,
-}) -- ебал я вас и вашу честь
-
 Run()
 
 if SERVER then
