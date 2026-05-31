@@ -173,6 +173,7 @@ if CLIENT then
 
 		cooldown = CurTime()
 		if not IsValid(ent) then return end
+		ent.foundloot = ent.foundloot or {}
 
 		local ply = LocalPlayer()
 		local inv = ent:GetNetVar("Inventory")
@@ -378,11 +379,14 @@ if CLIENT then
 				button:SetSize(0, 0)
 				button.Created = CurTime() + (IsValid(ent.FakeRagdoll) and not ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
+					if not IsValid(ent) then return end
+
 					if self.Created and self.Created < CurTime() then
 						self:SetSize(boxW, boxH)
 						self:SetAlpha(0)
 						surface.PlaySound("arc9_eft_shared/generic_mag_pouch_in" .. math.random(7) .. ".ogg")
 						self:AlphaTo(255, 0.3, 0)
+						ent.foundloot = ent.foundloot or {}
 						ent.foundloot[i] = true
 						self.Created = nil
 					end

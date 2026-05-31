@@ -15,20 +15,10 @@ mat_huy:SetTexture("$basetexture",texture)
 
 local cloudmat = Material("effects/smoke_b")
 
---оставь это лучше выглядит
---[[for i = 4, 6 do
-	mats[i-3] = Material("homigrad/decals/bld" .. i)
-end]]
-local countmats = #mats
 hg.bloodparticles1 = hg.bloodparticles1 or {}
 hg.bloodparticles2 = hg.bloodparticles2 or {}
 local vecZero = Vector(0, 0, 0)
-local lastplaced = SysTime()
-local hg_blood_fps = ConVarExists("hg_blood_fps") and GetConVar("hg_blood_fps") or CreateClientConVar("hg_blood_fps", 24, true, nil, "fps to draw blood", 12, 165)
 local function addBloodPart(pos, vel, mat, w, h, artery, kishki, owner)
-	--local fps = 1 / hg_blood_fps:GetInt() * 1
-	--if lastplaced + fps > SysTime() then return end
-	--lastplaced = SysTime()
 	if LocalPlayer():GetNetVar("disappearance", nil) or (IsValid(owner) and owner:GetNetVar("disappearance", nil)) then return end
 
 	pos = pos + vecZero
@@ -54,9 +44,6 @@ local function addBloodPart2(pos, vel, mat, w, h, time, water, owner)
 	pos2:Set(pos)
 	
 	if #hg.bloodparticles2 > 200 then table.remove(hg.bloodparticles2, 1) end
-	--if water and math.random(2) == 1 then return end
-	--if water and math.random(3) > 1 then return end
-
 	hg.bloodparticles2[#hg.bloodparticles2 + 1] = {pos, pos2, vel, mat or cloudmat, w or 60, h or 60, CurTime() + time, time, water = water, owner = owner}
 end
 
@@ -191,14 +178,6 @@ net.Receive("bloodsquirt", function()
 	end)
 	timer.Adjust(name, 0)
 end)
-
---net.Receive("blood particle explode", function() explode(net.ReadVector()) end)
-
---[[concommand.Add("testpart", function()
-	if not LocalPlayer():IsAdmin() then return end
-	local pos = Vector(0, 0, 0)
-	addBloodPart(pos, Vector(25, 0, 0), mat_huy, math.random(10, 15), math.random(10, 15))
-end)]]
 
 net.Receive("bloodsquirt2", function()
 	local rag, boneName, mat, pos, dir = hg.orgSquirtRead()

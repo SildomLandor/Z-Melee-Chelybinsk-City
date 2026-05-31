@@ -159,6 +159,13 @@ surface.CreateFont("ZCity_Veteran_small", {
     extended = true,
     antialias = true,
 })
+surface.CreateFont("ZCity_Veteran_smallvery", {
+    font = zcfont,
+    size = ScreenScale(9),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
 surface.CreateFont("ZCity_Veteran_hmcdobj", {
     font = zcfont,
     size = ScreenScale(14),

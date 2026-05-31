@@ -1133,7 +1133,7 @@ function GM:ScoreboardShow()
 				end
 				local align = c.align or TEXT_ALIGN_LEFT
 				local tx = align == TEXT_ALIGN_CENTER and bw * 0.5 or (align == TEXT_ALIGN_RIGHT and bw - 6 or 6)
-				draw.SimpleText(c.label .. arrow, "ZB_ScoreboardHeader", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
+				draw.SimpleText(c.label .. arrow, "ZCity_Veteran_smallvery", tx, bh * 0.5, col.headerText, align, TEXT_ALIGN_CENTER)
 				if capturedIdx > 1 then
 					surface.SetDrawColor(col.separator)
 					surface.DrawRect(0, 3, 1, bh - 6)
