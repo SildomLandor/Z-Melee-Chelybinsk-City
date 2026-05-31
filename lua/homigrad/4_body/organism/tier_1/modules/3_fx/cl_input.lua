@@ -88,6 +88,8 @@ net.Receive("hg_bloodimpact", function()
 	local pos, vel, mul, amt = hg.orgBloodRead()
 	if not pos then return end
 	vel = vel * 500
+	local len = vel:Length()
+	if len > 45 then vel:Mul(45 / len) end
 	amt = math.Clamp(amt or 0, 0, 32)
 	for i = 1, amt do impact(pos, vel, mul) end
 end)

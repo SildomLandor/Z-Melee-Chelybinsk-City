@@ -832,12 +832,14 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	if inputHole and #inputHole > 0 and dmgInfo:IsDamageType(DMG_BULLET+DMG_BUCKSHOT) then
 		ent.bloodamt2 = ent.bloodamt2 or 0
 		ent.bloodamt2 = ent.bloodamt2 + 1
+		local sprayDir = dmgInfo:GetDamageForce()
+		sprayDir:Normalize()
 
 		timer.Simple(0, function()
 			timer.Create("Blood_burst_input"..ent:EntIndex(), 0.02, 1, function()
 				if not IsValid(ent) then return end
 				net.Start("hg_bloodimpact")
-				hg.orgBloodSend(inputHole[1], dir / 2, dmg, ent.bloodamt2)
+				hg.orgBloodSend(inputHole[1], sprayDir / 15, dmg / 10, ent.bloodamt2)
 				net.Broadcast()
 				ent.bloodamt2 = 0
 			end)
@@ -1155,25 +1157,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		end
 	end
 
-	-- EFFECT
-	if dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
-		if dmgBlood > 1 and #inputHole > 0 then
-			net.Start("hg_bloodimpact")
-			hg.orgBloodSend(dmgPos, dirCool / 15, dmg / 10, 1)
-			net.Broadcast()
-
-			--[[if (hitgroup ~= HITGROUP_HEAD) then
-				if dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
-					local effdata = EffectData()
-					effdata:SetOrigin( dmgPos )
-					effdata:SetRadius(0)
-					effdata:SetMagnitude(0)
-					effdata:SetScale(0)
-					util.Effect("BloodImpact",effdata)
-				end
-			end	]]
-		end
-	end
+	-- EFFECT — hg_bloodimpact уже шлётся выше (Blood_burst_input)
 	
 	--[[if ply and !ply:GetNetVar("headcrab") and (ply.PlayerClassName != "Gordon" or ply.armors.head != "gordon_helmet") and ply.PlayerClassName ~= "headcrabzombie" then
 		local class = dmgInfo:GetAttacker():GetClass()
