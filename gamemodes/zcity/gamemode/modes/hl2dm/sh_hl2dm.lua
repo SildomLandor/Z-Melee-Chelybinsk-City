@@ -4,6 +4,7 @@ MODE.EndMenuTitle = "HL2"
 
 MODE.FadeScreenTime = 1.5
 MODE.DefaultRoundStartTime = 6
+MODE.start_time = MODE.DefaultRoundStartTime
 
 zb = zb or {}
 

@@ -6,6 +6,7 @@ MODE.Chance = 0.05
 MODE.LootSpawn = false
 
 MODE.ForBigMaps = true
+MODE.OverrideSpawn = true
 
 local ACD_NextAirstrikeTime = 0
 local ACD_MaxStrikes = 2
@@ -54,23 +55,27 @@ function MODE:ShouldRoundEnd()
 	return endround
 end
 
+local function hl2dmTryEquip(mode)
+    if CurrentRound() ~= mode then return end
+    for _, ply in player.Iterator() do
+        mode:EquipPlayer(ply)
+    end
+end
+
+local function hl2dmScheduleEquip(mode, delays)
+    for _, t in ipairs(delays) do
+        timer.Simple(t, function() hl2dmTryEquip(mode) end)
+    end
+end
+
 function MODE:RoundStart()
-    local mode = self
+    self._hl2dm_equip_stamp = CurTime()
 
     for _, ply in player.Iterator() do
         ply.zb_hl2dm_equip = nil
     end
 
-    local function tryAll()
-        if CurrentRound() ~= mode then return end
-        for _, ply in player.Iterator() do
-            mode:EquipPlayer(ply)
-        end
-    end
-
-    timer.Simple(0, tryAll)
-    timer.Simple(0.15, tryAll)
-    timer.Simple(0.35, tryAll)
+    hl2dmScheduleEquip(self, {0, 0.15, 0.35, 1})
 end
 
 function MODE:GetPlySpawn(ply)
@@ -160,11 +165,17 @@ function MODE:EquipPlayer(ply)
     if not IsValid(ply) or not ply:Alive() or ply:Team() == TEAM_SPECTATOR then return false end
     if CurrentRound() ~= self then return false end
 
+    if IsValid(ply.FakeRagdoll) then
+        hg.FakeUp(ply, true, true)
+    end
+
     ply.subClass = ply.zb_hl2dm_subClass
     ply.leader = ply.zb_hl2dm_leader
 
-    local tag = zb.ROUND_BEGIN or 0
-    if ply.zb_hl2dm_equip == tag and ply.PlayerClassName == (ply:Team() == 1 and "Combine" or "Rebel") then return true end
+    local wantClass = ply:Team() == 1 and "Combine" or "Rebel"
+    local tag = self._hl2dm_equip_stamp or zb.ROUND_BEGIN or 0
+
+    if ply.zb_hl2dm_equip == tag and ply.PlayerClassName == wantClass then return true end
 
     ply:SetSuppressPickupNotices(true)
     ply.noSound = true
@@ -174,7 +185,7 @@ function MODE:EquipPlayer(ply)
     inv.Weapons["hg_sling"] = true
     ply:SetNetVar("Inventory", inv)
 
-    ply:SetPlayerClass(ply:Team() == 1 and "Combine" or "Rebel")
+    ply:SetPlayerClass(wantClass)
     ply.zb_hl2dm_equip = tag
 
     timer.Simple(0.1, function()
@@ -187,6 +198,7 @@ function MODE:EquipPlayer(ply)
 end
 
 function MODE:GiveEquipment()
+    local mode = self
     local players = zb:CheckPlaying()
 
     for _, ply in ipairs(players) do
@@ -194,16 +206,23 @@ function MODE:GiveEquipment()
     end
 
     assignHl2dmRoles(players)
+    hl2dmScheduleEquip(mode, {0, 0.15, 0.35})
 end
+
+hook.Add("ZB_StartRound", "ZB_HL2DM_Equip", function()
+    local mode = CurrentRound()
+    if not mode or mode.name ~= "hl2dm" then return end
+    hl2dmScheduleEquip(mode, {0, 0.25})
+end)
 
 hook.Add("PlayerSpawn", "ZB_HL2DM_Loadout", function(ply)
     local mode = CurrentRound()
     if not mode or mode.name ~= "hl2dm" or zb.ROUND_STATE ~= 1 then return end
 
-    timer.Simple(0, function()
-        if not IsValid(ply) then return end
+    timer.Simple(0.1, function()
+        if not IsValid(ply) or not ply:Alive() then return end
         local m = CurrentRound()
-        if m and m.EquipPlayer then m:EquipPlayer(ply) end
+        if m and m.name == "hl2dm" and m.EquipPlayer then m:EquipPlayer(ply) end
     end)
 end)
 
