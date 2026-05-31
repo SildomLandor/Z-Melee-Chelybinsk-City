@@ -12,7 +12,16 @@ include("loader.lua")
 local function UpdateServerHostname()
 	local version = tostring(hg and hg.Version or "")
 	local hostname = "CHELYABINSK | RU | " .. version
-	local port = GetConVar("hostport"):GetInt()
+
+	local port = 0
+	local ip = game.GetIPAddress()
+	if ip and ip ~= "loopback" then
+		port = tonumber(ip:match(":(%d+)$")) or 0
+	end
+	if port == 0 then
+		local cv = GetConVar("hostport")
+		if cv then port = cv:GetInt() end
+	end
 
 	if port == 27735 then
 		hostname = hostname .. " | server 1"
