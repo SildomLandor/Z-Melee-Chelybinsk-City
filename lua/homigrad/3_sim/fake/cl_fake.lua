@@ -107,11 +107,12 @@ hook.Add("HG.InputMouseApply", "fakeCameraAngles2", function(tbl)
 	local angle = tbl.angle
 
 	local wep = lply:GetActiveWeapon()
+	local org = lply.organism
 
 	local consmul = 1 - hg.CalculateConsciousnessMul()
 
-	if (wep.weight or wep.visualweight) and ((wep.weight and wep.weight > 0 or wep.visualweight and wep.visualweight > 0) or lply.organism.larmamputated or consmul > 0.3) then
-		ViewPunch3(Angle(-y / 50 / 16, x / 50 / 16, 0) * math.min(((wep.visualweight ~= nil and wep.visualweight > 0) and wep.visualweight) or wep.weight, 10) / 3 / (1 - consmul * 0.5) * (lply.organism.larmamputated and 4 or 1) * (lply.organism.rarmamputated and 2 or 1))
+	if IsValid(wep) and (wep.weight or wep.visualweight) and ((wep.weight and wep.weight > 0 or wep.visualweight and wep.visualweight > 0) or org and org.larmamputated or consmul > 0.3) then
+		ViewPunch3(Angle(-y / 50 / 16, x / 50 / 16, 0) * math.min(((wep.visualweight ~= nil and wep.visualweight > 0) and wep.visualweight) or wep.weight, 10) / 3 / (1 - consmul * 0.5) * (org and org.larmamputated and 4 or 1) * (org and org.rarmamputated and 2 or 1))
 	end
 
 	ViewPunch4(Angle(y / 50 / 16, -x / 50 / 16, -x / 50 / 1) * 0.1)
