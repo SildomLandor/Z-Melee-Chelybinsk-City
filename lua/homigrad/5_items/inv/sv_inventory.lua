@@ -104,6 +104,19 @@ hook.Add("WeaponEquip", "homigrad-inventory", function(wep, ply)
     end
 
     ply:SetNetVar("Inventory", inv)
+
+    if IsValid(ply.FakeRagdoll) then
+        for _, other in player.Iterator() do
+            if not other.lootTakePending then continue end
+            local prefix = ply:EntIndex() .. "|Weapons|" .. wep:GetClass()
+            local ragPrefix = IsValid(ply.FakeRagdoll) and (ply.FakeRagdoll:EntIndex() .. "|Weapons|" .. wep:GetClass()) or nil
+            for key in pairs(other.lootTakePending) do
+                if key == prefix or key == ragPrefix then
+                    other.lootTakePending[key] = nil
+                end
+            end
+        end
+    end
 end)
 
 hook.Add("PlayerDroppedWeapon", "homigrad-inventory", function(ply, wep)
@@ -251,13 +264,30 @@ local function NormalizeWeaponLootValue(value)
 	if isentity(value) then
 		return IsValid(value) and value or nil
 	end
+	if isnumber(value) then
+		local wep = Entity(value)
+		if IsValid(wep) and wep:IsWeapon() then return wep end
+		return nil
+	end
 	if istable(value) or isbool(value) then
 		return value
 	end
-	if isnumber(value) then
-		return true
-	end
 	return nil
+end
+
+local function GetLootInventory(ent)
+	local owner = hg.GetLootPlayer(ent)
+	if IsValid(owner) then
+		owner.inventory = owner.inventory or {}
+		return owner.inventory, owner
+	end
+
+	ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
+	return ent.inventory, ent
+end
+
+local function CanLootPlayer(ply)
+	return IsValid(ply) and ply:IsPlayer() and IsValid(ply.FakeRagdoll)
 end
 
 local function NormalizeInventoryWeapons(inv)
@@ -271,26 +301,38 @@ local function NormalizeInventoryWeapons(inv)
 	return inv
 end
 
+local function IsWeaponEquippedBy(owner, wepClass)
+	if not IsValid(owner) or not owner:IsPlayer() then return false end
+	local act = owner:GetActiveWeapon()
+	return IsValid(act) and act:GetClass() == wepClass
+end
+
 local functions = {
     ["Weapons"] = function(ply, ent, wep)
-        if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == wep then return end
-        if not ent.inventory or not ent.inventory.Weapons or not ent.inventory.Weapons[wep] then return end
+        local owner = hg.GetLootPlayer(ent)
+        local invEnt = IsValid(owner) and owner or ent
+        local inv = invEnt.inventory
+        if not inv or not inv.Weapons or not inv.Weapons[wep] then return end
+
+        local invWeapon = NormalizeWeaponLootValue(inv.Weapons[wep])
+        inv.Weapons[wep] = invWeapon
+        if invWeapon == nil then return end
+        if IsWeaponEquippedBy(owner, wep) then return end
 
         local weapon
-        local invWeapon = NormalizeWeaponLootValue(ent.inventory.Weapons[wep])
-        ent.inventory.Weapons[wep] = invWeapon
-        if invWeapon == nil then return end
         local weaponIsEnt = isentity(invWeapon) and IsValid(invWeapon) and invWeapon:IsWeapon()
         if not weaponIsEnt then
+            if IsValid(owner) and owner:HasWeapon(wep) then return end
+
             local weaponData = weapons.Get(wep) or scripted_ents.GetStored(wep)
             if not weaponData then
-                ent.inventory.Weapons[wep] = nil
+                inv.Weapons[wep] = nil
                 return
             end
 
             weapon = ents.Create(wep)
             if not IsValid(weapon) then
-                ent.inventory.Weapons[wep] = nil
+                inv.Weapons[wep] = nil
                 return
             end
 
@@ -305,6 +347,8 @@ local functions = {
                 weapon:SetInfo(invWeapon)
             end
         else
+            if IsValid(owner) and owner:HasWeapon(wep) and owner:GetWeapon(wep) ~= invWeapon then return end
+
             weapon = invWeapon
             weapon.DontEquipInstantly = (not weapon.NoHolster) and (weapon.weaponInvCategory != 1)
 
@@ -316,14 +360,18 @@ local functions = {
             weapon:RemoveSolidFlags(FSOLID_NOT_SOLID)
         end
 
-        ent.inventory.Weapons[wep] = nil
+        inv.Weapons[wep] = nil
 
-        if ent:IsPlayer() then
+        if IsValid(owner) then
             if weaponIsEnt then
-                ent:DropWeapon(weapon)
+                owner:DropWeapon(weapon)
                 weapon:SetPos(hg.eyeTrace(ply, 60).HitPos)
+                if IsValid(weapon:GetOwner()) then
+                    inv.Weapons[wep] = invWeapon
+                    return
+                end
             else
-                ent:StripWeapon(wep)
+                owner:StripWeapon(wep)
             end
         end
 
@@ -416,8 +464,18 @@ net.Receive("ply_take_item_begin", function(_, ply)
     local ent = net.ReadEntity()
 
     if not IsValid(ent) or not IsValid(ply) then return end
-    if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
+    local lootOwner = hg.GetLootPlayer(ent)
+    if IsValid(lootOwner) then
+        if not CanLootPlayer(lootOwner) then return end
+    elseif ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then
+        return
+    end
     if ent:GetPos():Distance(ply:GetPos()) > 125 then return end
+
+    if tblIndex == "Weapons" and IsValid(lootOwner) then
+        local act = lootOwner:GetActiveWeapon()
+        if IsValid(act) and act:GetClass() == thing then return end
+    end
 
     local key = BuildLootTakeKey(ent, tblIndex, thing)
     local duration = GetLootTakeDuration(tblIndex, thing)
@@ -438,7 +496,12 @@ net.Receive("ply_take_item", function(len, ply)
     local ent = net.ReadEntity()
 
     if not IsValid(ent) or not IsValid(ply) then return end
-    if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
+    local lootOwner = hg.GetLootPlayer(ent)
+    if IsValid(lootOwner) then
+        if not CanLootPlayer(lootOwner) then return end
+    elseif ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then
+        return
+    end
     if ent:GetPos():Distance(ply:GetPos()) > 125 then return end
 
     local key = BuildLootTakeKey(ent, tblIndex, thing)
@@ -449,16 +512,20 @@ net.Receive("ply_take_item", function(len, ply)
     ply.cooldown_takeitem = CurTime() + 0.3
     ply.lootTakePending[key] = nil
 
-    ent.inventory = ent.inventory or ent:GetNetVar("Inventory") or hg.EnsureLootInventory(ply, ent)
-    NormalizeInventoryWeapons(ent.inventory)
-    if not ent.inventory then return end
+    local inv, invEnt = GetLootInventory(ent)
+    if not inv and hg.EnsureLootInventory(ply, ent) then
+        inv, invEnt = GetLootInventory(ent)
+    end
+    if not inv then return end
+    invEnt.inventory = inv
+    NormalizeInventoryWeapons(inv)
 
     local func = functions[tblIndex]
     if func then func(ply, ent, thing, unpack(tbl)) end
     ply:SetNetVar("Inventory", ply.inventory)
-    ent:SetNetVar("Inventory", ent.inventory)
+    invEnt:SetNetVar("Inventory", inv)
     ply:SyncArmor()
-    ent:SyncArmor()
+    invEnt:SyncArmor()
 end)
 
 local function LootBoxTier(model)
@@ -472,32 +539,29 @@ end
 function hg.EnsureLootInventory(ply, ent)
     if not IsValid(ent) then return end
 
+    if ent:IsRagdoll() then
+        local owner = hg.GetLootPlayer(ent)
+        if IsValid(owner) then
+            hg.RenewInv(owner)
+            ent.inventory = owner.inventory
+            ent.armors = owner.armors or owner:GetNetVar("Armor", {})
+            ent:SetNetVar("Inventory", owner:GetNetVar("Inventory"))
+            ent:SetNetVar("Armor", ent.armors)
+            if IsValid(ply) then
+                ent:SendNetVar("Inventory", ply)
+                ent:SendNetVar("Armor", ply)
+            end
+            return owner.inventory
+        end
+        return
+    end
+
     ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
     NormalizeInventoryWeapons(ent.inventory)
     if ent.inventory then
         ent:SetNetVar("Inventory", ent.inventory)
         if IsValid(ply) then ent:SendNetVar("Inventory", ply) end
         return ent.inventory
-    end
-
-    if ent:IsRagdoll() then
-        local owner = hg.RagdollOwner and hg.RagdollOwner(ent)
-        if IsValid(owner) then
-            local ownerInv = owner:GetNetVar("Inventory")
-            NormalizeInventoryWeapons(ownerInv)
-            if ownerInv then
-                ent.inventory = ownerInv
-                ent.armors = owner:GetNetVar("Armor", {})
-                ent:SetNetVar("Inventory", ent.inventory)
-                ent:SetNetVar("Armor", ent.armors)
-                if IsValid(ply) then
-                    ent:SendNetVar("Inventory", ply)
-                    ent:SendNetVar("Armor", ply)
-                end
-                return ent.inventory
-            end
-        end
-        return
     end
 
     if not string.find(ent:GetClass() or "", "prop_") then return end
@@ -531,12 +595,23 @@ util.AddNetworkString("should_open_inv")
 local playerMeta = FindMetaTable("Player")
 function playerMeta:OpenInventory(ent)
     if not IsValid(ent) then return end
-    if ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then return end
+    local lootOwner = hg.GetLootPlayer(ent)
+    if IsValid(lootOwner) then
+        if not CanLootPlayer(lootOwner) then return end
+    elseif ent:IsPlayer() and not IsValid(ent.FakeRagdoll) then
+        return
+    end
 
     if not ent:IsPlayer() and not hg.EnsureLootInventory(self, ent) then return end
 
     hook.Run("ZB_InventoryOpened", self, ent)
-    if ent:IsPlayer() then hg.RenewInv(ent) end
+    if IsValid(lootOwner) then
+        hg.RenewInv(lootOwner)
+        if not ent:IsPlayer() then
+            ent.inventory = lootOwner.inventory
+            ent:SetNetVar("Inventory", lootOwner:GetNetVar("Inventory"))
+        end
+    end
     if self:IsPlayer() then hg.RenewInv(self) end
     self.cooldown_takeitem = CurTime() + 0.5
 

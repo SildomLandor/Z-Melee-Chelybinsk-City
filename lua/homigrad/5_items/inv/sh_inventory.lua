@@ -14,6 +14,21 @@ hg.TraitorLoot = {
 	["hg_flashlight"] = 1,
 }
 
+function hg.GetLootPlayer(ent)
+	if not IsValid(ent) then return end
+	if ent:IsPlayer() then return ent end
+	if ent:IsRagdoll() and hg.RagdollOwner then
+		return hg.RagdollOwner(ent)
+	end
+end
+
+local function LootHasActiveWeapon(ent, class)
+	local owner = hg.GetLootPlayer(ent)
+	if not IsValid(owner) then return false end
+	local wep = owner:GetActiveWeapon()
+	return IsValid(wep) and wep:GetClass() == class
+end
+
 if CLIENT then
 	hook.Add("Player_Death", "foundloot", function(ply)
 		if IsValid(ply.FakeRagdoll) then ply.FakeRagdoll.foundloot = table.Copy(ply.foundloot) end
@@ -135,7 +150,7 @@ if CLIENT then
 
 	local functions = {
 		["Weapons"] = function(ply, ent, wep)
-			if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == wep then return end
+			if LootHasActiveWeapon(ent, wep) then return end
 			return true
 		end,
 		["Ammo"] = function() return true end,
@@ -218,7 +233,7 @@ if CLIENT then
 			for i, thing in pairs(things) do
 				local thing1 = istable(thing) and thing or {thing}
 				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
-				if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == i then continue end
+				if LootHasActiveWeapon(ent, i) then continue end
 				itemCount = itemCount + 1
 			end
 		end
@@ -278,6 +293,8 @@ if CLIENT then
 			local org = lp.organism
 			if (org and org.otrub) or not lp:Alive() then self:Remove() return end
 			if (e:GetPos() - lp:GetPos()):LengthSqr() > 125 * 125 then self:Remove() return end
+			local lootPly = hg.GetLootPlayer(e)
+			if IsValid(lootPly) and not IsValid(lootPly.FakeRagdoll) then self:Remove() return end
 			if e:IsPlayer() and not IsValid(e.FakeRagdoll) then self:Remove() return end
 			if input.IsKeyDown(KEY_R) then self:Close() end
 		end
@@ -369,7 +386,7 @@ if CLIENT then
 
 				if not functions2[tab](ply, ent, i, unpack(thing1)) then continue end
 				ent.foundloot = ent.foundloot or {}
-				if ent:IsPlayer() and IsValid(ent:GetActiveWeapon()) and ent:GetActiveWeapon():GetClass() == i then continue end
+				if LootHasActiveWeapon(ent, i) then continue end
 
 				count2 = count2 + (not ent.foundloot[i] and 1 or 0)
 
@@ -380,6 +397,19 @@ if CLIENT then
 				button.Created = CurTime() + (IsValid(ent.FakeRagdoll) and not ent.foundloot[i] and 2 or 0) + count2
 				button.Think = function(self)
 					if not IsValid(ent) then return end
+
+					if tab == "Weapons" and LootHasActiveWeapon(ent, i) then
+						self.HoldPressed = false
+						self.HoldRequested = false
+						self.HoldReady = false
+						self.HoldDuration = nil
+						self.HoldStart = nil
+						if self.HoldKey then
+							buttons[self.HoldKey] = nil
+						end
+						self:SetVisible(false)
+						return
+					end
 
 					if self.Created and self.Created < CurTime() then
 						self:SetSize(boxW, boxH)
