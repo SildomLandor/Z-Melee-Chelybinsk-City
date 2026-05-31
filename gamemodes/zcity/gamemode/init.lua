@@ -11,7 +11,7 @@ include("loader.lua")
 
 local function UpdateServerHostname()
 	local version = tostring(hg and hg.Version or "")
-	local hostname = "CHELYABINSK | RU | BETA " .. version
+	local hostname = "CHELYABINSK | RU | " .. version
 	local port = GetConVar("hostport"):GetInt()
 
 	if port == 27735 then

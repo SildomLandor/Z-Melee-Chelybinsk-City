@@ -161,50 +161,34 @@ function CreateFontFamily(base, fonts)
     end
 end
 
-function hg.CreateVeteranFonts()
-    local typeface = font()
-    local function sz(n)
-        return math.max(math.Round(n), 8)
-    end
-
-    surface.CreateFont("ZCity_Veteran", {
-        font = typeface,
-        size = sz(ScreenScaleH(15)),
-        weight = 500,
-        extended = true,
-        antialias = true,
-    })
-    surface.CreateFont("ZCity_Veteran_small", {
-        font = typeface,
-        size = sz(ScreenScale(10)),
-        weight = 500,
-        extended = true,
-        antialias = true,
-    })
+surface.CreateFont("ZCity_Veteran", {
+    font = typeface,
+    size = sz(ScreenScaleH(15)),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+surface.CreateFont("ZCity_Veteran_small", {
+    font = typeface,
+    size = sz(ScreenScale(10)),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
     surface.CreateFont("ZCity_Veteran_hmcdobj", {
-        font = typeface,
-        size = sz(ScreenScale(14)),
-        weight = 500,
-        extended = true,
-        antialias = true,
-    })
-    surface.CreateFont("ZCity_Veteran_big", {
-        font = typeface,
-        size = sz(ScreenScale(20)),
-        weight = 500,
-        extended = true,
-        antialias = true,
-    })
-end
-
-if CLIENT then
-    hg.CreateVeteranFonts()
-    hook.Add("OnScreenSizeChanged", "hg_veteran_fonts", hg.CreateVeteranFonts)
-    hook.Add("InitPostEntity", "hg_veteran_fonts", hg.CreateVeteranFonts)
-    cvars.AddChangeCallback("hg_font", function()
-        hg.CreateVeteranFonts()
-    end, "hg_veteran_fonts")
-end
+    font = typeface,
+    size = sz(ScreenScale(14)),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+surface.CreateFont("ZCity_Veteran_big", {
+    font = typeface,
+    size = sz(ScreenScale(20)),
+    weight = 500,
+    extended = true,
+    antialias = true,
+}) -- ебал я вас и вашу честь
 
 Run()
 

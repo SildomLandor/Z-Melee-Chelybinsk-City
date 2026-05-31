@@ -142,9 +142,6 @@ surface.CreateFont("ZCity_Fixed_Icons_Small", {
 	weight = 500
 })
 
-if hg.CreateVeteranFonts then
-    hg.CreateVeteranFonts()
-end
 
 --//
 

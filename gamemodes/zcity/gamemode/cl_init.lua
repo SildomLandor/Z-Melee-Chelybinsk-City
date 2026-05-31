@@ -392,11 +392,6 @@ local function ZB_CreateUIFonts()
 end
 
 ZB_CreateUIFonts()
-if hg.CreateVeteranFonts then hg.CreateVeteranFonts() end
-hook.Add("OnScreenSizeChanged", "zcity_ui_fonts", function()
-    ZB_CreateUIFonts()
-    if hg.CreateVeteranFonts then hg.CreateVeteranFonts() end
-end)
 
 
 hg.playerInfo = hg.playerInfo or {}
