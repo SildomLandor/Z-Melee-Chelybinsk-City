@@ -225,11 +225,15 @@ local force
 local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scaleprot, punch, boneindex, dir, hit, ricochet)
 	if not force and org.owner.armors[placement] ~= armor then return 0 end
 	force = nil
-	
-	local prot = placement and hg.armor[placement] and armor and hg.armor[placement][armor] and (hg.armor[placement][armor].protection - (dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1)) or (10 - ( dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1))
-	
-	org.owner.armors_health = org.owner.armors_health or {}
 
+	local inf = dmgInfo:GetInflictor()
+	if IsValid(inf) and IsValid(inf.weapon) then inf = inf.weapon end
+	local bullet = IsValid(inf) and inf.bullet
+	local pen = (bullet and bullet.Penetration) or (IsValid(inf) and inf.Penetration) or dmgInfo:GetDamage() / 2
+
+	local prot = placement and hg.armor[placement] and armor and hg.armor[placement][armor] and (hg.armor[placement][armor].protection - pen) or (10 - pen)
+
+	org.owner.armors_health = org.owner.armors_health or {}
 	prot = prot * (org.owner.armors_health[armor] or 1)
 	
 	if punch then
@@ -257,7 +261,6 @@ local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scalepro
 	ArmorEffect(placement, armor, dmgInfo, org, hit, prot)
 
 	if prot < 0 then
-		//dmgInfo:ScaleDamage(scale)
 		return 0
 	end
 

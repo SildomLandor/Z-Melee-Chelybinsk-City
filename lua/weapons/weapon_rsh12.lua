@@ -53,7 +53,7 @@ SWEP.DistSound = "m9/m9_dist.wav"
 
 SWEP.LocalMuzzlePos = Vector(14, 0, 3)
 SWEP.LocalMuzzleAng = Angle(0, 0, 0)
-SWEP.ZoomPos = Vector(-3, 0, 5)
+SWEP.ZoomPos = Vector(-6, -0.3, 6.7)
 SWEP.HoldType = "revolver"
 SWEP.AimHold = "revolver"
 SWEP.UseCustomWorldModel = true
