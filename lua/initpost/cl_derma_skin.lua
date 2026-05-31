@@ -145,6 +145,35 @@ surface.CreateFont("ZCity_Fixed_Icons_Small", {
 
 --//
 
+surface.CreateFont("ZCity_Veteran", {
+    font = getFont(),
+    size = ScreenScaleH(15),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+surface.CreateFont("ZCity_Veteran_small", {
+    font = getFont(),
+    size = ScreenScale(10),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+surface.CreateFont("ZCity_Veteran_hmcdobj", {
+    font = getFont(),
+    size = ScreenScale(14),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+surface.CreateFont("ZCity_Veteran_big", {
+    font = getFont(),
+    size = ScreenScale(20),
+    weight = 500,
+    extended = true,
+    antialias = true,
+})
+
 local gradient = surface.GetTextureID("vgui/gradient-d")
 local gradientUp = surface.GetTextureID("vgui/gradient-u")
 local gradientLeft = surface.GetTextureID("vgui/gradient-l")
