@@ -153,7 +153,7 @@ function CreateFontFamily(base, fonts)
             size      = overrides.size,              -- size обязателен
             weight    = overrides.weight or base.weight or 400,
             outline   = (overrides.outline ~= nil) and overrides.outline or (base.outline ~= nil and base.outline or false),
-            antialias = (overrides.antialias ~= nil) and overrides.antialias or (base.antialias ~= nil and base.antialias or false),
+            antialias = (overrides.antialias ~= nil) and overrides.antialias or (base.antialias ~= nil and base.antialias or true),
             shadow    = (overrides.shadow ~= nil) and overrides.shadow or (base.shadow ~= nil and base.shadow or false),
             extended  = (overrides.extended ~= nil) and overrides.extended or (base.extended ~= nil and base.extended or true),
         }
@@ -197,4 +197,3 @@ if SERVER then
 end
 
 include("wos/dynabase/loader/loader.lua")
-
