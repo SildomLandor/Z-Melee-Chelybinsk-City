@@ -27,10 +27,14 @@ local function CreateNotification(ply, msg, delay, msgKey, showTime, func, clr)
     --показывать один раз за промежуток времени
     --(если delay не номерок то оно пинганет в следующей жизни)
 
+    local random_letters = {"ы","э","б","м"}
+    local random_char = random_letters[math.random(1,4)]
+
+
     if ply.organism and ply.organism.brain > 0.1 then
         for i = 1, utf8.len(msg) do
             if math.random(3) == 1 and msg[i] != "?" and msg[i] != "." then
-                msg = hg.replace_by_index(msg, i, (math.random(1,2) > 1 and "m" or "b") )
+                msg = hg.replace_by_index(msg, i, random_char)
             end
         end
     end
@@ -94,10 +98,13 @@ local function CreateNotificationBerserk(ply, msg, delay, msgKey, showTime, func
         func(ply)
     end
 
+    local random_letters = {"ы","э","б","м"}
+    local random_char = random_letters[math.random(1,4)]
+
     if ply.organism and ply.organism.brain > 0.1 then
         for i = 1, utf8.len(msg) do
             if math.random(3) == 1 and msg[i] != "?" and msg[i] != "." then
-                msg = hg.replace_by_index(msg, i, (math.random(1,2) > 1 and "m" or "b") )
+                msg = hg.replace_by_index(msg, i, random_char)
             end
         end
     end
