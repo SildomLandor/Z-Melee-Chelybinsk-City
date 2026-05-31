@@ -16,7 +16,6 @@ local effectCount = 0
 local effectResetAt = 0
 local CurTime = CurTime
 local table_Random = table.Random
-local math_random = math.random
 local EmitSound = EmitSound
 local render_GetViewSetup = render.GetViewSetup
 local ParticleEffect = ParticleEffect

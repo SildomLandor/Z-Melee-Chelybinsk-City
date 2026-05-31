@@ -1,16 +1,6 @@
 util.AddNetworkString("hg_add_equipment")
 util.AddNetworkString("hg_drop_equipment")
 
-local DBG = "sv_equipment.lua"
-local dbgCd = {}
-local function dbg(msg, key)
-	if key then
-		if dbgCd[key] and dbgCd[key] > CurTime() then return end
-		dbgCd[key] = CurTime() + 1
-	end
-	hg.ArmorDbg(DBG, msg)
-end
-
 function hg.SetArmorRestrictions(ply, restrictions)
 	if not IsValid(ply) then return end
 	ply.ArmorRestrictions = restrictions
@@ -56,38 +46,27 @@ net.Receive("hg_drop_equipment", function(len, ply)
 end)
 
 function hg.AddArmor(ply, equipment, ent)
-    if not IsValid(ply) then
-        dbg("AddArmor: невалидный игрок")
-        return
-    end
-
-    if equipment and istable(equipment) then
-        dbg("AddArmor: пачка из " .. table.Count(equipment) .. " штук для " .. ply:Nick())
-        for _, equipment1 in pairs(equipment) do
-            hg.AddArmor(ply, equipment1, ent)
-        end
-        return true
-    end
-
-    if not isstring(equipment) then
-        dbg("AddArmor: equipment не строка, а " .. type(equipment))
-        return false
-    end
-
-    ply.armors = ply.armors or {}
+    if not IsValid(ply) then return end
 
 	if not hg.CanEquipArmorPiece(ply, equipment) then
-        dbg("AddArmor: запрещено ограничениями — " .. equipment .. " у " .. ply:Nick())
+		if ply:IsPlayer() then
+			--ply:ChatPrint("huy")
+		end
 		return false
 	end
 	
 	local can = hook.Run("CanEquipArmor", ply, equipment)
 	
-	if can == false then
-        dbg("AddArmor: CanEquipArmor hook вернул false — " .. equipment)
+	if(can == false)then
 		return nil
 	end
 	
+    if equipment and istable(equipment) then
+        for i,equipment1 in pairs(equipment) do
+            hg.AddArmor(ply, equipment1)
+        end
+        return
+    end
     equipment = string.Replace(equipment,"ent_armor_","")
     local placement
     for plc, tbl in pairs(hg.armor) do
@@ -95,40 +74,28 @@ function hg.AddArmor(ply, equipment, ent)
     end
     
     if not placement then
-        dbg("нет такой брони: " .. equipment)
+        print("sh_equipment.lua: no such equipment as: " .. equipment)
         return false
     end
     
-    if hg.armor[placement][equipment].whitelistClasses and !hg.armor[placement][equipment].whitelistClasses[ply.PlayerClassName] then
-        dbg("whitelistClasses: класс " .. tostring(ply.PlayerClassName) .. " не может надеть " .. equipment)
-        return false
-    end
-
-    local newArmorData = hg.armor[placement][equipment]
+    if hg.armor[placement][equipment].whitelistClasses and !hg.armor[placement][equipment].whitelistClasses[ply.PlayerClassName] then return false end
 
     for plc, arm in pairs(ply.armors) do
-        local armData = hg.armor[plc] and hg.armor[plc][arm]
+        //if not hg.armor[plc] or not hg.armor[plc][arm] or not hg.armor[plc][arm].restricted then continue end
 
-        if armData and armData.restricted and table.HasValue(armData.restricted, placement) then
-            if not hg.DropArmor(ply, ply.armors[plc]) then
-                dbg("AddArmor: не снялась конфликтующая " .. tostring(ply.armors[plc]))
-                return false
-            end
+        if hg.armor[plc][arm].restricted and table.HasValue(hg.armor[plc][arm].restricted, placement) then
+            if not hg.DropArmor(ply, ply.armors[plc]) then return false end
         end
         
-        if newArmorData.restricted and table.HasValue(newArmorData.restricted, plc) then
-            if not hg.DropArmor(ply, ply.armors[plc]) then
-                dbg("AddArmor: restricted — не снялась " .. tostring(ply.armors[plc]))
-                return false
-            end
+        if hg.armor[placement][equipment].restricted and table.HasValue(hg.armor[placement][equipment].restricted, plc) then
+            if not hg.DropArmor(ply, ply.armors[plc]) then return false end
         end
     end
 
     if ply.armors[placement] and ply:IsPlayer() then
-        if not hg.DropArmor(ply, ply.armors[placement]) then
-            dbg("AddArmor: не снялась текущая броня слота " .. placement .. " (" .. tostring(ply.armors[placement]) .. ")")
-            return false
-        end
+		local currentArmorData = hg.armor[placement] and hg.armor[placement][ply.armors[placement]]
+		
+        if not hg.DropArmor(ply, ply.armors[placement]) then return false end
     end
     
     if hg.armor[placement][equipment].AfterPickup then
@@ -148,36 +115,27 @@ function hg.AddArmor(ply, equipment, ent)
 		local mat = istable(item.material) and item.material[1] or item.material
 		ply:SetNWString("ArmorMaterials" .. equipment, mat)
 
+		local skin = istable(item.material) and table.Random(item.material) or nil
 		if item.skins then
-			ply:SetNWInt("ArmorSkins" .. equipment, item.skins[math.random(#item.skins)])
-		else
-			ply:SetNWInt("ArmorSkins" .. equipment, 0)
+			ply:SetNWInt("ArmorSkins" .. equipment, skin)
 		end
 	end
 
     ply.armors[placement] = equipment
     
     ply:SyncArmor()
-    dbg("AddArmor: ок — " .. ply:Nick() .. " [" .. placement .. "]=" .. equipment)
     return true
 end
 
 function hg.DropArmorForce(ent, equipment)
-    if not istable(ent.armors) then
-        dbg("DropArmorForce: ent.armors nil у " .. tostring(ent))
-        return false
-    end
-    if not table.HasValue(ent.armors, equipment) then
-        dbg("DropArmorForce: нет " .. tostring(equipment) .. " у " .. tostring(ent))
-        return false
-    end
+    if not table.HasValue(ent.armors, equipment) then return false end
     local placement
     for plc, tbl in pairs(hg.armor) do
         placement = tbl[equipment] and tbl[equipment][1] or placement
     end
 
     if not placement then
-        dbg("DropArmorForce: нет такой брони: " .. tostring(equipment))
+        print("sh_equipment.lua: no such equipment as: " .. equipment)
         return false
     end
     
@@ -193,6 +151,8 @@ function hg.DropArmorForce(ent, equipment)
             ent:SetNetVar("zableval_masku", false)
         end
 
+        local phys = equipmentEnt:GetPhysicsObject()
+
         if IsValid(equipmentEnt) then table.RemoveByValue(ent.armors, equipment) end
         
         if hg.armor[placement][equipment].voice_change then
@@ -202,42 +162,27 @@ function hg.DropArmorForce(ent, equipment)
         end
 
         ent:SyncArmor()
-        dbg("DropArmorForce: снято " .. equipment .. " с " .. tostring(ent))
+        
         return equipmentEnt
     end
-
-    dbg("DropArmorForce: нет данных hg.armor для " .. tostring(equipment))
 end
 
 function hg.DropArmor(ply, equipment)
-    if not istable(ply.armors) then
-        dbg("DropArmor: ply.armors nil у " .. tostring(ply))
-        return false
-    end
-    if not table.HasValue(ply.armors, equipment) then
-        dbg("DropArmor: нет " .. tostring(equipment) .. " у " .. tostring(ply))
-        return false
-    end
+    if not table.HasValue(ply.armors, equipment) then return false end
     
     local placement
     for plc, tbl in pairs(hg.armor) do
         placement = tbl[equipment] and tbl[equipment][1] or placement
     end
     
-    if hg.armor[placement] and hg.armor[placement][equipment] and hg.armor[placement][equipment].nodrop then
-        dbg("DropArmor: nodrop — " .. equipment)
-        return false
-    end
+    if hg.armor[placement][equipment].nodrop then return false end
 
     if not placement then
-        dbg("DropArmor: нет такой брони: " .. tostring(equipment))
+        print("sh_equipment.lua: no such equipment as: " .. equipment)
         return false
     end
 
-    if IsValid(ply) and ply.DropCD and ply.DropCD > CurTime() then
-        dbg("DropArmor: кд дропа")
-        return false
-    end
+    if IsValid(ply) and ply.DropCD and ply.DropCD > CurTime() then return false end
 
     if hg.armor[placement][equipment] then
         ply:DoAnimationEvent((placement == "head" or placement == "ears" or placement == "face") and ACT_GMOD_GESTURE_MELEE_SHOVE_1HAND or ACT_GMOD_GESTURE_MELEE_SHOVE_2HAND)
@@ -267,44 +212,18 @@ function hg.DropArmor(ply, equipment)
         end
 
         ply:SyncArmor()
-        dbg("DropArmor: ок — " .. ply:Nick() .. " скинул " .. equipment)
+        --end)
         return true
     end
-
-    dbg("DropArmor: нет данных hg.armor для " .. tostring(equipment))
 end
 
-concommand.Add("hg_armor_status", function(ply)
-    local ent = SERVER and (IsValid(ply) and ply or nil) or LocalPlayer()
-    if SERVER and not IsValid(ent) then
-        print(DBG .. ": укажи игрока или запускай от игрока")
-        return
-    end
-    if not IsValid(ent) then return end
-    print(DBG .. ": --- armor status [" .. (SERVER and "SERVER" or "CLIENT") .. "] ---")
-    print(DBG .. ": GetPlayerArmor = " .. util.TableToJSON(hg.GetPlayerArmor and hg.GetPlayerArmor(ent) or {}, true))
-    print(DBG .. ": HG_ArmorJSON = " .. tostring(ent:GetNWString("HG_ArmorJSON", "")))
-    print(DBG .. ": GetNetVar Armor=" .. util.TableToJSON(ent:GetNetVar("Armor", {}), true))
-    if SERVER then
-        print(DBG .. ": armors_health=" .. util.TableToJSON(ent.armors_health or {}, true))
-    end
-end)
-
+-- armorstuff
 util.AddNetworkString("AddFlash")
 
 local ArmorEffect
 local force
 local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scaleprot, punch, boneindex, dir, hit, ricochet)
-	if not force then
-		if not org.owner.armors then
-			dbg("protec: org.owner.armors nil, placement=" .. tostring(placement) .. " armor=" .. tostring(armor))
-			return 0
-		end
-		if org.owner.armors[placement] ~= armor then
-			dbg("protec: слот [" .. tostring(placement) .. "]=" .. tostring(org.owner.armors[placement]) .. ", нужен " .. tostring(armor), "protec_mismatch_" .. placement .. armor)
-			return 0
-		end
-	end
+	if not force and org.owner.armors[placement] ~= armor then return 0 end
 	force = nil
 	
 	local prot = placement and hg.armor[placement] and armor and hg.armor[placement][armor] and (hg.armor[placement][armor].protection - (dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1)) or (10 - ( dmgInfo:GetInflictor().bullet and dmgInfo:GetInflictor().bullet.Penetration or 1))
@@ -338,7 +257,7 @@ local function protec(org, bone, dmg, dmgInfo, placement, armor, scale, scalepro
 	ArmorEffect(placement, armor, dmgInfo, org, hit, prot)
 
 	if prot < 0 then
-		dbg("protec: пробитие — " .. tostring(armor) .. " prot=" .. tostring(prot))
+		//dmgInfo:ScaleDamage(scale)
 		return 0
 	end
 

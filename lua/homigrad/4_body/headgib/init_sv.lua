@@ -1,7 +1,6 @@
 local net, hg, pairs, Vector, ents, IsValid, util = net, hg, pairs, Vector, ents, IsValid, util
 
 local vecZero = Vector(0,0,0)
-local vecInf = Vector(0,0,0) / 0
 
 local function removeBone(rag, bone, phys_bone, nohuys)
 	if !nohuys then rag:ManipulateBoneScale(bone, vecZero) end
@@ -20,7 +19,7 @@ local function removeBone(rag, bone, phys_bone, nohuys)
 end
 
 local function recursive_bone(rag, bone, list)
-	for i,bone in pairs(rag:GetChildBones(bone)) do
+	for i, bone in pairs(rag:GetChildBones(bone)) do
 		if bone == 0 then continue end
 
 		list[#list + 1] = bone
@@ -36,8 +35,8 @@ function Gib_RemoveBone(rag, bone, phys_bone, nohuys)
 
 	local list = {}
 	recursive_bone(rag, bone, list)
-	for i, bone in pairs(list) do
-		removeBone(rag, bone, rag:TranslateBoneToPhysBone(bone), nohuys)
+	for i, childBone in pairs(list) do
+		removeBone(rag, childBone, rag:TranslateBoneToPhysBone(childBone), nohuys)
 	end
 end
 

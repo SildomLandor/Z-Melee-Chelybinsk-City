@@ -30,31 +30,7 @@ if CLIENT then
 	local PixVis
 	hook.Add("Initialize", "SetupPixVis", function() PixVis = util.GetPixelVisibleHandle() end)
 	local islply
-	local hg_thirdperson = ConVarExists("hg_thirdperson") and GetConVar("hg_thirdperson") or CreateConVar("hg_thirdperson", 0, FCVAR_REPLICATED, "Toggle third-person camera view", 0, 1)
-	local hg_gopro_render = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like first-person camera view", 0, 1)
-
-	local function clearArmorModels(ply)
-		if not ply.modelArmor then return end
-		for k, v in pairs(ply.modelArmor) do
-			if IsValid(v) then v:Remove() end
-			ply.modelArmor[k] = nil
-		end
-	end
-
-	local function armorVisible(ent)
-		return IsValid(ent) and ent.shouldTransmit ~= false and not ent.NotSeen
-	end
-
-	local DBG = "sh_equiprender.lua"
-	local dbgOnce = {}
-	local function dbg(msg, key)
-		if key then
-			if dbgOnce[key] then return end
-			dbgOnce[key] = true
-		end
-		hg.ArmorDbg(DBG, msg)
-	end
-
+	
 	local blmodels = {
 		["models/monolithservers/kerry/swat_male_02.mdl"] = true,
 		["models/monolithservers/kerry/swat_male_04.mdl"] = true,
@@ -114,69 +90,58 @@ if CLIENT then
 
 	function RenderArmors(ply, armors, ent)
 
-		if not IsValid(ply) or not armors then
-			dbg("RenderArmors: нет ply или armors", "no_ply_" .. tostring(ply))
-			return
-		end
-		if not next(armors) then return end
-		ply.modelArmor = ply.modelArmor or {}
+		if not IsValid(ply) or not armors then return end
 	
+		--if armors and #armors < 1 then return end
+		
 		local wep = ply:IsPlayer() and ply:GetActiveWeapon()
 		
 		islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer())) and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer()))
 	
 		if islply and IsValid(wep) and whitelist[wep:GetClass()] then
-			dbg("RenderArmors: whitelist оружие " .. wep:GetClass() .. ", модели убраны", "whitelist_" .. ply:EntIndex())
-			clearArmorModels(ply)
+			if not ent.modelArmor then return end
+			for k,v in ipairs(ent.modelArmor) do
+				if IsValid(v) then
+					v:Remove()
+					v = nil
+				end
+			end
 			return
 		end
+		
 	
-		if not armorVisible(ent) then
-			dbg("RenderArmors: ent не виден (shouldTransmit=" .. tostring(ent.shouldTransmit) .. " NotSeen=" .. tostring(ent.NotSeen) .. ")", "novis_" .. ent:EntIndex())
-			clearArmorModels(ply)
+		if not ent.shouldTransmit or ent.NotSeen then
+			if not ent.modelArmor then return end
+			for k,v in ipairs(ent.modelArmor) do
+				if IsValid(v) then
+					v:Remove()
+					v = nil
+				end
+			end
 			return
 		end
-
-		DrawArmors(ply, armors, ent)
+		
+		DrawArmors(ply,armors,ent)
 
 	end	
 
 	function DrawArmors(ply, armors, ent)
 		if not IsValid(ply) or not armors then return end
-		if not IsValid(ent) then
-			dbg("DrawArmors: ent nil", "draw_noent_" .. tostring(ply))
-			return
-		end
-		if blmodels[ply:GetModel()] then
-			dbg("DrawArmors: модель в blmodels — " .. ply:GetModel(), "blmdl_" .. ply:EntIndex())
-			return
-		end
+		if blmodels[ply:GetModel()] then return end
 		local lply = LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect")
 		islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == lply and (LocalPlayer():Alive() and (GetViewEntity() == lply) or (viewmode == 1))
-		local localFirstPerson = islply and GetViewEntity() == lply and not hg_thirdperson:GetBool() and not hg_gopro_render:GetBool()
 		
 		for placement, armor in pairs(armors) do
-			if placement == "torso" and blVestmodels[ply:GetModel()] then
-				dbg("DrawArmors: жилет скрыт blVestmodels — " .. ply:GetModel(), "blvest_" .. ply:EntIndex())
-				continue
-			end
-			local armorData = hg.armor[placement] and hg.armor[placement][armor]
-			if not armorData then
-				dbg("DrawArmors: нет hg.armor[" .. tostring(placement) .. "][" .. tostring(armor) .. "]", "nodata_" .. placement .. armor)
-				continue
-			end
-			if armorData.model == "" then continue end
+			if placement == "torso" and blVestmodels[ply:GetModel()] then continue end
+			local armorData = hg.armor[placement][armor]
+
+			if armorData["model"] == "" then continue end
 
 			ply.modelArmor = ply.modelArmor or {}
 			local fem = ThatPlyIsFemale(ent)
 
 			if not IsValid(ply.modelArmor[armor]) then
-				ply.modelArmor[armor] = ClientsideModel(armorData.model)
-				if not IsValid(ply.modelArmor[armor]) then
-					dbg("DrawArmors: ClientsideModel fail — " .. tostring(armorData.model), "csm_fail_" .. armor)
-					continue
-				end
-				dbg("DrawArmors: создан CSM " .. armor .. " -> " .. armorData.model)
+				ply.modelArmor[armor] = ClientsideModel(armorData["model"])
 				local model = ply.modelArmor[armor]
 				model:SetNoDraw(true)
 				model:SetModelScale( (fem and armorData.femscale) or armorData.scale or 1 )
@@ -186,10 +151,9 @@ if CLIENT then
 					model:SetSubMaterial(0, ply:GetNWString("ArmorMaterials" .. armor, fallback_mat))
 				end
 
-				local skin = ply:GetNWInt("ArmorSkins" .. armor, 0)
-				if model.skinset ~= skin then
-					model.skinset = skin
-					model:SetSkin(skin)
+				if ent:GetNWInt("ArmorSkins" .. armor, 0) and not model.skinset then
+					model.skinset = true
+					model:SetSkin(ply:GetNWInt("ArmorSkins" .. armor, 0))
 				end
 				if not armorData.nobonemerge then
 					model:AddEffects(EF_BONEMERGE)
@@ -202,38 +166,33 @@ if CLIENT then
 					end
 				end)
 				ent:CallOnRemove("removearmors"..placement,function()
-					if ply.modelArmor and IsValid(model) then
+					if ent.modelArmor and IsValid(model) then
 						model:Remove()
 						model = nil
 					end
 				end)
 			end
 			
-			local char = hg.GetCurrentCharacter(ply)
+			local ent = hg.GetCurrentCharacter(ply)
 	
-			if not IsValid(char) then
-				dbg("DrawArmors: GetCurrentCharacter nil для " .. tostring(ply), "nochar_" .. ply:EntIndex())
-				continue
-			end
+			if not IsValid(ent) then return end
 	
 			local model = ply.modelArmor[armor]
 			
-			if not IsValid(model) then continue end
+			if not IsValid(model) then return end
 			
-			if not armorVisible(char) then
-				dbg("DrawArmors: char не виден", "nocharvis_" .. char:EntIndex() .. armor)
-				continue
+			if ent.NotSeen or not ent.shouldTransmit then
+				return
 			end
 
-			local mdl = string.Split(string.sub(char:GetModel(),1,-5),"/")[#string.Split(string.sub(char:GetModel(),1,-5),"/")]
+			local mdl = string.Split(string.sub(ent:GetModel(),1,-5),"/")[#string.Split(string.sub(ent:GetModel(),1,-5),"/")]
 			if mdl and model:GetFlexIDByName(mdl) then
 				model:SetFlexWeight(model:GetFlexIDByName(mdl),1)
 			end
 			
-			local matrix = char:GetBoneMatrix(char:LookupBone(armorData.bone))
+			local matrix = ent:GetBoneMatrix(ent:LookupBone(armorData["bone"]))
 			if not matrix then
-				dbg("DrawArmors: нет кости " .. tostring(armorData.bone) .. " на " .. char:GetModel(), "nobone_" .. armor)
-				continue
+				return
 			end
 			
 			local bonePos, boneAng = matrix:GetTranslation(), matrix:GetAngles()
@@ -242,59 +201,32 @@ if CLIENT then
 			model:SetRenderOrigin(pos)
 			model:SetRenderAngles(ang)
 
-			model:SetParent(char, char:LookupBone(armorData.bone))
+			model:SetParent(ent,ent:LookupBone(armorData["bone"]))
 			
-			if not (localFirstPerson and armorData.norender) then
+			--model:SetupBones()
+			
+			if not (islply and armorData.norender) then
 				model:DrawModel()
-			elseif localFirstPerson and armorData.norender then
-				dbg("DrawArmors: norender в first person — " .. armor, "norender_" .. armor)
 			end
 		end
 	end
 	
 	hook.Add("OnNetVarSet","ArmorVarSet",function(index, key, var)
 		if key == "Armor" then
-			dbgOnce = {}
-			hg.ArmorDbg(DBG, "OnNetVarSet Armor ent=" .. index .. " -> " .. util.TableToJSON(var or {}, true))
 			timer.Simple(.1,function()
 				local ent = Entity(index)
-				if not IsValid(ent) then
-					hg.ArmorDbg(DBG, "OnNetVarSet: Entity(" .. index .. ") nil после таймера")
-					return
+
+				local armors = ent.armors or {}
+
+				for k,v in pairs(ent.modelArmor or {}) do
+					if IsValid(ent.modelArmor[k]) then
+						ent.modelArmor[k]:Remove()
+					end
+					ent.modelArmor[k] = nil
 				end
-
-				local owner = ent:IsRagdoll() and hg.RagdollOwner(ent) or ent
-				if not IsValid(owner) then owner = ent end
-
-				clearArmorModels(owner)
 
 				ent.armors = var
-				if owner ~= ent then
-					owner.armors = var
-				end
 			end)
-		end
-	end)
-
-	hook.Add("PostDrawTranslucentRenderables", "HG_DrawArmorsWorld", function(_, skybox)
-		if skybox then return end
-		if not RenderArmors then return end
-
-		local lply = LocalPlayer()
-		local third = hg_thirdperson:GetBool()
-
-		for _, ply in player.Iterator() do
-			if not IsValid(ply) then continue end
-			if ply == lply and not third then continue end
-			if ply:GetNetVar("HideArmorRender", false) then continue end
-
-			local armors = hg.GetPlayerArmor(ply)
-			if not next(armors) then continue end
-
-			local ent = hg.GetCurrentCharacter and hg.GetCurrentCharacter(ply) or ply
-			if not IsValid(ent) then continue end
-
-			RenderArmors(ply, armors, ent)
 		end
 	end)
 	
