@@ -19,7 +19,7 @@ SWEP.DeployHoldRH = "ak_hold"
 SWEP.HolsterSnd = {"homigrad/weapons/holster_rifle.mp3", 55, 100, 110}
 
 function SWEP:Step_HolsterDeploy(time)
-	local deployEnd = self.GetDeployEnd and self:GetDeployEnd() or 0
+	local deployEnd = self:GetDeployEndTime()
 	self.deploy = deployEnd ~= 0 and deployEnd or nil
 
 	if self.deploy and self.deploy < time then
@@ -43,10 +43,21 @@ function SWEP:BeginDeploy()
 		self:SetDeployEnd(time)
 	end
 	self.deploy = time
+
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner.holdingWeapon == self then
+		owner.holdingWeapon = nil
+	end
+end
+
+function SWEP:GetDeployEndTime()
+	local deployEnd = self.GetDeployEnd and self:GetDeployEnd() or 0
+	if deployEnd == 0 then deployEnd = self.deploy or 0 end
+	return deployEnd
 end
 
 function SWEP:GetDeployDrawLerp()
-	local deployEnd = self.GetDeployEnd and self:GetDeployEnd() or 0
+	local deployEnd = self:GetDeployEndTime()
 	if deployEnd == 0 or deployEnd <= CurTime() then return end
 	local duration = self.CooldownDeploy / (self.Ergonomics or 1)
 	local t = math.Clamp(1 - ((deployEnd - CurTime()) / duration) * 1.2, 0, 1)
@@ -360,31 +371,50 @@ if CLIENT then
 		return pos, ang
 	end
 
-	function SWEP:UpdateGripHandPos(wm, fallbackPos, fallbackAng)
-		if not IsValid(wm) then return end
-
-		local gripBone = self.GripBone or "ValveBiped.Bip01_R_Hand"
-		local bone = wm:LookupBone(gripBone)
-		local mat = bone and wm:GetBoneMatrix(bone)
-		if mat then
-			self.handPos = mat:GetTranslation()
-			self.handAng = mat:GetAngles()
-			self.gripFromBone = true
-			return
-		end
-
-		self.gripFromBone = nil
-		if not fallbackPos or not fallbackAng then return end
-
+	function SWEP:GripHandPosFromModel(modelPos, modelAng)
 		local offsetPos = self.holsterWorldPos or self.weaponPos or vector_origin
 		local offsetAng = self.holsterWorldAng or self.weaponAng or angle_zero
 		local matrix = Matrix()
 		matrix:SetTranslation(offsetPos)
 		matrix:SetAngles(offsetAng)
 		local inv = matrix:GetInverse()
-		local ang = Angle(fallbackAng.p, fallbackAng.y, fallbackAng.r)
+		local ang = Angle(modelAng.p, modelAng.y, modelAng.r)
 		ang:RotateAroundAxis(ang:Forward(), 180)
-		self.handPos, self.handAng = LocalToWorld(inv:GetTranslation(), inv:GetAngles(), fallbackPos, ang)
+		return LocalToWorld(inv:GetTranslation(), inv:GetAngles(), modelPos, ang)
+	end
+
+	function SWEP:UpdateGripHandPos(wm, ent, owner)
+		local bonePos, boneAng
+		if IsValid(wm) then
+			local gripBone = self.GripBone or "ValveBiped.Bip01_R_Hand"
+			local bone = wm:LookupBone(gripBone)
+			local mat = bone and wm:GetBoneMatrix(bone)
+			if mat then
+				bonePos, boneAng = mat:GetTranslation(), mat:GetAngles()
+			end
+		end
+
+		local deployLerp = self:GetDeployDrawLerp()
+		if deployLerp and bonePos and IsValid(ent) and IsValid(owner) then
+			local holPos, holAng = self:GetHolsterWorldTransform(ent, owner)
+			if holPos then
+				local holHandPos, holHandAng = self:GripHandPosFromModel(holPos, holAng)
+				self.handPos = LerpVector(deployLerp, holHandPos, bonePos)
+				self.handAng = LerpAngle(deployLerp, holHandAng, boneAng)
+				self.gripFromBone = deployLerp >= 0.85
+				return
+			end
+		end
+
+		if bonePos then
+			self.handPos, self.handAng = bonePos, boneAng
+			self.gripFromBone = true
+			return
+		end
+
+		self.handPos = nil
+		self.handAng = nil
+		self.gripFromBone = nil
 	end
 
 	function SWEP:ApplyDeployDrawLerp(ent, owner, endPos, endAng)
@@ -629,13 +659,7 @@ if CLIENT then
         end
 
 		if IsValid(owner) and IsValid(ent) and inuse then
-			local fbPos, fbAng
-			if self.WorldModelExchange and IsValid(self.worldModel2) then
-				fbPos, fbAng = self.worldModel2:GetPos(), self.worldModel2:GetAngles()
-			else
-				fbPos, fbAng = WorldModel:GetPos(), WorldModel:GetAngles()
-			end
-			self:UpdateGripHandPos(WorldModel, fbPos, fbAng)
+			self:UpdateGripHandPos(WorldModel, ent, owner)
 		elseif IsValid(owner) then
 			self.handPos = nil
 			self.handAng = nil
@@ -985,7 +1009,12 @@ function SWEP:SetHandPos(noset)
 	local wm = self:GetWM()
 	if !IsValid(wm) then return end
 
-	local useGripRH = self.setrh and self.handPos and self.handAng and owner.holdingWeapon ~= self and self:InUse()
+	if CLIENT and self:InUse() and IsValid(ent) and self.UpdateGripHandPos then
+		self:UpdateGripHandPos(wm, ent, owner)
+	end
+
+	local deploying = self.GetDeployDrawLerp and self:GetDeployDrawLerp()
+	local useGripRH = self.setrh and self.handPos and self.handAng and self:InUse() and (deploying or owner.holdingWeapon ~= self)
 
 	self.rhandik = self.setrh and IsValid(owner)
 	self.lhandik = self.setlh and IsValid(owner) and (ply:GetTable().ChatGestureWeight < 0.1) and hg.CanUseLeftHand(ply) and !(owner.suiciding and self.SuicideNoLH)
@@ -1119,6 +1148,10 @@ function SWEP:Deploy()
     self.Initialzed = true
     self.EquipLockEnd = CurTime() + math.max(self.EquipTime or 1, 0)
     self:BeginDeploy()
+    if CLIENT then
+        self.stopanim = nil
+        self.callback = nil
+    end
     self:PlayAnim("deploy", self.DrawAnimTime or 1.25, false, nil, false, true)
     self:SetHold(self.HoldType)
 	
@@ -1746,9 +1779,10 @@ function SWEP:CustomThink()
     end
 
     local holdType = self.HoldType
-    if self.deploy then
+    local deployEnd = self:GetDeployEndTime()
+    if deployEnd > CurTime() then
         local duration = self.CooldownDeploy / (self.Ergonomics or 1)
-        if (self.deploy - CurTime()) / duration > 0.5 then
+        if (deployEnd - CurTime()) / duration > 0.5 then
             holdType = "normal"
         end
     end
