@@ -144,30 +144,30 @@ surface.CreateFont("ZCity_Fixed_Icons_Small", {
 
 
 --//
-
+local zcfont = 'TrixiePro-Heavy'
 surface.CreateFont("ZCity_Veteran", {
-    font = getFont(),
+    font = zcfont,
     size = ScreenScaleH(15),
     weight = 500,
     extended = true,
     antialias = true,
 })
 surface.CreateFont("ZCity_Veteran_small", {
-    font = getFont(),
+    font = zcfont,
     size = ScreenScale(10),
     weight = 500,
     extended = true,
     antialias = true,
 })
 surface.CreateFont("ZCity_Veteran_hmcdobj", {
-    font = getFont(),
+    font = zcfont,
     size = ScreenScale(14),
     weight = 500,
     extended = true,
     antialias = true,
 })
 surface.CreateFont("ZCity_Veteran_big", {
-    font = getFont(),
+    font = zcfont,
     size = ScreenScale(20),
     weight = 500,
     extended = true,
