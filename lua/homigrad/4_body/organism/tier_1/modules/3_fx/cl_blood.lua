@@ -39,6 +39,7 @@ hook.Add("PostCleanupMap","removeblooddroplets",function()
 	hg.bloodparticles1 = {}
 	hg.bloodpositions = {}
 	hg.bloodcount = 0
+	hg.blood_react_cells = {}
 end)
 
 local mat_huy = Material("effects/blood_core")
@@ -97,6 +98,10 @@ hg.bloodpositions = hg.bloodpositions or {}
 hg.bloodcount = hg.bloodcount or 0
 local function decalBlood(pos, normal, tr, artery, owner)
 	local vec = tostring(math.Round(pos[1]))..tostring(math.Round(pos[2]))..tostring(math.Round(pos[3]))
+
+	hg.blood_react_cells = hg.blood_react_cells or {}
+	local cell = math.floor(pos.x / 80) .. ":" .. math.floor(pos.y / 80) .. ":" .. math.floor(pos.z / 80)
+	hg.blood_react_cells[cell] = (hg.blood_react_cells[cell] or 0) + 1
 
 	hg.bloodcount = hg.bloodcount + 1
 	

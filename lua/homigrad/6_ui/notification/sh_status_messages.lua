@@ -510,3 +510,10 @@ function hg.get_status_message(ply)
 
 	return txt
 end
+
+function hg.get_blood_react_message()
+	local phrases = hg.blood_react_phrases
+	if not phrases or #phrases < 1 then return "" end
+
+	return phrases[math.random(#phrases)]
+end
