@@ -99,8 +99,7 @@ local function processRigor(rag, fade)
 		if not bone then continue end
 		local phys = rag:GetPhysicsObjectNum(rag:TranslateBoneToPhysBone(bone))
 		if not IsValid(phys) then continue end
-		--phys:SetDamping(damp, damp * 2)
-		if fade > 0.3 then phys:ApplyForceCenter(VectorRand(-45, 45) * fade) end
+		phys:SetDamping(damp, damp * 2)
 	end
 end
 
@@ -120,6 +119,7 @@ end
 --;; when furfag
 local function applyFencingToPlayer(ply, org)
 	if not IsValid(ply) or not ply:Alive() then return end
+	if IsValid(ply.FakeRagdoll) then return end
 	if org.fencing then return end 
 	
 	local dur = math_rand(3, 8) 
@@ -174,6 +174,8 @@ local function clearFencing(rag)
 	rag.fencing, rag.fencingEnd, rag.fencingDur = nil, nil, nil
 end
 
+hg.clearFencing = clearFencing
+
 local function clearSpasm(rag)
 	if rag.spasmType == "rigor" and rag.rigorActive then
 		for i = 1, #rigorBones do
@@ -185,6 +187,20 @@ local function clearSpasm(rag)
 	end
 	rag.spasm, rag.spasmEnd, rag.spasmStart, rag.spasmDur, rag.spasmForce, rag.spasmType, rag.rigorActive = nil, nil, nil, nil, nil, nil, nil
 end
+
+hg.clearSpasm = clearSpasm
+
+local function stopBrainfuckOnRagdoll(org)
+	local rag = hg.GetCurrentCharacter(org.owner)
+	if not IsValid(rag) or not rag:IsRagdoll() then return end
+	if rag.fencing or org.fencing then
+		clearFencing(rag)
+		org.fencing, org.fencingEnd, org.fencingDur = nil, nil, nil
+	end
+	if rag.spasm then clearSpasm(rag) end
+end
+
+hg.stopBrainfuckOnRagdoll = stopBrainfuckOnRagdoll
 
 hook.Add("Should Fake Up", "BrainfuckFencing", function(ply)
 	local org = ply.organism
@@ -203,6 +219,7 @@ hook.Add("RagdollDeath", "BrainfuckStart", function(ply, rag)
 		local org = ply.organism
 		if not org then return end
 		if rag.noHead or org.noHead or ply.noHead then return end
+		if IsValid(ply.FakeRagdoll) and ply.FakeRagdoll == rag then return end
 		
 		local hadBrainDamage = org.brain and org.brain > 0
 		local hadSkullDamage = org.skull and org.skull > 0
@@ -210,7 +227,7 @@ hook.Add("RagdollDeath", "BrainfuckStart", function(ply, rag)
 		local headshot = hadBrainDamage or hadSkullDamage or hadHeadDamage
 		
 		if headshot and math_random() < CHANCE then
-			local stype = "rigor"--getRandomSpasm()
+			local stype = "rigor"
 			applySpasm(rag, stype)
 			if rag.organism then rag.organism.spasm, rag.organism.spasmType = true, stype end
 		end
@@ -218,8 +235,12 @@ hook.Add("RagdollDeath", "BrainfuckStart", function(ply, rag)
 end)
 
 local function ownerFakeRagdoll(owner)
-	if not IsValid(owner) or not owner:IsPlayer() then return end
+	if not IsValid(owner) then return end
+	if owner:IsRagdoll() then return owner end
+	if not owner:IsPlayer() then return end
 	local rag = owner.FakeRagdoll
+	if IsValid(rag) then return rag end
+	rag = owner:GetNWEntity("RagdollDeath")
 	if IsValid(rag) then return rag end
 end
 

@@ -263,6 +263,8 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 	
 	local result, vecrand = damageBone(org, 0.25, dmg, dmgInfo, "skull", boneindex, dir, hit, ricochet)
 
+	if (org.skull - oldDmg) > 0 then hg.stopBrainfuckOnRagdoll(org) end
+
 	hg.AddHarmToAttacker(dmgInfo, (org.skull - oldDmg) * 4, "Skull bone damage harm")
 
 	if org.skull == 1 then
@@ -284,18 +286,16 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 	end
 
 	if org.brain >= 0.01 and math.random(3) == 1 and (rnd or (org.skull - oldDmg) > 0.6) then
-		--hg.applyFencingToPlayer(org.owner, org)
 		org.shock = 70
 
 		timer.Simple(0.1, function()
+			if not IsValid(org.owner) then return end
 			local rag = hg.GetCurrentCharacter(org.owner)
-
 			if IsValid(rag) and rag:IsRagdoll() then
-				hg.applyFencingToPlayer(org.owner, org)
-				--local stype = "rigor"--hg.getRandomSpasm()
-				--hg.applySpasm(rag, stype)
-				--if rag.organism then rag.organism.spasm, rag.organism.spasmType = true, stype end
+				hg.stopBrainfuckOnRagdoll(org)
+				return
 			end
+			hg.applyFencingToPlayer(org.owner, org)
 		end)
 	end
 

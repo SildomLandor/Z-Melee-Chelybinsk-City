@@ -85,6 +85,8 @@ input_list.brain = function(org, bone, dmg, dmgInfo)
 	local oldDmg = org.brain
 	local result = damageOrgan(org, dmg * 1, dmgInfo, "brain")
 
+	if (org.brain - oldDmg) > 0 then hg.stopBrainfuckOnRagdoll(org) end
+
 	hg.AddHarmToAttacker(dmgInfo, (org.brain - oldDmg) * 15, "Brain damage harm")
 
 	if dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT) then
@@ -107,18 +109,16 @@ input_list.brain = function(org, bone, dmg, dmgInfo)
 	end
 
 	if org.brain >= 0.01 and (org.brain - oldDmg) > 0.01 and math.random(3) == 1 then
-		--hg.applyFencingToPlayer(org.owner, org)
 		org.shock = 70
 
 		timer.Simple(0.1, function()
+			if not IsValid(org.owner) then return end
 			local rag = hg.GetCurrentCharacter(org.owner)
-
 			if IsValid(rag) and rag:IsRagdoll() then
-				hg.applyFencingToPlayer(org.owner, org) -- looks more appealing anyways
-				--local stype = "rigor"--hg.getRandomSpasm()
-				--hg.applySpasm(rag, stype)
-				--if rag.organism then rag.organism.spasm, rag.organism.spasmType = true, stype end
+				hg.stopBrainfuckOnRagdoll(org)
+				return
 			end
+			hg.applyFencingToPlayer(org.owner, org)
 		end)
 	end
 
