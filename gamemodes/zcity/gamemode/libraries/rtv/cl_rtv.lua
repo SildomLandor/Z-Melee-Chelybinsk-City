@@ -3,8 +3,6 @@ local time = 0
 local votes = {}
 local blacklistedMaps = {}
 local winmap = ""
-local rtvStarted = false
-local rtvEnded = false
 local activeRTVMenu
 
 local VoteCD = 0
