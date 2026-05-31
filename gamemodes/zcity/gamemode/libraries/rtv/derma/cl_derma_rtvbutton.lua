@@ -129,7 +129,7 @@ function PANEL:Paint(w, h)
         end
     end
 
-    local voteText = tostring(self.Votes) .. " votes"
+    local voteText = tostring(self.Votes) .. " голосов"
     surface.SetFont("ZCity_Tiny")
     local voteW, voteH = surface.GetTextSize(voteText)
     surface.SetTextColor(185, 185, 185, 230)
@@ -139,7 +139,7 @@ function PANEL:Paint(w, h)
     if self.Blacklisted then
         surface.SetDrawColor(0, 0, 0, 160)
         surface.DrawRect(0, 0, w, h)
-        local msg = "Map is blacklisted"
+        local msg = "Карта занесена в черный список"
         surface.SetFont("ZCity_Small")
         local mw, mh = surface.GetTextSize(msg)
         surface.SetTextColor(255, 255, 255, 245)

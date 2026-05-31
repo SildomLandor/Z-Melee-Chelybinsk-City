@@ -454,9 +454,9 @@ end)
 hook.Add("ZB_StartRound","NO_HARM",function()
     for i,ply in player.Iterator() do
         if (ply.Guilt or 0) < 1 then
-            ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.75) + 0.25, 0.75, 1.5)
+            ply.KarmaGain = math.Clamp((ply.KarmaGain or 0.25) + 0.25, 0.75, 1.5)
         else
-            ply.KarmaGain = 0.75
+            ply.KarmaGain = 0.25
         end
 
         //ply:guilt_SetValue( ply.Karma or 100 )

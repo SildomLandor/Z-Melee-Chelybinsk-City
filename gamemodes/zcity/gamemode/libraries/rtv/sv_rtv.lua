@@ -530,10 +530,7 @@ local function rtv(ply, args)
     
     for _, v in player.Iterator() do
         if remaining != 0 then
-            v:ChatPrint(
-                ply:Nick() .. " Проголосовал за смену карты. " .. 
-                remaining .. " Осталось голосов."
-            )
+            v:ChatPrint("Осталось " .. remaining .. " голосов до смены карты.")
         end
     end
 

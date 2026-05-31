@@ -3,7 +3,7 @@ include("shared.lua")
 include("loader.lua")
 
 if not ConVarExists("hg_newspectate") then
-    CreateClientConVar("hg_newspectate", "1", true, false, "Enables smooth spectator camera transitions", 0, 1)
+    CreateClientConVar("hg_newspectate", "1", true, false, "Плавное движение в наблюдателях между игроками", 0, 1)
 end
 
 function CurrentRound()
@@ -143,11 +143,11 @@ hook.Add("HUDPaint","FUCKINGSAMENAMEUSEDINHOOKFUCKME",function()
 	
 	surface.SetFont("HomigradFont")
 	surface.SetTextColor(255, 255, 255, 255)
-	local txt = "Spectating player: "..spectEnt:Name()
+	local txt = "Игрок: "..spectEnt:Name()
 	local w, h = surface.GetTextSize(txt)
 	surface.SetTextPos(ScrW() / 2 - w / 2, ScrH() / 8 * 7)
 	surface.DrawText(txt)
-	local txt = "In-game name: "..spectEnt:GetPlayerName()
+	local txt = "Имя: "..spectEnt:GetPlayerName()
 	local w, h = surface.GetTextSize(txt)
 	surface.SetTextPos(ScrW() / 2 - w / 2, ScrH() / 8 * 7 + h)
 	surface.DrawText(txt)
@@ -474,8 +474,8 @@ local function OpenPlayerSoundSettings(selfa, ply)
 	local Menu = DermaMenu()
 	
 	if not hg.playerInfo[ply:SteamID()] or not istable(hg.playerInfo[ply:SteamID()]) then addToPlayerInfo(ply, false, 1) end
-
-	local mute = Menu:AddOption( "Mute", function(self)
+	
+	local mute = Menu:AddOption( "Заглушить", function(self)
 		if hg.muteall || hg.mutespect then return end
 		
 		self:SetChecked(not ply:IsMuted())
@@ -514,7 +514,7 @@ local function OpenPlayerSoundSettings(selfa, ply)
 	
 	if not hg.playerInfo[ply:SteamID()] or not istable(hg.playerInfo[ply:SteamID()]) then addToPlayerInfo(ply, false, 1) end
 
-	local mute = Menu:AddOption( "Mute", function(self)
+	local mute = Menu:AddOption( "Заглушить", function(self)
 		if not IsValid(ply) then return end
 		if hg.muteall or (hg.mutespect and not ply:Alive()) then return end
 		
@@ -999,7 +999,7 @@ function GM:ScoreboardShow()
 
 		tick = math.Round(LerpFT(0.1, tick, 1 / engine.ServerFrameTime()))
 		surface.SetFont("ZCity_Veteran")
-		local tickText = tick .. " tick"
+		local tickText = tick .. " Тикрейт"
 		local tickTW = surface.GetTextSize(tickText)
 		local tickCol = tick >= 60 and col.textDim or (tick >= 30 and Color(220, 180, 60, 200) or col.textBlood)
 		surface.SetTextColor(tickCol)

@@ -421,7 +421,7 @@ net.Receive("ZB_SpecMode",function(len,ply)
 
 	if enable and bool and ply:Team() != TEAM_SPECTATOR then if ply:Alive() then ply:Kill() end ply:SetTeam(TEAM_SPECTATOR) PrintMessage(HUD_PRINTTALK,ply:Name().." joined the spectators.") 
 	elseif ply:Team() != 1 then
-		ply:SetTeam(1) PrintMessage(HUD_PRINTTALK,ply:Name().." joined the players.")  
+		ply:SetTeam(1)  
 	end
 end)
 
@@ -492,7 +492,7 @@ hook.Add("PostCleanupMap","changelevel_generate",function()
 
     if not IsValid(map) then map = select(2, table.Random(maps)) end
     
-    print("Next map is: "..map.map)
+    --print("Next map is: "..map.map)
 
     local min, max = map:WorldSpaceAABB()
     local tdmlPos = max - ((max - min) / 2)
