@@ -18,6 +18,8 @@ local function panic(ent, why)
 
 	hook.Run("OnCrazyPhysics", ent, ent:GetPhysicsObject(), why)
 
+	if hg.physPlayerRag(ent) then return end
+
 	local t = CurTime()
 	if t > winT then
 		winT = t + 1
