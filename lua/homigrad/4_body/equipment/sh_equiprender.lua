@@ -229,6 +229,10 @@ if CLIENT then
 			end)
 		end
 	end)
+
+	hook.Add("PostDrawAppearance", "RenderArmors", function(ent, ply)
+		RenderArmors(ply, ply.armors or ply:GetNetVar("Armor", {}), ent)
+	end)
 	
 	local mat = Material("sprites/mat_jack_hmcd_helmover")
 	loopingsound = nil
