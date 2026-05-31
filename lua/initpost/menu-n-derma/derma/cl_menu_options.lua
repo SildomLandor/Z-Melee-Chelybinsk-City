@@ -25,7 +25,6 @@ function hg.settings:AddOpt( strCategory, strConVar, strTitle, bDecimals, bStrin
 end
 
 hg.settings:AddOpt("Оптимизация","hg_potatopc", "Режим картофельного ПК")
-hg.settings:AddOpt("Оптимизация","hg_tpik_near_only", "TPIK только себя и тех кто рядом с тобой")
 hg.settings:AddOpt("Оптимизация","hg_anims_draw_distance", "Дальность прорисовки анимаций")
 hg.settings:AddOpt("Оптимизация","hg_anim_fps", "FPS анимаций")
 hg.settings:AddOpt("Оптимизация","hg_attachment_draw_distance", "Дальность прорисовки аксессуаров")
