@@ -33,12 +33,12 @@ local function alive(p)
 		and (p.afkTime or 0) < 120
 end
 
-local function karma(ply, n, msg)
-	if not IsValid(ply) then return end
+local function karma(ply, n)
+	if not IsValid(ply) or n < 1 then return end
 	ply.Karma = math.Clamp((ply.Karma or 100) - n, -60, zb.MaxKarma or 210)
 	if ply.guilt_SetValue then ply:guilt_SetValue(ply.Karma) end
 	if zb.KarmaSync then zb.KarmaSync(ply, true) end
-	if ply.Notify then ply:Notify(msg, 7, "guilt", 1, nil, Color(255, 130, 70)) end
+	if ply.Notify then ply:Notify("-" .. n .. " кармы.", 5, "guilt", 1, nil, Color(255, 80, 80)) end
 end
 
 local function score(ply, add)
@@ -47,12 +47,10 @@ local function score(ply, add)
 	ply._apScore = s
 	if s >= 28 and st < 2 then
 		ply._apStage = 2
-		karma(ply, 16, "Тиммерство: -16 кармы")
-		PrintMessage(HUD_PRINTTALK, ply:Nick() .. " - штраф за подозрение в тиммерстве.")
+		karma(ply, 16)
 	elseif s >= 14 and st < 1 then
 		ply._apStage = 1
-		karma(ply, 6, "Подозрение в тиммерстве")
-		if ply.ChatPrint then ply:ChatPrint("Не держись рядом с врагом и не лечи предателя - иначе карма.") end
+		karma(ply, 6)
 	end
 end
 
@@ -76,11 +74,6 @@ timer.Create("zb_AP", 4, 0, function()
 			AP.pairs[k] = row
 			score(a, 1.4)
 			score(b, 1.19)
-			if row.t >= 36 and not row.n then
-				row.n = true
-				if a.ChatPrint then a:ChatPrint("Слишком долго рядом с врагом - это похоже на тиммерство.") end
-				if b.ChatPrint then b:ChatPrint("Слишком долго рядом с врагом - это похоже на тиммерство.") end
-			end
 		end
 	end
 end)
@@ -100,9 +93,8 @@ end)
 hook.Add("zb_AP_HealOther", "zb_AP", function(h, t)
 	if not AP.ShouldReportHeal(h, t) or harm(h, t) >= 7 then return end
 	if rnd().name == "hmcd" then
-		if alive(h) then score(h, 22) score(t, 7.7) end
-	else karma(h, 12, "Лечение врага: -12 кармы") end
-	PrintMessage(HUD_PRINTTALK, h:Nick() .. " лечит врага.")
+		if alive(h) then score(h, 22) end
+	else karma(h, 12) end
 end)
 
 hook.Add("Player_Death", "zb_AP", function(vic)
@@ -127,6 +119,6 @@ end)
 hook.Add("ZB_EndRound", "zb_AP", function()
 	if not rnd() or rnd().name ~= "hmcd" then return end
 	for _, p in player.Iterator() do
-		if (p._apScore or 0) >= 24 then karma(p, 12, "Тиммерство в конце раунда") end
+		if (p._apScore or 0) >= 24 then karma(p, 12) end
 	end
 end)
