@@ -153,11 +153,22 @@ local check_playerspawns = function(SpawnPos, ply, tolerance)
 end
 
 function zb:GetRandomSpawn(target, spawns)
-	if !spawns or table.IsEmpty(spawns) then
+	if not spawns or table.IsEmpty(spawns) then
 		spawns = spawners
 	end
-	
-	return zb:FurthestFromEveryone(spawns, player.GetAll(), check_playerspawns)
+
+	if table.IsEmpty(spawns) then
+		getRandSpawn()
+		spawns = spawners
+	end
+
+	if table.IsEmpty(spawns) then return end
+
+	local pos = zb:FurthestFromEveryone(spawns, player.GetAll(), check_playerspawns)
+	if isvector(pos) then return pos end
+
+	pos = table.Random(spawners)
+	if isvector(pos) then return pos end
 end
 
 function zb:FurthestFromEveryone(chooseTbl, restrictTbl, func, iStart, iEnd)
@@ -205,20 +216,16 @@ function GM:PlayerSelectSpawn(ply, transition)
 end
 
 local function PlayerSelectSpawn(ply, transition)
-	if CurrentRound().randomSpawns then
-		local randSpawn = zb:GetRandomSpawn()
-		ply:SetPos(randSpawn)
+	local pos
 
-		return
+	if CurrentRound().randomSpawns then
+		pos = zb:GetRandomSpawn()
+	else
+		pos = zb:GetTeamSpawn(ply) or zb:GetRandomSpawn()
 	end
 
-	local spawnPos = zb:GetTeamSpawn(ply)
-
-	if not spawnPos then
-		local randSpawn = zb:GetRandomSpawn()
-		ply:SetPos(randSpawn)
-	else
-		ply:SetPos(spawnPos)
+	if isvector(pos) then
+		ply:SetPos(pos)
 	end
 end
 

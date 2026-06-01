@@ -539,11 +539,22 @@ function MODE.GetPlayingPlayers()
 	return plys
 end
 
+local function hmcd_pick_traitor_word()
+	local words = MODE.TraitorWords
+	if not words or #words < 1 then return "traitor" end
+	return words[math.random(1, #words)]
+end
+
+function MODE.PickTraitorWords()
+	MODE.TraitorWord = hmcd_pick_traitor_word()
+	MODE.TraitorWordSecond = hmcd_pick_traitor_word()
+end
+
 function MODE.SyncTraitorNWStrings()
 	for _, ply in player.Iterator() do
 		if ply.isTraitor then
-			ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord)
-			ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond)
+			ply:SetNWString("HMCD_TraitorWord", MODE.TraitorWord or "")
+			ply:SetNWString("HMCD_TraitorWord2", MODE.TraitorWordSecond or "")
 		else
 			ply:SetNWString("HMCD_TraitorWord", "")
 			ply:SetNWString("HMCD_TraitorWord2", "")
@@ -665,17 +676,21 @@ function MODE.SendRoundStartHUD(ply, screen_time_is_default)
 		end
 	end
 
+	if ply.isTraitor and (not MODE.TraitorWord or not MODE.TraitorWordSecond) then
+		MODE.PickTraitorWords()
+	end
+
 	net.Start("HMCD_RoundStart")
 		net.WriteBool(ply.isTraitor)
 		net.WriteBool(ply.isGunner)
-		net.WriteString(MODE.Type)
+		net.WriteString(MODE.Type or "")
 		net.WriteBool(screen_time_is_default)
 		net.WriteString(ply.SubRole or "")
 		net.WriteBool(ply.MainTraitor == true)
 
 		if ply.isTraitor then
-			net.WriteString(MODE.TraitorWord)
-			net.WriteString(MODE.TraitorWordSecond)
+			net.WriteString(MODE.TraitorWord or "")
+			net.WriteString(MODE.TraitorWordSecond or "")
 			net.WriteUInt(traitor_amt, MODE.TraitorExpectedAmtBits)
 
 			if screen_time_is_default then
@@ -733,6 +748,8 @@ function MODE:Intermission()
 	end
 
 	self.Type = CROUND
+	MODE.PickTraitorWords()
+
 	local player_count = 0
 
 	for k, ply in player.Iterator() do
@@ -751,9 +768,6 @@ function MODE:Intermission()
 		ply.organism.recoilmul = DefaultSkillIssue
 		player_count = player_count + 1
 	end
-
-	MODE.TraitorWord = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
-	MODE.TraitorWordSecond = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 
 	local traitors_needed
 	if player_count == 2 then
