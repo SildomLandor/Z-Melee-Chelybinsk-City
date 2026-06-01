@@ -88,6 +88,7 @@ end
 SWEP.setlh = true
 SWEP.setrh = true
 SWEP.TwoHanded = false
+SWEP.shouldntDrawHolstered = true
 
 SWEP.AttackHit = "Plastic_Box.ImpactHard"
 SWEP.Attack2Hit = "Plastic_Box.ImpactHard"
