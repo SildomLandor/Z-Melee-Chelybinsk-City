@@ -1280,7 +1280,7 @@ function PANEL:CreateSettingsPanel()
                         end
                     end
 
-                    btnOff:SetText("off")
+                    btnOff:SetText("Выкл")
                     btnOff:SetFont("ZCity_Veteran")
                     btnOff:Dock(LEFT)
                     btnOff:SetWide(ScreenScale(35))
@@ -1299,7 +1299,7 @@ function PANEL:CreateSettingsPanel()
                         end)
                     end
 
-                    btnOn:SetText("on")
+                    btnOn:SetText("Вкл")
                     btnOn:SetFont("ZCity_Veteran")
                     btnOn:Dock(LEFT)
                     btnOn:SetWide(ScreenScale(35))
