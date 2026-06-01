@@ -752,7 +752,6 @@ function MODE:Intermission()
 		player_count = player_count + 1
 	end
 
-	MODE.TraitorFrequency = nil
 	MODE.TraitorWord = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 	MODE.TraitorWordSecond = MODE.TraitorWords[math.random(1, #MODE.TraitorWords)]
 
@@ -1155,7 +1154,7 @@ hook.Add("PlayerCanPickupWeapon", "HMCD_TraitorRadioPickup", function( ply, weap
             weapon:Remove()
 			local wpn = ply:GetWeapon("weapon_walkie_talkie")
 			if IsValid(wpn) then ply:SetActiveWeapon(wpn) end
-			ply:ChatPrint("Вы спрятали лишнюю рацию.")
+			ply:ChatPrint("Вы спрятали лишний телефон.")
         end
     end
 end)
@@ -1653,12 +1652,8 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                 if(current_ply.isTraitor)then
                     timer.Simple(0, function()
                         if not IsValid(this_player) or not this_player:Alive() then return end
-                        local walkie_talkie = this_player:Give("weapon_walkie_talkie")
-					if IsValid(walkie_talkie) and walkie_talkie.Frequencies then
-						MODE.TraitorFrequency = MODE.TraitorFrequency or math.random(1, #walkie_talkie.Frequencies)
-						walkie_talkie.Frequency = MODE.TraitorFrequency
-						this_player:ChatPrint("Частота рации: " .. walkie_talkie.Frequencies[MODE.TraitorFrequency])
-					end
+                        this_player:Give("weapon_walkie_talkie")
+					this_player:ChatPrint("Телефон: включи и говори — другие предатели услышат.")
                     end)
                 end
             end

@@ -10,8 +10,7 @@ AddCSLuaFile("loader.lua")
 include("loader.lua")
 
 local function UpdateServerHostname()
-	local version = tostring(hg and hg.Version or "")
-	local hostname = "CHELYABINSK | RU | " .. version
+	local hostname = "CHELYABINSK | RU | " .. hg.Version
 
 	local port = 0
 	local ip = game.GetIPAddress()
@@ -35,7 +34,7 @@ local function UpdateServerHostname()
 end
 
 hook.Add("Initialize", "ZB_SetHostname", function()
-	timer.Simple(0, UpdateServerHostname)
+	timer.Simple(5, UpdateServerHostname)
 end)
 
 local PLAYER = FindMetaTable("Player")
