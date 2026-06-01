@@ -229,16 +229,11 @@ end
 function MODE:GiveEquipment()
 	for _, ply in player.Iterator() do
 		if not ply:Alive() or ply:Team() == TEAM_SPECTATOR then continue end
-
 		ply:SetSuppressPickupNotices(true)
 		ply.noSound = true
 		ply:SetPlayerClass("default")
 		zb.GiveRole(ply, "Выживший", Color(0, 56, 0))
-
 		ply:Give("weapon_hands_sh")
-		ply:Give("weapon_bandage_sh")
-		ply:Give("weapon_melee")
-
 		ply:SetSuppressPickupNotices(false)
 		ply.noSound = false
 	end

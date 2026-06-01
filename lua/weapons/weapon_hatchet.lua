@@ -6,6 +6,7 @@ SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.HoldType = "melee"
+SWEP.Slot = 1
 
 SWEP.SuicidePos = Vector(28, 6, -31)
 SWEP.SuicideAng = Angle(-70, -180, 90)
@@ -20,6 +21,11 @@ SWEP.SuicidePunchAng = Angle(5, -15, 0)
 
 SWEP.Weight = 0
 SWEP.weight = 1
+
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis"
+SWEP.holsteredPos = Vector(-8, -5, 0)
+SWEP.holsteredAng = Angle(0, 0, 90)
 
 SWEP.WorldModel = "models/hatedmekkr/boneworks/weapons/melee/blades/axes/bw_wpn_ax_hatchet.mdl"
 SWEP.WorldModelReal = "models/weapons/tfa_nmrih/v_me_hatchet.mdl"

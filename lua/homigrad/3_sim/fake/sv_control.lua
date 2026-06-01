@@ -542,7 +542,7 @@ hook.Add("Think", "Fake", function()
 			end
 
 			if org.stamina[1] < 50 and (IsValid(ragdoll.ConsRH) or IsValid(ragdoll.ConsLH)) then
-				ply:Notify( math.random(1,2) == 1 and "I'm at my limits here!" or "I can't hold much longer...", 25, "ragdoll_almostfall", 0, nil, Color(200, 55, 55))
+				ply:Notify( math.random(1,2) == 1 and "Пальцы скользят... Я сейчас упаду..." or "Пальцы... Больше не держат...", 25, "ragdoll_almostfall", 0, nil, Color(200, 55, 55))
 			end
 
 			if ply:KeyDown(IN_SPEED) and org.canmove and !org.larmamputated and (!ply.HandsStun or ply.HandsStun < CurTime()) then
@@ -744,7 +744,7 @@ hook.Add("Think", "Fake", function()
 				end
 
 				if org.otrub then
-					ply:Notify("They seem unresponsive.", 60, "choked"..(org.owner:EntIndex()))
+					ply:Notify("Кажеться... Он не дышит", 60, "Не дышит"..(org.owner:EntIndex()))
 				end
 			end
 			--print("huy")

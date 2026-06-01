@@ -7,6 +7,8 @@ SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.Slot = 1
 
+SWEP.NoHolster = false
+
 SWEP.Weight = 0
 SWEP.weight = 0.4
 SWEP.AutoSwitchTo = false

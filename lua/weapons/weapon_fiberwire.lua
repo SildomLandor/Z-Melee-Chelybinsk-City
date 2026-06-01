@@ -23,6 +23,11 @@ SWEP.AnimTime1 = 1.3
 SWEP.WaitTime1 = 1
 SWEP.ViewPunch1 = Angle(0,-5,3)
 
+SWEP.shouldntDrawHolstered = true
+SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
+SWEP.holsteredPos = Vector(10, -4, 3)
+SWEP.holsteredAng = Angle(-10, 0, 0)
+
 SWEP.Attack2Time = 0.3
 SWEP.AnimTime2 = 1
 SWEP.WaitTime2 = 2

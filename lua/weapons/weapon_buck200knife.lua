@@ -6,6 +6,8 @@ SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
 
+SWEP.shouldntDrawHolstered = true
+
 SWEP.WorldModel = "models/weapons/combatknife/tactical_knife_iw7_wm.mdl"
 SWEP.WorldModelReal = "models/weapons/gleb/c_knife_t.mdl"
 SWEP.WorldModelExchange = "models/zcity/weapons/custom_knife/buck.mdl"

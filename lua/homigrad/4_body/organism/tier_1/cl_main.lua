@@ -195,7 +195,7 @@ hook.Add("radialOptions", "DislocatedJoint", function()
 				lply.tried_fixing_limb = CurTime() + 0.5
 				RunConsoleCommand("hg_fixdislocation", 1, 0)
             end,
-            "Fix dislocation (leg)"
+            "Вправить ногу"
         }
         hg.radialOptions[#hg.radialOptions + 1] = tbl
 	else
@@ -207,7 +207,7 @@ hook.Add("radialOptions", "DislocatedJoint", function()
 					lply.tried_fixing_limb = CurTime() + 0.5
 					RunConsoleCommand("hg_fixdislocation", 1, 1)
 				end,
-				"Fix "..ent:GetPlayerName().."'s dislocation (leg)"
+				"Вправить ногу "..ent:GetPlayerName()..""
 			}
 			hg.radialOptions[#hg.radialOptions + 1] = tbl
 		end
@@ -226,7 +226,7 @@ hook.Add("radialOptions", "DislocatedJoint2", function()
 				lply.tried_fixing_limb = CurTime() + 0.5
 				RunConsoleCommand("hg_fixdislocation", 2, 0)
             end,
-            "Fix dislocation (arm)"
+            "Вправить руку"
         }
         hg.radialOptions[#hg.radialOptions + 1] = tbl
 	else
@@ -238,7 +238,7 @@ hook.Add("radialOptions", "DislocatedJoint2", function()
 					lply.tried_fixing_limb = CurTime() + 0.5
 					RunConsoleCommand("hg_fixdislocation", 2, 1)
 				end,
-				"Fix "..ent:GetPlayerName().."'s dislocation (arm)"
+				"Вправить руку "..ent:GetPlayerName()..""
 			}
 			hg.radialOptions[#hg.radialOptions + 1] = tbl
 		end
@@ -257,7 +257,7 @@ hook.Add("radialOptions", "DislocatedJaw", function()
 				lply.tried_fixing_limb = CurTime() + 0.5
 				RunConsoleCommand("hg_fixdislocation", 3, 0)
             end,
-            "Fix dislocation (jaw)"
+            "Вправить челюсть"
         }
         hg.radialOptions[#hg.radialOptions + 1] = tbl
 	else
@@ -269,7 +269,7 @@ hook.Add("radialOptions", "DislocatedJaw", function()
 					lply.tried_fixing_limb = CurTime() + 0.5
 					RunConsoleCommand("hg_fixdislocation", 3, 1)
 				end,
-				"Fix "..ent:GetPlayerName().."'s dislocation (jaw)"
+				"Вправить челюсть "..ent:GetPlayerName()..""
 			}
 			hg.radialOptions[#hg.radialOptions + 1] = tbl
 		end

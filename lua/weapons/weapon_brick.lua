@@ -35,6 +35,8 @@ SWEP.PenetrationSecondary = 3
 
 SWEP.MaxPenLen = 2
 
+SWEP.shouldntDrawHolstered = true
+
 SWEP.PenetrationSizePrimary = 2
 SWEP.PenetrationSizeSecondary = 2
 
