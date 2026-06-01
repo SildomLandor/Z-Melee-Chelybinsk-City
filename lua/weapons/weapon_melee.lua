@@ -1016,7 +1016,7 @@ function SWEP:SetHandPos(noset)
 	end
 
 	local deploying = self.GetDeployDrawLerp and self:GetDeployDrawLerp()
-	local useGripRH = self.setrh and self.handPos and self.handAng and self:InUse() and (deploying or owner.holdingWeapon ~= self)
+	local useGripRH = self.setrh and self.handPos and self.handAng and self:InUse() and (deploying or IsValid(owner.holdingWeapon))
 
 	self.rhandik = self.setrh and IsValid(owner)
 	self.lhandik = self.setlh and IsValid(owner) and (ply:GetTable().ChatGestureWeight < 0.1) and hg.CanUseLeftHand(ply) and !(owner.suiciding and self.SuicideNoLH)

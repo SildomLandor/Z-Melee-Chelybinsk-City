@@ -7,6 +7,10 @@ SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.HoldType = "slam"
 
+SWEP.DrawAnimTime = 1
+SWEP.CooldownDeploy = 1
+SWEP.EquipTime = 1
+
 SWEP.WorldModel = "models/weapons/tfa_nmrih/w_me_bat_wood.mdl"
 SWEP.WorldModelReal = "models/weapons/tfa_nmrih/v_me_bat_metal.mdl"
 SWEP.WorldModelExchange = "models/hatedmekkr/boneworks/weapons/melee/blunts/clubs/bw_wpn_clb_baseball.mdl"
