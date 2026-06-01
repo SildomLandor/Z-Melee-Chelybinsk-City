@@ -38,7 +38,6 @@ local function karma(ply, n)
 	ply.Karma = math.Clamp((ply.Karma or 100) - n, -60, zb.MaxKarma or 210)
 	if ply.guilt_SetValue then ply:guilt_SetValue(ply.Karma) end
 	if zb.KarmaSync then zb.KarmaSync(ply, true) end
-	if ply.Notify then ply:Notify("-" .. n .. " кармы.", 5, "guilt", 1, nil, Color(255, 80, 80)) end
 end
 
 local function score(ply, add)
