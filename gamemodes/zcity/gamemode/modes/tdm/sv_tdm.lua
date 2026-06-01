@@ -120,10 +120,7 @@ function MODE:EquipPlayer(ply)
 	ply:Give("weapon_tourniquet")
 	if ply.organism then ply.organism.allowholster = true end
 
-	local Radio = ply:Give("weapon_walkie_talkie")
-	if IsValid(Radio) then
-		Radio.Frequency = (ply:Team() == 1 and math.Round(math.Rand(88,95),1)) or math.Round(math.Rand(100,108),1)
-	end
+	ply:Give("weapon_walkie_talkie")
 
 	ply:Give("weapon_hands_sh")
 	ply:SelectWeapon("weapon_hands_sh")

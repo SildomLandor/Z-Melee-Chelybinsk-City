@@ -1,12 +1,12 @@
-if(SERVER)then 
-	AddCSLuaFile() 
+if SERVER then
+	AddCSLuaFile()
 end
 
 SWEP.Base = "weapon_base"
-SWEP.PrintName = "Рация"
-SWEP.Instructions = "Главное не забыть ее настроить. Самая настоящая рация. Сколько раз видел такие в кино — и вот она, в руках. Тяжелее, чем казалось."
+SWEP.PrintName = "Телефон"
+SWEP.Instructions = "Холодное стекло в руке — мой единственный и самый жуткий свидетель"
 SWEP.Category = "ZCity Other"
-SWEP.Spawnable = true
+SWEP.Spawnable = false
 SWEP.AdminOnly = false
 
 SWEP.Primary.ClipSize = -1
@@ -23,12 +23,12 @@ SWEP.Secondary.Ammo = "none"
 
 SWEP.IdleHoldType = "normal"
 SWEP.HoldType = "normal"
-SWEP.ViewModel = ""
-SWEP.WorldModel = "models/sirgibs/ragdoll/css/terror_arctic_radio.mdl"
+SWEP.ViewModel = "models/cof/weapons/mobile/v_mobile.mdl"
+SWEP.WorldModel = "models/cof/weapons/mobile/w_mobile.mdl"
 
 if CLIENT then
-	SWEP.WepSelectIcon = Material("vgui/wep_jack_hmcd_walkietalkie")
-	SWEP.IconOverride = "vgui/wep_jack_hmcd_walkietalkie.png"
+	SWEP.WepSelectIcon = Material("cof/vgui/weapons/mobile/640_mobile_slot")
+	SWEP.IconOverride = "materials/entities/weapon_cof_mobile.png"
 	SWEP.BounceWeaponIcon = false
 end
 
@@ -40,166 +40,88 @@ SWEP.DrawCrosshair = false
 SWEP.Slot = 5
 SWEP.SlotPos = 5
 SWEP.WorkWithFake = true
-SWEP.offsetVec = Vector(6, 5.5, -41)
-SWEP.offsetAng = Angle(180, 160, 180)
+SWEP.offsetVec = Vector(4, -1, 1.9)
+SWEP.offsetAng = Angle(-2, 170, 15)
 
 SWEP.Frequency = 107.8
-SWEP.Frequencies = {
-	88.6,
-    92.3,
-    97.5,
-    101.8,
-    107.8
-}
 
-local ST_TYPE_LOCALFILE = 0
-local ST_TYPE_URL = 1
+SWEP.ScreenPosOffset = Vector(4.08, -0.9, 3.5)
+SWEP.ScreenAngleOffset = Angle(2, -11, 75)
 
-SWEP.FMStations = {
-	[97.5] = {ST_TYPE_LOCALFILE, function() return "radiorandom/radio" .. math.random(1,10) .. ".wav", 0 end},
-
-	--[98.2] = {ST_TYPE_LOCALFILE, function()
-	--	local track = "zc_dyna_music/medge/a".. math.random(1,15) ..".mp3"
-	--	return track, SoundDuration(track)
-	--end},
-}
+local screenW, screenH = 230, 300
+local screenScale = 0.007
 
 function SWEP:BippSound(ent, pitch)
-    ent:EmitSound("radio/voip_end_transmit_beep_0" .. math.random(1,8) .. ".wav", 35, pitch)
+	ent:EmitSound("radio/voip_end_transmit_beep_0" .. math.random(1, 8) .. ".wav", 35, pitch or 100)
 end
 
-if SERVER then
-    function SWEP:CanListen(output, input, isChat)
-		if !self.isOn or !input:GetWeapon("weapon_walkie_talkie").isOn then
-			return false
-		end
-		if(not IsValid(output) or not IsValid(input))then 
-			return
-		end
-
-        if(not output:Alive() or output.organism.otrub or not input:Alive() or input.organism.otrub)then 
-			return false
-		end
-
-        if(not input:HasWeapon("weapon_walkie_talkie"))then 
-			return
-		end
-
-        if(output:GetActiveWeapon() ~= self)then 
-			return
-		end
-
-		if self.FMStations[self.Frequency] then
-			return
-		end
-
-        if(output:GetWeapon("weapon_walkie_talkie").Frequency == input:GetWeapon("weapon_walkie_talkie").Frequency or output:Team() == 1002)then 
-			return true
-		end
-    end
-
-    hook.Add("CanListenOthers", "radio", function(output, input, isChat, teamonly, text)
-        local wep = output:GetWeapon("weapon_walkie_talkie")
-
-		if not IsValid(wep) then 
-			return
-		end
-
-        if wep:CanListen(output, input, isChat) then
-
-            if isChat then
-				wep:BippSound(output, 100)
-
-				if output == input then 
-					return 
-				end
-                
-                wep:BippSound(input, 100)
-
-				if input:GetPos():DistToSqr(output:GetPos()) < 600000 and not output.organism.otrub and not input.organism.otrub then
-					return true
-				else
-                    input:ChatPrint("Walkie Talkie: " .. text)
-
-					return false
-				end
-			else
-				return true, false
-            end
-        end
-    end)
-
-	hook.Add("StartVoice", "radio", function(output)
-        local wep = output:GetWeapon("weapon_walkie_talkie")
-
-		if(not IsValid(wep))then 
-			return 
-		end
-
-		for i, input in player.Iterator() do
-			if wep:CanListen(output, input, false) then
-				if output == input then 
-					wep:SetInUsing(true)
-					wep:BippSound(output, 100) 
-					continue 
-				end
-
-				wep:BippSound(input, 100)
-			end
-		end
-    end)
-
-	hook.Add("EndVoice", "radio", function(output)
-        local wep = output:GetWeapon("weapon_walkie_talkie")
-
-		if not IsValid(wep) then 
-			return 
-		end
-
-		for i, input in player.Iterator() do
-			if wep:CanListen(output, input, false) then
-				if output == input then 
-					wep:BippSound(output, 100) 
-					wep:SetInUsing(false)
-					continue 
-				end
-
-				wep:BippSound(input, 100)
-			end
-		end
-    end)
-
-	function SWEP:OnRemove() end
-
-	function SWEP:Deploy()
+function SWEP:Deploy()
+	if SERVER then
 		self:SetHudFrequency(self.Frequency)
 		self.isOn = self.isOn or false
 		self:SetIsOn(self.isOn)
-		self:SetInUsing(false)
+	end
+	return true
+end
+
+function SWEP:RemoveCSModel()
+	if CLIENT then
+		if self.ClosePhoneMouse then self:ClosePhoneMouse() end
+		if IsValid(self.phoneUI) then
+			self.phoneUI:Remove()
+			self.phoneUI = nil
+		end
+		if IsValid(self.model) then
+			self.model:Remove()
+			self.model = nil
+		end
+	end
+end
+
+function SWEP:Holster(wep)
+	local owner = self:GetOwner()
+	if IsValid(owner) and owner:IsPlayer() then
+		self:BoneSet("l_upperarm", vector_origin, angle_zero)
+		self:BoneSet("l_forearm", vector_origin, angle_zero)
+		self:BoneSet("ValveBiped.Bip01_L_Hand", vector_origin, angle_zero)
 	end
 
+	self:RemoveCSModel()
+
+	if SERVER and self.RemoveFake then
+		self:RemoveFake()
+	end
+
+	return true
+end
+
+function SWEP:OnRemove()
+	self:RemoveCSModel()
 end
 
 function SWEP:DrawWorldModel()
-	if !self:GetOwner():IsPlayer() then
-		self:DrawModel()
+	if not IsValid(self:GetOwner()) then
+		self:DrawWorldModel2()
 	end
 end
 
 function SWEP:SetupDataTables()
-	self:NetworkVar( "Float", 0, "HudFrequency" )
-	self:NetworkVar( "Bool", 0, "IsOn" )
-	self:NetworkVar( "Bool", 1, "InUsing" )
+	self:NetworkVar("Float", 0, "HudFrequency")
+	self:NetworkVar("Bool", 0, "IsOn")
 end
-
-local walkietalkie_clr = Color(0,0,0)
-local bg_clr = Color(0,75,0)
-local bg_off_clr = Color(0,32,0)
-
-SWEP.ScreenPosOffset = Vector(3.4,-2.22,3.57)
-SWEP.ScreenAngleOffset = Angle(-5,-18.5,91)
+local huy = Color(146, 146, 146)
+local screen_fg = Color(0, 0, 0)
+local screen_bg = Color(203, 208, 205)
 
 if CLIENT then
+	include("homigrad/!libraries/4_client/cl_3d2dvgui.lua")
+
+	local phoneCamDist = 14
+	local phoneCamFov = 26
+	local phoneLookLimitP = 22
+	local phoneLookLimitY = 32
+	local phoneLookLag = 9
+
 	surface.CreateFont("Walkie-Talkie_Fixed-Font", {
 		font = "Ari-W9500",
 		size = 64,
@@ -213,55 +135,254 @@ if CLIENT then
 		weight = 600,
 		outline = false
 	})
-end
 
-function SWEP:DrawWorldModel2()
-	self.model = IsValid(self.model) and self.model or ClientsideModel(self.WorldModel)
-	local WorldModel = self.model
-	local owner = hg.GetCurrentCharacter(self:GetOwner())
+	function SWEP:CreatePhoneUI()
+		if IsValid(self.phoneUI) then return end
 
-	WorldModel:SetNoDraw(true)
-	WorldModel:SetModelScale(self.ModelScale or 1)
+		local pnl = vgui.Create("DPanel")
+		pnl:SetPos(-screenW / 2, -screenH / 12)
+		pnl:SetSize(screenW, screenH)
+		pnl:SetPaintBackground(false)
 
-	if(IsValid(owner))then
-		local offsetVec = self.offsetVec
-		local offsetAng = self.offsetAng
-		local boneid = owner:LookupBone("ValveBiped.Bip01_L_Hand")
+		local wep = self
+		pnl.Paint = function(_, pw, ph)
+			draw.RoundedBox(10, 0, 0, pw, ph, screen_bg)
+			if not wep:GetIsOn() then return end
 
-		if(not boneid)then 
-			return 
+			draw.SimpleText("Телефон", "Walkie-Talkie_Fixed-Font", pw / 2 + 3, 24, screen_fg, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 		end
 
-		local matrix = owner:GetBoneMatrix(boneid)
+		local btn = vgui.Create("DButton", pnl)
+		btn:SetSize(160, 44)
+		btn:SetPos((screenW - 160) / 2, 200)
+		btn:SetText("тест")
+		btn:SetTextColor(Color(0, 0, 0))
 
-		if(not matrix)then 
+		pnl.Think = function()
+			if not IsValid(wep) or not IsValid(wep:GetOwner()) or wep:GetOwner():GetActiveWeapon() ~= wep or not wep:GetIsOn() then
+				wep:ClosePhoneMouse()
+			end
+		end
+
+		self.phoneUI = pnl
+	end
+
+	function SWEP:PhoneVirtPoint()
+		local look = self.phoneLookSmooth or angle_zero
+		local lx = screenW * 0.5 + (look.y / phoneLookLimitY) * (screenW * 0.42)
+		local ly = screenH * 0.5 + (look.p / phoneLookLimitP) * (screenH * 0.35)
+		return lx, ly
+	end
+
+	function SWEP:PhoneTryClick()
+		local lx, ly = self:PhoneVirtPoint()
+		local bx, by = (screenW - 160) / 2, 200
+		if lx >= bx and lx <= bx + 160 and ly >= by and ly <= by + 44 then
+			print("nazhato")
+			return true
+		end
+		return false
+	end
+
+	function SWEP:OpenPhoneMouse()
+		if self.phoneMouseMode or not self:GetIsOn() then return end
+		self:CreatePhoneUI()
+		self.phoneMouseMode = true
+		self.phoneLookTarget = Angle()
+		self.phoneLookSmooth = Angle()
+		self.phoneMouseDX = 0
+		self.phoneMouseDY = 0
+		self.phoneAttackDown = false
+		gui.EnableScreenClicker(false)
+		if IsValid(self.phoneUI) then
+			self.phoneUI:SetMouseInputEnabled(false)
+		end
+	end
+
+	function SWEP:ClosePhoneMouse()
+		if not self.phoneMouseMode then return end
+		self.phoneMouseMode = false
+		self.phoneAttackDown = false
+		gui.EnableScreenClicker(false)
+	end
+
+	local function WalkiePhoneShouldCloseOnMove(wep, cmd)
+		local owner = wep:GetOwner()
+		if not IsValid(owner) or not owner:IsPlayer() then return false end
+		if not owner:OnGround() then return true end
+		if owner:IsTyping() or owner:IsFlagSet(FL_ANIMDUCKING) then return true end
+		if owner:GetVelocity():LengthSqr() > 1000 then return true end
+		if cmd then
+			return cmd:KeyDown(IN_FORWARD) or cmd:KeyDown(IN_BACK) or cmd:KeyDown(IN_MOVELEFT) or cmd:KeyDown(IN_MOVERIGHT)
+		end
+		return false
+	end
+
+	local function WalkiePhoneCamWanted(wep, cmd)
+		if not wep.phoneMouseMode or not wep:GetIsOn() then return false end
+		return not WalkiePhoneShouldCloseOnMove(wep, cmd)
+	end
+
+	function SWEP:PhoneCamWanted(cmd)
+		return WalkiePhoneCamWanted(self, cmd)
+	end
+
+	function SWEP:PhoneShouldCloseOnMove(cmd)
+		return WalkiePhoneShouldCloseOnMove(self, cmd)
+	end
+
+	function SWEP:UpdatePhoneScreenTransform()
+		local ply = self:GetOwner()
+		if not IsValid(ply) then return end
+
+		local owner = hg.GetCurrentCharacter(ply)
+		if not IsValid(owner) then return end
+
+		local boneid = owner:LookupBone("ValveBiped.Bip01_L_Hand")
+		if not boneid then return end
+
+		local matrix = owner:GetBoneMatrix(boneid)
+		if not matrix then return end
+
+		self.phoneScreenPos, self.phoneScreenAng = LocalToWorld(self.ScreenPosOffset, self.ScreenAngleOffset, matrix:GetTranslation(), matrix:GetAngles())
+	end
+
+	function SWEP:UpdatePhoneLook()
+		if not WalkiePhoneCamWanted(self) then return end
+
+		self.phoneLookTarget = self.phoneLookTarget or Angle()
+		self.phoneLookSmooth = self.phoneLookSmooth or Angle()
+
+		local dx, dy = self.phoneMouseDX or 0, self.phoneMouseDY or 0
+		self.phoneMouseDX, self.phoneMouseDY = 0, 0
+
+		if dx ~= 0 or dy ~= 0 then
+			self.phoneLookTarget.y = math.Clamp(self.phoneLookTarget.y - dx * 0.06, -phoneLookLimitY, phoneLookLimitY)
+			self.phoneLookTarget.p = math.Clamp(self.phoneLookTarget.p + dy * 0.06, -phoneLookLimitP, phoneLookLimitP)
+		end
+
+		self.phoneLookSmooth = LerpAngle(FrameTime() * phoneLookLag, self.phoneLookSmooth, self.phoneLookTarget)
+	end
+
+	function SWEP:Camera(eyePos, eyeAng, view, vellen)
+		self:UpdatePhoneScreenTransform()
+		if not self.phoneScreenPos or not self.phoneScreenAng then return end
+
+		local want = WalkiePhoneCamWanted(self) and 1 or 0
+		self.phoneCamLerp = Lerp(FrameTime() * 7, self.phoneCamLerp or 0, want)
+
+		if self.phoneCamLerp < 0.001 and want == 0 then
+			self.phoneLookTarget = angle_zero
+			self.phoneLookSmooth = angle_zero
 			return
 		end
 
-		local newPos, newAng = LocalToWorld(offsetVec, offsetAng, matrix:GetTranslation(), matrix:GetAngles())
-		WorldModel:SetPos(newPos)
-		WorldModel:SetAngles(newAng)
-		WorldModel:SetupBones()
+		self.phoneLookTarget = self.phoneLookTarget or angle_zero
+		self.phoneLookSmooth = self.phoneLookSmooth or self.phoneLookTarget
+		if want == 0 then
+			self.phoneLookTarget = LerpAngle(FrameTime() * phoneLookLag, self.phoneLookTarget, angle_zero)
+			self.phoneLookSmooth = LerpAngle(FrameTime() * phoneLookLag, self.phoneLookSmooth, angle_zero)
+		end
 
-		WorldModel:DrawModel()
+		local normal = self.phoneScreenAng:Up()
+		local focusPos = self.phoneScreenPos + self.phoneScreenAng:Forward() * (screenH * 0.35 * screenScale)
+		local camPos = focusPos + normal * phoneCamDist
+		local lookAng = (-normal):Angle()
+		lookAng.r = lookAng.r + math.rad(180)
+		lookAng:Add(self.phoneLookSmooth)
+
+		local k = self.phoneCamLerp
+		view.origin = LerpVector(k, eyePos, camPos)
+		view.angles = LerpAngle(k, eyeAng, lookAng)
+		view.fov = Lerp(k, view.fov, phoneCamFov)
+
+		return view
+	end
+
+	hook.Add("Think", "weapon_walkie_talkie_phone_look", function()
+		local wep = LocalPlayer():GetActiveWeapon()
+		if not IsValid(wep) or wep:GetClass() ~= "weapon_walkie_talkie" then return end
+		if wep.UpdatePhoneLook then
+			wep:UpdatePhoneLook()
+		end
+	end)
+
+	hook.Add("CreateMove", "weapon_walkie_talkie_phone_mouse", function(cmd)
+		local wep = LocalPlayer():GetActiveWeapon()
+		if not IsValid(wep) or wep:GetClass() ~= "weapon_walkie_talkie" or not WalkiePhoneCamWanted(wep, cmd) then return end
+
+		wep.phoneMouseDX = cmd:GetMouseX()
+		wep.phoneMouseDY = cmd:GetMouseY()
+		cmd:SetMouseX(0)
+		cmd:SetMouseY(0)
+
+		if cmd:KeyDown(IN_ATTACK) then
+			if not wep.phoneAttackDown then
+				wep.phoneAttackDown = true
+				wep:PhoneTryClick()
+			end
+		else
+			wep.phoneAttackDown = false
+		end
+
+		cmd:RemoveKey(IN_ATTACK)
+		cmd:RemoveKey(IN_ATTACK2)
+	end)
+
+	hook.Add("HUDPaint", "weapon_walkie_talkie_phone_crosshair", function()
+		local wep = LocalPlayer():GetActiveWeapon()
+		if not IsValid(wep) or wep:GetClass() ~= "weapon_walkie_talkie" or not WalkiePhoneCamWanted(wep) then return end
+		if (wep.phoneCamLerp or 0) < 0.15 then return end
+
+		local size = 6
+		local cx, cy = math.floor(ScrW() * 0.5), math.floor(ScrH() * 0.5)
+		surface.SetDrawColor(huy)
+		surface.DrawRect(cx - size / 2, cy - size / 2, size, size)
+	end)
+end
+
+function SWEP:DrawWorldModel2()
+	local ply = self:GetOwner()
+	if IsValid(ply) and ply:GetActiveWeapon() ~= self then return end
+
+	self.model = IsValid(self.model) and self.model or ClientsideModel(self.WorldModel)
+	local mdl = self.model
+	local owner = hg.GetCurrentCharacter(ply)
+
+	mdl:SetNoDraw(true)
+	mdl:SetModelScale(self.ModelScale or 1)
+
+	if IsValid(owner) then
+		local boneid = owner:LookupBone("ValveBiped.Bip01_L_Hand")
+		if not boneid then return end
+
+		local matrix = owner:GetBoneMatrix(boneid)
+		if not matrix then return end
+
+		local newPos, newAng = LocalToWorld(self.offsetVec, self.offsetAng, matrix:GetTranslation(), matrix:GetAngles())
+		mdl:SetPos(newPos)
+		mdl:SetAngles(newAng)
+		mdl:SetupBones()
+		mdl:DrawModel()
 
 		newPos, newAng = LocalToWorld(self.ScreenPosOffset, self.ScreenAngleOffset, matrix:GetTranslation(), matrix:GetAngles())
 
-		cam.Start3D2D( newPos, newAng, 0.005 )
-			local Frequency = math.Round(self:GetHudFrequency(),1) .. " МГц"
-			--local IsOn = self:GetIsOn() and "On" or "Off"
-			local width, height = 264, 145
-			draw.RoundedBox(3, 0 - width / 2, 0 - height / 2, width, height, self:GetIsOn() and bg_clr or bg_off_clr)
-			if self:GetIsOn() then
-				draw.SimpleText(Frequency, "Walkie-Talkie_Fixed-Font", 0, -15, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-				draw.SimpleText(self:GetOwner():IsSpeaking() and "Транслирует" or "Получает", "Walkie-Talkie_Fixed-SmallFont", 0, 40, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+		if CLIENT and self:GetIsOn() then
+			self:CreatePhoneUI()
+			if IsValid(self.phoneUI) then
+				vgui.Start3D2D(newPos, newAng, screenScale)
+					self.phoneUI:Paint3D2D()
+				vgui.End3D2D()
 			end
-		cam.End3D2D()
-
+		else
+			cam.Start3D2D(newPos, newAng, screenScale)
+				draw.RoundedBox(10, -screenW / 2, -screenH / 12, screenW, screenH, screen_bg)
+			cam.End3D2D()
+		end
 	else
-		WorldModel:SetPos(self:GetPos())
-		WorldModel:SetAngles(self:GetAngles())
-		WorldModel:DrawModel()
+		mdl:SetPos(self:GetPos())
+		mdl:SetAngles(self:GetAngles())
+		mdl:DrawModel()
 	end
 end
 
@@ -271,127 +392,51 @@ function SWEP:SetHold(value)
 	self.holdtype = value
 end
 
-local bone, name
 function SWEP:BoneSet(lookup_name, vec, ang)
 	local owner = self:GetOwner()
-    if IsValid(owner) and !owner:IsPlayer() then return end
+	if not IsValid(owner) or not owner:IsPlayer() then return end
 	hg.bone.Set(owner, lookup_name, vec, ang, "walkietalkie", 0.01)
 end
 
 local handAng3 = Angle(35, 20, -15)
-local handAng1, handAng2 = Angle(-60, -0, 0), Angle(-20, -115, -60)
+local handAng1, handAng2 = Angle(-60, 0, 0), Angle(-20, -115, -60)
+
 function SWEP:Step()
 	local owner = self:GetOwner()
-	local active = owner:KeyDown(IN_ATTACK) and self:GetIsOn()
+	if not IsValid(owner) or owner:GetActiveWeapon() ~= self then return end
 
-	if active then
-		self:SetHold(self.HoldType)
-	elseif self:GetHoldType() ~= self.IdleHoldType then 
-		self:SetHold(self.IdleHoldType)
+	if not owner:OnGround() or owner:GetVelocity():LengthSqr() > 1000 or owner:IsTyping() or owner:IsFlagSet(FL_ANIMDUCKING) then
+		return
 	end
 
-	if owner:OnGround() and owner:GetVelocity():LengthSqr() <= 1000 and not owner:IsTyping() and not owner:IsFlagSet(FL_ANIMDUCKING) then
-		self:BoneSet("l_upperarm", vector_origin, self:GetIsOn() and handAng1 or angle_zero)
-		self:BoneSet("l_forearm", vector_origin, self:GetIsOn() and handAng2 or angle_zero)
-        self:BoneSet("ValveBiped.Bip01_L_Hand", vector_origin, self:GetIsOn() and handAng3 or angle_zero)
-	end
-end
-
-function SWEP:Think()
-	local owner = self:GetOwner()
-
-	if CLIENT then
-		local FMStations = self.FMStations[ math.Round(self:GetHudFrequency(),1) ]
-		if FMStations and self:GetIsOn() then
-			local Type = FMStations[1]
-			local Output = FMStations[2]
-			self.FM_EventCD = self.FM_EventCD or CurTime() + math.random(125,165)
-			if self.FM_EventCD < CurTime() then
-				self:BippSound(self:GetOwner())
-				self.FM_EventCD = CurTime() + math.random(125,165)
-				local play, timeadd = Output()
-				timer.Simple(0.5,function()
-					local ent = IsValid(self.model) and self.model or self
-					ent:EmitSound(play, 55, 100, 1, CHAN_AUTO, nil, 56)
-					self.FM_EventCD = self.FM_EventCD + timeadd
-				end)
-			end
-		end
-	end
-end
-
-if CLIENT then
-	function SWEP:MenuAddAdjuster(strName, tbl, howmuch)
-		tbl[#tbl + 1] = {function()
-			local tbl1 = {}
-			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", howmuch) return -1 end,"Увеличить"}
-			tbl1[#tbl1 + 1] = {function() RunConsoleCommand("hg_walkietalkie_adjust", -howmuch) return -1 end,"Уменьшить"}
-			hg.CreateRadialMenu(tbl1)
-			return -1
-		end, strName}
-	end
-end
-
-if SERVER then
-	concommand.Add("hg_walkietalkie_adjust", function(ply, cmd, args)
-		if SERVER then
-			if not args[1] then return end
-			local ActiveWep = ply:GetActiveWeapon()
-			local walkietalkie = IsValid(ActiveWep) and ActiveWep:GetClass() == "weapon_walkie_talkie" and ActiveWep or false
-			if not walkietalkie then return end
-			walkietalkie:AdjustFrequency( tonumber( args[1] ) )
-		end
-	end)
+	local on = self:GetIsOn()
+	self:BoneSet("l_upperarm", vector_origin, on and handAng1 or angle_zero)
+	self:BoneSet("l_forearm", vector_origin, on and handAng2 or angle_zero)
+	self:BoneSet("ValveBiped.Bip01_L_Hand", vector_origin, on and handAng3 or angle_zero)
 end
 
 function SWEP:PrimaryAttack()
-	if SERVER then return end
-	local tbl = {}
-	if self:GetIsOn() then
-		tbl[#tbl + 1] = {function()
-			local tbl1 = {}
-			for i = 1, #self.Frequencies do
-				local station = math.Round(self.Frequencies[i], 1)
-				tbl1[#tbl1 + 1] = { function() RunConsoleCommand("hg_walkietalkie_adjust", station - self:GetHudFrequency() ) end, "Станция " .. station .. "МГц" }
-				hg.CreateRadialMenu(tbl1)
-			end
-			return -1
-		end, "Публичные станции"}
-		self:MenuAddAdjuster("Изменить на 010.0 MHz", tbl, 010.0)
-		self:MenuAddAdjuster("Изменить на 001.0 MHz", tbl, 001.0)
-		self:MenuAddAdjuster("Изменить 000.1 MHz", tbl, 000.1)
+	self:SetNextPrimaryFire(CurTime() + 0.25)
+	if CLIENT and IsValid(LocalPlayer()) and LocalPlayer():GetActiveWeapon() == self then
+		self:OpenPhoneMouse()
 	end
-
-	tbl[#tbl + 1] = {function()
-		RunConsoleCommand("+reload")
-		timer.Simple(0,function() RunConsoleCommand("-reload") end)
-	end, self:GetIsOn() and "Выключить рацию" or "Включить рацию"}
-	hg.CreateRadialMenu(tbl)
 end
 
-function SWEP:AdjustFrequency(numAdjust)
-	self.Frequency = math.Round(math.Clamp(self.Frequency + numAdjust, 87.5, 108),1)
-	self:SetHudFrequency(self.Frequency)
+function SWEP:SecondaryAttack()
+	if CLIENT then
+		self:ClosePhoneMouse()
+	end
+end
 
+function SWEP:Reload()
 	local owner = self:GetOwner()
-	owner:EmitSound("radiotune.mp3", 45, math.random(95, 105))
+	if not SERVER or (self.turnOnCD and self.turnOnCD >= CurTime()) then return end
+
+	self.turnOnCD = CurTime() + 0.5
+	self.isOn = not self.isOn
+	self:SetIsOn(self.isOn)
+	self:BippSound(owner)
 	owner:SetAnimation(PLAYER_ATTACK1)
-
-	return self.Frequency
-end
-
-if CLIENT then
-	-- local walkietalkie_clr = Color(230,230,230)
-	-- local bg_clr = Color(0,0,0,150)
-	function SWEP:DrawHUD()
-		-- local Frequency = math.Round(self:GetHudFrequency(),1) .. " MHz"
-		-- local IsOn = self:GetIsOn() and "On" or "Off"
-		-- local width, height = ScreenScale(65), ScreenScaleH(28)
-		-- draw.RoundedBox(0, (ScrW() / 2) - width / 2, (ScrH() * 0.912) - height / 2, width, height, bg_clr)
-
-		-- draw.SimpleText(Frequency, "HomigradFontMedium",ScrW() / 2, ScrH() * 0.9, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		-- draw.SimpleText("Walkie-Talkie | " .. IsOn, "HomigradFontMedium",ScrW() / 2, ScrH() * 0.92, walkietalkie_clr, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	end
 end
 
 function SWEP:Initialize()
@@ -401,34 +446,14 @@ function SWEP:Initialize()
 	end
 end
 
-function SWEP:SecondaryAttack()
-end
-
-function SWEP:Reload()
-	local owner = self:GetOwner()
-	if SERVER and (!self.turnOnCD or self.turnOnCD < CurTime()) then
-		self.turnOnCD = CurTime() + 0.5
-		self.isOn = !self.isOn
-		self:SetIsOn(self.isOn)
-		self:BippSound(owner)
-		owner:SetAnimation(PLAYER_ATTACK1)
-
-		--owner:EmitSound("")
-		--owner:zChatPrint("Walkie-Talkie is "..(self.isOn and "on" or "off"))
-	end
-end
-
-if(SERVER)then
+if SERVER then
 	function SWEP:SetFakeGun(ent)
 		self:SetNWEntity("fakeGun", ent)
 		self.fakeGun = ent
 	end
 
 	function SWEP:RemoveFake()
-		if(not IsValid(self.fakeGun))then 
-			return 
-		end
-
+		if not IsValid(self.fakeGun) then return end
 		self.fakeGun:Remove()
 		self:SetFakeGun()
 	end
@@ -436,9 +461,7 @@ if(SERVER)then
 	SWEP.RHandPos = Vector(0, 0, 0)
 
 	function SWEP:CreateFake(ragdoll)
-		if(IsValid(self:GetNWEntity("fakeGun")))then 
-			return
-		end
+		if IsValid(self:GetNWEntity("fakeGun")) then return end
 
 		local ent = ents.Create("prop_physics")
 		local lh = ragdoll:GetPhysicsObjectNum(5)
@@ -463,7 +486,7 @@ if(SERVER)then
 		ragdoll:DeleteOnRemove(ent)
 		ragdoll.fakeGun = ent
 
-		if(IsValid(ragdoll.ConsRH))then 
+		if IsValid(ragdoll.ConsRH) then
 			ragdoll.ConsRH:Remove()
 		end
 
@@ -479,9 +502,6 @@ if(SERVER)then
 
 	function SWEP:RagdollFunc(pos, angles, ragdoll)
 		shadowControl = shadowControl or hg.ShadowControl
-		local fakeGun = ragdoll.fakeGun
-
-		//pos:Add(angles:Right() * 5)
 		shadowControl(ragdoll, 5, 0.001, angles, 500, 30, pos, 500, 50)
 	end
 end
