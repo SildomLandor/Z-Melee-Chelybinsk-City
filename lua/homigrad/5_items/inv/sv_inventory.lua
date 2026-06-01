@@ -332,9 +332,6 @@ local function GetLootInventory(ent)
 	return bindEntityInventory(ent), ent
 end
 
-local function CanLootPlayer(ply)
-	return IsValid(ply) and ply:IsPlayer() and IsValid(ply.FakeRagdoll)
-end
 
 local LOOT_TYPES = {
 	Weapons = true,
@@ -346,11 +343,11 @@ local LOOT_TYPES = {
 local function CanLootEntity(ent)
 	if not IsValid(ent) then return false end
 	local owner = hg.GetLootPlayer(ent)
-	if IsValid(owner) then return CanLootPlayer(owner) end
+	if IsValid(owner) then return hg.CanLootPlayer(owner) end
 	if ent:IsRagdoll() then
 		return istable(ent.inventory) or istable(ent:GetNetVar("Inventory"))
 	end
-	if ent:IsPlayer() then return IsValid(ent.FakeRagdoll) end
+	if ent:IsPlayer() then return hg.CanLootPlayer(ent) end
 	return string.find(ent:GetClass() or "", "prop_") ~= nil
 end
 
@@ -694,12 +691,21 @@ util.AddNetworkString("should_open_inv")
 local playerMeta = FindMetaTable("Player")
 function playerMeta:OpenInventory(ent)
     if not IsValid(ent) then return end
+
+    local lootOwner = hg.GetLootPlayer(ent)
+    if IsValid(lootOwner) and hg.LootBlockedConscious(lootOwner) then
+        if (self.lootConsciousCd or 0) < CurTime() then
+            self.lootConsciousCd = CurTime() + 2
+            self:ChatPrint("Пока человек в сознании, его нельзя обыскать.")
+        end
+        return
+    end
+
     if not CanLootEntity(ent) then return end
 
     if not ent:IsPlayer() and not hg.EnsureLootInventory(self, ent) then return end
 
     hook.Run("ZB_InventoryOpened", self, ent)
-    local lootOwner = hg.GetLootPlayer(ent)
     if IsValid(lootOwner) then
         hg.RenewInv(lootOwner)
         if not ent:IsPlayer() then

@@ -171,6 +171,8 @@ local list = {
 	{{"stamina.sub", "stamina", "sub"}, 1, true}, 
 	0, 
 	{"brain", 1, true},
+	{"eyeL", 1, true},
+	{"eyeR", 1, true},
 	{"consciousness", 1, false},
 	{"coma", true, true},
 	{"coma_depth", 1, true},

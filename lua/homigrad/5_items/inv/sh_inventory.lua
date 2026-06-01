@@ -22,6 +22,18 @@ function hg.GetLootPlayer(ent)
 	end
 end
 
+function hg.LootBlockedConscious(ply)
+	if not IsValid(ply) or not ply:IsPlayer() or not ply:Alive() or not IsValid(ply.FakeRagdoll) then return false end
+	local org = ply.organism
+	return not org or not org.otrub
+end
+
+function hg.CanLootPlayer(ply)
+	if not IsValid(ply) or not ply:IsPlayer() or not IsValid(ply.FakeRagdoll) then return false end
+	if not ply:Alive() then return true end
+	return not hg.LootBlockedConscious(ply)
+end
+
 local function LootHasActiveWeapon(ent, class)
 	local owner = hg.GetLootPlayer(ent)
 	if not IsValid(owner) then return false end
@@ -294,8 +306,8 @@ if CLIENT then
 			if (org and org.otrub) or not lp:Alive() then self:Remove() return end
 			if (e:GetPos() - lp:GetPos()):LengthSqr() > 125 * 125 then self:Remove() return end
 			local lootPly = hg.GetLootPlayer(e)
-			if IsValid(lootPly) and not IsValid(lootPly.FakeRagdoll) then self:Remove() return end
-			if e:IsPlayer() and not IsValid(e.FakeRagdoll) then self:Remove() return end
+			if IsValid(lootPly) and not hg.CanLootPlayer(lootPly) then self:Remove() return end
+			if e:IsPlayer() and not hg.CanLootPlayer(e) then self:Remove() return end
 			if input.IsKeyDown(KEY_R) then self:Close() end
 		end
 

@@ -7,7 +7,7 @@ local maxFx = 512
 -- порядок = индекс в дельта пакете, не менять без смены протокола
 hg.orgFullKeys = {
 	"alive", "otrub", "owner", "stamina", "immobilization", "adrenaline", "adrenalineAdd", "analgesia",
-	"lleg", "rleg", "rarm", "larm", "pelvis", "disorientation", "brain", "o2", "CO", "blood", "bloodtype",
+	"lleg", "rleg", "rarm", "larm", "pelvis", "disorientation", "brain", "eyeL", "eyeR", "o2", "CO", "blood", "bloodtype",
 	"bleed", "hurt", "pain", "shock", "pulse", "heartbeat", "spo2", "timeValue", "holdingbreath", "arteria", "neckslit",
 	"recoilmul", "meleespeed", "temperature", "canmove", "fear", "llegdislocation", "rlegdislocation",
 	"rarmdislocation", "larmdislocation", "jawdislocation", "llegamputated", "rlegamputated", "rarmamputated",
@@ -36,7 +36,7 @@ function hg.orgPick(org, keys)
 end
 -- это ваще нужно для того чтобы ошибок не было
 hg.orgDefaults = {
-	pain = 0, brain = 0, blood = 5000, bleed = 0, hurt = 0, shock = 0,
+	pain = 0, brain = 0, eyeL = 0, eyeR = 0, blood = 5000, bleed = 0, hurt = 0, shock = 0,
 	pulse = 70, heartbeat = 70, spo2 = 100, disorientation = 0, adrenaline = 0, adrenalineAdd = 0,
 	analgesia = 0, consciousness = 1, fear = 0, immobilization = 0, temperature = 36.7,
 	recoilmul = 1, meleespeed = 1, timeValue = 0, CO = 0, berserk = 0, noradrenaline = 0,

@@ -260,6 +260,62 @@ input_list.lungsR = function(org, bone, dmg, dmgInfo)
 	return 0//isCrush(dmgInfo) and 1 or prot
 end
 
+local eye_lost_msg = {
+	["eyeL"] = {
+		"Я не вижу ничего левым глазом...",
+		"Мой левый глаз... Я не вижу...",
+		"Всё слева просто исчезло...",
+	},
+	["eyeR"] = {
+		"Я не вижу ничего правым глазом...",
+		"Мой правый глаз... Я не вижу...",
+		"Всё справа просто исчезло...",
+	},
+}
+
+local function damageEye(org, dmg, dmgInfo, key)
+	local old = org[key]
+	local pierce = dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_SLASH)
+	local result = damageOrgan(org, dmg * (pierce and 2.5 or 1.5), dmgInfo, key)
+	local harmed = org[key] - old
+	if harmed <= 0 then return result end
+
+	hg.AddHarmToAttacker(dmgInfo, harmed * 8, key .. " damage harm")
+
+	org.painadd = org.painadd + dmg * 25
+	org.shock = org.shock + dmg * 15
+	org.disorientation = org.disorientation + harmed * 2
+
+	if org[key] >= 0.85 and old < 0.85 and org.isPly then
+		local msgs = eye_lost_msg[key]
+		org.owner:Notify(msgs[math.random(#msgs)], true, key, 2)
+	end
+
+	if pierce and org[key] >= 0.4 and math.random(4) == 1 then
+		org.brain = math.min(org.brain + harmed * 0.12, 1)
+	end
+
+	if (org.eyeL or 0) >= 1 and (org.eyeR or 0) >= 1 then
+		org.blindness = 1
+	end
+
+	if dmg > 0.12 and org.isPly then
+		timer.Simple(0, function()
+			if IsValid(org.owner) then hg.LightStunPlayer(org.owner, 0.5 + dmg) end
+		end)
+	end
+
+	return result
+end
+
+input_list.eyeL = function(org, bone, dmg, dmgInfo)
+	return damageEye(org, dmg, dmgInfo, "eyeL")
+end
+
+input_list.eyeR = function(org, bone, dmg, dmgInfo)
+	return damageEye(org, dmg, dmgInfo, "eyeR")
+end
+
 input_list.trachea = function(org, bone, dmg, dmgInfo)
 	local oldDmg = org.trachea
 

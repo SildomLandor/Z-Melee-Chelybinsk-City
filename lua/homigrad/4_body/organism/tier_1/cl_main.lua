@@ -355,7 +355,36 @@ hook.Add("Post Post Pre Post Processing", "ShowScreens", function()
 	end
 end)
 
-local blindoverlay = Material("zcity/neurotrauma/blindoverlay.png")
+local lerpedEyeBlindL, lerpedEyeBlindR, lerpedEyeBlindFull = 0, 0, 0
+
+local function eyeBlindSeverity(v)
+	v = v or 0
+	if v < 0.85 then return 0 end
+	return math.Clamp((v - 0.85) / 0.15, 0, 1)
+end
+
+local function drawEyeHalfBlind(leftSide, amt)
+	if amt < 0.01 then return end
+	local sw, sh = ScrW(), ScrH()
+	local half = math.floor(sw * 0.5)
+	local fadeW = math.floor(sw * 0.11)
+
+	if leftSide then
+		surface.SetDrawColor(0, 0, 0, 255)
+		surface.DrawRect(0, 0, half - fadeW, sh)
+		for i = 0, fadeW - 1 do
+			surface.SetDrawColor(0, 0, 0, math.floor(255 * (1 - i / fadeW)))
+			surface.DrawRect(half - fadeW + i, 0, 1, sh)
+		end
+	else
+		surface.SetDrawColor(0, 0, 0, 255)
+		surface.DrawRect(half + fadeW, 0, sw - (half + fadeW), sh)
+		for i = 0, fadeW - 1 do
+			surface.SetDrawColor(0, 0, 0, math.floor(255 * (i / fadeW)))
+			surface.DrawRect(half + i, 0, 1, sh)
+		end
+	end
+end
 
 local hg_potatopc
 local old = false
@@ -575,6 +604,38 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 			//surface.DrawRect(-1,ScrH() + 1,ScrW()+1,-ent.Blinking * ScrH())
 		end
 	end
+
+	if alive and isOwnOrganismView(spect) and not org.otrub then
+		local bothDead = (org.eyeL or 0) >= 1 and (org.eyeR or 0) >= 1
+		if bothDead then
+			lerpedEyeBlindFull = Lerp(FrameTime() * 6, lerpedEyeBlindFull, 1)
+			lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
+			lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
+		else
+			lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
+			lerpedEyeBlindL = Lerp(FrameTime() * 6, lerpedEyeBlindL, eyeBlindSeverity(org.eyeL))
+			lerpedEyeBlindR = Lerp(FrameTime() * 6, lerpedEyeBlindR, eyeBlindSeverity(org.eyeR))
+		end
+	else
+		lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
+		lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
+		lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
+	end
+end)
+
+hook.Add("HUDPaint", "HG_EyeBlindOverlay", function()
+	if lerpedEyeBlindL < 0.01 and lerpedEyeBlindR < 0.01 and lerpedEyeBlindFull < 0.01 then return end
+	if not lply:Alive() or not lply.organism or lply.organism.otrub then return end
+	local oldMul = surface.GetAlphaMultiplier and surface.GetAlphaMultiplier() or 1
+	if surface.SetAlphaMultiplier then surface.SetAlphaMultiplier(1) end
+	if lerpedEyeBlindFull > 0.01 then
+		surface.SetDrawColor(0, 0, 0, 255)
+		surface.DrawRect(0, 0, ScrW(), ScrH())
+	else
+		drawEyeHalfBlind(true, lerpedEyeBlindL)
+		drawEyeHalfBlind(false, lerpedEyeBlindR)
+	end
+	if surface.SetAlphaMultiplier then surface.SetAlphaMultiplier(oldMul) end
 end)
 
 local function woundIsActive(wound)

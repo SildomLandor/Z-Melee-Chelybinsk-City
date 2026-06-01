@@ -17,6 +17,8 @@ hook.Add("Org Clear", "Main", function(org)
 	module.random_events[1](org)
 	module.coma[1](org)
 	org.brain = 0
+	org.eyeL = 0
+	org.eyeR = 0
 	org.consciousness = 1
 	org.disorientation = 0
 	org.jaw = 0
