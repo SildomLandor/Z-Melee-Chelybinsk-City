@@ -9,8 +9,12 @@ MODE.Chance = 0.03
 local riotWeapons = {
     "weapon_leadpipe",
     "weapon_brick",
+    "weapon_hg_cinderblock",
     "weapon_hammer",
     "weapon_pocketknife",
+    "weapon_scalpel",
+    "weapon_screwdriver",
+    "weapon_drill",
     "weapon_pan",
     "weapon_hg_shovel",
     "weapon_bat"

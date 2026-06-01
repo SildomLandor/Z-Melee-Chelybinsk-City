@@ -71,7 +71,11 @@ MODE.LootTable = {
 	{20,{
 		{12,"weapon_hammer"},
 		{6,"weapon_brick"},
+		{5,"weapon_hg_cinderblock"},
 		{10,"weapon_pocketknife"},
+		{7,"weapon_scalpel"},
+		{6,"weapon_screwdriver"},
+		{5,"weapon_drill"},
 
 		{4,"weapon_bat"},
 		{4,"weapon_leadpipe"},
@@ -168,7 +172,11 @@ MODE.LootTableStandard = {
 	{35, {
 		{1,"weapon_hammer"},
 		{1,"weapon_brick"},
+		{0.28,"weapon_hg_cinderblock"},
 		{1,"weapon_pocketknife"},
+		{0.22,"weapon_scalpel"},
+		{0.11,"weapon_screwdriver"},
+		{0.09,"weapon_drill"},
 		{0.32,"weapon_bat"},
 		{0.3,"weapon_leadpipe"},
 
