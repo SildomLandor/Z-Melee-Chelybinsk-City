@@ -277,6 +277,17 @@ local function NormalizeWeaponLootValue(value)
 	return nil
 end
 
+local function NormalizeInventoryWeapons(inv)
+	if not istable(inv) then return inv end
+	if not istable(inv.Weapons) then return inv end
+
+	for class, value in pairs(inv.Weapons) do
+		local normalized = NormalizeWeaponLootValue(value)
+		inv.Weapons[class] = normalized
+	end
+	return inv
+end
+
 local function GetLootInventory(ent)
 	local owner = hg.GetLootPlayer(ent)
 	if IsValid(owner) then
@@ -318,17 +329,6 @@ local function SyncCorpseLootInventory(ent, receiver)
 	ent:SetNetVar("Inventory", ent.inventory)
 	if IsValid(receiver) then ent:SendNetVar("Inventory", receiver) end
 	return ent.inventory
-end
-
-local function NormalizeInventoryWeapons(inv)
-	if not istable(inv) then return inv end
-	if not istable(inv.Weapons) then return inv end
-
-	for class, value in pairs(inv.Weapons) do
-		local normalized = NormalizeWeaponLootValue(value)
-		inv.Weapons[class] = normalized
-	end
-	return inv
 end
 
 local function IsWeaponEquippedBy(owner, wepClass)
