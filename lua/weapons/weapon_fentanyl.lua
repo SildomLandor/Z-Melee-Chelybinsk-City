@@ -24,7 +24,7 @@ SWEP.UsesBandageCheck = false
 SWEP.offsetVec = Vector(2.8, -0.9, -1)
 SWEP.offsetAng = Angle(-30, 30, 180)
 SWEP.modeNames = {
-	[1] = "analgesic"
+	[1] = "фентанил"
 }
 
 SWEP.DeploySnd = ""

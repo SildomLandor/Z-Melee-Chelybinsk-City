@@ -25,7 +25,7 @@ SWEP.UsesBandageCheck = false
 SWEP.offsetVec = Vector(5, -1.5, -2.5)
 SWEP.offsetAng = Angle(90, 00, -90)
 SWEP.modeNames = {
-	[1] = "adrenaline"
+	[1] = "маннитол"
 }
 
 function SWEP:InitializeAdd()

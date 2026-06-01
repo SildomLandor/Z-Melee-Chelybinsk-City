@@ -394,7 +394,7 @@ end
 SWEP.mode = 1
 SWEP.modes = 1
 SWEP.modeNames = {
-	[1] = "bandaging"
+	[1] = "перевязка",
 }
 
 function SWEP:InitializeAdd()
