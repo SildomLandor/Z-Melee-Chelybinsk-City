@@ -13,6 +13,27 @@ local ChatSizeW = CreateClientConVar("zchat_size_w", 0, true, false)
 local ChatSizeH = CreateClientConVar("zchat_size_h", 0, true, false)
 
 local CHAT_CORNER_RADIUS = 8
+local MESSAGE_PAD = 4
+
+local function messageTall(markup, yAnim)
+	return markup:GetHeight() + (yAnim or 0) + MESSAGE_PAD
+end
+
+local function chatHistoryScissor()
+	local chat = hg.chat
+	if not IsValid(chat) then return end
+
+	if IsValid(chat.history) then
+		local x, y = chat.history:LocalToScreen(0, 0)
+		local w, h = chat.history:GetSize()
+		render.SetScissorRect(x, y - 2, x + w, y + h + 4, true)
+		return
+	end
+
+	local x, y = chat:GetPos()
+	local w, h = chat:GetSize()
+	render.SetScissorRect(x, y, x + w, y + h, true)
+end
 
 local function CallbackBind(self, callback)
 	return function(_, ...)
@@ -49,10 +70,12 @@ end
 function PANEL:SetMarkup(text)
 	self.text = text
 
-	self.markup = hg.markup.Parse(self.text, self:GetWide())
-	self.markup.onDrawText = PaintMarkupOverride
-
-	self:SetTall(self.markup:GetHeight())
+	local wide = self:GetWide()
+	if wide > 0 then
+		self.markup = hg.markup.Parse(self.text, wide)
+		self.markup.onDrawText = PaintMarkupOverride
+		self:SetTall(messageTall(self.markup, self.yAnim))
+	end
 
 	timer.Simple(self.fadeDelay, function()
 		if (!IsValid(self)) then
@@ -68,7 +91,12 @@ function PANEL:SetMarkup(text)
 	self:CreateAnimation(self.yAnimDuration, {
 		index = 4,
 		target = {yAnim = 0},
-		easing = "outQuint"
+		easing = "outQuint",
+		Think = function(_, panel)
+			if panel.markup then
+				panel:SetTall(messageTall(panel.markup, panel.yAnim))
+			end
+		end,
 	})
 
 	self:CreateAnimation(0.5, {
@@ -78,10 +106,11 @@ function PANEL:SetMarkup(text)
 end
 
 function PANEL:PerformLayout(width, height)
+	if width <= 0 then return end
+
 	self.markup = hg.markup.Parse(self.text, width)
 	self.markup.onDrawText = PaintMarkupOverride
-
-	self:SetTall(self.markup:GetHeight())
+	self:SetTall(messageTall(self.markup, self.yAnim))
 end
 
 function PANEL:Paint(width, height)
@@ -93,11 +122,10 @@ function PANEL:Paint(width, height)
 		newAlpha = self.alpha - (255 - hg.chat.realAlpha)
 	end
 
-	DisableClipping(true)
-		local chatboxX, chatboxY = hg.chat:GetPos()
-		local wide, tall = hg.chat:GetSize()
+	if not self.markup then return end
 
-		render.SetScissorRect(chatboxX, chatboxY, chatboxX + wide, chatboxY + tall, true)
+	DisableClipping(true)
+		chatHistoryScissor()
 			self.markup:draw(0, self.yAnim, nil, nil, newAlpha)
 		render.SetScissorRect(0, 0, 0, 0, false)
 	DisableClipping(false)
@@ -635,7 +663,7 @@ function PANEL:AddLine(elements)
 			buffer[#buffer + 1] = string.format("<color=%d,%d,%d>%s", color.r, color.g, color.b,
 				v:GetName():gsub("<", "&lt;"):gsub(">", "&gt;"))
 		else
-			buffer[#buffer + 1] = tostring(v):gsub("<", "&lt;"):gsub(">", "&gt;")
+			buffer[#buffer + 1] = tostring(v):gsub("\r\n", "\n"):gsub("<", "&lt;"):gsub(">", "&gt;")
 		end
 	end
 
@@ -643,6 +671,7 @@ function PANEL:AddLine(elements)
 	panel:Dock(TOP)
 	panel:InvalidateParent(true)
 	panel:SetMarkup(table.concat(buffer))
+	panel:InvalidateLayout(true)
 
 	if (#self.entries >= 100) then
 		local oldPanel = table.remove(self.entries, 1)

@@ -309,6 +309,8 @@ function hg.markup.Parse(ml, maxwidth)
 						lineHeight = thisY + texOffset
 					end
 
+					ymaxes[yOffset] = math.max(ymaxes[yOffset] or 0, thisMaxY)
+
 					if (string.utf8len(curString) > 0) then
 						local x1,y1 = surface.GetTextSize(curString)
 
@@ -491,7 +493,7 @@ function hg.markup.Parse(ml, maxwidth)
 	end
 
 	local newObject = MarkupObject:create()
-	newObject.totalHeight = totalHeight
+	newObject.totalHeight = totalHeight + 2
 	newObject.totalWidth = xMax
 	newObject.blocks = new_block_list
 	return newObject
