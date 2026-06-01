@@ -1,33 +1,3 @@
-if SERVER then
-    AddCSLuaFile()
-
-    local files = {
-        "materials/vgui/weapon_beartrap_homigrad.png",
-        "materials/vgui/weapon_beartrap_homigrad.vmt",
-        "materials/models/freeman/beartrap_diffuse.vtf",
-        "materials/models/freeman/beartrap_specular.vtf",
-        "materials/models/freeman/trap_dif.vmt",
-        "sound/beartrap.wav",
-        "models/stiffy360/beartrap.dx80.vtx",
-        "models/stiffy360/beartrap.dx90.vtx",
-        "models/stiffy360/beartrap.mdl",
-        "models/stiffy360/beartrap.phy",
-        "models/stiffy360/beartrap.sw.vtx",
-        "models/stiffy360/beartrap.vvd",
-        "models/stiffy360/beartrap.xbox.vtx",
-        "models/stiffy360/c_beartrap.dx80.vtx",
-        "models/stiffy360/c_beartrap.dx90.vtx",
-        "models/stiffy360/c_beartrap.mdl",
-        "models/stiffy360/c_beartrap.sw.vtx",
-        "models/stiffy360/c_beartrap.vvd",
-        "models/stiffy360/c_beartrap.xbox.vtx"
-    }
-
-    for _, path in ipairs(files) do
-        resource.AddFile(path)
-    end
-end
-
 PAT_BEARTRAP = PAT_BEARTRAP or {}
 PAT_BEARTRAP.Model = "models/stiffy360/beartrap.mdl"
 PAT_BEARTRAP.ViewModel = "models/stiffy360/c_beartrap.mdl"

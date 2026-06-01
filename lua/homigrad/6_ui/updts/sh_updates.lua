@@ -2,7 +2,7 @@ hg.updates = hg.updates or {}
 
 hg.updates.updts = {
 	{
-		version = "Beta 4.5",
+		version = "Beta 4.8",
 		date = "01.06.2026",
 		title = "meleecity",
 		lines = {

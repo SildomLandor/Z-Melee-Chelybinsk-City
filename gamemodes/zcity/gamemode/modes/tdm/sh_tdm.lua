@@ -81,6 +81,7 @@ AddItemToBUY( "Steyr TMP", "Weapon", "weapon_tmp", 2100, "Submachine", {"holo1",
 AddItemToBUY( "Šcorpion vz. 61", "Weapon", "weapon_skorpion", 1200, "Submachine", {}, nil, 0 )
 
 AddItemToBUY( "\"Deer Hunter\" Bow", "Weapon", "weapon_hg_bow", 2000, "Special", {} )
+AddItemToBUY( "Bear Trap", "Weapon", "weapon_beartrap_homigrad", 450, "Special", {} )
 
 AddItemToBUY( "Remington-870", "Weapon", "weapon_remington870", 1700, "Shotguns", {"holo1","holo2","supressor5","holo15"} )
 AddItemToBUY( "SPAS-12", "Weapon", "weapon_spas12", 2200, "Shotguns", {"supressor5"} )

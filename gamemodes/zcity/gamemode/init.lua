@@ -9,34 +9,6 @@ include("shared.lua")
 AddCSLuaFile("loader.lua")
 include("loader.lua")
 
-local function UpdateServerHostname()
-	local hostname = "CHELYABINSK | RU | " .. hg.Version
-
-	local port = 0
-	local ip = game.GetIPAddress()
-	if ip and ip ~= "loopback" then
-		port = tonumber(ip:match(":(%d+)$")) or 0
-	end
-	if port == 0 then
-		local cv = GetConVar("hostport")
-		if cv then port = cv:GetInt() end
-	end
-
-	if port == 27735 then
-		hostname = hostname .. " | server 1"
-	elseif port == 27019 then
-		hostname = hostname .. " | server 2"
-	else
-		hostname = hostname .. " | non-official server"
-	end
-
-	RunConsoleCommand("hostname", hostname)
-end
-
-hook.Add("Initialize", "ZB_SetHostname", function()
-	timer.Simple(5, UpdateServerHostname)
-end)
-
 local PLAYER = FindMetaTable("Player")
 function PLAYER:CanSpawn()
 	return ( CurrentRound and CurrentRound() and CurrentRound().CanSpawn and CurrentRound():CanSpawn(self)) or (zb.ROUND_STATE == 0)

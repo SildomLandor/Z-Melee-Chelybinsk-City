@@ -360,6 +360,25 @@ function zb.ForcesAttackedInnocent(self, Victim)
     return (recent and 0 or 1) + (armed and 0 or 1)
 end
 
+hook.Add("Player_Death", "GuiltTeammateKillMsg", function(victim)
+    timer.Simple(0.1, function()
+        if not IsValid(victim) then return end
+
+        local killer, topHarm = nil, 0
+        for att, harm in pairs(zb.HarmDone[victim] or {}) do
+            if IsValid(att) and att:IsPlayer() and harm > topHarm then
+                topHarm = harm
+                killer = att
+            end
+        end
+
+        if not IsValid(killer) or killer == victim or topHarm < 9 then return end
+        if zb.KarmaSkipTeamHarm(killer, victim) then return end
+
+        killer:ChatPrint("Ты убил своего тиммейта!")
+    end)
+end)
+
 hook.Add("PlayerDisconnected","GuiltSaveOnDisconect",function(ply)
     ply:guilt_SetValue( ply.Karma or 100 )
 end)

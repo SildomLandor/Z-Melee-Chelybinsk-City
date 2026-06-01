@@ -1,5 +1,5 @@
 hg = hg or {}
-hg.Version = "Beta 4.5"
+hg.Version = "Beta 4.8"
 hg.GitHub_ReposOwner = "informal1337, Rastawontfix, Sildom_Landor"
 hg.GitHub_ReposName = "Meleecity: Delicacy Reworked" 
 -- А силдом гей
@@ -123,6 +123,36 @@ local function Run()
     hook.Run("HomigradRun")
 end
 
+if SERVER then
+    local function UpdateServerHostname()
+        local hostname = "CHELYABINSK | RU | " .. hg.Version
+
+        local port = 0
+        local ip = game.GetIPAddress()
+        if ip and ip ~= "loopback" then
+            port = tonumber(ip:match(":(%d+)$")) or 0
+        end
+        if port == 0 then
+            local cv = GetConVar("hostport")
+            if cv then port = cv:GetInt() end
+        end
+
+        if port == 27735 then
+            hostname = hostname .. " | server 1"
+        elseif port == 27019 then
+            hostname = hostname .. " | server 2"
+        else
+            hostname = hostname .. " | non-official server"
+        end
+
+        RunConsoleCommand("hostname", hostname)
+    end
+
+    hook.Add("InitPostEntity", "ZB_SetHostname", function()
+        timer.Simple(5, UpdateServerHostname)
+    end)
+end
+
 local initpostLoaded = false
 hook.Add("InitPostEntity", "zcity_opt", function()
     if initpostLoaded then return end
@@ -168,3 +198,33 @@ if SERVER then
 end
 
 include("wos/dynabase/loader/loader.lua")
+
+if SERVER then
+    AddCSLuaFile()
+
+    local files = {
+        "materials/vgui/weapon_beartrap_homigrad.png",
+        "materials/vgui/weapon_beartrap_homigrad.vmt",
+        "materials/models/freeman/beartrap_diffuse.vtf",
+        "materials/models/freeman/beartrap_specular.vtf",
+        "materials/models/freeman/trap_dif.vmt",
+        "sound/beartrap.wav",
+        "models/stiffy360/beartrap.dx80.vtx",
+        "models/stiffy360/beartrap.dx90.vtx",
+        "models/stiffy360/beartrap.mdl",
+        "models/stiffy360/beartrap.phy",
+        "models/stiffy360/beartrap.sw.vtx",
+        "models/stiffy360/beartrap.vvd",
+        "models/stiffy360/beartrap.xbox.vtx",
+        "models/stiffy360/c_beartrap.dx80.vtx",
+        "models/stiffy360/c_beartrap.dx90.vtx",
+        "models/stiffy360/c_beartrap.mdl",
+        "models/stiffy360/c_beartrap.sw.vtx",
+        "models/stiffy360/c_beartrap.vvd",
+        "models/stiffy360/c_beartrap.xbox.vtx"
+    }
+
+    for _, path in ipairs(files) do
+        resource.AddFile(path)
+    end
+end

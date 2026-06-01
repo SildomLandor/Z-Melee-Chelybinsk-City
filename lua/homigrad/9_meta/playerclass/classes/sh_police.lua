@@ -55,7 +55,7 @@ function CLASS.On(self)
         cumulativeChance = cumulativeChance + rankInfo.chance
         if randomValue <= cumulativeChance then
             rank = rankInfo.name
-            rankBg = rankInfo.bg
+            rankBg = rankInfo.rankbg or 0
             break
         end
     end
@@ -63,7 +63,7 @@ function CLASS.On(self)
     self:SetNWString("PlayerName", rank .. " " .. Appearance.AName)
     self:SetPlayerColor(clr)
     self:SetModel(models[string.lower(Appearance.AModel)] or table.Random(models))
-    self:SetBodyGroups(rankBg)
+    self:SetBodygroup(1, rankBg)
     self:SetSubMaterial()
     self:SetNetVar("Accessories", Appearance.AAttachmets or "none")
     self.CurAppearance = Appearance
