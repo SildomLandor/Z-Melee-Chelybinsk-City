@@ -29,6 +29,10 @@ local function saveGuiltData()
     file.Write(guiltFilePath, util.TableToJSON(out, true) or "{}")
 end
 
+local function scheduleSaveGuiltData()
+    timer.Create("GuiltSaveDebounce", 2, 1, saveGuiltData)
+end
+
 local function loadGuiltData()
     local raw = file.Read(guiltFilePath, "DATA")
     if not raw or raw == "" then
@@ -108,7 +112,7 @@ function plyMeta:guilt_SetValue( zb_guilt )
     zb.GuiltSQL.PlayerInstances[steamID64].value = tonumber(zb_guilt) or 100
     zb.GuiltSQL.PlayerInstances[steamID64].steam_name = IsValid(self) and self:Name() or (zb.GuiltSQL.PlayerInstances[steamID64].steam_name or "")
 
-    saveGuiltData()
+    scheduleSaveGuiltData()
 end
 
 local function IsLookingAt(ply, targetVec, minDot)
@@ -122,10 +126,17 @@ end
 function zb.IsHmcdAntagonist(ply)
     return IsValid(ply) and ply.isTraitor
 end
+local function ownerPlayer(ent)
+    if not IsValid(ent) then return end
+    if ent:IsPlayer() then return ent end
+    return hg.RagdollOwner and hg.RagdollOwner(ent) or nil
+end
 
 function zb.KarmaSkipTeamHarm(att, vic)
     local rnd = CurrentRound()
     if not rnd or rnd.GuiltDisabled or GetConVar("zb_dev"):GetBool() then return true end
+    att = ownerPlayer(att) or att
+    vic = ownerPlayer(vic) or vic
     if not IsValid(att) or not IsValid(vic) or att == vic or not vic:IsPlayer() then return true end
     if zb.VictimIsHeadcrabThreat(vic) then return true end
 
@@ -152,12 +163,16 @@ local function karmaBanIfNeeded(att)
     if not IsValid(att) or (att.Karma or 100) > 0 then return end
 
     local steamID, name = att:SteamID(), att:Name()
-    att:guilt_SetValue(10)
+    att.Karma = 10
+    zb.KarmaSync(att, true)
+
+    if not ULib then
+        att:Kick("Слишком низкая карма")
+        return
+    end
 
     timer.Create("simplewaitforkarmadrop" .. att:EntIndex(), 0, 1, function()
-        if ULib then
-            ULib.addBan(steamID, 60, "Слишком низкая карма", name, "System")
-        end
+        ULib.addBan(steamID, 60, "Слишком низкая карма", name, "System")
     end)
 end
 
@@ -462,7 +477,7 @@ net.Receive("forgive_player", function(_, ply)
     local karma = zb.HarmDoneKarma[ply][ent]
     if not karma or karma <= 0 then return end
 
-    ent.Karma = math.Clamp((ent.Karma or 100) + karma, 0, zb.MaxKarma)
+    ent.Karma = math.min((ent.Karma or 100) + karma, zb.MaxKarma)
     zb.KarmaSync(ent, true)
 
     if zb.HarmDone[ply] then zb.HarmDone[ply][ent] = 0 end
