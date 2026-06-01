@@ -17,8 +17,26 @@ local function getTransform(pos, ang, mins, maxs, obbCenter)
 end
 
 local LocalToWorld = LocalToWorld
-function hg.organism.ShootMatrix(ent, organs)
+
+local function hitboxOwner(ent)
+	if not IsValid(ent) then return end
+	if ent:IsPlayer() then return ent end
+	return hg.RagdollOwner and hg.RagdollOwner(ent)
+end
+
+function hg.organism.PrepareHitboxBones(ent, ply)
+	if not CLIENT or not IsValid(ent) then return end
+	ply = IsValid(ply) and ply or hitboxOwner(ent)
+
+	ent:SetupBones()
+	ent:InvalidateBoneCache()
+
+	hook.Run("HG_PrepareHitboxBones", ent, ply)
+end
+
+function hg.organism.ShootMatrix(ent, organs, ply)
 	if not organs or not istable(organs) or table.IsEmpty(organs) then return end
+	hg.organism.PrepareHitboxBones(ent, ply)
 	local boxs = {}
 	local mins, maxs, matrix, box
 	local pos, ang, center
@@ -104,6 +122,26 @@ local models_female = {
 	["models/player/group03/police_fem.mdl"] = true
 }
 
+if CLIENT then
+	hook.Add("HG_PrepareHitboxBones", "hg_hitbox_tpik", function(ent, ply)
+		if not IsValid(ply) or not ply:IsPlayer() or not hg.MainTPIKFunction then return end
+
+		local wpn = ply:GetActiveWeapon()
+		local tpik = (hg.ShouldTPIK and hg.ShouldTPIK(ply, ent)) or ent ~= ply
+		if not tpik then return end
+
+		if IsValid(ply.OldRagdoll) then
+			ply:SetupBones()
+		end
+
+		if wpn and wpn.SetHandPos then
+			wpn:SetHandPos()
+		end
+
+		hg.MainTPIKFunction(ent, ply, wpn)
+	end)
+end
+
 if SERVER then return end
 
 local render_DrawW
@@ -119,7 +157,8 @@ hook.Add("PostDrawTranslucentRenderables", "homigrad-organism", function()
 		ply = hg.GetCurrentCharacter(ply)
 		local organs = hg.organism.GetHitBoxOrgans(ply:GetModel(), ply)
 		if not organs then continue end
-		local boxs, pos, sphere = hg.organism.ShootMatrix(ply, organs)
+		local owner = ply:IsPlayer() and ply or hitboxOwner(ply)
+		local boxs, pos, sphere = hg.organism.ShootMatrix(ply, organs, owner)
 		if hg_show_hitbox_dir:GetFloat() > 0 and hg.organism.Trace then
 			local dir = Vector(hg_show_hitbox_dir:GetFloat(), 0, 0)
 			dir:Rotate(LocalPlayer():EyeAngles())

@@ -639,7 +639,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 	end
 	
 	local organs = hg.organism.GetHitBoxOrgans(ent:GetModel(), ent)
-	local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs)
+	local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs, ply)
 	local dmgPos = dmgInfo:GetDamagePosition()
 	local dmgTraceFilter
 	if IsValid(attacker) and attacker ~= ent then
@@ -675,7 +675,7 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		lastPos, hitBoxs, inputHole, outputHole, outputDir, distance, tracePoses = hg.organism.Trace(dmgPos, dir, size, maxpen, boxs, pos, sphere, organs, dmgInfo:IsDamageType(DMG_BULLET+DMG_BUCKSHOT), Trace_Bullet, ent.organism, organs, dmg / 25, dmgInfo, dir)
 	elseif dmgInfo:IsDamageType(DMG_BLAST) then
 		local organs = hg.organism.GetHitBoxOrgans(ent:GetModel(), ent)
-		local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs)
+		local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs, ply)
 		
 		hg.organism.BlastTrace(dmgInfo:GetDamagePosition(), (ent:GetPos() - dmgInfo:GetDamagePosition()):Length() / 200, dmg * 2, boxs, organs, Trace_Blast, ent.organism, organs, dmg / 300, dmgInfo)
 		hg.organism.AddWoundManual(ent,dmg,vector_origin,angle_zero,math.random(0,ent:GetBoneCount()),CurTime())

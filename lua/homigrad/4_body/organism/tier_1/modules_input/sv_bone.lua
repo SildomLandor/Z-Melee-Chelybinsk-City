@@ -247,6 +247,10 @@ input_list.jaw = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricochet
 		if org.isPly then timer.Simple(0, function() hg.LightStunPlayer(org.owner,1 + dmg) end) end
 	end
 
+	if isCrush(dmgInfo) then
+		hg.organism.TryHeadEyeHit(org, dmg, dmgInfo, boneindex, hit)
+	end
+
 	return result, vecrand
 end
 
@@ -322,6 +326,10 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 	end
 
 	org.disorientation = org.disorientation + (isCrush(dmgInfo) and dmg * 1 or dmg * 1)
+
+	if isCrush(dmgInfo) then
+		hg.organism.TryHeadEyeHit(org, dmg, dmgInfo, boneindex, hit)
+	end
 
 	return result,vecrand
 end

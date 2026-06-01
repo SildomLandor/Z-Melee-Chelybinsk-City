@@ -273,6 +273,19 @@ local eye_lost_msg = {
 	},
 }
 
+local eye_stab_msg = {
+	["eyeL"] = {
+		"Меня проткали в левый глаз...",
+		"Что-то вонзилось мне в левый глаз!",
+		"Левый глаз... он...",
+	},
+	["eyeR"] = {
+		"Меня проткали в правый глаз...",
+		"Что-то вонзилось мне в правый глаз!",
+		"Правый глаз... он...",
+	},
+}
+
 local function damageEye(org, dmg, dmgInfo, key)
 	local old = org[key]
 	local pierce = dmgInfo:IsDamageType(DMG_BULLET + DMG_BUCKSHOT + DMG_SLASH)
@@ -287,7 +300,7 @@ local function damageEye(org, dmg, dmgInfo, key)
 	org.disorientation = org.disorientation + harmed * 2
 
 	if org[key] >= 0.85 and old < 0.85 and org.isPly then
-		local msgs = eye_lost_msg[key]
+		local msgs = dmgInfo:IsDamageType(DMG_SLASH) and eye_stab_msg[key] or eye_lost_msg[key]
 		org.owner:Notify(msgs[math.random(#msgs)], true, key, 2)
 	end
 
@@ -307,6 +320,79 @@ local function damageEye(org, dmg, dmgInfo, key)
 
 	return result
 end
+
+local function handsFistDmg(dmgInfo)
+	if not dmgInfo:IsDamageType(DMG_CLUB) then return false end
+	local inf = dmgInfo:GetInflictor()
+	if not IsValid(inf) then
+		local att = dmgInfo:GetAttacker()
+		if IsValid(att) and att:IsPlayer() then inf = att:GetActiveWeapon() end
+	end
+	return IsValid(inf) and inf:GetClass() == "weapon_hands_sh"
+end
+
+local function faceMaskBlocksEye(org)
+	local owner = org.owner
+	if not IsValid(owner) or not owner.armors or not owner.armors.face then return false end
+	if not hg.armor or not hg.armor.face then return false end
+	local face = hg.armor.face[owner.armors.face]
+	return face and (face.protection or 0) >= 4
+end
+
+local function pickEyeSide(org, dmgInfo, boneindex, hit)
+	local owner = org.owner
+	local ent = IsValid(owner) and (hg.GetCurrentCharacter(owner) or owner)
+	if not IsValid(ent) then return end
+
+	local boneName = boneindex or "ValveBiped.Bip01_Head1"
+	local bone = ent:LookupBone(boneName)
+	if not bone then return end
+
+	local bonePos, boneAng = ent:GetBonePosition(bone)
+	if not bonePos then return end
+
+	local dmgPos = isvector(hit) and hit or dmgInfo:GetDamagePosition()
+	local localPos = WorldToLocal(dmgPos, angZero, bonePos, boneAng)
+
+	if localPos.z > 0.35 then return "eyeR" end
+	if localPos.z < -0.35 then return "eyeL" end
+end
+
+function hg.organism.TryHeadEyeHit(org, dmg, dmgInfo, boneindex, hit)
+	if not dmgInfo or not dmgInfo.IsDamageType then return end
+	local pierce = dmgInfo:IsDamageType(DMG_SLASH)
+	local fist = handsFistDmg(dmgInfo)
+	if not pierce and not fist then return end
+	if dmg < (pierce and 0.04 or 0.06) then return end
+	if org._hgHeadEyeRoll == CurTime() then return end
+	org._hgHeadEyeRoll = CurTime()
+	if faceMaskBlocksEye(org) then return end
+
+	local pool = {}
+	if (org.eyeL or 0) < 0.85 then pool[#pool + 1] = "eyeL" end
+	if (org.eyeR or 0) < 0.85 then pool[#pool + 1] = "eyeR" end
+	if #pool == 0 then return end
+
+	local chance, eyeDmg
+	if pierce then
+		chance = math.Clamp(dmg * 0.55 + 0.22, 0.35, 0.88)
+		eyeDmg = math.Clamp(dmg * 1.85 + 0.55, 0.65, 1.35)
+	else
+		chance = math.Clamp(dmg * 0.4 + 0.1, 0.15, 0.6)
+		eyeDmg = math.Clamp(dmg * 1.35 + 0.4, 0.5, 1.2)
+	end
+	if math.random() > chance then return end
+
+	local key = pickEyeSide(org, dmgInfo, boneindex, hit)
+	if not key or (org[key] or 0) >= 0.85 then
+		key = pool[math.random(#pool)]
+	end
+
+	damageEye(org, eyeDmg, dmgInfo, key)
+end
+
+hg.organism.TryFistPopEye = hg.organism.TryHeadEyeHit
+hg.organism.tfpeye = hg.organism.TryHeadEyeHit
 
 input_list.eyeL = function(org, bone, dmg, dmgInfo)
 	return damageEye(org, dmg, dmgInfo, "eyeL")
@@ -329,3 +415,10 @@ input_list.trachea = function(org, bone, dmg, dmgInfo)
 
 	return result
 end
+
+hook.Add("HomigradDamage", "HG_HeadEyeHit", function(ply, dmgInfo, hitgroup, ent)
+	if hitgroup ~= HITGROUP_HEAD then return end
+	local org = IsValid(ent) and ent.organism
+	if not org or org.superfighter then return end
+	hg.organism.TryHeadEyeHit(org, dmgInfo:GetDamage() / 25, dmgInfo)
+end)
