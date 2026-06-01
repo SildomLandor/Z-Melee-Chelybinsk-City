@@ -779,6 +779,14 @@ if SERVER then
 
 				self.poisoned2 = nil
 			end
+
+			if SERVER then
+				local target = IsValid(org.owner) and org.owner:IsPlayer() and org.owner or (ent:IsPlayer() and ent)
+				if IsValid(target) and IsValid(owner) and target ~= owner
+					and zb.AntiPidor and zb.AntiPidor.ShouldReportHeal(owner, target) then
+					hook.Run("zb_AP_HealOther", owner, target)
+				end
+			end
 		end
 
 		if next(store.bandaged_limbs or {}) then
