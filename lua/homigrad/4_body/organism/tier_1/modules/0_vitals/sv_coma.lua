@@ -132,7 +132,8 @@ local function comaReflex(owner, org)
 
 	local spine = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Spine"))
 	local dir = IsValid(spine) and spine:GetAngles():Up() or Vector(0, 0, 1)
-	phys:ApplyForceCenter(dir * Rand(180, 420) + VectorRand() * 40)
+	local mul = ent:IsRagdoll() and 0.45 or 1
+	phys:ApplyForceCenter((dir * Rand(180, 420) + VectorRand() * 40) * mul)
 
 	if org.isPly and math.random(3) == 1 then
 		ent:EmitSound("snds_jack_hmcd_breathing/" .. (ThatPlyIsFemale(ent) and "f" or "m") .. math.random(4) .. ".wav", 50, 90, 0.35)

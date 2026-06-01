@@ -140,6 +140,7 @@ hg.applyFencingToPlayer = applyFencingToPlayer
 
 local function processFencing(rag, fade)
 	local org = rag.organism
+	if org and (org.coma or org.otrub) then fade = fade * 0.35 end
 	local force = 350 * fade
 	local pulse = 0.85 + math_sin(CurTime() * 4) * 0.15
 

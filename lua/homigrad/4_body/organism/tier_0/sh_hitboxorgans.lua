@@ -152,12 +152,17 @@ render_DrawWireframeBox = render.DrawWireframeBox
 hook.Add("PostDrawTranslucentRenderables", "homigrad-organism", function()
 	if not hg_show_hitbox:GetBool() then return end
 	if not LocalPlayer():IsAdmin() then return end
-	for i, ply in player.Iterator() do
-		if GetViewEntity() == ply then continue end
-		ply = hg.GetCurrentCharacter(ply)
+	for i, pl in player.Iterator() do
+		if GetViewEntity() == pl then continue end
+		if not pl:Alive() then continue end
+		local org = pl.organism
+		if org and org.alive == false then continue end
+
+		local ply = hg.GetCurrentCharacter(pl)
+		if not IsValid(ply) then continue end
 		local organs = hg.organism.GetHitBoxOrgans(ply:GetModel(), ply)
 		if not organs then continue end
-		local owner = ply:IsPlayer() and ply or hitboxOwner(ply)
+		local owner = pl
 		local boxs, pos, sphere = hg.organism.ShootMatrix(ply, organs, owner)
 		if hg_show_hitbox_dir:GetFloat() > 0 and hg.organism.Trace then
 			local dir = Vector(hg_show_hitbox_dir:GetFloat(), 0, 0)

@@ -417,20 +417,25 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	local just_went_uncon = not org.otrub and org.needotrub
 
-	if org.posturing or org.coma then //-- decerebrate / coma posturing
+	if org.posturing then
 		local ent = hg.GetCurrentCharacter(org.owner)
-
-		local rleg = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_R_Foot")))
-		local lleg = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_L_Foot")))
-		local rarm = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_R_Hand")))
-		local larm = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone("ValveBiped.Bip01_L_Hand")))
-
-		local down = -ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Spine")):GetAngles():Forward()
-		if IsValid(rleg) and IsValid(rarm) and IsValid(larm) and IsValid(lleg)then
-			rleg:ApplyForceCenter(down * 500)
-			lleg:ApplyForceCenter(down * 500)
-			rarm:ApplyForceCenter(down * 500)
-			larm:ApplyForceCenter(down * 500)
+		if IsValid(ent) then
+			local spineMat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Spine"))
+			if spineMat then
+				local isRag = ent:IsRagdoll()
+				org._postureAcc = (org._postureAcc or 0) + timeValue
+				local tick = isRag and 0.18 or 0
+				if not isRag or org._postureAcc >= tick then
+					org._postureAcc = 0
+					local force = (isRag and 85 or 500) * (isRag and (0.4 + 0.6 * math.sin(CurTime() * 1.4)) or 1)
+					local down = -spineMat:GetAngles():Forward()
+					local bones = {"ValveBiped.Bip01_R_Foot", "ValveBiped.Bip01_L_Foot", "ValveBiped.Bip01_R_Hand", "ValveBiped.Bip01_L_Hand"}
+					for i = 1, #bones do
+						local phys = ent:GetPhysicsObjectNum(ent:TranslateBoneToPhysBone(ent:LookupBone(bones[i])))
+						if IsValid(phys) then phys:ApplyForceCenter(down * force) end
+					end
+				end
+			end
 		end
 	end
 
