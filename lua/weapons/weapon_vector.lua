@@ -23,7 +23,6 @@ SWEP.FakeEjectBrassATT = "2"
 SWEP.CanEpicRun = true
 SWEP.EpicRunPos = Vector(2,10,2)
 
-
 SWEP.FakeViewBobBone = "CAM_Homefield"
 SWEP.FakeReloadSounds = {
 	[0.22] = "weapons/universal/uni_crawl_l_03.wav",

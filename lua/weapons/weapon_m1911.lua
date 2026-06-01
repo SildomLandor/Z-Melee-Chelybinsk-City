@@ -1,16 +1,16 @@
 SWEP.Base = "homigrad_base"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
-SWEP.PrintName = "Кольт М1911"
+SWEP.PrintName = "Colt M1911"
 SWEP.Author = "Colt"
-SWEP.Instructions = "Пистолет под патрон .45 ACP"
+SWEP.Instructions = "Pistol chambered in .45 ACP"
 SWEP.Category = "Weapons - Pistols"
 SWEP.Slot = 2
 SWEP.SlotPos = 10
 SWEP.ViewModel = ""
 SWEP.WorldModel = "models/weapons/w_pist_elite_single.mdl"
 SWEP.WorldModelFake = "models/weapons/arccw/c_ur_m1911.mdl"
-SWEP.GetDebug = false
+-- SWEP.GetDebug = false
 
 SWEP.WepSelectIcon2 = Material("entities/arc9_eft_m1911.png")
 SWEP.IconOverride = "entities/arc9_eft_m1911.png"
@@ -121,7 +121,6 @@ SWEP.AnimsEvents = {
 	["reload_empty"] = {
 		[0.2] = function(self)
 			local ent = hg.CreateMag( self, Vector(0,-45,-12), self:GetRandomBodygroups() or "0", true)
-			if not IsValid(ent) then return end
 			for i = 0, ent:GetBoneCount() - 1 do
 				ent:ManipulateBoneScale(i, vector_origin)
 			end

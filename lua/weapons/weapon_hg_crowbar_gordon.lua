@@ -3,8 +3,8 @@ SWEP.Base = "weapon_melee"
 SWEP.PrintName = "Лом Гордона"
 SWEP.Instructions = "«Я думаю, ты уронил это еще в Черной Мезе!»"
 SWEP.Category = "Weapons - Melee"
-SWEP.Spawnable = false
-SWEP.AdminOnly = false
+SWEP.Spawnable = true
+SWEP.AdminOnly = true
 
 SWEP.WorldModel = "models/weapons/tfa_nmrih/w_me_crowbar.mdl"
 SWEP.WorldModelExchange = "models/weapons/tfa_nmrih/w_me_crowbar.mdl"
