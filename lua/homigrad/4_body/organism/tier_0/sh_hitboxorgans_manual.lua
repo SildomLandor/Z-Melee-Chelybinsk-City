@@ -47,8 +47,8 @@ male["ValveBiped.Bip01_Head1"] = {
 		Vector(1.6, 2.1, 1.7),
 		Color(255, 0, 255)
 	},
-	{"eyeR", nil, Vector(2.3, -4, 1.15), Angle(0, 0, 0), Vector(0.45, 0.45, 0.45), Color(255, 255, 0)},
-	{"eyeL", nil, Vector(2.3, -4, -1.15), Angle(0, 0, 0), Vector(0.45, 0.45, 0.45), Color(255, 255, 0)},
+	{"eyeR", nil, Vector(3.5, -4, 1.25), Angle(0, 0, 0), Vector(0.45, 0.45, 0.45), Color(255, 255, 0)},
+	{"eyeL", nil, Vector(3.5, -4, -1.25), Angle(0, 0, 0), Vector(0.45, 0.45, 0.45), Color(255, 255, 0)},
 }
 
 local spine = 0.25
