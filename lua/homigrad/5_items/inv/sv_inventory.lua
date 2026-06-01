@@ -282,22 +282,54 @@ local function NormalizeInventoryWeapons(inv)
 	if not istable(inv.Weapons) then return inv end
 
 	for class, value in pairs(inv.Weapons) do
-		local normalized = NormalizeWeaponLootValue(value)
-		inv.Weapons[class] = normalized
+		inv.Weapons[class] = NormalizeWeaponLootValue(value)
 	end
 	return inv
+end
+
+local function invHasLoot(inv)
+	if not istable(inv) then return false end
+	if istable(inv.Weapons) and next(inv.Weapons) then return true end
+	if istable(inv.Ammo) and next(inv.Ammo) then return true end
+	if istable(inv.Attachments) and next(inv.Attachments) then return true end
+	return false
+end
+
+local function bindEntityInventory(ent)
+	local inv = ent.inventory
+	if invHasLoot(inv) then return inv end
+
+	local netInv = ent:GetNetVar("Inventory")
+	if invHasLoot(netInv) then
+		ent.inventory = netInv
+		return netInv
+	end
+
+	return inv or netInv
+end
+
+local function lootHasWeapon(inv, class)
+	if not inv or not inv.Weapons or inv.Weapons[class] == nil then return false end
+	return NormalizeWeaponLootValue(inv.Weapons[class]) ~= nil
 end
 
 local function GetLootInventory(ent)
 	local owner = hg.GetLootPlayer(ent)
 	if IsValid(owner) then
 		owner.inventory = owner.inventory or {}
+		local inv = bindEntityInventory(owner)
+		if invHasLoot(inv) then
+			owner.inventory = inv
+			return inv, owner
+		end
+		if ent:IsRagdoll() then
+			local ragInv = bindEntityInventory(ent)
+			if invHasLoot(ragInv) then return ragInv, ent end
+		end
 		return owner.inventory, owner
 	end
 
-	ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
-	NormalizeInventoryWeapons(ent.inventory)
-	return ent.inventory, ent
+	return bindEntityInventory(ent), ent
 end
 
 local function CanLootPlayer(ply)
@@ -323,10 +355,11 @@ local function CanLootEntity(ent)
 end
 
 local function SyncCorpseLootInventory(ent, receiver)
-	ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
-	NormalizeInventoryWeapons(ent.inventory)
-	if not ent.inventory then return end
-	ent:SetNetVar("Inventory", ent.inventory)
+	local inv = bindEntityInventory(ent)
+	if not inv then return end
+	NormalizeInventoryWeapons(inv)
+	ent.inventory = inv
+	ent:SetNetVar("Inventory", inv)
 	if IsValid(receiver) then ent:SendNetVar("Inventory", receiver) end
 	return ent.inventory
 end
@@ -529,7 +562,7 @@ net.Receive("ply_take_item_begin", function(_, ply)
     end
 
     local inv = select(1, GetLootInventory(ent))
-    if tblIndex == "Weapons" and (not inv or not inv.Weapons or inv.Weapons[thing] == nil) then return end
+    if tblIndex == "Weapons" and not lootHasWeapon(inv, thing) then return end
 
     local key = BuildLootTakeKey(ent, tblIndex, thing)
     local duration = GetLootTakeDuration(tblIndex, thing)
@@ -575,7 +608,7 @@ net.Receive("ply_take_item", function(len, ply)
     end
     if not inv then return end
 
-    if tblIndex == "Weapons" and (not inv.Weapons or inv.Weapons[thing] == nil) then return end
+    if tblIndex == "Weapons" and not lootHasWeapon(inv, thing) then return end
     if tblIndex == "Attachments" then
         local att = tonumber(thing)
         if not att or not inv.Attachments or inv.Attachments[att] == nil then return end
@@ -620,24 +653,26 @@ function hg.EnsureLootInventory(ply, ent)
         return SyncCorpseLootInventory(ent, ply)
     end
 
-    ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
-    NormalizeInventoryWeapons(ent.inventory)
-    if ent.inventory then
-        ent:SetNetVar("Inventory", ent.inventory)
+    local inv = bindEntityInventory(ent)
+    if inv then
+        NormalizeInventoryWeapons(inv)
+        ent.inventory = inv
+        ent:SetNetVar("Inventory", inv)
         if IsValid(ply) then ent:SendNetVar("Inventory", ply) end
-        return ent.inventory
+        return inv
     end
 
     if not string.find(ent:GetClass() or "", "prop_") then return end
 
     hook.Run("ZB_InventoryChecked", ply, ent)
 
-    ent.inventory = ent.inventory or ent:GetNetVar("Inventory")
-    NormalizeInventoryWeapons(ent.inventory)
-    if ent.inventory then
-        ent:SetNetVar("Inventory", ent.inventory)
+    inv = bindEntityInventory(ent)
+    if inv then
+        NormalizeInventoryWeapons(inv)
+        ent.inventory = inv
+        ent:SetNetVar("Inventory", inv)
         if IsValid(ply) then ent:SendNetVar("Inventory", ply) end
-        return ent.inventory
+        return inv
     end
 
     if not LootBoxTier(ent:GetModel()) then return end
