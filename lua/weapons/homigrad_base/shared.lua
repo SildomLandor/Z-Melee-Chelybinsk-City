@@ -2344,7 +2344,7 @@ elseif CLIENT then
 end
 
 function SWEP:GetWM()
-	return IsValid(self.worldModel) and self.worldModel//self:GetWeaponEntity()
+	if IsValid(self.worldModel) then return self.worldModel end
 end
 
 SWEP.AnimList = {
