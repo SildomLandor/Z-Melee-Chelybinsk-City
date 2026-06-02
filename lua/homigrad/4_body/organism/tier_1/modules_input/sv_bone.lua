@@ -342,7 +342,7 @@ input_list.chest = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 	local result, vecrand = damageBone(org, 0.1, dmg / 4, dmgInfo, "chest", boneindex, dir, hit, ricochet, true)
 	local chestDmg = org.chest - oldDmg
 
-	if org.otrub and org.isPly and IsValid(org.owner) and chestDmg > 0.001 then
+	if org.otrub and org.isPly and IsValid(org.owner) and org.owner:Alive() and chestDmg > 0.001 then
 		net.Start("hg_chest_udar")
 		net.WriteFloat(math.Clamp(chestDmg * 5 + dmg * 0.12, 0.12, 1.6))
 		net.Send(org.owner)
