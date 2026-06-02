@@ -71,7 +71,7 @@ local shoveFilter = {
 local shoveProp = {
 	["prop_physics"] = true,
 	["prop_physics_multiplayer"] = true,
-	["prop_ragdoll"] = true
+	["prop_ragdoll"] = false
 }
 
 local function shove(ply)

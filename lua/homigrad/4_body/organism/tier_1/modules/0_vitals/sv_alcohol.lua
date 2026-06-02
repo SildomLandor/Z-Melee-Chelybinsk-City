@@ -5,7 +5,7 @@ local module = hg.organism.module.alcohol
 
 local function getStage(level, tol)
 	local effective = math.max(level - tol * 0.55, 0)
-	if effective < 0.18 then return 0 end
+	if effective < 0.12 then return 0 end
 	if effective < 0.7 then return 1 end
 	if effective < 1.7 then return 2 end
 	return 3
@@ -14,11 +14,12 @@ end
 function hg.organism.AddAlcohol(org, dose)
 	if not org or dose <= 0 then return 0 end
 
-	org.alcoholAbsorb = (org.alcoholAbsorb or 0) + dose
+	org.alcohol = Clamp((org.alcohol or 0) + dose, 0, 4)
+	org.alcoholAbsorb = 0
 	org.alcoholRecentDose = CurTime()
-	org.alcoholPeak = math.max(org.alcoholPeak or 0, (org.alcohol or 0) + (org.alcoholAbsorb or 0))
+	org.alcoholPeak = math.max(org.alcoholPeak or 0, org.alcohol or 0)
 
-	return org.alcoholAbsorb
+	return org.alcohol
 end
 
 module[1] = function(org)
@@ -32,6 +33,7 @@ module[1] = function(org)
 	org.hangover = 0
 	org.alcoholLiverLoad = 0
 	org.blackoutRisk = 0
+	org.alcoholBlackoutUntil = 0
 	org.nextWithdrawalShake = 0
 end
 
@@ -79,12 +81,13 @@ module[2] = function(owner, org, timeValue)
 
 	if stage > 0 then
 		local sed = (org.alcohol or 0) * (1 - Clamp((org.alcoholTolerance or 0) * 0.4, 0, 0.4))
+		local buzz = Clamp(((org.alcohol or 0) - 0.12) / 1.2, 0, 1)
 		local analgesiaBoost = Clamp((sed - 0.25) * 0.35, 0, 0.8)
 		org.analgesia = math.max(org.analgesia or 0, analgesiaBoost)
 
 		org.recoilmul = (org.recoilmul or 1) + Clamp(sed * 0.2, 0, 0.5)
 		org.meleespeed = math.max((org.meleespeed or 1) - Clamp(sed * 0.12, 0, 0.35), 0.55)
-		org.disorientation = Clamp(math.max(org.disorientation or 0, sed * 0.4), 0, 10)
+		org.disorientation = Clamp(math.max(org.disorientation or 0, sed * 0.5 + buzz * 0.8), 0, 10)
 		org.stamina.subadd = (org.stamina.subadd or 0) + sed * 0.2
 
 		if stage >= 2 then
@@ -125,12 +128,13 @@ module[2] = function(owner, org, timeValue)
 
 	if stage >= 3 and risk > 0.35 then
 		org.consciousness = Approach(org.consciousness or 1, 0, timeValue / (8 - math.min(risk * 2, 5)))
-		if math.random() < Clamp(timeValue * risk * 0.015, 0, 0.12) then
-			org.needfake = true
+		if (org.alcoholBlackoutUntil or 0) <= CurTime() and math.random() < Clamp(timeValue * math.max(risk - 0.45, 0) * 0.01, 0, 0.08) then
+			org.alcoholBlackoutUntil = CurTime() + math.random(2, 6)
 		end
-		if math.random() < Clamp(timeValue * math.max(risk - 0.45, 0) * 0.01, 0, 0.08) then
-			org.needotrub = true
-		end
+	end
+
+	if (org.alcoholBlackoutUntil or 0) > CurTime() then
+		org.needotrub = true
 	end
 
 end

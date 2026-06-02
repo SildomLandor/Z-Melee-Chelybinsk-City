@@ -186,7 +186,13 @@ hook.Add("OnCrazyPhysics", "hg_phys", function(ent, po, why)
 	po = IsValid(po) and po or ent:GetPhysicsObject()
 
 	if isRag(ent) then
-		drop(ent)
+		if why == "bad" and not hg.physPlayerRag(ent) then
+			ripCons(ent)
+			drop(ent)
+			return
+		end
+
+		calm(ent, po)
 		return
 	end
 

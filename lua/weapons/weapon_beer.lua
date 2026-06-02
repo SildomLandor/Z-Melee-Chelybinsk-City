@@ -221,6 +221,10 @@ local phrasesalco = {
 
 function SWEP:PrimaryAttack()
     if not IsFirstTimePredicted() then return end
+    if not self.IsOpened then
+        self:SetNextPrimaryFire(CurTime() + 0.25)
+        return
+    end
     
     self:PlayAnim("chug", 7, false)
     self:SetNextPrimaryFire(CurTime() + 3)
@@ -258,4 +262,14 @@ function SWEP:Holster()
 end
 
 function SWEP:SetZoom(state)
+end
+
+function SWEP:Camera(eyePos, eyeAng, view)
+	if hg and hg.DrawWorldModel then
+		hg.DrawWorldModel(self, true)
+	end
+
+	view.origin = eyePos
+	view.angles = eyeAng
+	return view
 end

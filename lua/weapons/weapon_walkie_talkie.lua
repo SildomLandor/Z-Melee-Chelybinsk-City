@@ -6,7 +6,7 @@ SWEP.Base = "weapon_base"
 SWEP.PrintName = "Телефон"
 SWEP.Instructions = "Холодное стекло в руке — мой единственный и самый жуткий свидетель"
 SWEP.Category = "ZCity Other"
-SWEP.Spawnable = false
+SWEP.Spawnable = true
 SWEP.AdminOnly = false
 
 SWEP.Primary.ClipSize = -1

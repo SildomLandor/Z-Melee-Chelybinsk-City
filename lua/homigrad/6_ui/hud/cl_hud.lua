@@ -617,7 +617,7 @@ hook.Add("radialOptions", "89", function()
 	local ent = tr.Entity
 	local isHuman = (ent:IsPlayer() and ent ~= lply and ent:Alive()) or ent:IsNPC()
 	local class = ent:GetClass()
-	local isProp = class == "prop_physics" or class == "prop_physics_multiplayer" or class == "prop_ragdoll"
+	local isProp = class == "prop_physics" or class == "prop_physics_multiplayer"
 	if not isHuman and not isProp then return end
 	hg.radialOptions[#hg.radialOptions + 1] = {shovePlayer, "Толкнуть"}
 end)
