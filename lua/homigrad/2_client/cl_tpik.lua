@@ -1766,8 +1766,11 @@ function meta:PullLHTowards(towards, timetopull, mdl, offsets, callback)
     local ply = hg.RagdollOwner(self) or self
 
     timer.Simple(timetopull, function()
-        if !IsValid(ply) or !IsValid(ply:GetActiveWeapon()) or !callback then return end
-        callback(ply:GetActiveWeapon())
+        if not IsValid(ply) or not callback then return end
+        local wep = ply:GetActiveWeapon()
+        if not IsValid(wep) then return end
+        if wep.GetWM and not IsValid(wep:GetWM()) then return end
+        callback(wep)
     end)
 
     do return end

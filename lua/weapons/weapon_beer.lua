@@ -14,12 +14,17 @@ SWEP.WorldModelFake = "models/casual/food/c_heineken.mdl"
 SWEP.FakePos = Vector(-10, 5, 5)
 SWEP.FakeAng = Angle(0, 0, 0)
 
+SWEP.ChugFakePosOffset = Vector(7, 0, 2)
+SWEP.ChugFakeAngOffset = Angle(0, 0, 0)
+SWEP.ChugHandPosOffset = Vector(0, 0, 0)
+SWEP.ChugHandAngOffset = Angle(0, 0, 0)
+
 SWEP.ViewModel = ""
 SWEP.FakeBodyGroups = "0"
 SWEP.AttachmentPos = Vector(-1.5,-0.01,1.08)
 SWEP.AttachmentAng = Angle(0,0,90)
-SWEP.MagIndex = 53
 SWEP.FakeAttachment = 1
+SWEP.CapBones = {50, 51, 52, 53}
 
 SWEP.FakeVPShouldUseHand = true
 SWEP.AnimList = {
@@ -56,56 +61,67 @@ SWEP.lmagang = Angle(-10,0,0)
 SWEP.lmagpos2 = Vector(0,-1.5,0.7)
 SWEP.lmagang2 = Angle(0,0,0)
 
-if CLIENT then
-	local vector_full = Vector(1, 1, 1)
-	SWEP.FakeReloadEvents = {
-		[0.35] = function( self ) 
-			if self:Clip1() < 1 then
-				hg.CreateMag( self, Vector(0,0,-50) )
-				self:GetWM():ManipulateBoneScale(50, vector_origin)
-				self:GetWM():ManipulateBoneScale(51, vector_origin)
-				self:GetWM():ManipulateBoneScale(52, vector_origin)
-			end
-		end,
-		[0.15] = function( self, timeMul )
-			if self:Clip1() >= 1 then
-				self:GetWM():ManipulateBoneScale(53, vector_full)
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 0.5 * timeMul)
-			end
-		end,
-		[0.2] = function( self, timeMul )
-			if self:Clip1() < 1 then
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 1.5 * timeMul)
-			end
-		end,
-		[0.36] = function( self )
-			if self:Clip1() >= 1 then
-				self:GetWM():ManipulateBoneScale(50, vector_full)
-				self:GetWM():ManipulateBoneScale(51, vector_full)
-				self:GetWM():ManipulateBoneScale(52, vector_full)
-			end
-		end,
-		[0.5] = function( self )
-			if self:Clip1() < 1 then
-				self:GetWM():ManipulateBoneScale(50, vector_full)
-				self:GetWM():ManipulateBoneScale(51, vector_full)
-				self:GetWM():ManipulateBoneScale(52, vector_full)
-			end
-		end,
-		[0.8] = function( self, timeMul )
-			if self:Clip1() >= 1 then
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_L_Thigh", 1*timeMul)
-			end
-		end,
-		[0.9] = function( self ) 
-			self:GetWM():ManipulateBoneScale(53, vector_origin)
-		end,
-		[1.2] = function( self ) 
-			if self:Clip1() >= 1 then
-			end
-		end,
-	}
+local capVecShow = Vector(1, 1, 1)
+local capNameNeedles = {"cap", "lid", "top", "ring", "tab", "крыш"}
+
+local function capNameMatch(name)
+	if not name or name == "__INVALIDBONE__" then return false end
+	local l = name:lower()
+	for i = 1, #capNameNeedles do
+		if l:find(capNameNeedles[i], 1, true) then return true end
+	end
+	return false
 end
+
+function SWEP:BeerCapOnModel(mdl, show)
+	if not IsValid(mdl) then return end
+	local scale = show and capVecShow or vector_origin
+
+	for i = 0, mdl:GetBoneCount() - 1 do
+		if capNameMatch(mdl:GetBoneName(i)) then
+			mdl:ManipulateBoneScale(i, scale)
+		end
+	end
+
+	for i = 1, #(self.CapBones or {}) do
+		mdl:ManipulateBoneScale(self.CapBones[i], scale)
+	end
+
+	for bg = 0, mdl:GetNumBodyGroups() - 1 do
+		local bgName = mdl:GetBodygroupName(bg)
+		if bgName and capNameMatch(bgName) then
+			mdl:SetBodygroup(bg, show and 0 or 1)
+		end
+	end
+end
+
+function SWEP:BeerCapVisible(show)
+	self:BeerCapOnModel(self.worldModel, show)
+	if CLIENT then
+		self:BeerCapOnModel(self:GetWM(), show)
+	end
+end
+
+function SWEP:BeerCapRemove()
+	if SERVER then self:SetNWBool("BeerCapOff", true) end
+	self:BeerCapVisible(false)
+end
+
+function SWEP:ModelCreated(mdl)
+	self:BeerCapOnModel(mdl, not self:GetNWBool("BeerCapOff", false))
+end
+
+local BEER_OPEN_ANIM_TIME = 3.5
+local BEER_CAP_REMOVE_AT = 0.70
+
+SWEP.AnimsEvents = {
+	["sign"] = {
+		[BEER_CAP_REMOVE_AT] = function(self) self:BeerCapRemove() end,
+	},
+	["fire"] = {
+		[BEER_CAP_REMOVE_AT] = function(self) self:BeerCapRemove() end,
+	},
+}
 
 SWEP.WepSelectIcon2 = Material("vgui/entities/heineken")
 SWEP.IconOverride = "vgui/entities/heineken"
@@ -141,7 +157,7 @@ SWEP.ReloadSoundes = {
 }
 SWEP.DeploySnd = {"homigrad/weapons/draw_pistol.mp3", 55, 100, 110}
 SWEP.HolsterSnd = {"homigrad/weapons/holster_pistol.mp3", 55, 100, 110}
-SWEP.HoldType = "revolver"
+SWEP.HoldType = "normal"
 SWEP.ZoomPos = Vector(-30, 0.7, 7.4)
 SWEP.RHandPos = Vector(-13.5, 0, 4)
 SWEP.LHandPos = false
@@ -177,12 +193,51 @@ SWEP.LocalMuzzlePos = Vector(-3.44,0.9,7.955)
 SWEP.LocalMuzzleAng = Angle(0.7,-0.002,0)
 SWEP.WeaponEyeAngles = Angle(0,0,0)
 
-SWEP.RHPos = Vector(16,-4.5,3)
+SWEP.RHPos = Vector(10,-5,2)
 SWEP.RHAng = Angle(0,-5,90)
-SWEP.LHPos = Vector(-1.2,-1.4,-2.8)
-SWEP.LHAng = Angle(5,9,-100)
 
 SWEP.IsOpened = false
+
+local function BeerLeftHandActive(self)
+	return self.seq == "fire" and CurTime() < (self.animtime or 0)
+end
+
+local function BeerIsChugging(self)
+	return self.seq == "chug" and CurTime() < (self.animtime or 0)
+end
+
+function SWEP:IsPistolHoldType()
+	return false
+end
+
+function SWEP:PosAngChanges(ply, desiredPos, desiredAng, bNoAdditional, closeanim, dtime)
+	local pos, ang = self.BaseClass.PosAngChanges(self, ply, desiredPos, desiredAng, bNoAdditional, closeanim, dtime)
+	self.setlhik = BeerLeftHandActive(self)
+	if BeerIsChugging(self) then
+		self.AdditionalPos2 = self.AdditionalPos2 + (self.ChugHandPosOffset or vector_origin)
+		self.AdditionalAng2 = self.AdditionalAng2 + (self.ChugHandAngOffset or angle_zero)
+	end
+	return pos, ang
+end
+
+function SWEP:WorldModel_Transform(bNoApply, bNoAdditional, model)
+	if not BeerIsChugging(self) then
+		return self.BaseClass.WorldModel_Transform(self, bNoApply, bNoAdditional, model)
+	end
+
+	local fp, fa = self.FakePos, self.FakeAng
+	self.FakePos = fp + (self.ChugFakePosOffset or vector_origin)
+	self.FakeAng = fa + (self.ChugFakeAngOffset or angle_zero)
+	local r1, r2, r3, r4 = self.BaseClass.WorldModel_Transform(self, bNoApply, bNoAdditional, model)
+	self.FakePos, self.FakeAng = fp, fa
+	return r1, r2, r3, r4
+end
+
+function SWEP:SetHandPos(noset)
+	self.setlhik = BeerLeftHandActive(self)
+	self.BaseClass.SetHandPos(self, noset)
+	if not self.setlhik then self.lhandik = false end
+end
 
 local function GiveBottleInHands(wep, owner)
     if not IsValid(wep) or not IsValid(owner) then return end
@@ -198,8 +253,12 @@ function SWEP:SecondaryAttack()
     if not IsFirstTimePredicted() then return end
     if self.IsOpened then return end
     
-    self:PlayAnim("sign", 3.5, false)
+    self:PlayAnim("sign", BEER_OPEN_ANIM_TIME, false)
     self.IsOpened = true
+    local wep = self
+    timer.Simple(BEER_OPEN_ANIM_TIME * BEER_CAP_REMOVE_AT, function()
+        if IsValid(wep) and wep.IsOpened then wep:BeerCapRemove() end
+    end)
     self:SetNextSecondaryFire(CurTime() + 2.5)
     self:EmitSound("food/beer_opendrink.wav", 75, 100, 1)
     
@@ -258,6 +317,8 @@ end
 
 function SWEP:Holster()
     self.IsOpened = false
+    if SERVER then self:SetNWBool("BeerCapOff", false) end
+    self:BeerCapVisible(true)
     return true
 end
 

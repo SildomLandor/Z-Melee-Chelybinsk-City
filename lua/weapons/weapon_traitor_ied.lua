@@ -184,11 +184,13 @@ end
 function SWEP:CreateFake() end
 
 local function ExplodeTheItem(self,ent)
-	if not IsValid(ent) then self:Remove() return end
-
-	local ent = ent
+	if not IsValid(ent) then
+		if IsValid(self) then self:Remove() end
+		return
+	end
 
 	local EntPos = ent:GetPos() + ent:OBBCenter()
+	local soundNear, soundFar, soundWater = self.Sound, self.SoundFar, self.SoundWater
 	self.KABOOM = true
 	local BlastDamage = self.BlastDamage
 	local BlastDis = self.BlastDis
@@ -197,13 +199,15 @@ local function ExplodeTheItem(self,ent)
 	timer.Simple(0.4,function()
 		if not IsValid(ent) then return end
 		timer.Simple(0.1,function()
+			if not IsValid(ent) then return end
+			local inWater = ent:WaterLevel() > 0
 			net.Start("projectileFarSound")
-				net.WriteString(table.Random(self.Sound))
-				net.WriteString(table.Random(self.SoundFar))
+				net.WriteString(table.Random(soundNear))
+				net.WriteString(table.Random(soundFar))
 				net.WriteVector(EntPos)
 				net.WriteEntity(ent)
-				net.WriteBool(ent:WaterLevel() > 0)
-				net.WriteString(self.SoundWater)
+				net.WriteBool(inWater)
+				net.WriteString(soundWater)
 			net.Broadcast()
 			if hg and hg.PlayExtraExplosionSound then
 				hg.PlayExtraExplosionSound(EntPos, ent:EntIndex(), 1)
@@ -211,7 +215,7 @@ local function ExplodeTheItem(self,ent)
 				EmitSound("explosionextra/explode_" .. math.random(1, 9) .. ".wav", EntPos, ent:EntIndex() + 800, CHAN_ITEM, 1, 145, 0, math.random(95, 105))
 			end
 
-			if self:WaterLevel() == 0 then
+			if not inWater then
 				ParticleEffect("pcf_jack_groundsplode_medium",ent:GetPos(),-vector_up:Angle())
 			else
 				local effectdata = EffectData()
@@ -232,7 +236,10 @@ local function ExplodeTheItem(self,ent)
 		end)
 
 		timer.Simple(0.2,function()
-			if not IsValid(ent) then self:Remove() return end
+			if not IsValid(ent) then
+				if IsValid(self) then self:Remove() end
+				return
+			end
 			
 			local blastRadius = BlastDis / 0.01905
 			local nearRadius = 150
@@ -369,6 +376,10 @@ local function ExplodeTheItem(self,ent)
 				end
 
 				timer.Create("IEDCheck_" .. index, 0, 0, function()
+					if not IsValid(ent) then
+						timer.Remove("IEDCheck_" .. index)
+						return
+					end
 					coroutine.resume(co)
 					if ent.ShrapnelDone then
 						ent:Remove()
@@ -381,7 +392,7 @@ local function ExplodeTheItem(self,ent)
 				self:Remove()
 			end
 
-			if mat != MAT_METAL then
+			if mat != MAT_METAL and IsValid(ent) then
 				ent:Remove()
 			end
 		end)

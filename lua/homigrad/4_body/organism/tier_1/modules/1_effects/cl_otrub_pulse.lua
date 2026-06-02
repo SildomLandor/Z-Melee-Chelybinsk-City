@@ -1,27 +1,27 @@
 local e = {
-	n = 256,
+	n = 256,-- сколько точек в ленте всего
 	buf = {},
-	idx = 0,
-	h = ScreenScaleH(44),
-	step = 1 / 60,
-	tSample = 0,
-	tBeat = 0,
-	tNext = 0,
-	hold = nil,
-	on = false,
-	show = 0,
-	sweep = 0,
-	flat = false,
-	dispBpm = 70,
+	idx = 0,-- сколько точек уже накопили
+	h = ScreenScaleH(44),-- высота
+	step = 1 / 60,-- шаг семпла (сколько точек в секунду отрисовывает)
+	tSample = 0,-- время последнего семпла
+	tBeat = 0,-- когда был последний удар
+	tNext = 0,-- ждём следующий
+	hold = nil,-- пауза пока окно не в фокусе
+	on = false,-- модуль вообще активен
+	live = false,-- пошла отрисовка (после первого удара)
+	show = 0,-- плавное появление/затухание всей хуйни
+	flat = false,-- сердце встало, рисуем ровную линию
+	dispBpm = 70,-- bpm для лейбла, сглаженный
 	hm = 0,
-	rr = 0,
-	flash = 0,
-	stopAt = 0,
-	wander = 0,
-	beatJ = { amp = 1, qrs = 1, morph = 0 },
-	adrenTox = 0,
-	pvcAt = 0,
-	chestHit = nil,
+	rr = 0,-- аритмия, разброс интервалов
+	flash = 0,-- время удара для мигалки-квадратика
+	stopAt = 0,-- когда пульс пропал (для перехода в флэт)
+	wander = 0.299,-- чтобы не очень ровно было
+	beatJ = { amp = 1, qrs = 1, morph = 0 }, -- рандом на каждый удар
+	adrenTox = 0,-- передоз адреналина
+	pvcAt = 0,-- время левой экстрасистолы
+	chestHit = nil,-- артефакт от удара в грудь
 }
 -- ради реализма на такое идти... Я думаю это круто
 for i = 1, e.n do e.buf[i] = 0 end
@@ -31,8 +31,8 @@ local function smooth01(t)
 	return t * t * (3 - 2 * t)
 end
 
-local function pulseEdgeFade(x, xL, xR, fw)
-	return smooth01((x - xL) / fw) * smooth01((xR - x) / fw)
+local function traceFade(x, xLead, fw)
+	return smooth01((x - xLead) / fw)
 end
 
 local function rollBeatJ(rr)
@@ -45,11 +45,11 @@ local function reset(rt)
 	rt = rt or RealTime()
 	e.tSample = rt
 	e.tBeat = rt
-	e.tNext = rt
+	e.tNext = rt + 0.04
 	e.hold = nil
 	e.flat = false
 	e.flash = 0
-	e.sweep = 0
+	e.live = false
 	e.dispBpm = 70
 	e.idx = 0
 	e.stopAt = 0
@@ -149,6 +149,13 @@ local function chestSpike(age, mag)
 	return mag * (1.55 * bell(p - 0.035, 0.012) - 0.35 * bell(p - 0.065, 0.016))
 end
 
+local function beginTrace()
+	if e.live then return end
+	e.live = true
+	e.idx = 0
+	for i = 1, e.n do e.buf[i] = 0 end
+end
+
 local function push(v)
 	if e.idx < e.n then
 		e.idx = e.idx + 1
@@ -171,6 +178,7 @@ local function sample(t, hb, m, isVfib)
 	end
 
 	if isVfib then
+		beginTrace()
 		local sev = math.Clamp(tonumber(m.vfib) or 0.5, 0.2, 1)
 		local chaos = math.sin(t * 22) * 0.12 + math.sin(t * 37 + 1.5) * 0.1 + math.sin(t * 56 + 0.7) * 0.06
 		local noise = (math.random() - 0.5) * 0.12
@@ -179,7 +187,7 @@ local function sample(t, hb, m, isVfib)
 	end
 
 	if hb <= 0 then
-		push(0)
+		if e.live then push(0) end
 		return
 	end
 
@@ -189,6 +197,7 @@ local function sample(t, hb, m, isVfib)
 		local jit = 0.22 + e.rr * 0.38 + e.hm * 0.25 + (m.adrenTox or 0) * 0.35
 		gap = gap * (1 + (math.random() - 0.5) * jit)
 		gap = math.max(gap, 60 / 220)
+		beginTrace()
 		e.tBeat = e.tNext
 		e.tNext = e.tNext + gap
 		e.flash = e.tBeat
@@ -211,6 +220,8 @@ local function sample(t, hb, m, isVfib)
 		return
 	end
 	if e.pvcAt > 0 and t >= e.pvcAt + 0.07 then e.pvcAt = 0 end
+
+	if not e.live then return end
 
 	e.wander = e.wander * 0.94 + (math.random() - 0.5) * 0.004
 	local drift = math.sin(t * 0.9 + e.tBeat) * 0.007 + math.sin(t * 2.1) * 0.005 + e.wander
@@ -320,7 +331,7 @@ hook.Add("Think", "pulseotrub.update", function()
 end)
 
 hook.Add("HUDPaint", "pulseotrub.draw", function()
-	if e.show < 0.02 or e.idx < 2 then return end
+	if e.show < 0.02 or not e.live or e.idx < 2 then return end
 
 	local o = org()
 	local sh = ScrH()
@@ -339,27 +350,26 @@ hook.Add("HUDPaint", "pulseotrub.draw", function()
 	local xEnd = x0 + w0
 	local fadeW = math.min(w0 * 0.16, ScreenScaleH(62 * scale))
 	local visW = w0
-	local xStart = x0
 	local cnt = e.idx
+	local pxStep = visW / (e.n - 1)
+	local tail = math.Clamp((RealTime() - e.tSample) / e.step, 0, 1)
 	local x1, y1
 	local sub = 3
 
-	local function bufI(vi)
-		return math.Clamp(e.n - cnt + vi, 1, e.idx)
+	local function ptX(vi)
+		return xEnd - (cnt - vi + tail) * pxStep
 	end
 
-	local function ptX(vi)
-		return xStart + (bufI(vi) - 1) / math.max(e.n - 1, 1) * visW
-	end
+	local xLead = math.max(x0, ptX(1))
 
 	local function ptY(vi, thick)
-		local yv = mid - e.buf[bufI(vi)] * gain
+		local yv = mid - e.buf[vi] * gain
 		if thick == 1 then yv = yv + 1 end
 		return yv
 	end
 
 	local function stroke(xa, ya, xb, yb, la)
-		local fa = math.floor(la * pulseEdgeFade((xa + xb) * 0.5, x0, xEnd, fadeW))
+		local fa = math.floor(la * traceFade((xa + xb) * 0.5, xLead, fadeW))
 		if fa > 0 then
 			surface.SetDrawColor(255, 255, 255, fa)
 			surface.DrawLine(xa, ya, xb, yb)
@@ -395,13 +405,13 @@ hook.Add("HUDPaint", "pulseotrub.draw", function()
 
 	local font = "ZCity_Veteran"
 	surface.SetFont(font)
-	local lblX = xStart + ScreenScaleH(4)
+	local lblX = x0 + ScreenScaleH(4)
 	local lblY = y + pad
 	local beatA = math.Clamp(1 - (RealTime() - e.flash) * 9, 0, 1) * e.show
 	local tox = e.adrenTox or 0
 	if beatA > 0 and o and not stop and not isVfib and tox < 0.75 then
 		local bs = ScreenScaleH(5)
-		local bfa = pulseEdgeFade(lblX + bs * 0.5, x0, xEnd, fadeW)
+		local bfa = traceFade(lblX + bs * 0.5, xLead, fadeW)
 		local blink = 1 - tox * 0.45
 		surface.SetDrawColor(255, 255, 255, math.floor(255 * beatA * bfa * blink))
 		surface.DrawRect(lblX, lblY + ScreenScaleH(2), bs, bs)

@@ -76,7 +76,8 @@ if CLIENT then
 			--self:GetOwner():PullLHTowards("ValveBiped.Bip01_Spine2", 0.58 * timeMul)
 		end,
 		[0.25] = function( self, timeMul )
-			self:GetOwner():PullLHTowards("ValveBiped.Bip01_Spine2", 0.5 * timeMul,nil,nil,function() 
+			self:GetOwner():PullLHTowards("ValveBiped.Bip01_Spine2", 0.5 * timeMul,nil,nil,function()
+				if not IsValid(self) or not IsValid(self:GetWM()) then return end
 				self:GetWM():ManipulateBoneScale(53, vector_full)
 				self:GetWM():ManipulateBoneScale(44, vector_full)
 				self:GetWM():ManipulateBoneScale(45, vector_full)
@@ -88,7 +89,8 @@ if CLIENT then
 				self:GetWM():ManipulateBoneScale(44, vector_origin)
 				self:GetWM():ManipulateBoneScale(45, vector_origin)
 				self:GetWM():ManipulateBoneScale(46, vector_origin)
-				self:GetOwner():PullLHTowards("ValveBiped.Bip01_Spine2", 1 * timeMul,nil,nil,function() 
+				self:GetOwner():PullLHTowards("ValveBiped.Bip01_Spine2", 1 * timeMul,nil,nil,function()
+					if not IsValid(self) or not IsValid(self:GetWM()) then return end
 					self:GetWM():ManipulateBoneScale(44, vector_origin)
 					self:GetWM():ManipulateBoneScale(45, vector_origin)
 					self:GetWM():ManipulateBoneScale(46, vector_origin)
