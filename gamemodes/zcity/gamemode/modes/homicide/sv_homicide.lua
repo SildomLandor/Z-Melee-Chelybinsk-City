@@ -993,11 +993,16 @@ function MODE:SpawnForce(teamtype, count)
         ply:Spawn()
 
         if not basepos then
-            basepos = zb:GetRandomSpawn()            
-			ply:SetPos(basepos)
-		else
-			hg.tpPlayer(basepos, ply, i)
-		end
+            basepos = zb:GetRandomSpawn(ply)
+        end
+
+        if isvector(basepos) then
+            if spawned == 0 then
+                ply:SetPos(basepos)
+            else
+                hg.tpPlayer(basepos, ply, i)
+            end
+        end
 
         local idx = spawned + 1
         timer.Simple(0, function()
