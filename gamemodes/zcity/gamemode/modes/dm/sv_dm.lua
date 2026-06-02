@@ -226,10 +226,24 @@ function MODE:RoundStart()
 end
 
 local cooldown = CurTime()
+local dmDoorClasses = {
+	"prop_door_rotating",
+	"func_door_rotating",
+	"prop_door",
+	"func_door",
+}
+
+local dmPropClasses = {
+	"prop_physics",
+	"prop_physics_multiplayer",
+	"func_physbox",
+}
+
 hook.Add("Think","bober",function(ply)
 	if zb.ROUND_STATE ~= 1 then return end
 	local rnd = CurrentRound()
 	if not MODE.IsDMFamily(rnd) then return end
+	if rnd:ShouldRoundEnd() then return end
 	if (zb.ROUND_START or 0) + 20 > CurTime() then return end
 	if cooldown > CurTime() then return end
 	if deathmatch_nozone:GetBool() then return end
@@ -239,25 +253,31 @@ hook.Add("Think","bober",function(ply)
 	local radius = MODE.GetZoneRadius()
 	local radiussqr = radius * radius
 	
-	for i, ent in ents.Iterator() do
-		if pos:DistToSqr(ent:GetPos()) > radiussqr then
-			if ent:IsPlayer() then
-				hg.LightStunPlayer(ent)
-				
-				continue
-			end
+	for _, ent in player.Iterator() do
+		if not ent:Alive() then continue end
+		if pos:DistToSqr(ent:GetPos()) <= radiussqr then continue end
+		hg.LightStunPlayer(ent)
+	end
 
-			if hgIsDoor(ent) then
-				if !ent:GetNoDraw() then
-					hgBlastThatDoor(ent)
-				end
+	for i = 1, #dmDoorClasses do
+		local list = ents.FindByClass(dmDoorClasses[i])
+		for j = 1, #list do
+			local ent = list[j]
+			if not IsValid(ent) then continue end
+			if pos:DistToSqr(ent:GetPos()) <= radiussqr then continue end
+			if ent:GetNoDraw() then continue end
+			hgBlastThatDoor(ent)
+		end
+	end
 
-				continue
-			end
-			
-			if string.find(ent:GetClass(), "prop_") and !hg.expItems[ent:GetModel()] then
-				MakeDissolver(ent, ent:GetPos(), 0)
-			end
+	for i = 1, #dmPropClasses do
+		local list = ents.FindByClass(dmPropClasses[i])
+		for j = 1, #list do
+			local ent = list[j]
+			if not IsValid(ent) then continue end
+			if pos:DistToSqr(ent:GetPos()) <= radiussqr then continue end
+			if hg.expItems[ent:GetModel()] then continue end
+			MakeDissolver(ent, ent:GetPos(), 0)
 		end
 	end
 end)

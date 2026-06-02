@@ -425,37 +425,37 @@ hook.Add("Player_Death","notarget_removebull",function(ply)
 	ply:AddFlags(FL_NOTARGET)
 end)
 
-hook.Add("Player Think", "homigrad-dropholstered-fixed", function(ply)
+local function PlayerThinkLowCost(ply)
+	if not ply:Alive() and IsValid(ply.bull) then
+		ply.bull:Remove()
+		ply.bull = nil
+	end
 
-    if (ply.thinkdropwep or 0) > CurTime() then return end
-    ply.thinkdropwep = CurTime() + 0.1
-    
-    if ply.organism and ply.organism.allowholster then return end
+	if (ply.thinkdropwep or 0) > CurTime() then return end
+	ply.thinkdropwep = CurTime() + 0.1
+	if ply.organism and ply.organism.allowholster then return end
 
-    local weps = ply:GetWeapons()
-    local heavyWeapons = {}
+	local weps = ply:GetWeapons()
+	local heavyWeapons = {}
+	for i = 1, #weps do
+		local wep = weps[i]
+		if IsValid(wep) and wep.NoHolster and wep.picked then
+			heavyWeapons[#heavyWeapons + 1] = wep
+		end
+	end
 
-    for i = 1, #weps do
-        local wep = weps[i]
-        if IsValid(wep) and wep.NoHolster and wep.picked then
-            table.insert(heavyWeapons, wep)
-        end
-    end
+	if #heavyWeapons <= 1 then return end
+	local activewep = ply:GetActiveWeapon()
+	for i = 1, #heavyWeapons do
+		local wep = heavyWeapons[i]
+		if wep ~= activewep then
+			ply:DropWeapon(wep)
+			break
+		end
+	end
+end
 
-    if #heavyWeapons > 1 then
-        local activewep = ply:GetActiveWeapon()
-
-        for i = 1, #heavyWeapons do
-            local wep = heavyWeapons[i]
-            
-
-            if wep ~= activewep then
-                ply:DropWeapon(wep)
-                break
-            end
-        end
-    end
-end)
+hook.Add("Player Think", "homigrad-playerthink-lite", PlayerThinkLowCost)
 
 
 
@@ -1891,13 +1891,6 @@ hook.Add("VehicleMove", "ilovefurries", function(ply, veh, mv)
 	hook_Run("Player Think", ply, CurTime(), dtime)
 
 	ply.lastcall_tick = SysTime()
-end)
-
-hook.Add("Player Think", "homigrad-viewoffset", function(ply)
-	if !ply:Alive() and IsValid(ply.bull) then
-		ply.bull:Remove()
-		ply.bull = nil
-	end
 end)
 
 if !istable(gmnetwork) and util.IsBinaryModuleInstalled("network") then

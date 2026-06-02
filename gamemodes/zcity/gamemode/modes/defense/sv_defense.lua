@@ -44,6 +44,37 @@ local defensePlayerSpawnOffsets = {
     Vector(-24, -24, 0)
 }
 
+local defenseTrackPatterns = {
+    "npc_*",
+    "npc_vj_*",
+    "sent_vj_*",
+    "zb_*",
+    "terminator_nextbot_*",
+}
+
+local defenseIgnoreClass = {
+    npc_bullseye = true,
+    npc_enemyfinder = true,
+    npc_bullseye_new = true,
+    zb_temporary_ent = true,
+}
+
+local function IterateDefenseNpcs(cb)
+    local seen = {}
+    for i = 1, #defenseTrackPatterns do
+        local list = ents.FindByClass(defenseTrackPatterns[i])
+        for j = 1, #list do
+            local ent = list[j]
+            if not IsValid(ent) then continue end
+            if seen[ent] then continue end
+            seen[ent] = true
+            local class = ent:GetClass() or ""
+            if defenseIgnoreClass[class] then continue end
+            cb(ent, class)
+        end
+    end
+end
+
 
 
 util.AddNetworkString("defense_start_vote")
@@ -143,20 +174,17 @@ function MODE:EndWave()
     
 
     timer.Simple(1, function()
-        for _, ent in ents.Iterator() do
-            if IsValid(ent) then
-                if ent:GetClass() == "prop_ragdoll" then
-                    local org = ent.organism
-                    if not (org and org.isPly) then
-                        ent:Remove()
-                    end
-                end
-                
+        for _, ent in ipairs(ents.FindByClass("prop_ragdoll")) do
+            if not IsValid(ent) then continue end
+            local org = ent.organism
+            if org and org.isPly then continue end
+            ent:Remove()
+        end
 
-                if ent:IsWeapon() and not IsValid(ent:GetOwner()) then
-                    ent:Remove()
-                end
-            end
+        for _, ent in ipairs(ents.FindByClass("weapon_*")) do
+            if not IsValid(ent) then continue end
+            if IsValid(ent:GetOwner()) then continue end
+            ent:Remove()
         end
     end)
 
@@ -520,49 +548,29 @@ function MODE:RoundThink()
             end
         end
         
-        -- Для чего ты вызываешь вообще все ентити, ТЕБЕ БАНАЛЬНО ВЫГОДНО ИСПОЛЬЗОВАТЬ ents.FindByClass() 
-        -- КАКОГО ЧЕРТА У ТЕБЯ ТУТ ВООБЩЕ ЧЕРЕЗ ПЕЙРСЫ... И еще и в думалке D:
-        for _, ent in ents.Iterator() do -- дека если ты это не перепишишь я удалю этот режим. | SALAT :3
-			-- бедни дека
-            if IsValid(ent) and ent.IsDefenseWaveNPC and not ent.DefenseNPCCountedAsDead then
-                local class = ent:GetClass() or ""
-                
+        IterateDefenseNpcs(function(ent, class)
+            if not ent.IsDefenseWaveNPC or ent.DefenseNPCCountedAsDead then return end
 
-                if class == "zb_temporary_ent" then continue end
-
-                if (ent:IsNPC() or 
-                    string.find(class, "npc_vj_") or 
-                    string.find(class, "sent_vj_") or
-                    string.find(class, "zb_") or 
-                    string.find(class, "terminator_nextbot_")) and
-                   class ~= "npc_bullseye" and 
-                   class ~= "npc_enemyfinder" and 
-                   class ~= "npc_bullseye_new" then
-                    
-                    local isDead = false
-                    
-                    if ent.IsZBaseNPC then
-                        isDead = (ent.Dead == true)
-                    elseif ent:IsNPC() then
-                        isDead = (ent:Health() <= 0)
-                    end
-                    
-                    if not isDead then
-
-                        if not ent.DefenseEntityID then
-                            ent.DefenseEntityID = "defense_npc_" .. ent:EntIndex() .. "_" .. math.random(1000, 9999)
-                            self.DefenseWaveEntities[ent.DefenseEntityID] = ent
-                            print("[DEFENSE] Found new NPC to track: " .. class)
-                        end
-                        
-                        validNPCCount = validNPCCount + 1
-                    else
-
-                        ent.DefenseNPCCountedAsDead = true
-                    end
-                end
+            local isDead = false
+            if ent.IsZBaseNPC then
+                isDead = (ent.Dead == true)
+            elseif ent:IsNPC() then
+                isDead = (ent:Health() <= 0)
             end
-        end
+
+            if isDead then
+                ent.DefenseNPCCountedAsDead = true
+                return
+            end
+
+            if not ent.DefenseEntityID then
+                ent.DefenseEntityID = "defense_npc_" .. ent:EntIndex() .. "_" .. math.random(1000, 9999)
+                self.DefenseWaveEntities[ent.DefenseEntityID] = ent
+                print("[DEFENSE] Found new NPC to track: " .. class)
+            end
+
+            validNPCCount = validNPCCount + 1
+        end)
         
 
         if validNPCCount != self.NPCCount then
@@ -601,15 +609,9 @@ function MODE:EndRound()
     self.NPCCount = 0
     
 
-    for _, ent in ents.Iterator() do -- дека если ты это не перепишишь я удалю этот режим. | SALAT :3
-        if IsValid(ent) and (ent:IsNPC() or 
-            string.find(tostring(ent:GetClass() or ""), "npc_vj_") or
-            string.find(tostring(ent:GetClass() or ""), "sent_vj_") or
-            string.find(tostring(ent:GetClass() or ""), "zb_") or
-            string.find(tostring(ent:GetClass() or ""), "terminator_nextbot_")) then
-            ent:Remove()
-        end
-    end
+    IterateDefenseNpcs(function(ent)
+        ent:Remove()
+    end)
 end
 
 function MODE:PlayerDeath(ply)

@@ -135,8 +135,11 @@ local speedupbones = {
 local vecfive = Vector(5,5,5)
 
 local player_GetHumans = player.GetHumans
+local fakeTickBase = 1 / 30
+local fakeTickIdle = 1 / 15
 
 hook.Add("Think", "Fake", function()
+	local timeNow = CurTime()
 	hg.humans_cached = player_GetHumans()
 
 	//for ply, ragdoll in pairs(hg.ragdollFake) do
@@ -166,10 +169,15 @@ hook.Add("Think", "Fake", function()
 			continue
 		end
 
+		local phys = ragdoll:GetPhysicsObject()
+		local vellen = IsValid(phys) and phys:GetVelocity():Length() or 0
+		local activeInput = ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT)
+			or ply:KeyDown(IN_ATTACK) or ply:KeyDown(IN_ATTACK2) or ply:KeyDown(IN_USE) or ply:KeyDown(IN_SPEED) or ply:KeyDown(IN_JUMP)
+		if (ragdoll.nextControlThink or 0) > timeNow then continue end
+		ragdoll.nextControlThink = timeNow + ((not activeInput and vellen < 80) and fakeTickIdle or fakeTickBase)
+
 		ragdoll.dtime = (SysTime() - (ragdoll.lastCallTime or SysTime())) * game.GetTimeScale()
 		ragdoll.lastCallTime = SysTime()
-
-		local vellen = ragdoll:GetPhysicsObject():GetVelocity():Length()
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()

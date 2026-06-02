@@ -32,10 +32,10 @@ function hg.organism.CorpseNeedsThink(owner, org)
 	if not owner:IsRagdoll() then return true end
 
 	if owner:IsOnFire() then return true end
-	if (org.bleed or 0) > 0 then return true end
-	if (org.painadd or 0) > 0 then return true end
+	if (org.bleed or 0) > 0.02 then return true end
+	if (org.painadd or 0) > 0.05 then return true end
 	if org.choking then return true end
-	if (org.blood or 5000) < 4800 then return true end
+	if (org.blood or 5000) < 4700 then return true end
 
 	local wounds = owner:GetNetVar("wounds")
 	if wounds and not table.IsEmpty(wounds) then return true end
@@ -75,6 +75,7 @@ hook.Add("PostPlayerDeath", "homigrad-organism", function(ply)
 end)
 
 local tickrate = 1 / 10
+local corpseTickrate = 1 / 4
 local delay = 0
 local time, mulTime, start
 local CurTime = CurTime
@@ -103,6 +104,10 @@ hook.Add("Think", "homigrad-organism", function()
 		if org.godmode then continue end
 		if owner.IsZombieModeNPC then continue end
 		if not hg.organism.CorpseNeedsThink(owner, org) then continue end
+		if org.alive == false and owner:IsRagdoll() then
+			if (org._nextCorpseThink or 0) > time then continue end
+			org._nextCorpseThink = time + corpseTickrate
+		end
 		hook_Run("Org Think", owner, org, mulTime)
 	end
 end)

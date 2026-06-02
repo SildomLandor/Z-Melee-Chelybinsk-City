@@ -232,6 +232,14 @@ function hg.organism.SyncWoundNetVars(owner, org)
 	if not IsValid(owner) or not org then return end
 	local wounds = org.wounds or {}
 	local arterial = org.arterialwounds or {}
+
+	local woundsN = #wounds
+	local arterialN = #arterial
+	local signature = woundsN .. ":" .. arterialN
+	if org._woundSyncSig == signature and (org._woundSyncNext or 0) > CurTime() then return end
+	org._woundSyncSig = signature
+	org._woundSyncNext = CurTime() + 1
+
 	owner:SetNetVar("wounds", wounds)
 	owner:SetNetVar("arterialwounds", arterial)
 	if not owner:IsPlayer() then return end
@@ -838,9 +846,13 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 		timer.Simple(0, function()
 			timer.Create("Blood_burst_input"..ent:EntIndex(), 0.02, 1, function()
 				if not IsValid(ent) then return end
+				if not hg_bloodimpacts:GetBool() then
+					ent.bloodamt2 = 0
+					return
+				end
 				net.Start("hg_bloodimpact")
 				hg.orgBloodSend(inputHole[1], sprayDir / 15, dmg / 10, ent.bloodamt2)
-				net.Broadcast()
+				net.SendPVS(inputHole[1])
 				ent.bloodamt2 = 0
 			end)
 		end)
@@ -1106,12 +1118,12 @@ hook.Add("EntityTakeDamage", "homigrad-damage", function(ent, dmgInfo)
 
 					net.Start("bloodsquirt")
 					hg.orgSquirtSend(rag, bonename, mat, dmgPos + dirCool * 2, -dirCool * 2)
-					net.Broadcast()
+					net.SendPVS(dmgPos)
 
 					if outputHole and #outputHole > 0 then
 						net.Start("bloodsquirt")
 						hg.orgSquirtSend(rag, bonename, mat, outputHole[1] - dirCool * 2, dirCool * 2)
-						net.Broadcast()
+						net.SendPVS(outputHole[1])
 					end
 				end
 			end

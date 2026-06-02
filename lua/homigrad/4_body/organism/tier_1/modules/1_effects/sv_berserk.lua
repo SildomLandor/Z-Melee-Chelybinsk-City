@@ -1,7 +1,11 @@
 hook.Add("Player Think", "Berserk", function(ply, time, dtime)
+    if zb and zb.ROUND_STATE and zb.ROUND_STATE ~= 1 then return end
     if !ply:IsBerserk() or ply:GetMoveType() == MOVETYPE_NOCLIP then return end
     local velocity = ply:GetVelocity():Length2DSqr()
     if velocity > 100000 then
+        if (ply.nextBerserkSphere or 0) > CurTime() then return end
+        ply.nextBerserkSphere = CurTime() + 0.1
+
         for _, v in ipairs(ents.FindInSphere(ply:GetPos(), 64)) do
             if v == ply then continue end
             local Phys = v:IsPlayer() and v:GetPhysicsObject() or v:GetPhysicsObjectNum(0)

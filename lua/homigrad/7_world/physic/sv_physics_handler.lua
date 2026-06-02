@@ -8,6 +8,10 @@ local scanN = 32
 local panicN = 350
 local ragDv = 2200
 local ragDa = 4200
+local ragScanDt = 0.12
+local ragScanN = 24
+local ragIdx = 1
+local ragHot = {}
 
 local restarting = false
 local winT, winN = 0, 0
@@ -63,38 +67,68 @@ end
 
 timer.Create("hg_phys_scan", scanDt, 0, scan)
 
-hook.Add("Tick", "hg_phys_rag_realtime", function()
-	local t = CurTime()
+local function MarkRagdollHot(ent, dur)
+	if not IsValid(ent) or ent:GetClass() ~= "prop_ragdoll" then return end
+	ragHot[ent] = CurTime() + (dur or 1)
+end
 
-	for _, ent in ipairs(ents.FindByClass("prop_ragdoll")) do
+hook.Add("OnCrazyPhysics", "hg_phys_rag_mark_hot", function(ent)
+	MarkRagdollHot(ent, 1.5)
+end)
+
+local function ScanRagdoll(ent, t)
+	if not IsValid(ent) then return end
+
+	local why = hg.physCrazy(ent)
+	if why then
+		panic(ent, why)
+		MarkRagdollHot(ent, 1.5)
+		return
+	end
+
+	local vm, am = 0, 0
+	for i = 0, ent:GetPhysicsObjectCount() - 1 do
+		local po = ent:GetPhysicsObjectNum(i)
+		if not IsValid(po) then continue end
+		vm = math.max(vm, po:GetVelocity():Length())
+		am = math.max(am, po:GetAngleVelocity():Length())
+	end
+
+	local pv = ent.hg_ragVm
+	local pa = ent.hg_ragAm
+	local pt = ent.hg_ragT
+	ent.hg_ragVm = vm
+	ent.hg_ragAm = am
+	ent.hg_ragT = t
+
+	if not pt then return end
+	if t - pt > 0.06 then return end
+	if math.abs(vm - pv) > ragDv or math.abs(am - pa) > ragDa then
+		panic(ent, "fast")
+		MarkRagdollHot(ent, 1.5)
+	end
+end
+
+timer.Create("hg_phys_rag_scan", ragScanDt, 0, function()
+	local t = CurTime()
+	local list = ents.FindByClass("prop_ragdoll")
+	local n = #list
+	if n < 1 then return end
+
+	local count = math.min(ragScanN, n)
+	for _ = 1, count do
+		if ragIdx > n then ragIdx = 1 end
+		local ent = list[ragIdx]
+		ragIdx = ragIdx + 1
+
 		if not IsValid(ent) then continue end
 
-		local why = hg.physCrazy(ent)
-		if why then
-			panic(ent, why)
-			continue
-		end
+		local hotUntil = ragHot[ent] or 0
+		local isHot = hotUntil > t or (ent.hg_physHits or 0) > 0 or hg.physPlayerRag(ent)
+		if hotUntil <= t then ragHot[ent] = nil end
+		if not isHot then continue end
 
-		local vm, am = 0, 0
-		for i = 0, ent:GetPhysicsObjectCount() - 1 do
-			local po = ent:GetPhysicsObjectNum(i)
-			if not IsValid(po) then continue end
-			vm = math.max(vm, po:GetVelocity():Length())
-			am = math.max(am, po:GetAngleVelocity():Length())
-		end
-
-		local pv = ent.hg_ragVm
-		local pa = ent.hg_ragAm
-		local pt = ent.hg_ragT
-		ent.hg_ragVm = vm
-		ent.hg_ragAm = am
-		ent.hg_ragT = t
-
-		if not pt then continue end
-		if t - pt > 0.06 then continue end
-		if math.abs(vm - pv) > ragDv or math.abs(am - pa) > ragDa then
-			panic(ent, "fast")
-		end
+		ScanRagdoll(ent, t)
 	end
 end)
 

@@ -31,6 +31,7 @@ local loot_boxes = {
     ["models/props_trainstation/trashcan_indoor001a.mdl"] = {7,"trash"},
     ["models/props_junk/TrashDumpster01a.mdl"] = {10,"trash",true},
     ["models/props_junk/wood_crate001a.mdl"] = {8,"all"},
+	["models/items/item_beacon_crate.mdl"] = {8,"weapons"},
     ["models/props_junk/wood_crate001a_damaged.mdl"] = {8,"all"},
     ["models/props_junk/wood_crate002a.mdl"] = {8,"all"},
     ["models/props_lab/filecabinet02.mdl"] = {5,"instruments"},
@@ -518,6 +519,38 @@ end
 
 local spawns = {}
 local tbl = {}
+local infoSpawnsCache = {}
+
+local function RebuildInfoSpawnsCache()
+	infoSpawnsCache = {}
+	for _, ent in ipairs(ents.FindByClass("info_*")) do
+		infoSpawnsCache[#infoSpawnsCache + 1] = ent:GetPos()
+	end
+end
+
+local function RebuildRandomSpawns()
+	spawns = {}
+	if #infoSpawnsCache <= 0 then
+		RebuildInfoSpawnsCache()
+	end
+	table.Add(spawns, infoSpawnsCache)
+
+	local navmeshareas = navmesh.GetAllNavAreas()
+	for i = 1, #navmeshareas do
+		local area = navmeshareas[i]
+		if area:IsUnderwater() then continue end
+		spawns[#spawns + 1] = area:GetCenter()
+	end
+
+	tbl = {}
+	table.CopyFromTo(spawns, tbl)
+
+	local tbladd = MakeRandomSpawns(tbl, 0, 500, {})
+	local tblnew = zb.TranslateVectorsToPoints(tbladd)
+	table.Add(spawns, tbladd)
+
+	return tblnew
+end
 
 --[[for i, ent in pairs(ents.FindByClass("info_*")) do
 	table.insert(spawns, ent:GetPos())
@@ -535,50 +568,15 @@ local tblnew = zb.TranslateVectorsToPoints(tbladd)
 table.CopyFromTo(tbladd,spawns)]]--
 
 hook.Add( "InitPostEntity", "some_unique_name", function()
-	spawns = {}
-	for i, ent in pairs(ents.FindByClass("info_*")) do
-		table.insert(spawns, ent:GetPos())
-	end
-
-	local navmeshareas = navmesh.GetAllNavAreas()
-	for i, k in pairs(navmeshareas) do
-		if k:IsUnderwater() then continue end
-
-		table.insert(spawns,k:GetCenter())
-	end
-
-	tbl = {}
-	table.CopyFromTo(spawns,tbl)
-
-	local tbladd = MakeRandomSpawns(tbl,0,500,{})
-	local tblnew = zb.TranslateVectorsToPoints(tbladd)
-	table.CopyFromTo(tbladd,spawns)
+	RebuildInfoSpawnsCache()
+	RebuildRandomSpawns()
 end )
 --zb.SendSpecificPointsToPly(Player(2), "RandomSpawns", true)
 
-spawns = {}
-for i, ent in pairs(ents.FindByClass("info_*")) do
-	table.insert(spawns, ent:GetPos())
-end
-
-local navmeshareas = navmesh.GetAllNavAreas()
-for i, k in pairs(navmeshareas) do
-	if k:IsUnderwater() then continue end
-
-	table.insert(spawns,k:GetCenter())
-end
-
-if #spawns > 0 then
-	tbl = {}
-	table.CopyFromTo(spawns,tbl)
-
-	local tbladd = MakeRandomSpawns(tbl,0,500,{})
-	local tblnew = zb.TranslateVectorsToPoints(tbladd)
-		
-	zb.SaveMapPoints( "RandomSpawns", tblnew )
-	--zb.SendSpecificPointsToPly(Entity(1), "RandomSpawns", true)
-	
-	table.Add(spawns,tbladd)
+RebuildInfoSpawnsCache()
+if #infoSpawnsCache > 0 then
+	local tblnew = RebuildRandomSpawns()
+	zb.SaveMapPoints("RandomSpawns", tblnew)
 end
 
 local hook_Run = hook.Run
@@ -716,28 +714,10 @@ hook.Add("PostCleanupMap", "addboxs", function()
 			return
 		end
 
-		spawns = {}
-		for i, ent in pairs(ents.FindByClass("info_*")) do
-			table.insert(spawns, ent:GetPos())
-		end
-		
-		local navmeshareas = navmesh.GetAllNavAreas()
-		for i, k in pairs(navmeshareas) do
-			if k:IsUnderwater() then continue end
-
-			table.insert(spawns,k:GetCenter())
-		end
-
-		tbl = {}
-		table.CopyFromTo(spawns,tbl)
-
-		local tbladd = MakeRandomSpawns(tbl,0,500,{})
-		local tblnew = zb.TranslateVectorsToPoints(tbladd)
-			
-		zb.SaveMapPoints( "RandomSpawns", tblnew )
+		RebuildInfoSpawnsCache()
+		local tblnew = RebuildRandomSpawns()
+		zb.SaveMapPoints("RandomSpawns", tblnew)
 		--zb.SendSpecificPointsToPly(Entity(1), "RandomSpawns", true)
-
-		table.Add(spawns,tbladd)
 
 		LOOT.StartTimer()
 	end)

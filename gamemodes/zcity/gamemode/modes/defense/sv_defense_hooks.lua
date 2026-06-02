@@ -2,6 +2,41 @@ local MODE = MODE
 
 util.AddNetworkString("defense_highlight_last_npcs")
 
+local defenseTrackPatterns = {
+    "npc_*",
+    "npc_vj_*",
+    "sent_vj_*",
+    "zb_*",
+    "terminator_nextbot_*",
+}
+
+local defenseIgnoreClass = {
+    npc_bullseye = true,
+    npc_enemyfinder = true,
+    npc_bullseye_new = true,
+    zb_temporary_ent = true,
+}
+
+local function IsDefenseTrackableClass(class)
+    return class and not defenseIgnoreClass[class]
+end
+
+local function IterateDefenseNpcs(cb)
+    local seen = {}
+    for i = 1, #defenseTrackPatterns do
+        local list = ents.FindByClass(defenseTrackPatterns[i])
+        for j = 1, #list do
+            local ent = list[j]
+            if not IsValid(ent) then continue end
+            if seen[ent] then continue end
+            seen[ent] = true
+            local class = ent:GetClass() or ""
+            if not IsDefenseTrackableClass(class) then continue end
+            cb(ent, class)
+        end
+    end
+end
+
 
 local npc_autoseek_timer = 0
 hook.Add("Think", "NPCAutoSeekPlayer", function()
@@ -421,19 +456,9 @@ hook.Add("Think", "DefenseCleanupCheck", function()
     if not MODE or MODE.name ~= "defense" then return end
     
     if not MODE:IsWaveActive() and MODE.WaveCompleted then
-        for _, ent in ents.Iterator() do
-            if IsValid(ent) and (ent:IsNPC() or 
-                string.find(tostring(ent:GetClass() or ""), "npc_vj_") or
-                string.find(tostring(ent:GetClass() or ""), "sent_vj_") or
-                string.find(tostring(ent:GetClass() or ""), "zb_") or
-                string.find(tostring(ent:GetClass() or ""), "terminator_nextbot_")) then
-                
-                local class = ent:GetClass()
-                if class ~= "npc_bullseye" and class ~= "npc_enemyfinder" and class ~= "npc_bullseye_new" then
-                    print("[DEFENSE] Removing leftover NPC: " .. class)
-                    ent:Remove()
-                end
-            end
-        end
+        IterateDefenseNpcs(function(ent, class)
+            print("[DEFENSE] Removing leftover NPC: " .. class)
+            ent:Remove()
+        end)
     end
 end)

@@ -150,6 +150,7 @@ local function send_bareinfo(org)
 
 	local keys = hg.orgBareKeys
 	local payload = not hg_developer:GetBool() and hg.orgPick(org, keys) or org
+	if not hg.orgNeedsSend(payload, org._sentBare, keys) then return end
 
 	local rf = RecipientFilter()
 	rf:AddPVS(org.owner:GetPos())
@@ -157,7 +158,7 @@ local function send_bareinfo(org)
 
 	net.Start("organism_send", hg_unreliable_nets:GetBool())
 	hg.orgNetHeader(org.owner, true)
-	hg.orgWritePacket(payload, nil, keys, true)
+	org._sentBare = hg.orgWritePacket(payload, org._sentBare, keys, true)
 	net.WriteBool(org.owner.fullsend)
 	net.WriteBool(true)
 	net.WriteBool(false)
@@ -247,6 +248,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	if owner:IsPlayer() and not owner:Alive() then return end
 
 	local isPly = owner:IsPlayer()
+	local isCorpseRag = not isPly and owner:IsRagdoll() and org.alive == false
 
 	org.isPly = isPly
 
@@ -300,13 +302,15 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	org.neckslit = neckslit
 
 	module.pain[2](owner, org, timeValue)
-	if isPly then
+	if isPly and not isCorpseRag then
 		module.metabolism[2](owner, org, timeValue)
 		module.random_events[2](owner, org, timeValue)
 	end
-	module.pulse[2](owner, org, timeValue)
-	module.pepper[2](owner, org, timeValue)
-	module.coma[2](owner, org, timeValue)
+	if not isCorpseRag then
+		module.pulse[2](owner, org, timeValue)
+		module.pepper[2](owner, org, timeValue)
+		module.coma[2](owner, org, timeValue)
+	end
 
 	if org.owner.PlayerClassName == "furry" then
 		org.assimilated = 0
@@ -549,7 +553,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 	if IsValid(owner) then
 		org.sendPlyTime = org.sendPlyTime or CurTime()
 		if (org.sendPlyTime > time) and !just_went_uncon then return end
-		org.sendPlyTime = CurTime() + 1 + (not isPly and 2 or 0)
+		org.sendPlyTime = CurTime() + 1 + (not isPly and 3 or 0)
 		send_bareinfo(org)
 
 		hg.organism.SyncWoundNetVars(org.owner, org)
@@ -746,8 +750,6 @@ concommand.Add("hg_organism_clear", function(ply, cmd, args)
 		end
 	end
 end)
-
-hook.Add("SetupMove", "hg-speed", function(ply, mv) end) --mv:SetMaxClientSpeed(100) --mv:SetMaxSpeed(100)
 
 hook.Add("StartCommand","hg_lol",function(ply,cmd)
 	if ply.organism.otrub and ply:Alive() then

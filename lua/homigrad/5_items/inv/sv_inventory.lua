@@ -742,6 +742,9 @@ hook.Add("Player Think", "loot-fellows", function(ply)
     local use = ply:KeyDown(IN_ATTACK2) and ply:KeyDown(IN_USE) and not ply:KeyDown(IN_ATTACK)
 
     if use then
+        if (ply.loottracecd or 0) > CurTime() then return end
+        ply.loottracecd = CurTime() + 0.15
+
         local trace = hg.eyeTrace(ply, 60)
         if not trace then return end
         local ent = trace.Entity

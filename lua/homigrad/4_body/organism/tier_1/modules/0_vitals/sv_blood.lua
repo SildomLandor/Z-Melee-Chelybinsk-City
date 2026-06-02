@@ -114,8 +114,7 @@ module[2] = function(owner, org, mulTime)
 			bleedoutspeed = bleedoutspeed + bleed / rand1 * 3--we pray for the luck of it being in the center
 			coagulatespeed = coagulatespeed + coagulate / rand2 * 1
 			
-			local rand = math.Rand(0, 2) * 2
-			//if wound[5] + beatsPerSecond * 2 < time then
+			if (wound[5] or 0) + beatsPerSecond * 2 < time then
 				wound[5] = time
 				org.blood = max(org.blood - bleed, 1)
 				
@@ -128,7 +127,7 @@ module[2] = function(owner, org, mulTime)
 					table.remove(org.wounds, i)
 					hg.organism.SyncWoundNetVars(owner, org)
 				end
-			//end
+			end
 		end
 	end
 
