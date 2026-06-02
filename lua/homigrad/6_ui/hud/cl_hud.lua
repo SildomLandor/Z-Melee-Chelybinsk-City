@@ -202,16 +202,27 @@ local menuPanel
 
 local colBack = Color(0,0,0)
 local surface, draw, hook, IsColor, IsValid, math, input = surface, draw, hook, IsColor, IsValid, math, input
+
+local function CollectRadialOptions()
+	table.Empty(hg.radialOptions)
+	local keyDown = lply.KeyDown
+	function lply:KeyDown(key)
+		if key == IN_WALK then return true end
+		return keyDown(self, key)
+	end
+	for _, func in SortedPairs(hook.GetTable()["radialOptions"]) do
+		func()
+	end
+	lply.KeyDown = keyDown
+end
+
 local function CreateRadialMenu(options_arg, bAutoClose)
 	local sizeX, sizeY = ScrW(), ScrH()
 	hg.radialOptions = {}
 	local paining = lply.organism and lply.organism.pain and (lply.organism.pain > 100 or lply.organism.brain > 0.2) or false
 	
 	if !options_arg then
-		local functions = hook.GetTable()["radialOptions"]
-		for i, func in SortedPairs(functions) do
-			func()
-		end
+		CollectRadialOptions()
 	end
 
 	local options1 = options_arg or hg.radialOptions
@@ -252,11 +263,7 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 			if menuPanel:GetAlpha() < 255 then return end
 			if thinkwait > CurTime() then return end
 			thinkwait = CurTime() + 0.25
-			table.Empty(hg.radialOptions)
-			local functions = hook.GetTable()["radialOptions"]
-			for i, func in SortedPairs(functions) do
-				func()
-			end
+			CollectRadialOptions()
 		end
 	end
 	
@@ -297,7 +304,7 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 			optionSelected[idx] = LerpFT(0.1, optionSelected[idx], isMouseIntersecting and 1 or 0)
 		end
 
-		local radialFont = options_arg and "HomigradFont" or "ZCity_Veteran"
+		local radialFont = options_arg and "ZCity_Veteran"
 		for num, option in ipairs(options) do
 			local idx = num - 1
 			local sel = optionSelected[idx]
@@ -1720,8 +1727,8 @@ hook.Add("HUDPaint","Identifier",function()
 		col.a = 255 * Size * 1.5
 		local coloutline = (col.r < 50 and col.g < 50 and col.b < 50) and Color(100,100,100) or Color(0,0,0)
 		coloutline.a = 255 * Size * 1
-		draw.DrawText(trace.Entity:GetPlayerName() or "", "HomigradFontLarge", x + 1, y + 31, coloutline, TEXT_ALIGN_CENTER)
-		draw.DrawText(trace.Entity:GetPlayerName() or "", "HomigradFontLarge", x, y + 30, col, TEXT_ALIGN_CENTER)
+		draw.DrawText(trace.Entity:GetPlayerName() or "", "ZCity_Veteran", x + 1, y + 31, coloutline, TEXT_ALIGN_CENTER)
+		draw.DrawText(trace.Entity:GetPlayerName() or "", "ZCity_Veteran", x, y + 30, col, TEXT_ALIGN_CENTER)
 	end
 end)
 
@@ -1752,9 +1759,9 @@ function hg.BasicHudHint(ent, trace)
 	if ent.AdditionalInfoFunc then
 		local str = ent.AdditionalInfoFunc()
 		local w, h = surface.GetTextSize(str)
-		surface.SetFont("ZCity_Tiny")
+		surface.SetFont("ZCity_Veteran_small")
 		surface.SetTextColor(color_white)
-		surface.SetTextPos(x - w * 0.5, y + hint:GetHeight() + h)
+		surface.SetTextPos(x - w * 0.69, y + hint:GetHeight() + h)
 		surface.DrawText(str)
 	end
 end
