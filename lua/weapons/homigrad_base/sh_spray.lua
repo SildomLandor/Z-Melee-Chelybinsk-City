@@ -21,6 +21,13 @@ SWEP.addSprayMul = 1
 SWEP.RecoilMul = 0.8
 
 local cos, sin, math_max, math_min = math.cos, math.sin, math.max, math.min
+local function IsRoundActive()
+	if zb and zb.ROUND_STATE ~= nil then
+		return zb.ROUND_STATE == 1
+	end
+	return true
+end
+
 function SWEP:GetPrimaryMul()
 	local owner = self:GetOwner()
 	local mul = ((0.5) + math_max(self.Primary.Force / 110 - 1, 0)) * (owner.Crouching and owner:Crouching() and self.CrouchMul or 1) * (self.attachments and self.attachments.barrel and self.attachments.barrel[1] ~= "empty" and 0.75 or 1)
@@ -58,6 +65,13 @@ function SWEP:PrimarySpread()
 	end
 
 	if CLIENT and (owner == LocalPlayer() or (not LocalPlayer():Alive() and owner == LocalPlayer():GetNWEntity("spect"))) and !self.norecoil then
+		if not IsRoundActive() then
+			self.SprayI = 0
+			self.EyeSpray:Set(angle_zero)
+			self.EyeSprayVel:Set(angle_zero)
+			return
+		end
+
 		local organism = owner.organism or {}
 		
 		local force = self.Primary.Damage / 100 * self.addSprayMul * (self.NumBullet or 1) * math.min(sprayI / 30,0.6)--(self.Primary.Automatic and math.min(sprayI / 30,1) or 1)
@@ -113,8 +127,14 @@ function SWEP:PrimarySpread()
 		local mul = mul * self.Primary.Force2 / 100 * (self:IsPistolHoldType() and 2 or 1) * (self.NumBullet and self.NumBullet * 3 or 1)
 		ViewPunch2(Angle(-1 * math.Rand(1,2),-1 * math.Rand(-1,1),0) * mul)
 		ViewPunch(Angle(-1 * math.Rand(1,2),-1 * math.Rand(-1,1),0) * mul / -2)
-		timer.Simple(0.01, function() ViewPunch2(Angle(-1 * math.Rand(1,2),1 * math.Rand(-1,1),0) * mul) end)
-		timer.Simple(0.02, function() ViewPunch2(Angle(1 * math.Rand(1,2.4),0,0) * mul) end)
+		timer.Simple(0.01, function()
+			if not IsRoundActive() then return end
+			ViewPunch2(Angle(-1 * math.Rand(1,2),1 * math.Rand(-1,1),0) * mul)
+		end)
+		timer.Simple(0.02, function()
+			if not IsRoundActive() then return end
+			ViewPunch2(Angle(1 * math.Rand(1,2.4),0,0) * mul)
+		end)
 
 		local eyeang = owner:EyeAngles()
 		local sprayAng = (spray * (self:IsResting() and 0.1 or 1) * 8 + angrand3 * self.addSprayMul) * (eyeang.z == 180 and -1 or 1)
@@ -173,6 +193,12 @@ function SWEP:ApplyEyeSprayVel(value)
 end
 
 function SWEP:Step_SprayVel(dtime)
+	if CLIENT and not IsRoundActive() then
+		self.EyeSprayVel = self.EyeSprayVel or Angle(0, 0, 0)
+		self.EyeSprayVel:Set(angle_zero)
+		return
+	end
+
 	self.EyeSprayVel = self.EyeSprayVel or Angle(0, 0, 0)
 	self.EyeSprayVel = self.EyeSprayVel - self.EyeSprayVel * hg.lerpFrameTime2(0.95,dtime)--self.EyeSpray * 0.04
 	self:ApplyEyeSpray(self.EyeSprayVel)
@@ -187,6 +213,11 @@ function SWEP:Step_Spray(time,dtime)
 	if self.Primary.Next + 0.3 < time then self.SprayI = 0 end
 	
 	if SERVER then return end
+	if not IsRoundActive() then
+		self.SprayI = 0
+		self.EyeSpray:Set(angle_zero)
+		return
+	end
 
 	local eyeSpray = self.EyeSpray
 	local owner = self:GetOwner()
