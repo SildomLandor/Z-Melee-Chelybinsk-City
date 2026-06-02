@@ -13,7 +13,7 @@ local hook_Run = hook.Run
 hook.Add("OnEntityCreated", "bull_add", function(npc)
 	timer.Simple(0, function()
 		if IsValid(npc) then
-			if npc:IsNPC() or string.Explode( "_" , npc:GetClass() ) == "terminator" then
+			if npc:IsNPC() or string.StartWith(npc:GetClass(), "terminator_") then
 				for i, ent in pairs(ents.FindByClass("npc_bullseye")) do
 					if IsValid(ent) and IsValid(ent.ply) then npc:AddEntityRelationship(ent, npc:Disposition(ent.ply)) end
 				end

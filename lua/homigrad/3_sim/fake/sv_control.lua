@@ -132,11 +132,11 @@ local speedupbones = {
 	["ValveBiped.Bip01_R_Foot"] = true,
 }
 
-local vecfive = Vector(5,5,5)
-
 local player_GetHumans = player.GetHumans
-local fakeTickBase = 1 / 30
-local fakeTickIdle = 1 / 15
+local fakeTickBase = 1 / 33
+local fakeTickIdle = 1 / 10
+local dtimeMin = 0.008
+local dtimeMax = fakeTickBase * 1.4
 
 hook.Add("Think", "Fake", function()
 	local timeNow = CurTime()
@@ -176,8 +176,10 @@ hook.Add("Think", "Fake", function()
 		if (ragdoll.nextControlThink or 0) > timeNow then continue end
 		ragdoll.nextControlThink = timeNow + ((not activeInput and vellen < 80) and fakeTickIdle or fakeTickBase)
 
-		ragdoll.dtime = (SysTime() - (ragdoll.lastCallTime or SysTime())) * game.GetTimeScale()
-		ragdoll.lastCallTime = SysTime()
+		local sysNow = SysTime()
+		local rawDTime = (sysNow - (ragdoll.lastCallTime or sysNow)) * game.GetTimeScale()
+		ragdoll.lastCallTime = sysNow
+		ragdoll.dtime = math.Clamp(rawDTime, dtimeMin, dtimeMax)
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()
@@ -214,7 +216,7 @@ hook.Add("Think", "Fake", function()
 					local name = ragdoll:GetBoneName(bone)
 
 					if IsValid(physobj) then
-						local bone_impulse = ply.HitBones and ply.HitBones[bonename] or CurTime()
+						local bone_impulse = ply.HitBones and ply.HitBones[name] or CurTime()
 						local amt_impulse = (2 - math.Clamp(bone_impulse - CurTime(),0,2)) / 2
 						
 						local p = {}
