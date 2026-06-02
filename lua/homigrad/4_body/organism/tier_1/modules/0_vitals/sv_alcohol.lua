@@ -34,6 +34,10 @@ module[1] = function(org)
 	org.alcoholLiverLoad = 0
 	org.blackoutRisk = 0
 	org.alcoholBlackoutUntil = 0
+	org.nextAlcoholStumble = 0
+	org.nextAlcoholTurnShift = 0
+	org.alcoholTurnLag = 0
+	org.alcoholTurnLagTarget = 0
 	org.nextWithdrawalShake = 0
 end
 
@@ -93,7 +97,31 @@ module[2] = function(owner, org, timeValue)
 		if stage >= 2 then
 			org.shock = math.max(org.shock or 0, (org.shock or 0) + timeValue * (sed - 0.35) * 0.3)
 			org.fearadd = (org.fearadd or 0) + timeValue * 0.06
+
+			local drunkControl = Clamp((sed - 0.45) / 1.4, 0, 1)
+			if drunkControl > 0 then
+				if (org.nextAlcoholTurnShift or 0) <= CurTime() then
+					org.nextAlcoholTurnShift = CurTime() + math.Rand(0.18, 0.4)
+					org.alcoholTurnLagTarget = math.Rand(-3.5, 3.5) * (0.5 + drunkControl)
+				end
+
+				org.alcoholTurnLag = Approach(org.alcoholTurnLag or 0, org.alcoholTurnLagTarget or 0, timeValue * (2.2 + drunkControl * 2.5))
+
+				local ang = owner:EyeAngles()
+				ang.y = ang.y + (org.alcoholTurnLag or 0) * math.min(timeValue, 0.08)
+				owner:SetEyeAngles(ang)
+
+				if (org.nextAlcoholStumble or 0) <= CurTime() and math.random() < Clamp(timeValue * 0.18 * drunkControl, 0, 0.09) then
+					org.nextAlcoholStumble = CurTime() + math.Rand(2.5, 5.5)
+					org.lightstun = math.max(org.lightstun or 0, CurTime() + math.Rand(0.18, 0.45))
+					org.stamina.subadd = (org.stamina.subadd or 0) + 0.2 * drunkControl
+					owner:ViewPunch(Angle(math.Rand(0.8, 1.8), math.Rand(-2.8, 2.8), math.Rand(-0.8, 0.8)))
+				end
+			end
 		end
+	else
+		org.alcoholTurnLag = Approach(org.alcoholTurnLag or 0, 0, timeValue * 3)
+		org.alcoholTurnLagTarget = 0
 	end
 
 	local withdrawal = org.alcoholWithdrawal or 0
