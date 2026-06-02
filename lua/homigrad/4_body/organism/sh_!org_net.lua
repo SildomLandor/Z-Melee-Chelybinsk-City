@@ -14,7 +14,8 @@ hg.orgFullKeys = {
 	"larmamputated", "headamputated", "lungsfunction", "consciousness", "assimilated", "berserk", "noradrenaline",
 	"LodgedEntities", "CantCheckPulse", "blindness", "critical", "incapacitated", "berserkActive2",
 	"noradrenalineActive", "lastPepperHit", "superfighter", "coma", "coma_depth", "coma_gcs", "coma_flicker",
-	"vfib", "vfib_severity", "adren_tox",
+	"vfib", "vfib_severity", "adren_tox", "alcohol", "alcoholStage", "alcoholTolerance", "alcoholDependence",
+	"alcoholWithdrawal", "hangover", "alcoholLiverLoad", "blackoutRisk",
 }
 
 -- подмножество для PVSviewers (свой порядок индексов)
@@ -42,7 +43,9 @@ hg.orgDefaults = {
 	recoilmul = 1, meleespeed = 1, timeValue = 0, CO = 0, berserk = 0, noradrenaline = 0,
 	coma_depth = 0, coma_gcs = 15, assimilated = 0, lastPepperHit = 0,
 	lleg = 0, rleg = 0, larm = 0, rarm = 0, pelvis = 0,
-	vfib = false, vfib_severity = 0, adren_tox = 0,
+	vfib = false, vfib_severity = 0, adren_tox = 0, alcohol = 0, alcoholStage = 0,
+	alcoholTolerance = 0, alcoholDependence = 0, alcoholWithdrawal = 0, hangover = 0,
+	alcoholLiverLoad = 0, blackoutRisk = 0,
 	alive = true, otrub = false, lungsfunction = true, canmove = true, superfighter = false,
 	critical = false, incapacitated = false, berserkActive2 = false, noradrenalineActive = false,
 	CantCheckPulse = false, holdingbreath = false, coma = false, coma_flicker = false,

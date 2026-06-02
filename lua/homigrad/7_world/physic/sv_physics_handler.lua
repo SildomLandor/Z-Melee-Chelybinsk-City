@@ -6,12 +6,14 @@ end
 local scanDt = 0.15
 local scanN = 32
 local panicN = 350
+local ragDv = 2200
+local ragDa = 4200
 
 local restarting = false
 local winT, winN = 0, 0
 
-local kinds = {"prop_physics", "prop_physics_multiplayer", "prop_ragdoll"}
-local idx = {1, 1, 1}
+local kinds = {"prop_physics", "prop_physics_multiplayer"}
+local idx = {1, 1}
 
 local function panic(ent, why)
 	if not IsValid(ent) then return end
@@ -61,6 +63,41 @@ end
 
 timer.Create("hg_phys_scan", scanDt, 0, scan)
 
+hook.Add("Tick", "hg_phys_rag_realtime", function()
+	local t = CurTime()
+
+	for _, ent in ipairs(ents.FindByClass("prop_ragdoll")) do
+		if not IsValid(ent) then continue end
+
+		local why = hg.physCrazy(ent)
+		if why then
+			panic(ent, why)
+			continue
+		end
+
+		local vm, am = 0, 0
+		for i = 0, ent:GetPhysicsObjectCount() - 1 do
+			local po = ent:GetPhysicsObjectNum(i)
+			if not IsValid(po) then continue end
+			vm = math.max(vm, po:GetVelocity():Length())
+			am = math.max(am, po:GetAngleVelocity():Length())
+		end
+
+		local pv = ent.hg_ragVm
+		local pa = ent.hg_ragAm
+		local pt = ent.hg_ragT
+		ent.hg_ragVm = vm
+		ent.hg_ragAm = am
+		ent.hg_ragT = t
+
+		if not pt then continue end
+		if t - pt > 0.06 then continue end
+		if math.abs(vm - pv) > ragDv or math.abs(am - pa) > ragDa then
+			panic(ent, "fast")
+		end
+	end
+end)
+
 hook.Add("Tick", "hg_phys_restart", function()
 	if not physenv.GetPhysicsPaused() or restarting then return end
 
@@ -78,7 +115,7 @@ end)
 hook.Add("PostCleanupMap", "hg_phys_reset", function()
 	restarting = false
 	winT, winN = 0, 0
-	idx[1], idx[2], idx[3] = 1, 1, 1
+	idx[1], idx[2] = 1, 1
 
 	if physenv.GetPhysicsPaused() then
 		physenv.SetPhysicsPaused(false)

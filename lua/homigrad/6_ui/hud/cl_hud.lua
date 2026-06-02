@@ -586,6 +586,10 @@ local function suicide()
 	RunConsoleCommand("suicide")
 end
 
+local function shovePlayer()
+	RunConsoleCommand("hg_shove")
+end
+
 hook.Add("radialOptions", "77", function()
 	local organism = lply.organism or {}
 	if not organism.otrub and IsValid(lply:GetActiveWeapon()) and lply:GetActiveWeapon():GetClass() ~= "weapon_hands_sh" then
@@ -600,6 +604,22 @@ hook.Add("radialOptions", "88", function()
 		local tbl = {suicide, "Смерть"}
 		hg.radialOptions[#hg.radialOptions + 1] = tbl
 	end
+end)
+
+hook.Add("radialOptions", "89", function()
+	local organism = lply.organism or {}
+	local wep = lply:GetActiveWeapon()
+	if not lply:Alive() then return end
+	if organism.otrub then return end
+	if not IsValid(wep) or wep:GetClass() ~= "weapon_hands_sh" then return end
+	local tr = hg.eyeTrace(lply, 90)
+	if not tr or not IsValid(tr.Entity) then return end
+	local ent = tr.Entity
+	local isHuman = (ent:IsPlayer() and ent ~= lply and ent:Alive()) or ent:IsNPC()
+	local class = ent:GetClass()
+	local isProp = class == "prop_physics" or class == "prop_physics_multiplayer" or class == "prop_ragdoll"
+	if not isHuman and not isProp then return end
+	hg.radialOptions[#hg.radialOptions + 1] = {shovePlayer, "Толкнуть"}
 end)
 
 hook.Add("radialOptions", "Afflictions", function()

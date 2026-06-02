@@ -309,6 +309,80 @@ local heatvomit_phraselist = {
 	"Бляя... Оуух... Я себя вообще не чувствую-"
 }
 
+local drunk_light_phraselist = {
+	"Как-то тепло внутри... и мысли поплыли.",
+	"Становится слишком спокойно.",
+	"Слова в голове как будто медленнее.",
+	"Настроение странно ровное... даже слишком.",
+}
+
+local drunk_mid_phraselist = {
+	"Шатает уже заметно.",
+	"Фокус держать всё тяжелее.",
+	"Я говорю нормально?..",
+	"Координация уходит, это плохо.",
+}
+
+local drunk_heavy_phraselist = {
+	"Тошнит... и ноги не слушаются.",
+	"Голова ватная, всё плывёт.",
+	"Ещё чуть-чуть и просто отключусь.",
+	"Держаться в сознании тяжело.",
+}
+
+local hangover_phraselist = {
+	"Сушняк дикий... башка трещит.",
+	"Как будто по голове били всю ночь.",
+	"Свет режет глаза, состояние отвратное.",
+	"Собраться невозможно, всё раздражает.",
+}
+
+local withdrawal_phraselist = {
+	"Трясёт. Очень хреново.",
+	"Тревога не отпускает ни на секунду.",
+	"Руки дрожат, мысли скачут.",
+	"Накрывает так, будто внутри всё ломает.",
+}
+
+local function drunkenize_text(str, level)
+	if not isstring(str) or str == "" then return str end
+	if not isnumber(level) or level <= 0 then return str end
+
+	local t = tostring(str)
+	local strength = math.Clamp(level, 0.1, 1)
+
+	local function maybe_gsub(from, to, chance)
+		if math.random() < chance then
+			t = t:gsub(from, to, 1)
+		end
+	end
+
+	maybe_gsub("р", "л", 0.12 * strength)
+	maybe_gsub("Р", "Л", 0.08 * strength)
+	maybe_gsub("с", "ш", 0.1 * strength)
+	maybe_gsub("С", "Ш", 0.07 * strength)
+	maybe_gsub("в", "ф", 0.08 * strength)
+	maybe_gsub("В", "Ф", 0.05 * strength)
+	maybe_gsub("т", "д", 0.08 * strength)
+	maybe_gsub("Т", "Д", 0.05 * strength)
+
+	if math.random() < 0.2 * strength then
+		t = t:gsub("([%aА-Яа-яЁё])", "%1-%1", 1)
+	end
+
+	if math.random() < 0.25 * strength then
+		t = t:gsub(" ", "... ", 1)
+	end
+
+	if math.random() < 0.2 * strength then
+		t = t:gsub("%.$", "...")
+		t = t:gsub("!$", "!!")
+		t = t:gsub("%?$", "??")
+	end
+
+	return t
+end
+
 local hg_showthoughts = ConVarExists("hg_showthoughts") and GetConVar("hg_showthoughts") or CreateClientConVar("hg_showthoughts", "1", true, true, "Toggle thoughts of your character", 0, 1)
 
 function string.Random(length)
@@ -385,6 +459,11 @@ local function get_status_message(ply)
 	local temperature = org.temperature
 	local blood = org.blood
 	local hungry = org.hungry
+	local alcohol = org.alcohol or 0
+	local alcohol_stage = org.alcoholStage or 0
+	local hangover = org.hangover or 0
+	local withdrawal = org.alcoholWithdrawal or 0
+	local drank_recently = (org.alcoholRecentDose or 0) + 180 > CurTime()
 	local broken_dislocated = org.just_damaged_bone and ((org.just_damaged_bone + 3 - CurTime()) < -3)
 
 	if broken_dislocated and org.just_damaged_bone then
@@ -409,6 +488,20 @@ local function get_status_message(ply)
 
 	if not most_wanted_phraselist and hungry and hungry > 25 and math.random(3) == 1 then
 		most_wanted_phraselist = hungry > 45 and very_hungry or hungry_a_bit
+	end
+
+	if not most_wanted_phraselist and drank_recently and withdrawal > 0.45 then
+		most_wanted_phraselist = withdrawal_phraselist
+	elseif not most_wanted_phraselist and drank_recently and hangover > 0.35 and math.random(2) == 1 then
+		most_wanted_phraselist = hangover_phraselist
+	elseif not most_wanted_phraselist and drank_recently and alcohol > 0.22 then
+		if alcohol_stage >= 3 then
+			most_wanted_phraselist = drunk_heavy_phraselist
+		elseif alcohol_stage >= 2 then
+			most_wanted_phraselist = drunk_mid_phraselist
+		elseif math.random(2) == 1 then
+			most_wanted_phraselist = drunk_light_phraselist
+		end
 	end
 
 	if (blood < 3100) or (pain > 75) or (broken_dislocated) or (broken_notify) or (dislocated_notify) then
@@ -451,6 +544,13 @@ local function get_status_message(ply)
 	
 	if most_wanted_phraselist then
 		str = most_wanted_phraselist[math.random(#most_wanted_phraselist)]
+
+		if drank_recently and alcohol > 0.3 and brain < 0.2 then
+			local blur = math.Clamp((alcohol - 0.3) / 2.2, 0, 1) * (1 - math.min(withdrawal, 0.6))
+			if blur > 0 then
+				str = drunkenize_text(str, blur)
+			end
+		end
 
 		return str
 	else

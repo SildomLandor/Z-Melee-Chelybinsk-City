@@ -14,6 +14,7 @@ hook.Add("Org Clear", "Main", function(org)
 	module.lungs[1](org)
 	module.liver[1](org)
 	module.metabolism[1](org)
+	module.alcohol[1](org)
 	module.random_events[1](org)
 	module.coma[1](org)
 	org.brain = 0
@@ -279,6 +280,10 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 
 	if isPly then
 		module.liver[2](owner, org, timeValue)
+	end
+
+	if isPly then
+		module.alcohol[2](owner, org, timeValue)
 	end
 
 	--module.blood[3](owner,org,timeValue)--arteria
