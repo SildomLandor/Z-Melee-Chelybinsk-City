@@ -145,20 +145,6 @@ local function arms(org, bone, dmg, dmgInfo, key, boneindex, dir, hit, ricochet)
 	end
 
 	hg.AddHarmToAttacker(dmgInfo, (org[key] - oldDmg) * 1.5, "Arms bone damage harm")
-
-	if org[key] == 1 and key == "rarm" and org.isPly then
-		local wep = org.owner.GetActiveWeapon and org.owner:GetActiveWeapon()
-		
-		/*if IsValid(wep) then
-			local inv = org.owner:GetNetVar("Inventory",{})
-			if not (inv["Weapons"] and inv["Weapons"]["hg_sling"] and ishgweapon(wep) and not wep:IsPistolHoldType()) then
-				hg.drop(org.owner)
-			else
-				org.owner:SetActiveWeapon(org.owner:GetWeapon("weapon_hands_sh"))
-			end
-		end*/
-	end
-
 	return result, vecrand
 end
 
@@ -184,10 +170,6 @@ local function spine(org, bone, dmg, dmgInfo, number, boneindex, dir, hit, ricoc
 			org.owner:Notify(huyasd[name], true, name, 2)
 		end
 		org.painadd = org.painadd + 25
-	end
-	
-	if dmg > 0.2 then
-		--org.owner:Notify("Your spinal cord is damaged.",true,"spinalcord",4)
 	end
 
 	org.painadd = org.painadd + dmg * 2
@@ -243,8 +225,8 @@ input_list.jaw = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricochet
 		if org.isPly then org.owner:Notify(jaw_dislocated_msg[math.random(#jaw_dislocated_msg)], true, "jaw", 2) end
 	end
 
-	if dmg > 0.2 then
-		if org.isPly then timer.Simple(0, function() hg.LightStunPlayer(org.owner,1 + dmg) end) end
+	if dmg > 0.2 and org.isPly then
+		timer.Simple(0, function() hg.LightStunPlayer(org.owner,1 + dmg) end)
 	end
 
 	if isCrush(dmgInfo) then
@@ -258,7 +240,7 @@ hook.Add("CanListenOthers", "CantHaveShitInDetroit", function(output, input, isC
 	if IsValid(output) and (output.organism.jaw == 1 or output.organism.jawdislocation) and output:Alive() and (output:IsSpeaking() or isChat) then
 		-- and !isChat and output:IsSpeaking()
 		output.organism.painadd = output.organism.painadd + 2 * (output:IsSpeaking() and 1 or (isChat and 5 or 0))
-		output:Notify("My jaw is really hurting when I speak.", 60, "painfromjawspeak", 0, nil, Color(255, 210, 210))
+		output:Notify("Моя челюсть реально сильно болит когда я говорю", 60, "painfromjawspeak", 0, nil, Color(255, 210, 210))
 	end
 end)
 
@@ -303,27 +285,13 @@ input_list.skull = function(org, bone, dmg, dmgInfo, boneindex, dir, hit, ricoch
 		end)
 	end
 
-	if dmg > 0.4 then
-		if org.isPly then
-			timer.Simple(0, function()
-				hg.LightStunPlayer(org.owner,1 + dmg)
-			end)
-		end
+	if dmg > 0.4 and org.isPly then
+		timer.Simple(0, function()
+			hg.LightStunPlayer(org.owner,1 + dmg)
+		end)
 	end
 	
 	org.shock = org.shock + (dmg > 1 and 50 or dmg * 10)
-
-	if org.skull == 1 then
-		if org.isPly then
-			//org.owner:Notify(huyasd["skull"],true,"skull",4)
-		end
-
-		--[[if dir then
-			net.Start("hg_bloodimpact")
-			hg.orgBloodSend(dmgInfo:GetDamagePosition(), dir / 10, 3, 1)
-			net.Broadcast()
-		end--]]
-	end
 
 	org.disorientation = org.disorientation + (isCrush(dmgInfo) and dmg * 1 or dmg * 1)
 
