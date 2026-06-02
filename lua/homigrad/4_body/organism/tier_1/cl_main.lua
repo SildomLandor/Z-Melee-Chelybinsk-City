@@ -417,6 +417,24 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 	--LerpVariables(FrameTime(),organism,new_organism)
 
 	local org = organism
+
+	if isOwnOrganismView(spect) and not org.otrub then
+		local bothDead = (org.eyeL or 0) >= 1 and (org.eyeR or 0) >= 1
+		if bothDead then
+			lerpedEyeBlindFull = Lerp(FrameTime() * 6, lerpedEyeBlindFull, 1)
+			lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
+			lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
+		else
+			lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
+			lerpedEyeBlindL = Lerp(FrameTime() * 6, lerpedEyeBlindL, eyeBlindSeverity(org.eyeL))
+			lerpedEyeBlindR = Lerp(FrameTime() * 6, lerpedEyeBlindR, eyeBlindSeverity(org.eyeR))
+		end
+	else
+		lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
+		lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
+		lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
+	end
+
 	if not org.brain then return end
 
 	local alive = lply:Alive() or (IsValid(spect) and spect:Alive())
@@ -605,27 +623,15 @@ hook.Add("Post Post Pre Post Processing", "organism-effects", function()
 		end
 	end
 
-	if alive and isOwnOrganismView(spect) and not org.otrub then
-		local bothDead = (org.eyeL or 0) >= 1 and (org.eyeR or 0) >= 1
-		if bothDead then
-			lerpedEyeBlindFull = Lerp(FrameTime() * 6, lerpedEyeBlindFull, 1)
-			lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
-			lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
-		else
-			lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
-			lerpedEyeBlindL = Lerp(FrameTime() * 6, lerpedEyeBlindL, eyeBlindSeverity(org.eyeL))
-			lerpedEyeBlindR = Lerp(FrameTime() * 6, lerpedEyeBlindR, eyeBlindSeverity(org.eyeR))
-		end
-	else
-		lerpedEyeBlindL = Lerp(FrameTime() * 10, lerpedEyeBlindL, 0)
-		lerpedEyeBlindR = Lerp(FrameTime() * 10, lerpedEyeBlindR, 0)
-		lerpedEyeBlindFull = Lerp(FrameTime() * 10, lerpedEyeBlindFull, 0)
-	end
 end)
 
 hook.Add("HUDPaint", "HG_EyeBlindOverlay", function()
 	if lerpedEyeBlindL < 0.01 and lerpedEyeBlindR < 0.01 and lerpedEyeBlindFull < 0.01 then return end
-	if not lply:Alive() or not lply.organism or lply.organism.otrub then return end
+	local spect = IsValid(lply:GetNWEntity("spect")) and lply:GetNWEntity("spect")
+	if not isOwnOrganismView(spect) then return end
+	local fpSpect = lply:GetNWInt("viewmode", 0) == 1 and spect
+	local org = (lply:Alive() and lply.organism) or (IsValid(fpSpect) and fpSpect.organism)
+	if not org or org.otrub then return end
 	local oldMul = surface.GetAlphaMultiplier and surface.GetAlphaMultiplier() or 1
 	if surface.SetAlphaMultiplier then surface.SetAlphaMultiplier(1) end
 	if lerpedEyeBlindFull > 0.01 then

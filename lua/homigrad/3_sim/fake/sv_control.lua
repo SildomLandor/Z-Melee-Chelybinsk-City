@@ -87,6 +87,7 @@ local shadowControl = hg.ShadowControl
 hook.Add("Fake", "Contorl", function(ply, ragdoll)
 	ragdoll.cooldownLH = 0
 	ragdoll.cooldownRH = 0
+	ragdoll.dtimeSmooth = nil
 end)
 
 local att, trace, ent
@@ -135,7 +136,6 @@ local speedupbones = {
 local player_GetHumans = player.GetHumans
 local fakeTickBase = 1 / 33
 local fakeTickIdle = 1 / 10
-local dtimeMin = 0.008
 local dtimeMax = fakeTickBase * 1.4
 
 hook.Add("Think", "Fake", function()
@@ -179,7 +179,9 @@ hook.Add("Think", "Fake", function()
 		local sysNow = SysTime()
 		local rawDTime = (sysNow - (ragdoll.lastCallTime or sysNow)) * game.GetTimeScale()
 		ragdoll.lastCallTime = sysNow
-		ragdoll.dtime = math.Clamp(rawDTime, dtimeMin, dtimeMax)
+		local clampedDTime = math.Clamp(rawDTime, 0, dtimeMax)
+		ragdoll.dtimeSmooth = ragdoll.dtimeSmooth and Lerp(0.2, ragdoll.dtimeSmooth, clampedDTime) or clampedDTime
+		ragdoll.dtime = ragdoll.dtimeSmooth
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()
