@@ -9,12 +9,6 @@ local classes = {
 	prop_ragdoll = true,
 }
 
-local door = {
-	func_door = true,
-	func_door_rotating = true,
-	prop_door_rotating = true,
-}
-
 local velMaxSqr = 6500 * 6500
 local angMaxSqr = {
 	prop = 5500 * 5500,
@@ -47,16 +41,6 @@ end
 
 local function isRag(ent)
 	return ent:GetClass() == "prop_ragdoll"
-end
-
-function hg.physDoor(ent)
-	if not IsValid(ent) then return end
-	if not isRag(ent) then return end
-
-	local p = ent:GetPos()
-	for _, e in ipairs(ents.FindInSphere(p, 96)) do
-		if door[e:GetClass()] then return true end
-	end
 end
 
 function hg.physPlayerRag(ent)
@@ -95,8 +79,6 @@ function hg.physCrazy(ent, po)
 	local angLimSqr = isRag(ent) and angMaxSqr.ragdoll or angMaxSqr.prop
 
 	if isRag(ent) then
-		if hg.physDoor(ent) then return "door" end
-
 		for i = 0, ent:GetPhysicsObjectCount() - 1 do
 			local why = crazyPo(ent:GetPhysicsObjectNum(i), angLimSqr)
 			if why then return why end
@@ -187,7 +169,6 @@ end
 
 local function drop(ent)
 	if not SERVER or not IsValid(ent) or ent.hg_physDrop then return end
-	if hg.physPlayerRag(ent) then return end
 
 	ent.hg_physDrop = true
 	ent:Remove()
@@ -197,61 +178,6 @@ local function ragGrace(ent)
 	return isRag(ent) and ent:GetCreationTime() > CurTime() - 0.4
 end
 
-if SERVER then
-	local n = 0
-	local dist = 88 * 88
-	local push = MOVETYPE_PUSH
-
-	local function isDoorLike(ent)
-		if not IsValid(ent) then return end
-		if door[ent:GetClass()] then return true end
-		return ent:GetMoveType() == push
-	end
-
-	hook.Add("Think", "дур стоп", function()
-		local t = CurTime()
-		if t < n then return end
-		n = t + 0.02
-
-		for _, r in ipairs(ents.FindByClass("prop_ragdoll")) do
-			local p = r:GetPos()
-			for _, e in ipairs(ents.FindInSphere(p, 140)) do
-				if not isDoorLike(e) then continue end
-				if e:NearestPoint(p):DistToSqr(p) > dist then continue end
-				e:Fire("Stop", "", 0)
-			end
-		end
-	end)
-
-	hook.Add("ShouldCollide", "ненужный хук", function(a, b)
-		local ar = isRag(a) and hg.physPlayerRag(a)
-		local br = isRag(b) and hg.physPlayerRag(b)
-		if ar and isDoorLike(b) then return false end
-		if br and isDoorLike(a) then return false end
-	end)
-
-	hook.Add("EntityTakeDamage", "хг физ дверь хг рагдолл", function(ent, dmg)
-		if not isRag(ent) or not hg.physPlayerRag(ent) then return end
-
-		local i = dmg:GetInflictor()
-		local atk = dmg:GetAttacker()
-		local crush = bit.band(dmg:GetDamageType(), DMG_CRUSH) ~= 0
-
-		if isDoorLike(i) or isDoorLike(atk) then
-			dmg:SetDamage(0)
-			return true
-		end
-
-		if not crush then return end
-
-		for _, e in ipairs(ents.FindInSphere(ent:GetPos(), 128)) do
-			if not isDoorLike(e) then continue end
-			dmg:SetDamage(0)
-			return true
-		end
-	end)
-end
-
 hook.Add("OnCrazyPhysics", "hg_phys", function(ent, po, why)
 	if not hg.physWatched(ent) then return end
 	if ragGrace(ent) then return end
@@ -259,9 +185,8 @@ hook.Add("OnCrazyPhysics", "hg_phys", function(ent, po, why)
 	why = why or hg.physCrazy(ent, po) or "fast"
 	po = IsValid(po) and po or ent:GetPhysicsObject()
 
-	if why == "door" then
-		calm(ent, po)
-		ent.hg_physHits = 0
+	if isRag(ent) then
+		drop(ent)
 		return
 	end
 
