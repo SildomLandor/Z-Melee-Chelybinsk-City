@@ -3,11 +3,11 @@ local PLUGIN = hg.PhysBullet
 PLUGIN.NetMaxCreateBullet = 250
 PLUGIN.NetCreateUsage = PLUGIN.NetCreateUsage or 0
 PLUGIN.NetCreateLast = PLUGIN.NetCreateLast or 0
-PLUGIN.NetMaxUpdateBullet = 300
+PLUGIN.NetMaxUpdateBullet = 480
 PLUGIN.NetUpdateUsage = PLUGIN.NetUpdateUsage or 0
 PLUGIN.NetUpdateLast = PLUGIN.NetUpdateLast or 0
 PLUGIN.NetCDCreateBullet = 0.1
-PLUGIN.NetCDUpdateBullet = 1
+PLUGIN.NetCDUpdateBullet = 0.25
 PLUGIN.NetCDRemoveBullet = 0.1 --; Unused
 
 util.AddNetworkString("HG.Plugin[bullet](CreateBullet)")
