@@ -17,7 +17,7 @@ MODE.TotalWaves = 6
 MODE.CurrentSubMode = "STANDARD" 
 MODE.LootSpawn = true
 MODE.ForBigMaps = true
-MODE.Chance = 0.02
+MODE.Chance = 0
 MODE.start_time = 55
 
 local defenseDefaultPlayerSpawns = {
