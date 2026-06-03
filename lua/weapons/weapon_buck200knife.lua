@@ -1,6 +1,6 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "BAK 120 Нож"
+SWEP.PrintName = "Buck 120 Нож"
 SWEP.Instructions = "Большой охотничий нож, имеет кровоотвод, что позволяет наносить удары с сильным кровотечением. Используется в фильме «Крик» в качестве основного оружия убийцы.\\n\\nЛКМ для атаки.\\nR + ЛКМ, чтобы изменить режим атаки.\\nПКМ, чтобы заблокировать."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true

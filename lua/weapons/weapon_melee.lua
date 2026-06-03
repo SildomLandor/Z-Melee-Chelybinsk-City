@@ -110,9 +110,9 @@ SWEP.ismelee2 = true
 SWEP.weaponInvCategory = 3
 
 SWEP.shouldntDrawHolstered = true
-SWEP.holsteredBone = "ValveBiped.Bip01_Spine2"
-SWEP.holsteredPos = Vector(10, -4, 3)
-SWEP.holsteredAng = Angle(-10, 0, 0)
+SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis"
+SWEP.holsteredPos = Vector(-6, -5, 0)
+SWEP.holsteredAng = Angle(70, 90, 90)
 
 SWEP.AttackTime = 0.2
 SWEP.DrawAnimTime = 1.25
