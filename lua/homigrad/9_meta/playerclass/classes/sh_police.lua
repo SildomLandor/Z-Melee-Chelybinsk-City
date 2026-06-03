@@ -62,7 +62,7 @@ function CLASS.On(self)
 
     self:SetNWString("PlayerName", rank .. " " .. Appearance.AName)
     self:SetPlayerColor(clr)
-    self:SetModel(models[string.lower(Appearance.AModel)] or table.Random(models))
+    self:SetModel(models)
     self:SetBodygroup(00)
     self:SetSubMaterial()
     self:SetNetVar("Accessories", Appearance.AAttachmets or "none")
