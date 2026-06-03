@@ -6,6 +6,18 @@ local bandanamat = Material("mats_jack_gmod_sprites/respirator_vignette.png")
 hg.Accessories = {
 	["none"] = {},
 
+    ["balaclava_for_pypyz"] = {
+        model = "models/balaclava_pypyz/balaclava.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(-27.5,-5.5,0),Angle(90,100,90),1.05},
+        fempos = {Vector(-1,-0.8,0),Angle(180,105,90),1.05},
+        skin = 0,
+        norender = true,
+        placement = "face",
+        name = "AAA",
+        bSetColor = true
+    },
+
     ["eyeglasses"] = {
         model = "models/captainbigbutt/skeyler/accessories/glasses01.mdl",
         bone = "ValveBiped.Bip01_Head1",
@@ -14,7 +26,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "face",
-        name = "Glasses"
+        name = "Очки"
     },
 
     ["bugeye sunglasses"] = {
@@ -25,7 +37,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "face",
-        name = "Bugeye Sunglasses"
+        name = "Солнечные очки"
     },
 
     ["aviators"] = {
@@ -36,10 +48,8 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "face",
-        bPointShop = true,
-        price = 5000,
         vpos = Vector(0,0,0),
-        name = "Aviators"
+        name = "Авиаторы"
     },
 
     ["nerd glasses"] = {
@@ -50,9 +60,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "face",
-        bPointShop = true,
-        price = 1000,
-        name = "Nerd Glasses"
+        name = "Очки Нёрда"
     },
 
     ["headphones"] = {
@@ -63,9 +71,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
-        name = "Headphones"
+        name = "Наушники"
     },
 
     ["baseball cap"] = {
@@ -76,7 +82,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        name = "Baseball Cap"
+        name = "Бейсбольная кепка"
     },
 
     ["fedora"] = {
@@ -87,7 +93,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        name = "Fedora"
+        name = "Федора"
     },
 
     ["stetson"] = {
@@ -98,9 +104,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
-        name = "Stetson"
+        name = "Шляпа ковбоя"
     },
 
     ["straw hat"] = {
@@ -111,7 +115,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        name = "Straw Hat"
+        name = "Соломеная шляпа"
     },
 
     ["sun hat"] = {
@@ -122,9 +126,7 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
-        name = "Sun Hat"
+        name = "Солнечная шляпа"
     },
 
     ["bling cap"] = {
@@ -134,7 +136,8 @@ hg.Accessories = {
         fempos = {Vector(3.5,0.2,0),Angle(-10,-80,-90), 0.75},
         skin = 0,
         norender = true,
-        placement = "head"
+        placement = "head",
+        name = "у нее не было названия хз?"
     },
 
     ["top hat"] = {
@@ -167,8 +170,6 @@ hg.Accessories = {
         skin = 0,
         norender = false,
         placement = "spine",
-        bPointShop = true,
-        price = 4000,
         vpos = Vector(0,0,0),
         name = "HelloKitty Backpack"
     },
@@ -182,8 +183,6 @@ hg.Accessories = {
         norender = false,
         placement = "spine",
         bonemerge = true,
-        bPointShop = true,
-        price = 2500,
         name = "KickMe Sticker"
     },
 
@@ -196,8 +195,6 @@ hg.Accessories = {
         norender = true,
         placement = "spine",
         bonemerge = true,
-        bPointShop = true,
-        price = 2500,
         name = "Nerd Teeth"
     },
 
@@ -220,8 +217,6 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1500,
         name = "ZCITY Baseball Cap"
     },
 
@@ -255,8 +250,6 @@ hg.Accessories = {
         skin = 3,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "White Baseball Cap"
     },
 
@@ -268,8 +261,6 @@ hg.Accessories = {
         skin = 4,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Green Baseball Cap"
     },
 
@@ -292,8 +283,6 @@ hg.Accessories = {
         skin = 6,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Brown Baseball Cap"
     },
 
@@ -323,35 +312,11 @@ hg.Accessories = {
             surface.SetMaterial(bandanamat)
             surface.SetDrawColor(255,255,255)
             surface.DrawTexturedRect(-1,0,ScrW()*1.01,ScrH()*1.2)
-         end,
-        bPointShop = true,
+        end,
         vpos = Vector(0,0,63),
-        price = 1000,
         name = "Bandana"
     },
-
-    ["bandana colorable"] = {
-        model = "models/fix/grinchfox/gangwrap/gangwrap.mdl",
-        bone = "ValveBiped.Bip01_Head1",
-        malepos = {Vector(-63.5,-12,0),Angle(90,10,0),1},
-        fempos = {Vector(-63.6,-12,0),Angle(90,10,0),1},
-        skin = 0,
-        bSetColor = true,
-        norender = true,
-        placement = "face",
-        ScreenSpaceEffects = function()
-            -- DrawColorModify(AviatorColor)
-            surface.SetMaterial(bandanamat)
-            surface.SetDrawColor(255,255,255)
-            surface.DrawTexturedRect(-1,0,ScrW()*1.01,ScrH()*1.2)
-         end,
-        bPointShop = true,
-        vpos = Vector(0,0,63),
-        price = 4500,
-        name = "Bandana colorable"
-    },
-
-	-- cs stuff
+	--cs stuff
     ["arctic_balaclava"] = {
         model = "models/d/balaklava/arctic_reference.mdl",
         femmodel = "models/distac/feminine_mask.mdl",
@@ -360,7 +325,6 @@ hg.Accessories = {
         fempos = {Vector(-1,-0.8,0),Angle(180,105,90),1.05},
         skin = 0,
         norender = true,
-        disallowinappearance = true,
         bonemerge = true,
         name = "Arctic Balaclava"
     },
@@ -373,11 +337,9 @@ hg.Accessories = {
         fempos = {Vector(-0.6,-0.6,0),Angle(180,100,90),0.95},
         skin = 0,
         norender = true,
-        disallowinappearance = true,
         bonemerge = true,
         name = "Phoenix Balaclava"
     },
-   	--[[
 	["hood_balaclava"] = {
         model = "models/balaclava_hood/balaclava_hood.mdl",
         femmodel = "models/distac/feminine_mask.mdl",
@@ -390,7 +352,6 @@ hg.Accessories = {
 		vpos = Vector(-45,-45,0),
         name = "Hood Balaclava"
     },
-	]]
     ["terrorist_band"] = {
         model = "models/distac/band_team.mdl",
         femmodel = "models/distac/band_team_f.mdl",
@@ -398,7 +359,6 @@ hg.Accessories = {
         malepos = {Vector(0.6,-0.95,0),Angle(180,100,90),0.95},
         fempos = {Vector(-0.6,-0.6,0),Angle(180,100,90),0.95},
         skin = 0,
-        disallowinappearance = true,
         bonemerge = true,
         needcoolRender = true,
         flex = true,
@@ -438,9 +398,7 @@ hg.Accessories = {
         skin = 2,
         norender = false,
         placement = "torso",
-        bPointShop = true,
         vpos = Vector(0,0,20),
-        price = 1000,
         name = "Black Scarf"
     },
 
@@ -452,9 +410,7 @@ hg.Accessories = {
         skin = 3,
         norender = false,
         placement = "torso",
-        bPointShop = true,
         vpos = Vector(0,0,20),
-        price = 1000,
         name = "Blue Scarf"
     },
 
@@ -466,9 +422,7 @@ hg.Accessories = {
         skin = 4,
         norender = false,
         placement = "torso",
-        bPointShop = true,
         vpos = Vector(0,0,20),
-        price = 1000,
         name = "Red Scarf"
     },
 
@@ -480,9 +434,7 @@ hg.Accessories = {
         skin = 5,
         norender = false,
         placement = "torso",
-        bPointShop = true,
         vpos = Vector(0,0,20),
-        price = 1000,
         name = "Green Scarf"
     },
 
@@ -494,9 +446,7 @@ hg.Accessories = {
         skin = 6,
         norender = false,
         placement = "torso",
-        bPointShop = true,
         vpos = Vector(0,0,20),
-        price = 1000,
         name = "Pink Scarf"
     },
     -- earmuffs
@@ -508,8 +458,6 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "ears",
-        bPointShop = true,
-        price = 1000,
         name = "Red Earmuffs"
     },
 
@@ -520,8 +468,6 @@ hg.Accessories = {
         fempos = {Vector(1.8,-1,0),Angle(180,105,90),0.95},
         skin = 1,
         norender = true,
-        bPointShop = true,
-        price = 1000,
         name = "Pink Earmuffs"
     },
 
@@ -533,8 +479,6 @@ hg.Accessories = {
         skin = 2,
         norender = true,
         placement = "ears",
-        bPointShop = true,
-        price = 1000,
         name = "Green Earmuffs"
     },
 
@@ -546,8 +490,6 @@ hg.Accessories = {
         skin = 3,
         norender = true,
         placement = "ears",
-        bPointShop = true,
-        price = 1000,
         name = "Yellow Earmuffs"
     },
     -- fedoras
@@ -560,8 +502,6 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Gray Fedora"
     },
 
@@ -573,8 +513,6 @@ hg.Accessories = {
         skin = 1,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Black Fedora"
     },
 
@@ -586,8 +524,6 @@ hg.Accessories = {
         skin = 2,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "White Fedora"
     },
 
@@ -599,8 +535,6 @@ hg.Accessories = {
         skin = 3,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Beige Fedora"
     },
 
@@ -612,8 +546,6 @@ hg.Accessories = {
         skin = 5,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Black-n-Red Fedora"
     },
 
@@ -625,8 +557,6 @@ hg.Accessories = {
         skin = 7,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Blue Fedora"
     },
     -- beanies
@@ -638,8 +568,6 @@ hg.Accessories = {
         skin = 0,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Striped Beanie"
     },
     ["periwinkle beanie"] = {
@@ -650,8 +578,6 @@ hg.Accessories = {
         skin = 1,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Periwinkle Beanie"
     },
 
@@ -663,8 +589,6 @@ hg.Accessories = {
         skin = 2,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Fuschia Beanie"
     },
 
@@ -676,8 +600,6 @@ hg.Accessories = {
         skin = 3,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "White Beanie"
     },
 
@@ -689,8 +611,6 @@ hg.Accessories = {
         skin = 4,
         norender = true,
         placement = "head",
-        bPointShop = true,
-        price = 1000,
         name = "Gray Beanie"
     },
     -- backpacks
@@ -702,8 +622,6 @@ hg.Accessories = {
         skin = 0,
         norender = false,
         placement = "spine",
-        bPointShop = true,
-        price = 1000,
         name = "Large Red Backpack"
     },
 
@@ -715,8 +633,6 @@ hg.Accessories = {
         skin = 1,
         norender = false,
         placement = "spine",
-        bPointShop = true,
-        price = 1000,
         name = "Large Gray Backpack"
     },
 
@@ -728,8 +644,6 @@ hg.Accessories = {
         skin = 0,
         norender = false,
         placement = "spine",
-        bPointShop = true,
-        price = 1000,
         name = "Medium Backpack"
     },
 
@@ -741,8 +655,6 @@ hg.Accessories = {
         skin = 1,
         norender = false,
         placement = "spine",
-        bPointShop = true,
-        price = 1000,
         name = "Medium Gray Backpack"
     },
 
@@ -755,8 +667,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "face",
-        bPointShop = true,
-        price = 2000,
         vpos = Vector(0,0,69),
         name = "Monocle"
     },
@@ -770,9 +680,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "head",
-        bPointShop = true,
-        isdpoint = false,
-        price = 2500,
         vpos = Vector(0,0,0),
         name = "China Hat"
     },
@@ -786,9 +693,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "head",
-        bPointShop = true,
-        isdpoint = false,
-        price = 2500,
         vpos = Vector(0,0,69),
         name = "Helicopter Baseball Cap"
     },
@@ -802,9 +706,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "face",
-        bPointShop = true,
-        isdpoint = false,
-        price = 2500,
         vpos = Vector(0,0,69),
         name = "Welding Glasses"
     },
@@ -819,9 +720,6 @@ hg.Accessories = {
         bonemerge = true,
         placement = "face",
         flex = true,
-        bPointShop = true,
-        isdpoint = false,
-        price = 2000,
         vpos = Vector(0,0,69),
         name = "Big Glasses"
     },
@@ -836,8 +734,6 @@ hg.Accessories = {
         bonemerge = true,
         placement = "face",
         flex = true,
-        bPointShop = true,
-        price = 2500,
         vpos = Vector(0,0,69),
         name = "ОЧКИ С УСАМИ МЕМ"
     },
@@ -852,8 +748,6 @@ hg.Accessories = {
         bonemerge = true,
         placement = "face",
         flex = true,
-        bPointShop = true,
-        price = 3000,
         vpos = Vector(0,0,69),
         name = "FMF Glasses"
     },
@@ -868,8 +762,6 @@ hg.Accessories = {
         bonemerge = true,
         placement = "head",
         flex = true,
-        bPointShop = true,
-        price = 2600,
         vpos = Vector(0,0,69),
         name = "Warmcap"
     },
@@ -881,8 +773,6 @@ hg.Accessories = {
         fempos = {Vector(1,0,-5),Angle(70,180,180),1},
         skin = 0,
         placement = "spine",
-        bPointShop = true,
-        price = 1, -- for those who notices :3
         vpos = Vector(0,0,0),
         name = "Pink Lizard"
     },
@@ -896,8 +786,6 @@ hg.Accessories = {
         placement = "head",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 3500,
         vpos = Vector(0,0,69),
         name = "Headband"
     },
@@ -910,9 +798,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "face",
-        bPointShop = true,
-        isdpoint = false,
-        price = 1200,
         vpos = Vector(0,0,69),
         name = "Occluder"
     },
@@ -925,8 +810,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "head",
-        bPointShop = true,
-        price = 2300,
         vpos = Vector(0,0,69),
         name = "Ushanka"
     },
@@ -939,8 +822,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "head",
-        bPointShop = true,
-        price = 2300,
         vpos = Vector(0,0,69),
         name = "Cap God"
     },
@@ -953,9 +834,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "face",
-        bPointShop = true,
-        isdpoint = false,
-        price = 1350,
         vpos = Vector(0,0,69),
         name = "Viktor Glasses"
     },
@@ -968,8 +846,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         placement = "face",
-        bPointShop = true,
-        price = 1350,
         vpos = Vector(0,0,69),
         name = "Folding Glasses"
     },
@@ -983,9 +859,6 @@ hg.Accessories = {
         placement = "head",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        isdpoint = false,
-        price = 750,
         vpos = Vector(0,0,69),
         name = "Kamikaze Headband"
     },
@@ -999,41 +872,35 @@ hg.Accessories = {
         placement = "face",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 2500,
         vpos = Vector(0,0,69),
         name = "MF Doom Mask"
     },
-    -- ["anon mask"] = {
-    --     model = "models/rawjesus/wear/anon.mdl",
-    --     femmodel = "models/rawjesus/wear/anon.mdl",
-    --     bone = "ValveBiped.Bip01_Head1",
-    --     malepos = {Vector(0,-0.8,0),Angle(180,100,90),1},
-    --     fempos = {Vector(-1.2,-0.8,0),Angle(180,100,90),1},
-    --     skin = 0,
-    --     placement = "face",
-    --     norender = true,
-    --     bonemerge = true,
-    --     bPointShop = true,
-    --     price = 6500,
-    --     vpos = Vector(0,0,0),
-    --     name = "Anonymous Mask"
-    -- },
-    -- ["hockey mask"] = {
-    --     model = "models/rawjesus/wear/jason.mdl",
-    --     femmodel = "models/rawjesus/wear/jason.mdl",
-    --     bone = "ValveBiped.Bip01_Head1",
-    --     malepos = {Vector(0.5,-0.8,0),Angle(180,100,90),1},
-    --     fempos = {Vector(-0.5,-0.8,0),Angle(180,100,90),1},
-    --     skin = 0,
-    --     placement = "face",
-    --     norender = true,
-    --     bonemerge = true,
-    --     bPointShop = true,
-    --     price = 7500,
-    --     vpos = Vector(0,0,0),
-    --     name = "Hockey Mask"
-    -- },
+    ["anon mask"] = {
+        model = "models/rawjesus/wear/anon.mdl",
+        femmodel = "models/rawjesus/wear/anon.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0,-0.8,0),Angle(180,100,90),1},
+        fempos = {Vector(-1.2,-0.8,0),Angle(180,100,90),1},
+        skin = 0,
+        placement = "face",
+        norender = true,
+        bonemerge = true,
+        vpos = Vector(0,0,0),
+        name = "Anonymous Mask"
+    },
+    ["hockey mask"] = {
+        model = "models/rawjesus/wear/jason.mdl",
+        femmodel = "models/rawjesus/wear/jason.mdl",
+        bone = "ValveBiped.Bip01_Head1",
+        malepos = {Vector(0.5,-0.8,0),Angle(180,100,90),1},
+        fempos = {Vector(-0.5,-0.8,0),Angle(180,100,90),1},
+        skin = 0,
+        placement = "face",
+        norender = true,
+        bonemerge = true,
+        vpos = Vector(0,0,0),
+        name = "Hockey Mask"
+    },
 
     ["hood"] = {
         model = "models/distac/kapishon2.mdl",
@@ -1050,8 +917,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = true,
-        bPointShop = true,
-        price = 850,
         vpos = Vector(0,0,69),
         name = "Hood"
     },
@@ -1078,8 +943,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 850,
         vpos = Vector(0,0,5),
         name = "Deeper Cap"
     },
@@ -1094,8 +957,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 750,
         vpos = Vector(0,0,5),
         name = "Nurse Cap"
     },
@@ -1110,8 +971,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 4000,
         vpos = Vector(0,0,5),
         name = "Payot Cap"
     },
@@ -1126,8 +985,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 99999999, -- не должно быть видно в поинтшопе типо нельзя купить (пасхалка)
         vpos = Vector(0,0,5),
         name = "Burger King Crown"
     },
@@ -1142,8 +999,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 7331,
         vpos = Vector(0,0,5),
         name = "DealGlasses™"
     },
@@ -1158,8 +1013,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 4000,
         vpos = Vector(0,0,5),
         name = "Fancy Glasses"
     },
@@ -1174,8 +1027,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 2500,
         vpos = Vector(0,0,5),
         name = "Retro Glasses"
     },
@@ -1190,8 +1041,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 1700,
         vpos = Vector(0,0,5),
         name = "White Tophat"
     },
@@ -1206,9 +1055,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        isdpoint = false,
-        price = 1400,
         vpos = Vector(0,0,63),
         name = "Groove Bandana"
     },
@@ -1223,9 +1069,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        isdpoint = false,
-        price = 1400,
         vpos = Vector(0,0,63),
         name = "Crips Bandana"
     },
@@ -1240,9 +1083,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        isdpoint = false,
-        price = 1100,
         vpos = Vector(0,0,63),
         name = "White Bandana"
     },
@@ -1257,8 +1097,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        price = 2500,
         vpos = Vector(0,0,63),
         name = "Ghost Bandana"
     },
@@ -1273,8 +1111,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        price = 1100,
         vpos = Vector(0,0,63),
         name = "HM Bandana"
     },
@@ -1289,8 +1125,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = false,
         bSetColor = false,
-        bPointShop = true,
-        price = 1500,
         vpos = Vector(0,0,63),
         name = "Evil (evil) Bandana"
     },
@@ -1305,8 +1139,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = false,
-        bPointShop = true,
-        price = 1750,
         vpos = Vector(0,0,5),
         name = "Baseball Hat"
     },
@@ -1321,9 +1153,6 @@ hg.Accessories = {
         norender = false,
         placement = "torso",
         bonemerge = true,
-        bPointShop = true,
-        isdpoint = false,
-        price = 1550,
         vpos = Vector(0,0,42),
         name = "Leather Bag"
     },
@@ -1337,8 +1166,6 @@ hg.Accessories = {
         placement = "face",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 2000,
         vpos = Vector(0,0,69),
         name = "Star Glassis"
     },
@@ -1352,8 +1179,6 @@ hg.Accessories = {
         placement = "head",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 2000,
         vpos = Vector(0,0,0),
         name = "Brain Cap"
     },
@@ -1367,8 +1192,6 @@ hg.Accessories = {
         placement = "head",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 2500,
         vpos = Vector(0,0,69),
         name = "Headphones coolPro"
     },
@@ -1384,8 +1207,6 @@ hg.Accessories = {
         norender = true,
         bonemerge = true,
         bSetColor = true,
-        bPointShop = true,
-        price = 950,
         vpos = Vector(0,0,69),
         name = "Medieval hood"
     },
@@ -1399,8 +1220,6 @@ hg.Accessories = {
         placement = "head",
         norender = true,
         bonemerge = true,
-        bPointShop = true,
-        price = 2000,
         vpos = Vector(0,0,0),
         SubMat = "distac/41/cap_fire",
         name = "Cool Cap"

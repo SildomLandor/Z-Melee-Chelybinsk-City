@@ -323,15 +323,7 @@ MODE.Types.standard = {
 	PoliceAllowed = true,
 	PoliceEquipment = function(ply)
 		ply:SetPlayerClass("police")
-		local glock = give_wep(ply, "weapon_glock17", 3)
-		if IsValid(glock) then
-			if math.random(0, 1) == 1 then
-				hg.AddAttachmentForce(ply, glock, "holo16")
-			end
-			if math.random(0, 1) == 1 then
-				hg.AddAttachmentForce(ply, glock, "laser3")
-			end
-		end
+		give_wep(ply, "weapon_makarov", 5)
 
 		ply:Give("weapon_medkit_sh")
 		ply:Give("weapon_walkie_talkie")
@@ -346,7 +338,7 @@ MODE.Types.standard = {
 		hg.AddArmor(ply, {"vest2"})
 
 		local hands = ply:Give("weapon_hands_sh")
-		ply:SetActiveWeapon( hands )
+		ply:SetActiveWeapon(hands)
 
 		local inv = ply:GetNetVar("Inventory") or {}
 		inv["Weapons"] = inv["Weapons"] or {}
@@ -355,7 +347,7 @@ MODE.Types.standard = {
 		ply.organism.recoilmul = 0.8
 
 
-		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
+		zb.GiveRole(ply, "Полицейский", Color(15,15,255))
 	end
 }
 
@@ -400,15 +392,7 @@ MODE.Types.gunfreezone = {
 	SkillIssue = 4,
 	PoliceEquipment = function(ply)
 		ply:SetPlayerClass("police")
-		local glock = ply:Give("weapon_glock17")
-		ply:GiveAmmo(glock:GetMaxClip1() * 3,glock:GetPrimaryAmmoType(),true)
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,glock,"holo16")
-		end
-
-		if math.random(0,1) then
-			hg.AddAttachmentForce(ply,glock,"laser3")
-		end
+		give_wep(ply, "weapon_makarov", 5)
 
 		ply:Give("weapon_medkit_sh")
 		ply:Give("weapon_walkie_talkie")
@@ -431,7 +415,7 @@ MODE.Types.gunfreezone = {
 		ply:SetNetVar("Inventory",inv)
 		ply.organism.recoilmul = 0.8
 
-		zb.GiveRole(ply, "Police Officer", Color(15,15,255))
+		zb.GiveRole(ply, "Полицейский", Color(15,15,255))
 
 	end
 }
@@ -489,7 +473,7 @@ MODE.Types.soe = {
 		ply:SetNetVar("Inventory", inv)
 	
 		ply:SetPlayerClass("nationalguard")
-		give_wep(ply, "weapon_fn45", 3)
+		give_wep(ply, "weapon_makarov", 3)
 		local gun = give_wep(ply, "weapon_hk416", 3)
 		if IsValid(gun) then
 			hg.AddAttachmentForce(ply, gun, {"holo14", "laser3", "grip3"})
