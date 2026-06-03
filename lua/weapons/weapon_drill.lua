@@ -12,6 +12,11 @@ SWEP.WorldModelExchange = "models/props_junk/drill.mdl"
 
 SWEP.basebone = 39
 
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_pelvis"
+SWEP.holsteredPos = Vector(-8, -4, 0)
+SWEP.holsteredAng = Angle(0, 170, 40)
+
 
 SWEP.weaponPos = Vector(0,0,-3)
 SWEP.weaponAng = Angle(25,95,180)

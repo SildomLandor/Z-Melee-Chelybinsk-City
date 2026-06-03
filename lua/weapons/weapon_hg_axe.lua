@@ -107,6 +107,9 @@ SWEP.AttackPos = Vector(0,0,0)
 
 SWEP.NoHolster = true
 SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(3, -4, 0)
+SWEP.holsteredAng = Angle(0, -10, 90)
 
 SWEP.AttackTimeLength = 0.155
 SWEP.Attack2TimeLength = 0.01

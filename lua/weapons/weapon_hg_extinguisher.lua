@@ -37,6 +37,11 @@ SWEP.sprint_ang = Angle(15,0,0)
 
 SWEP.basebone = 93
 
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(5, -9, 0)
+SWEP.holsteredAng = Angle(90, 0, 0)
+
 SWEP.weaponPos = Vector(0,2,0.3)
 SWEP.weaponAng = Angle(0,0,0)
 
@@ -111,7 +116,7 @@ SWEP.HeavyChargeHoldPos = Vector(12,5.5,-1.45)
 
 SWEP.CanHeavyAttack = true -- Set to true to enable
 
-SWEP.BlockTier = 4
+SWEP.BlockTier = 3
 SWEP.MeleeMaterial = "metal"
 SWEP.BlockImpactSound = "physics/metal/metal_solid_impact_bullet1.wav"
 

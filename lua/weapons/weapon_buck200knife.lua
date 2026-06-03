@@ -36,6 +36,11 @@ SWEP.TwoHanded = false
 
 SWEP.basebone = 76
 
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_pelvis"
+SWEP.holsteredPos = Vector(-8, -4, 0)
+SWEP.holsteredAng = Angle(-50, 90, -90)
+
 SWEP.HoldPos = Vector(-2,-5,-5)
 SWEP.HoldAng = Angle(-15,20,-10)
 

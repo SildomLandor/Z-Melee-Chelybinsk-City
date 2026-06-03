@@ -14,8 +14,8 @@ end
 
 SWEP.shouldntDrawHolstered = false
 SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis"
-SWEP.holsteredPos = Vector(-8, -5, 0)
-SWEP.holsteredAng = Angle(0, 0, 90)
+SWEP.holsteredPos = Vector(-8, 0, 0)
+SWEP.holsteredAng = Angle(0, 0, 75)
 
 SWEP.SuicidePos = Vector(-12, -4, -8)
 SWEP.SuicideAng = Angle(-0, 30, -50)
