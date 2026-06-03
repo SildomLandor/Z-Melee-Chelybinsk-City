@@ -696,7 +696,7 @@ function playerMeta:OpenInventory(ent)
     if IsValid(lootOwner) and hg.LootBlockedConscious(lootOwner) then
         if (self.lootConsciousCd or 0) < CurTime() then
             self.lootConsciousCd = CurTime() + 2
-            self:ChatPrint("Пока человек в сознании, его нельзя обыскать.")
+            self:Notify("Не даёт себя обыскать")
         end
         return
     end

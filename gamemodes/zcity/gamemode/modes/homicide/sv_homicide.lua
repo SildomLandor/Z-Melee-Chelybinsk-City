@@ -315,8 +315,22 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		ply:Give("weapon_px4beretta")
-		ply.organism.recoilmul = 1
+		local gunmangun = table.Random({
+		"weapon_kar98",
+		"weapon_remington870",
+		"weapon_m1911",
+		"weapon_tokarev",
+		"weapon_makarov",
+        })
+		local gun = ply:Give(gunmangun)
+		ply.organism.recoilmul = 1.5
+		if gun:GetClass() == "weapon_kar98" then
+			hg.AddAttachmentForce(ply,gun,"optic12")
+		end
+		local inv = ply:GetNetVar("Inventory")
+		inv["Weapons"]["hg_sling"] = true
+		ply:SetNetVar("Inventory",inv)
+
 	end,
 	PoliceTime = 220,
 	SkillIssue = 4,
@@ -386,6 +400,22 @@ MODE.Types.gunfreezone = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
+		local gunmangun = table.Random({
+		"weapon_kar98",
+		"weapon_remington870",
+		"weapon_m1911",
+		"weapon_tokarev",
+		"weapon_makarov",
+        })
+		local gun = ply:Give(gunmangun)
+		ply.organism.recoilmul = 1.5
+		if gun:GetClass() == "weapon_kar98" then
+			hg.AddAttachmentForce(ply,gun,"optic12")
+		end
+		local inv = ply:GetNetVar("Inventory")
+		inv["Weapons"]["hg_sling"] = true
+		ply:SetNetVar("Inventory",inv)
+
 	end,
 	PoliceTime = 120,
 	PoliceAllowed = true,
@@ -451,9 +481,17 @@ MODE.Types.soe = {
 		inv["Weapons"]["hg_flashlight"] = true
 		ply:SetNetVar("Inventory",inv)
 	end,
+	
 	GunManLoot = function(ply)
-		local gun = ply:Give( ( math.random(1,2) > 1 and "weapon_remington870" ) or "weapon_kar98" )
-		ply.organism.recoilmul = 1.0
+		local gunmangun = table.Random({
+		"weapon_kar98",
+		"weapon_remington870",
+		"weapon_m1911",
+		"weapon_tokarev",
+		"weapon_makarov",
+        })
+		local gun = ply:Give(gunmangun)
+		ply.organism.recoilmul = 1.5
 		if gun:GetClass() == "weapon_kar98" then
 			hg.AddAttachmentForce(ply,gun,"optic12")
 		end
