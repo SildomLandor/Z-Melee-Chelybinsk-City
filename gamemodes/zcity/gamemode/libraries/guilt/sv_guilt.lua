@@ -71,13 +71,13 @@ hook.Add( "PlayerInitialSpawn","ZB_GuiltSQL", function( ply )
     local data = zb.GuiltSQL.PlayerInstances[steamID64]
     if not data then
         data = {
-            value = 100,
+            value = zb.DefaultKarma,
             steam_name = name
         }
         zb.GuiltSQL.PlayerInstances[steamID64] = data
         saveGuiltData()
     else
-        data.value = tonumber(data.value) or 100
+        data.value = tonumber(data.value) or zb.DefaultKarma
         data.steam_name = name
     end
 
@@ -102,14 +102,14 @@ end)
 local plyMeta = FindMetaTable("Player")
 
 function plyMeta:guilt_GetValue()
-    return zb.GuiltSQL.PlayerInstances[self:SteamID64()] and zb.GuiltSQL.PlayerInstances[self:SteamID64()].value or 100
+    return zb.GuiltSQL.PlayerInstances[self:SteamID64()] and zb.GuiltSQL.PlayerInstances[self:SteamID64()].value or zb.DefaultKarma
 end
 
 function plyMeta:guilt_SetValue( zb_guilt )
     local steamID64 = self:SteamID64()
 
     zb.GuiltSQL.PlayerInstances[steamID64] = zb.GuiltSQL.PlayerInstances[steamID64] or {}
-    zb.GuiltSQL.PlayerInstances[steamID64].value = tonumber(zb_guilt) or 100
+    zb.GuiltSQL.PlayerInstances[steamID64].value = tonumber(zb_guilt) or zb.DefaultKarma
     zb.GuiltSQL.PlayerInstances[steamID64].steam_name = IsValid(self) and self:Name() or (zb.GuiltSQL.PlayerInstances[steamID64].steam_name or "")
 
     scheduleSaveGuiltData()
@@ -160,7 +160,7 @@ function zb.KarmaSync(ply, persist)
 end
 
 local function karmaBanIfNeeded(att)
-    if not IsValid(att) or (att.Karma or 100) > 0 then return end
+    if not IsValid(att) or (att.Karma or zb.DefaultKarma) > 0 then return end
 
     local steamID, name = att:SteamID(), att:Name()
     att.Karma = 10
@@ -191,14 +191,14 @@ function zb.ApplyKarmaLoss(att, vic, amount, opts)
 
     if vic.Guilt and vic.Guilt > 1 and not zb.IsForce(att) then return false end
 
-    local guiltadd = opts.guiltadd or (amount / (zb.MaximumHarm or 10)) * 30
-    local retal = math.min((zb.GuiltTable[vic][att] or 0) / 60, 1)
+    local guiltadd = opts.guiltadd or (amount / zb.MaximumHarm) * zb.GuiltPerHarmAmt
+    local retal = zb.GuiltRetal(zb.GuiltTable[vic][att])
     local loss = amount * math.max(1 - retal, 0)
     if loss <= 0 then return false end
 
-    zb.GuiltTable[att][vic] = math.Clamp((zb.GuiltTable[att][vic] or 0) + guiltadd, 0, 200)
+    zb.GuiltTable[att][vic] = math.Clamp((zb.GuiltTable[att][vic] or 0) + guiltadd, 0, zb.MaxGuiltPair)
     att.Guilt = (att.Guilt or 0) + guiltadd
-    att.Karma = math.Clamp((att.Karma or 100) - loss, -60, zb.MaxKarma)
+    att.Karma = math.Clamp((att.Karma or zb.DefaultKarma) - loss, zb.MinKarma, zb.MaxKarma)
     zb.KarmaSync(att, opts.persist)
 
     if opts.trackHarm ~= false then
@@ -282,7 +282,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
         Attacker:ChatPrint("This harm done is: "..math.Round(harmdelta,3))
         Attacker:ChatPrint("Overall amt done is: "..math.Round(amt,3))
         Attacker:ChatPrint("Overall harm done is: "..math.Round(newharm,3))
-        Attacker:ChatPrint("Guilt done is: "..math.Round(amt * 60,3))
+        Attacker:ChatPrint("Guilt done is: "..math.Round(zb.GuiltAddFromAmt(amt),3))
         Attacker:ChatPrint(" ")
     end
 
@@ -300,11 +300,10 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     local provoked = harmFromVictim > 0
     local victimWep = Victim:IsPlayer() and IsValid(Victim:GetActiveWeapon()) and Victim:GetActiveWeapon()
 
-    amt = amt * 1
-        * (Victim:IsPlayer() and math.Clamp((Victim.Karma or 100) / 100, 1, 1.2) or 1)
+    amt = amt * zb.GuiltKarmaMul(Victim)
         * (Victim:IsPlayer() and ((IsLookingAt(Victim, Attacker:EyePos()) and (victimWep and (ishgweapon(victimWep) or ((victimWep:GetClass() == "weapon_hands_sh" and victimWep:GetFists() or victimWep.ismelee2) and Victim:EyePos():DistToSqr(Attacker:EyePos()) <= (90 * 90))))) and 0.5 or 1) or 1)
 
-    local add = amt * maxharm
+    local add = zb.GuiltKarmaLossFromAmt(amt)
 
     local guiltMul = (Victim:IsPlayer() and Attacker:PlayerClassEvent("Guilt", Victim)) or 1
     if guiltMul <= 0 then guiltMul = 1 end
@@ -318,18 +317,18 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
         add = add * (mul or 1)
     end
 
-    local guiltadd = amt * 60
-    zb.GuiltTable[Attacker][Victim] = math.Clamp((zb.GuiltTable[Attacker][Victim] or 0) + guiltadd, 0, 200)
+    local guiltadd = zb.GuiltAddFromAmt(amt)
+    zb.GuiltTable[Attacker][Victim] = math.Clamp((zb.GuiltTable[Attacker][Victim] or 0) + guiltadd, 0, zb.MaxGuiltPair)
 
     if provoked then return end
     if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
 
-    local retal = math.min((zb.GuiltTable[Victim][Attacker] or 0) / 60, 1)
+    local retal = zb.GuiltRetal(zb.GuiltTable[Victim][Attacker])
     local loss = add * math.max(1 - retal, 0)
     if loss <= 0 then return end
 
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd
-    Attacker.Karma = math.Clamp((Attacker.Karma or 100) - loss, -60, zb.MaxKarma)
+    Attacker.Karma = math.Clamp((Attacker.Karma or zb.DefaultKarma) - loss, zb.MinKarma, zb.MaxKarma)
     zb.KarmaSync(Attacker, false)
     zb.HarmDoneKarma[Victim][Attacker] = zb.HarmDoneKarma[Victim][Attacker] + loss
 
@@ -340,7 +339,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
             .. " loss=" .. math.Round(loss,4))
     end
 
-    if shouldBanGuilt and Attacker.Guilt >= 100 and ULib then
+    if shouldBanGuilt and Attacker.Guilt >= zb.GuiltBanThreshold and ULib then
         ULib.addBan(Attacker:SteamID(), 30, "Забанен за большой урон своим тиммейтам", Attacker:Name(), "System")
     end
 
@@ -380,14 +379,14 @@ hook.Add("Player_Death", "GuiltTeammateKillMsg", function(victim)
 end)
 
 hook.Add("PlayerDisconnected","GuiltSaveOnDisconect",function(ply)
-    ply:guilt_SetValue( ply.Karma or 100 )
+    ply:guilt_SetValue(ply.Karma or zb.DefaultKarma)
 end)
 
 hook.Add("Player Spawn","SlowlyRestoreKarma",function(ply)
     if OverrideSpawn then return end
 
     ply.lastwarning = nil
-    ply.Karma = ply.Karma or 100
+    ply.Karma = ply.Karma or zb.DefaultKarma
     ply:SetNetVar("Karma",ply.Karma)
     ply.Guilt = 0
 end)
@@ -401,10 +400,10 @@ hook.Add("Player Think", "karmagain", function(ply)
         karma = ply:guilt_GetValue()
     end
 
-    karma = karma or 100
+    karma = karma or zb.DefaultKarma
 
-    local gain = karma > 100 and 0.1 or (ply.KarmaGain or 0.75)
-    local newKarma = math.Clamp(karma + gain, 0, zb.MaxKarma)
+    local gain = zb.GuiltKarmaGain(ply, karma)
+    local newKarma = math.Clamp(karma + gain, zb.MinKarma, zb.MaxKarma)
     if newKarma == karma then return end
 
     ply.Karma = newKarma
@@ -413,13 +412,13 @@ end)
 
 hook.Add("Org Think", "Its_Karma_Bro", function(owner, org)
     if not owner:IsPlayer() or not owner:Alive() or org.otrub or not org.isPly then return end
-    if (owner.Karma or 100) >= 35 or math.random(2000) ~= 1 then return end
+    if (owner.Karma or zb.DefaultKarma) >= 35 or math.random(2000) ~= 1 then return end
     hg.organism.Vomit(owner)
 end)
 
 hook.Add("ZB_EndRound","savevalues",function()
     for i,ply in player.Iterator() do
-        ply:guilt_SetValue( ply.Karma or 100 )
+        ply:guilt_SetValue(ply.Karma or zb.DefaultKarma)
     end
 end)
 
@@ -459,7 +458,7 @@ concommand.Add("hg_setkarma",function(ply,cmd,args)
     local newply = player.GetListByName(lenargs > 1 and args[1] or ply:Name())[1]
 
     if not IsValid(newply) then return end
-    newply.Karma = tonumber(lenargs > 1 and args[2] or args[1]) or 100
+    newply.Karma = tonumber(lenargs > 1 and args[2] or args[1]) or zb.DefaultKarma
     zb.KarmaSync(newply, true)
 end)
 
@@ -496,7 +495,7 @@ net.Receive("forgive_player", function(_, ply)
     local karma = zb.HarmDoneKarma[ply][ent]
     if not karma or karma <= 0 then return end
 
-    ent.Karma = math.min((ent.Karma or 100) + karma, zb.MaxKarma)
+    ent.Karma = math.min((ent.Karma or zb.DefaultKarma) + karma, zb.MaxKarma)
     zb.KarmaSync(ent, true)
 
     if zb.HarmDone[ply] then zb.HarmDone[ply][ent] = 0 end

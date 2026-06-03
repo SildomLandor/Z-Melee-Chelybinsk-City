@@ -181,7 +181,7 @@ function MODE:EndRound()
 	local endround, winner = zb:CheckWinner(self:CheckAlivePlayers())
 	for k,ply in player.Iterator() do
 		if ply:Team() == winner then
-			ply:GiveExp(math.random(15,30))
+			ply:GiveRoundExp("normal")
 			ply:GiveSkill(math.Rand(0.1,0.15))
 			--print("give",ply)
 		else

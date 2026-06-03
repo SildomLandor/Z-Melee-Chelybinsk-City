@@ -211,7 +211,7 @@ function zb:KillPlayers()
 	for i, ply in player.Iterator() do
 		if ply:Team() == TEAM_SPECTATOR then continue end
 
-		ply:GiveExp(math.random(4, 15))
+		ply:GiveRoundExp("minor")
 
 		if ply.organism then ply.organism.godmode = nil end
 

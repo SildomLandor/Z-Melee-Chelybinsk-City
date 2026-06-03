@@ -6,7 +6,7 @@ end)
 
 function zb.GetLocalKarma()
 	local ply = LocalPlayer()
-	if not IsValid(ply) then return 100 end
+	if not IsValid(ply) then return zb.DefaultKarma or 100 end
 
 	local k = ply.Karma
 	if k == nil then
@@ -14,14 +14,15 @@ function zb.GetLocalKarma()
 		if nv ~= nil then k = nv end
 	end
 
-	return math.Round(k or 100)
+	return math.Round(k or zb.DefaultKarma or 100)
 end
 
 function zb.GetKarmaColor(karma, palette)
 	palette = palette or {}
-	if karma >= 100 then return palette.text or Color(200, 200, 200, 255) end
-	if karma >= 70 then return palette.textDim or Color(160, 160, 165, 180) end
-	if karma >= 50 then return Color(220, 180, 60, 200) end
+	local base = zb.DefaultKarma or 100
+	if karma >= base then return palette.text or Color(200, 200, 200, 255) end
+	if karma >= base * 0.7 then return palette.textDim or Color(160, 160, 165, 180) end
+	if karma >= base * 0.5 then return Color(220, 180, 60, 200) end
 	return palette.textBlood or Color(180, 40, 35, 255)
 end
 

@@ -42,7 +42,7 @@ hook.Add( "PlayerInitialSpawn","ZB_Exp_OnInitSpawn", function( ply )
         query:Select("suicides")
 		query:Where("steamid", steamID64)
 		query:Callback(function(result)
-			if (IsValid(ply) and istable(result) and #result > 0 and result[1].experience) then
+			if IsValid(ply) and istable(result) and #result > 0 and result[1].experience ~= nil then
 				local updateQuery = mysql:Update("zb_experience")
 					updateQuery:Update("steam_name", name)
 					updateQuery:Where("steamid", steamID64)
@@ -83,22 +83,33 @@ end)
 
 local plyMeta = FindMetaTable("Player")
 
-function plyMeta:GetExp()
-
-    return math.Round(zb.Experience.PlayerInstances[self:SteamID64()].experience) or 0
-
+local function xpInstance(ply)
+    local sid = ply:SteamID64()
+    zb.Experience.PlayerInstances[sid] = zb.Experience.PlayerInstances[sid] or {
+        skill = 0, experience = 0, deaths = 0, kills = 0, suicides = 0,
+    }
+    return zb.Experience.PlayerInstances[sid]
 end
 
-function plyMeta:GiveExp( ammout )
+function plyMeta:GetExp()
+    local inst = zb.Experience.PlayerInstances[self:SteamID64()]
+    if not inst then return 0 end
+    return math.Round(inst.experience or 0)
+end
+
+function plyMeta:GiveExp(ammout)
+    if not zb.Experience or not IsValid(self) then return end
+    if not zb.Experience.Active then return end
+
+    ammout = tonumber(ammout) or 0
+    if ammout == 0 then return end
 
     local steamID64 = self:SteamID64()
-
-    if !zb.Experience or !zb.Experience.PlayerInstances or !zb.Experience.PlayerInstances[steamID64] then return end
-
-    zb.Experience.PlayerInstances[steamID64].experience =  math.max( (zb.Experience.PlayerInstances[steamID64].experience or 0) + ammout, 0 )
+    local inst = xpInstance(self)
+    inst.experience = math.max((inst.experience or 0) + ammout, 0)
 
 	local updateQuery = mysql:Update("zb_experience")
-		updateQuery:Update("experience", self:GetExp(),0)
+		updateQuery:Update("experience", self:GetExp())
 		updateQuery:Where("steamid", steamID64)
 	updateQuery:Execute()
 
@@ -108,6 +119,9 @@ function plyMeta:GiveExp( ammout )
     --self:SetNWInt( "experience", exp + ammout )
 end
 
+function plyMeta:GiveRoundExp(kind)
+    self:GiveExp(zb.Experience.RollReward(kind))
+end
 
 function plyMeta:GetSkill()
 
@@ -115,17 +129,15 @@ function plyMeta:GetSkill()
 
 end
 
-function plyMeta:GiveSkill( ammout )
+function plyMeta:GiveSkill(ammout)
+    if not zb.Experience or not IsValid(self) or not zb.Experience.Active then return end
+
+    ammout = tonumber(ammout) or 0
+    if ammout == 0 then return end
 
     local steamID64 = self:SteamID64()
-
-    if not zb.Experience.Active then
-        zb.Experience.PlayerInstances[steamID64] = {}
-        return
-    end 
-
-
-    zb.Experience.PlayerInstances[steamID64].skill = math.max( zb.Experience.PlayerInstances[steamID64].skill + ammout, 0 )
+    local inst = xpInstance(self)
+    inst.skill = math.max((inst.skill or 0) + ammout, 0)
 
 	local updateQuery = mysql:Update("zb_experience")
 		updateQuery:Update("skill", self:GetSkill())
