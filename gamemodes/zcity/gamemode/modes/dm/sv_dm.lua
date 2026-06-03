@@ -138,26 +138,60 @@ local randomMedicine = {"weapon_bandage_sh", "weapon_bigbandage_sh", "weapon_med
 local randomMelees = {"weapon_melee", "weapon_pocketknife"}
 
 local function MakeDissolver(ent, position, dissolveType)
-    local Dissolver = ents.Create("env_entity_dissolver")
-    timer.Simple(5, function()
-        if IsValid(Dissolver) then Dissolver:Remove() end
-    end)
-	if !IsValid(Dissolver) then return end
-    Dissolver.Target = "dissolve"..ent:EntIndex()
-    Dissolver:SetKeyValue("dissolvetype", dissolveType)
-    Dissolver:SetKeyValue("magnitude", 0)
-    Dissolver:SetPos(position)
-    Dissolver:SetPhysicsAttacker(ent)
-    Dissolver:Spawn()
-    ent:SetName(Dissolver.Target)
+	local dissolver = ents.Create("env_entity_dissolver")
+	if not IsValid(dissolver) then return end
+
+	timer.Simple(5, function()
+		if IsValid(dissolver) then dissolver:Remove() end
+	end)
+
+	local target = "dissolve" .. ent:EntIndex()
+	dissolver:SetKeyValue("dissolvetype", dissolveType or 0)
+	dissolver:SetKeyValue("magnitude", 0)
+	dissolver:SetPos(position)
+	dissolver:SetPhysicsAttacker(ent)
+	dissolver:Spawn()
+	ent:SetName(target)
 	ent:Fire("Open")
-    Dissolver:Fire("Dissolve", Dissolver.Target, 0)
-    Dissolver:Fire("Kill", "", 0.1)
-    return Dissolver
+	dissolver:Fire("Dissolve", target, 0)
+	dissolver:Fire("Kill", "", 0.1)
+	return dissolver
+end
+
+local function DissolveZonePlayer(ply)
+	if not IsValid(ply) or ply.zb_zone_dissolving then return end
+	ply.zb_zone_dissolving = true
+
+	local org = ply.organism
+	if org then
+		org.alive = false
+		org.assimilated = 1
+		ply:SetLocalVar("assimilation", 1)
+	end
+
+	if not IsValid(ply.FakeRagdoll) then
+		hg.Fake(ply, nil, true)
+	end
+
+	local rag = ply.FakeRagdoll
+	local pos = IsValid(rag) and rag:GetPos() or ply:GetPos()
+	local target = IsValid(rag) and rag or ply
+
+	MakeDissolver(target, pos, 0)
+
+	timer.Simple(0.15, function()
+		if IsValid(ply) and ply:Alive() then ply:Kill() end
+	end)
 end
 
 function MODE:RoundStart()
+	if not zonepoint then
+		zonepoint = zb:GetRandomSpawn() or Vector(0, 0, 0)
+		zonedistance = zonedistance or 2048
+	end
+
 	for _, ply in player.Iterator() do
+		ply.zb_zone_dissolving = nil
 		if not ply:Alive() then continue end
 
 		local loadout = loadouts[math.random(#loadouts)]
@@ -239,24 +273,51 @@ local dmPropClasses = {
 	"func_physbox",
 }
 
-hook.Add("Think","bober",function(ply)
+local function ZoneEntPos(ent)
+	if ent:IsPlayer() then
+		local rag = ent.FakeRagdoll
+		if IsValid(rag) then return rag:GetPos() end
+	end
+	return ent:GetPos()
+end
+
+hook.Add("Think", "bober", function()
 	if zb.ROUND_STATE ~= 1 then return end
 	local rnd = CurrentRound()
-	if not MODE.IsDMFamily(rnd) then return end
+	if not rnd or not MODE.IsDMFamily(rnd) then return end
 	if rnd:ShouldRoundEnd() then return end
 	if (zb.ROUND_START or 0) + 20 > CurTime() then return end
 	if cooldown > CurTime() then return end
 	if deathmatch_nozone:GetBool() then return end
-	cooldown = CurTime() + 0.5
 
 	local pos = zonepoint
+	if not pos then return end
+
+	cooldown = CurTime() + 0.5
+
 	local radius = MODE.GetZoneRadius()
+	if radius <= 0 then return end
 	local radiussqr = radius * radius
-	
+
 	for _, ent in player.Iterator() do
-		if not ent:Alive() then continue end
-		if pos:DistToSqr(ent:GetPos()) <= radiussqr then continue end
-		hg.LightStunPlayer(ent)
+		if not ent:Alive() or ent.zb_zone_dissolving then continue end
+		local org = ent.organism
+		if not org then continue end
+
+		if pos:DistToSqr(ZoneEntPos(ent)) <= radiussqr then
+			if (org.assimilated or 0) > 0 then
+				org.assimilated = math.Approach(org.assimilated, 0, 0.2)
+				ent:SetLocalVar("assimilation", org.assimilated)
+			end
+			continue
+		end
+
+		org.assimilated = math.Approach(org.assimilated or 0, 1, 0.125)
+		ent:SetLocalVar("assimilation", org.assimilated)
+
+		if org.assimilated >= 1 then
+			DissolveZonePlayer(ent)
+		end
 	end
 
 	for i = 1, #dmDoorClasses do

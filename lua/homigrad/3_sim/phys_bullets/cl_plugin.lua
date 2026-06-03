@@ -10,11 +10,14 @@ function PLUGIN.NetworkReceivedBulletCreate()
 		bullet[key] = read()
 	end
 	
-	if(PLUGIN.BulletsTable[bullet.Key])then
-		PLUGIN.BulletsTable[bullet.Key]:Remove()
-	end
-	
+	local old = PLUGIN.BulletsTable[bullet.Key]
+	if old then old:Remove() end
+
 	PLUGIN.CreateBullet(bullet)
+	if CLIENT then
+		local b = PLUGIN.BulletsTable[bullet.Key]
+		if b then b._pathAccum = PLUGIN.MaxPathDist end
+	end
 end
 
 function PLUGIN.NetworkReceivedBulletUpdate()

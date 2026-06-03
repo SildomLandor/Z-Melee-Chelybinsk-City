@@ -375,7 +375,7 @@ hook.Add("Player_Death", "GuiltTeammateKillMsg", function(victim)
         if not IsValid(killer) or killer == victim or topHarm < 9 then return end
         if zb.KarmaSkipTeamHarm(killer, victim) then return end
 
-        killer:ChatPrint("Ты убил своего тиммейта!")
+        --killer:ChatPrint("Ты убил своего тиммейта!")
     end)
 end)
 

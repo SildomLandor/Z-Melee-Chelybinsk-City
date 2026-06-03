@@ -19,8 +19,8 @@ MODE.MapSize = 7500
 MODE.ZoneTimeToShrink = 120
 
 function MODE.GetZoneRadius()
-	if !zonedistance or !isnumber(zonedistance) then return 0xFFFFFFFF /*UUUUUUUUUUUUUUUUUCK*/ end
-	local dist = zonedistance + 2048
+	local base = isnumber(zonedistance) and zonedistance or 2048
+	local dist = base + 2048
 	
 	return (dist * math.max(((zb.ROUND_START + MODE.ZoneTimeToShrink) - CurTime()) / MODE.ZoneTimeToShrink, 0.025))
 end
