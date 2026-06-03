@@ -488,8 +488,6 @@ MODE.Types.soe = {
 		ply:Give("weapon_painkillers")
 		ply:Give("weapon_morphine")
 	
-		ply.organism.recoilmul = 0.5
-	
 		ply:Give("weapon_handcuffs")
 		ply:Give("weapon_handcuffs_key")
 	
