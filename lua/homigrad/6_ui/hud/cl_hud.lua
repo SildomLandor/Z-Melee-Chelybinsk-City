@@ -62,7 +62,8 @@ hook.Add("HUDDrawPickupHistory", "HidePickedStuff", function()
 	return false
 end)
 
-CreateFontFamily({
+local function ZB_CreateUIFonts()
+	CreateFontFamily({
     weight  = 1100,
     outline = false,
 }, {
@@ -76,7 +77,8 @@ CreateFontFamily({
     HomigradFontVSmall        = { size = 12, weight = 400 },
     ZCity_Veteran             = { size = ScreenScale(8), weight = 700, antialias = true },
 })
-
+end
+ZB_CreateUIFonts()
 local w, h
 
 hook.Add("HUDPaint", "homigrad-dev", function()
@@ -304,7 +306,7 @@ local function CreateRadialMenu(options_arg, bAutoClose)
 			optionSelected[idx] = LerpFT(0.1, optionSelected[idx], isMouseIntersecting and 1 or 0)
 		end
 
-		local radialFont = options_arg and "ZCity_Veteran"
+		local radialFont = options_arg and "ZCity_Veteran" or "ZCity_Veteran"
 		for num, option in ipairs(options) do
 			local idx = num - 1
 			local sel = optionSelected[idx]
