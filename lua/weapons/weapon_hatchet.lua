@@ -24,8 +24,8 @@ SWEP.weight = 1
 
 SWEP.shouldntDrawHolstered = false
 SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis"
-SWEP.holsteredPos = Vector(-8, -5, 0)
-SWEP.holsteredAng = Angle(0, 0, 90)
+SWEP.holsteredPos = Vector(-8, 0, 0)
+SWEP.holsteredAng = Angle(0, 0, 75)
 
 SWEP.WorldModel = "models/hatedmekkr/boneworks/weapons/melee/blades/axes/bw_wpn_ax_hatchet.mdl"
 SWEP.WorldModelReal = "models/weapons/tfa_nmrih/v_me_hatchet.mdl"

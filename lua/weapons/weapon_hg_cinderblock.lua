@@ -93,12 +93,10 @@ SWEP.PainMultiplier = 1.5
 SWEP.SwingAng = -30
 SWEP.SwingAng2 = 0
 
-SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis" -- Different attachment point
-SWEP.holsteredPos = Vector(-1.1, -9, -5.3) -- Adjust position
-SWEP.holsteredAng = Angle(195, 75, 230) -- Adjust rotation
-SWEP.Concealed = false -- wont show up on the body
-SWEP.HolsterIgnored = true -- the holster system will ignore
-SWEP.Ignorebelt = true
+SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(5, -5, 0)
+SWEP.holsteredAng = Angle(0, 90, 90)
 
 
 

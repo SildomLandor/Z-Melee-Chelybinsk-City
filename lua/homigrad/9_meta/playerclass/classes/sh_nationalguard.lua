@@ -66,7 +66,6 @@ function CLASS.On(self)
     --local top = math.random(0,1) -- я глупый и не знаю как по-другому сделать
     self:SetBodygroup(05)   --self:SetBodygroup(05,2,top,3,rankBg,81)  -- сделайте пж когда нибудь нормальный рандом для рангов и рукавов
     -- top = 2 рукава rang = 3 ранг vest = 8 жилтка хочу чтобы они рандомились, но пока так, потому что я глупый и не знаю как по-другому сделать
-    self:SetSubMaterial()
     self.CurAppearance = Appearance
 end
 

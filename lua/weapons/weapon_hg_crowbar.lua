@@ -25,6 +25,9 @@ SWEP.SuicideHoldType = "slam"
 
 SWEP.NoHolster = true
 SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(-12, -3, 4)
+SWEP.holsteredAng = Angle(0, -90, 90)
 
 SWEP.HoldType = "revolver"
 
