@@ -1,7 +1,7 @@
 zb = zb or {}
 -- сюда можете не смотреть это баланс...
-zb.DefaultKarma = 100
-zb.MaximumHarm = 200
+zb.DefaultKarma = 190
+zb.MaximumHarm = 45
 zb.MaxGuiltPair = 200
 zb.MaxKarma = 200
 zb.MinKarma = -60
