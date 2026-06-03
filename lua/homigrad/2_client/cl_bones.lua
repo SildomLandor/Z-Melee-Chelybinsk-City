@@ -1,4 +1,3 @@
---\\ CL Bones
 if CLIENT then
 	hg.cached_children = hg.cached_children or {}
 	local huytimer = CurTime()
@@ -8,29 +7,22 @@ if CLIENT then
 	end)
 
 	local entmeta = FindMetaTable("Entity")
-
 	hg.SetModel = hg.SetModel or entmeta.SetModel
 
 	function entmeta:SetModel(mdl)
 		self.setmodeltimer = CurTime()
-
 		return hg.SetModel(self, mdl)
 	end
 	
 	local function recursive_get_children(ent, bone, bones, endbone)
 		local children = ent:GetChildBones(bone)
-		-- this should stay local since this is a recursive function
-
-		if #children > 0 then
+		local count = #children
+		if count > 0 then
 			local id
-
-			for i = 1, #children do
+			for i = 1, count do
 				id = children[i]
-
 				if id == endbone then continue end
-
 				recursive_get_children(ent, id, bones, endbone)
-
 				bones[#bones + 1] = id
 			end
 		end
@@ -39,49 +31,49 @@ if CLIENT then
 	hg.recursive_get_children = recursive_get_children
 	
 	local cached_children = hg.cached_children
-	local mdl
+	local isstring = isstring
 
 	function hg.get_children(ent, bone, endbone)		
-		bone = isstring(bone) and ent:LookupBone(bone) or bone
-		
-		if not bone or isstring(bone) or bone == -1 then return end
-		local bones = {}
+		if isstring(bone) then
+			bone = ent:LookupBone(bone)
+		end
+		if not bone or bone == -1 or isstring(bone) then return end
 
-		mdl = ent:GetModel()
-		--if ((math.max(huytimer) + 1) < CurTime()) and cached_children[mdl] and cached_children[mdl][bone] then return cached_children[mdl][bone] end
+		local mdl = ent:GetModel()
+		local cache = cached_children[mdl]
+		if cache and cache[bone] then return cache[bone] end
 		
+		local bones = {}
 		recursive_get_children(ent, bone, bones, endbone)
 		
-		cached_children[mdl] = cached_children[mdl] or {}
-		cached_children[mdl][bone] = bones
+		if not cache then
+			cache = {}
+			cached_children[mdl] = cache
+		end
+		cache[bone] = bones
 
 		return bones
 	end
 
 	function hg.bone_apply_matrix(ent, bone, new_matrix, endbone)
-		bone = isstring(bone) and ent:LookupBone(bone) or bone
-
-		if not bone or isstring(bone) or bone == -1 then return end
+		if isstring(bone) then
+			bone = ent:LookupBone(bone)
+		end
+		if not bone or bone == -1 or isstring(bone) then return end
 
 		local matrix = ent:GetBoneMatrix(bone)
 		if not matrix then return end
 		local inv_matrix = matrix:GetInverse()
-		if not inv_matrix then return end -- this is shit...
+		if not inv_matrix then return end
 
 		local children = hg.get_children(ent, bone, endbone)
-
 		local translate = new_matrix * inv_matrix
+		local count = #children
 
-		local id
-		local mat
-
-		for i = 1, #children do
-			id = children[i]
-
-			mat = ent:GetBoneMatrix(id)
-
+		for i = 1, count do
+			local id = children[i]
+			local mat = ent:GetBoneMatrix(id)
 			if not mat then continue end
-
 			ent:SetBoneMatrix(id, translate * mat)
 		end
 
@@ -186,9 +178,6 @@ if CLIENT then
 				{0.64841,	-0.52362,	0.55262,	1.31488},
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
-				
-				
-				
 		},
 		["pistol_hold"] = {
 			['ValveBiped.Anim_Attachment_LH'] = Matrix({
@@ -313,7 +302,6 @@ if CLIENT then
 				{0.27007,	-0.63250,	-0.72596,	1.31686},
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
-				
 		},
 		["grip_hold"] = {
 			['ValveBiped.Anim_Attachment_LH'] = Matrix({
@@ -439,7 +427,6 @@ if CLIENT then
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),				
 		},
-			
 	}
 
 	local hand_posesrh = {
@@ -504,7 +491,6 @@ if CLIENT then
 				{-0.03880,	0.70410,	0.70904,	-1.31224},
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
-
 		},
 		["pistol_hold2"] = {
 			['ValveBiped.Anim_Attachment_RH'] = Matrix({
@@ -543,7 +529,7 @@ if CLIENT then
 				{-0.00976,	-0.43093,	0.90233,	-1.62455},
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
-				['ValveBiped.Bip01_R_Finger1'] = Matrix({
+				['ValveBiped.R_Finger1'] = Matrix({
 				{0.94541,	0.27139,	0.18037,	3.86847},
 				{-0.26957,	0.96235,	-0.03501,	0.04260},
 				{-0.18308,	-0.01552,	0.98298,	-1.30880},
@@ -567,7 +553,6 @@ if CLIENT then
 				{-0.28012,	0.50369,	0.81720,	-1.31165},
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
-				
 		},
 		["ak_hold"] = {
 			['ValveBiped.Anim_Attachment_RH'] = Matrix({
@@ -687,7 +672,7 @@ if CLIENT then
 				{0.00000,	0.00000,	0.00000,	1.00000},
 				}),
 				['ValveBiped.Bip01_R_Finger0'] = Matrix({
-				{0.32986,	0.86917,	-0.36843,	0.83059},
+				{0.32986,	0.86917,	-0.36843,	0.83058},
 				{-0.90773,	0.18485,	-0.37663,	-0.32330},
 				{-0.25925,	0.45867,	0.84995,	-1.31228},
 				{0.00000,	0.00000,	0.00000,	1.00000},
@@ -695,86 +680,134 @@ if CLIENT then
 		},
 	}
 
+	local IsValid = IsValid
+
 	function hg.set_hold(ent, hold, copyent)
-		local lhmat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_L_Hand"))
+		local hand_bone = ent:LookupBone("ValveBiped.Bip01_L_Hand")
+		if not hand_bone then return end
+		local lhmat = ent:GetBoneMatrix(hand_bone)
+		if not lhmat then return end
+		
 		ent.hold = hold
-		for bone, invmat in pairs(hand_poses[hold]) do
-			local name = bone
-			bone = isstring(bone) and ent:LookupBone(bone) or bone
-			if not bone or isstring(bone) or bone == -1 then continue end
-			if not ent:GetBoneMatrix(bone) then continue end
-			if IsValid(copyent) and copyent:LookupBone(name) then
-				local mat = copyent:GetBoneMatrix(copyent:LookupBone(name))
+		local pose = hand_poses[hold]
+		if not pose then return end
+
+		local has_copy = IsValid(copyent)
+
+		for bone_name, invmat in pairs(pose) do
+			local bone_id = isstring(bone_name) and ent:LookupBone(bone_name) or bone_name
+			if not bone_id or bone_id == -1 or isstring(bone_id) then continue end
+			if not ent:GetBoneMatrix(bone_id) then continue end
+
+			if has_copy then
+				local copy_bone = copyent:LookupBone(bone_name)
+				local mat = copy_bone and copyent:GetBoneMatrix(copy_bone)
 				if mat then
-					ent:SetBoneMatrix(bone, mat)
+					ent:SetBoneMatrix(bone_id, mat)
 				else
-					ent:SetBoneMatrix(bone,lhmat * invmat)
+					ent:SetBoneMatrix(bone_id, lhmat * invmat)
 				end
 			else
-				ent:SetBoneMatrix(bone,lhmat * invmat)
+				ent:SetBoneMatrix(bone_id, lhmat * invmat)
 			end
 		end
 	end
 
 	function hg.set_holdrh(ent, hold, copyent)
-		local lhmat = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_R_Hand"))
+		local hand_bone = ent:LookupBone("ValveBiped.Bip01_R_Hand")
+		if not hand_bone then return end
+		local lhmat = ent:GetBoneMatrix(hand_bone)
+		if not lhmat then return end
+		
 		ent.holdrh = hold
-		for bone,invmat in pairs(hand_posesrh[hold]) do
-			local name = bone
-			bone = isstring(bone) and ent:LookupBone(bone) or bone
-			if not bone or isstring(bone) or bone == -1 then continue end
-			if not ent:GetBoneMatrix(bone) then continue end
-			if IsValid(copyent) and copyent:LookupBone(name) then
-				local mat = copyent:GetBoneMatrix(copyent:LookupBone(name))
+		local pose = hand_posesrh[hold]
+		if not pose then return end
+
+		local has_copy = IsValid(copyent)
+
+		for bone_name, invmat in pairs(pose) do
+			local bone_id = isstring(bone_name) and ent:LookupBone(bone_name) or bone_name
+			if not bone_id or bone_id == -1 or isstring(bone_id) then continue end
+			if not ent:GetBoneMatrix(bone_id) then continue end
+
+			if has_copy then
+				local copy_bone = copyent:LookupBone(bone_name)
+				local mat = copy_bone and copyent:GetBoneMatrix(copy_bone)
 				if mat then
-					ent:SetBoneMatrix(bone, mat)
+					ent:SetBoneMatrix(bone_id, mat)
 				else
-					ent:SetBoneMatrix(bone,lhmat * invmat)
+					ent:SetBoneMatrix(bone_id, lhmat * invmat)
 				end
 			else
-				ent:SetBoneMatrix(bone,lhmat * invmat)
+				ent:SetBoneMatrix(bone_id, lhmat * invmat)
 			end
 		end
 	end
 
+	local string_Replace = string.Replace
+	local tostring = tostring
+
 	function hg.copy_hold(ply)
 		local lh = ply:LookupBone("ValveBiped.Bip01_L_Hand")
+		if not lh then return end
 		local lhmat = ply:GetBoneMatrix(lh)
+		if not lhmat then return end
+		
+		local children = hg.get_children(ply, lh)
+		if not children then return end
+
 		print("\n")
-		for i,bone in pairs(hg.get_children(ply,lh)) do
+		local inv = lhmat:GetInverse()
+		for i = 1, #children do
+			local bone = children[i]
 			local bon = ply:GetBoneName(bone)
-			print("['"..bon.."'] = Matrix({\n"..string.Replace(string.Replace(tostring(lhmat:GetInverse() * ply:GetBoneMatrix(bone)),"[","{"),"]","},").."\n}),")
+			local bmat = ply:GetBoneMatrix(bone)
+			if bmat then
+				print("['" .. bon .. "'] = Matrix({\n" .. string_Replace(string_Replace(tostring(inv * bmat), "[", "{"), "]", "},") .. "\n}),")
+			end
 		end
 		print("\n")
 	end
 
 	function hg.copy_holdrh(ply)
 		local lh = ply:LookupBone("ValveBiped.Bip01_R_Hand")
+		if not lh then return end
 		local lhmat = ply:GetBoneMatrix(lh)
+		if not lhmat then return end
+		
+		local children = hg.get_children(ply, lh)
+		if not children then return end
+
 		print("\n")
-		for i,bone in pairs(hg.get_children(ply,lh)) do
+		local inv = lhmat:GetInverse()
+		for i = 1, #children do
+			local bone = children[i]
 			local bon = ply:GetBoneName(bone)
-			print("['"..bon.."'] = Matrix({\n"..string.Replace(string.Replace(tostring(lhmat:GetInverse() * ply:GetBoneMatrix(bone)),"[","{"),"]","},").."\n}),")
+			local bmat = ply:GetBoneMatrix(bone)
+			if bmat then
+				print("['" .. bon .. "'] = Matrix({\n" .. string_Replace(string_Replace(tostring(inv * bmat), "[", "{"), "]", "},") .. "\n}),")
+			end
 		end
 		print("\n")
 	end
 
 	local hg_tpik_distance = ConVarExists("hg_tpik_distance") and GetConVar("hg_tpik_distance") or CreateClientConVar("hg_tpik_distance",1024,true,false,"The distance (in hammer units) at which the third person inverse kinematics enables, 0 = inf",0,2048)
-
 	local render_GetViewSetup = render.GetViewSetup
+	
 	function hg.ShouldTPIK(ply)
 		local time = CurTime()
 		if (ply.cachedtpik or 0) > time then return ply.cachedval end
 		ply.cachedtpik = time + 0.1
 
 		local int = hg_tpik_distance:GetInt()
-		if (int == 0 or ply == lply or ply == lply:GetNWEntity("spect")) then
+		if int == 0 or ply == lply or (IsValid(lply) and ply == lply:GetNWEntity("spect")) then
 			ply.cachedval = true
 			return true
 		end
 
-		local view = render.GetViewSetup(true)
-		if (ply:GetPos():DistToSqr(view.origin) > int * int) then
+		local view = render_GetViewSetup(true)
+		local dist = ply:GetPos():DistToSqr(view.origin)
+		if dist > (int * int) then
 			ply.cachedval = false 
 			return false
 		end
@@ -782,9 +815,4 @@ if CLIENT then
 		ply.cachedval = true
 		return true
 	end
-
-	--copy hold делаешь когда нужно скопировать пальчики левой руки
-	--set hold когда хочешь чтобы пальчики встали ровно как надо по копии (и не двигались)
-	--hg.copy_hold(Entity(1))
 end
---//

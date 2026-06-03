@@ -167,79 +167,92 @@ hg.ConVars = hg.ConVars or {}
 --//
 --\\ math funcs
 	function qerp(delta, a, b)
-		local qdelta = -(delta ^ 2) + (delta * 2)
-		qdelta = math.Clamp(qdelta, 0, 1)
-
-		return Lerp(qdelta, a, b)
+		local qdelta = -(delta * delta) + (delta * 2)
+		if qdelta < 0 then qdelta = 0 elseif qdelta > 1 then qdelta = 1 end
+		return a + (b - a) * qdelta
 	end
 
-	FrameTimeClamped = 1/66
-	ftlerped = 1/66
+	FrameTimeClamped = 1 / 66
+	ftlerped = 1 / 66
 
-	local def = 1 / 144
-
-	local FrameTime, TickInterval, engine_AbsoluteFrameTime = FrameTime, engine.TickInterval, engine.AbsoluteFrameTime
-	local Lerp, LerpVector, LerpAngle = Lerp, LerpVector, LerpAngle
-	local math_min = math.min
-	local math_Clamp = math.Clamp
-
+	local FrameTime = FrameTime
+	local math_exp = math.exp
 	local host_timescale = game.GetTimeScale
 
 	hook.Add("Think", "Mul lerp", function()
 		local ft = FrameTime()
-		ftlerped = Lerp(0.5,ftlerped,math_Clamp(ft,0.001,0.1))
+		if ft < 0.001 then ft = 0.001 elseif ft > 0.1 then ft = 0.1 end
+		ftlerped = ftlerped + (ft - ftlerped) * 0.5
 	end)
 
 	function hg.FrameTimeClamped(ft)
-		--do return math.Clamp(ft or ftlerped,0.001,0.1) end
-		return math_Clamp(1 - math.exp(-0.5 * (ft or ftlerped) * host_timescale()), 0.000, 0.02)
+		local val = 1 - math_exp(-0.5 * (ft or ftlerped) * host_timescale())
+		if val < 0 then return 0 elseif val > 0.02 then return 0.02 end
+		return val
 	end
 
 	local FrameTimeClamped_ = hg.FrameTimeClamped
 
 	local function lerpFrameTime(lerp, frameTime)
-		return math_Clamp(1 - lerp ^ (frameTime or ftlerped), 0, 1) -- * ( host_timescale() )
+		local val = 1 - lerp ^ (frameTime or ftlerped)
+		if val < 0 then return 0 elseif val > 1 then return 1 end
+		return val
 	end
 
 	local function lerpFrameTime2(lerp, frameTime)
-		--do return math_Clamp(lerp * ftlerped * 150,0,1) end
-		--do return math_Clamp(1 - lerp ^ ftlerped,0,1) end
 		if lerp == 1 then return 1 end
-		return math_Clamp(lerp * FrameTimeClamped_(frameTime or ftlerped) * 150, 0, 1) -- * ( host_timescale() )
+		local val = lerp * FrameTimeClamped_(frameTime or ftlerped) * 150
+		if val < 0 then return 0 elseif val > 1 then return 1 end
+		return val
 	end
 
 	hg.lerpFrameTime2 = lerpFrameTime2
 	hg.lerpFrameTime = lerpFrameTime
 
 	function LerpFT(lerp, source, set)
-		return Lerp(lerpFrameTime2(lerp), source, set)
+		if lerp == 1 then return set end
+		local val = lerp * FrameTimeClamped_(ftlerped) * 150
+		if val < 0 then val = 0 elseif val > 1 then val = 1 end
+		return source + (set - source) * val
 	end
 
 	function LerpVectorFT(lerp, source, set)
-		return LerpVector(lerpFrameTime2(lerp), source, set)
+		if lerp == 1 then return set end
+		local val = lerp * FrameTimeClamped_(ftlerped) * 150
+		if val < 0 then val = 0 elseif val > 1 then val = 1 end
+		
+		source[1] = source[1] + (set[1] - source[1]) * val
+		source[2] = source[2] + (set[2] - source[2]) * val
+		source[3] = source[3] + (set[3] - source[3]) * val
+		return source
 	end
 
 	function LerpAngleFT(lerp, source, set)
-		return LerpAngle(lerpFrameTime2(lerp), source, set)
+		if lerp == 1 then return set end
+		local val = lerp * FrameTimeClamped_(ftlerped) * 150
+		if val < 0 then val = 0 elseif val > 1 then val = 1 end
+		
+		source[1] = source[1] + (set[1] - source[1]) * val
+		source[2] = source[2] + (set[2] - source[2]) * val
+		source[3] = source[3] + (set[3] - source[3]) * val
+		return source
 	end
 
-	local max, min = math.max, math.min
+	local math_max = math.max
 	function util.halfValue(value, maxvalue, k)
 		k = maxvalue * k
-		return max(value - k, 0) / k
+		return math_max(value - k, 0) / k
 	end
 
+	local math_min = math.min
 	function util.halfValue2(value, maxvalue, k)
 		k = maxvalue * k
-		return min(value / k, 1)
+		return math_min(value / k, 1)
 	end
 
 	function util.safeDiv(a, b)
-		if a == 0 and b == 0 then
-			return 0
-		else
-			return a / b
-		end
+		if a == 0 and b == 0 then return 0 end
+		return a / b
 	end
 --//
 --\\ GetListByName

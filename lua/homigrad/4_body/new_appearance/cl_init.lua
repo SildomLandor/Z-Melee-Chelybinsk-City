@@ -1,11 +1,47 @@
 hg.Appearance = hg.Appearance or {}
 
--- File manager
+local IsValid = IsValid
+local LocalPlayer = LocalPlayer
+local CreateClientConVar = CreateClientConVar
+local ConVarExists = ConVarExists
+local GetConVar = GetConVar
+local Color = Color
+local IsColor = IsColor
+local Next = next
+local CurTime = CurTime
+local Vector = Vector
+local Angle = Angle
+local LocalToWorld = LocalToWorld
+local string_sub = string.sub
+local string_Split = string.Split
+local table_insert = table.insert
+local ipairs = ipairs
+local pairs = pairs
+local type = type
+local istable = istable
+local isfunction = isfunction
+local file = file
+local util = util
+local net = net
+local hook = hook
+local timer = timer
+local render = render
+local hg = hg
+local vector_origin = vector_origin
+local angle_zero = angle_zero
+local huy_addvec = Vector(0.4, 0, 0.4)
+local flpos, flang = Vector(4, -1, 0), Angle(0, 0, 0)
+local offsetVec, offsetAng = Vector(1, 0, 0), Angle(100, 90, 0)
+local mat2 = Material("sprites/light_glow02_add_noz")
+local mat3 = Material("effects/flashlight/soft")
+local color_white = color_white
 
 hg.Appearance.SelectedAppearance = ConVarExists("hg_appearance_selected") and GetConVar("hg_appearance_selected") or CreateClientConVar("hg_appearance_selected","main",true,false,"name of selected appearance json file")
 hg.Appearance.ForcedRandom = ConVarExists("hg_appearance_force_random") and GetConVar("hg_appearance_force_random") or CreateClientConVar("hg_appearance_force_random","0",true,false,"forced appearance random",0,1)
 hg.Appearance.MaxRenderDist = ConVarExists("hg_appearance_max_render_dist") and GetConVar("hg_appearance_max_render_dist") or CreateClientConVar("hg_appearance_max_render_dist", "750", true, false, "Maximum distance to render accessories", 0, 5000)
+
 local dir = "zcity/appearances/"
+
 function hg.Appearance.CreateAppearanceFile(strFile_name, tblAppearance)
 	file.CreateDir(dir)
 	file.Write(dir .. strFile_name .. ".json", util.TableToJSON(tblAppearance, true) )
@@ -34,8 +70,7 @@ function hg.Appearance.LoadAppearanceFile(strFile_name)
 end
 
 function hg.Appearance.GetAppearanceList()
-	local files = file.Find( dir .. "*.json" )
-	return files
+	return file.Find( dir .. "*.json" )
 end
 
 -- Send from client...
@@ -52,7 +87,7 @@ net.Receive("Get_Appearance", function()
             tbl.AColor = Color(tbl.AColor.r, tbl.AColor.g, tbl.AColor.b, tbl.AColor.a or 255)
         end
 
-        net.WriteTable(tbl and tbl or {})
+        net.WriteTable(tbl or {})
         net.WriteBool(not tbl)
     net.SendToServer()
 
@@ -103,21 +138,20 @@ local whitelist = {
     weapon_crossbow = true
 }
 
-local islply
-
 local hg_firstperson_death = ConVarExists("hg_firstperson_death") and GetConVar("hg_firstperson_death") or CreateClientConVar("hg_firstperson_death", "0", "first person death", true, false, 0, 1)
 
 function RenderAccessories(ply, accessories, setup)
-	if not IsValid(ply) or not accessories then return end
-	if accessories == "none" then return end
+	if accessories == "none" or not accessories or not IsValid(ply) then return end
+	
 	local viewer = LocalPlayer()
 	if ply ~= viewer then
 		local entPos = (IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply):GetPos()
 		local dist = viewer:GetPos():Distance(entPos)
 		local maxDist = hg.Appearance.MaxRenderDist:GetFloat()
 		if dist > maxDist then
-			if ply.modelAccess then
-				for k, v in pairs(ply.modelAccess) do
+			local modelAccess = ply.modelAccess
+			if modelAccess and Next(modelAccess) ~= nil then
+				for k, v in pairs(modelAccess) do
 					if IsValid(v) then v:Remove() end
 				end
 				ply.modelAccess = {}
@@ -126,128 +160,148 @@ function RenderAccessories(ply, accessories, setup)
 		end
 	end
 
-	local wep = ply:IsPlayer() and ply:GetActiveWeapon()
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	ent = IsValid(ply.OldRagdoll) and ply.OldRagdoll:IsRagdoll() and ply.OldRagdoll or ent
 
-	islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer())) and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer()))
+	local spectEnt = viewer:GetNWEntity("spect", viewer)
+	local activeViewer = viewer:Alive() and viewer or spectEnt
+	
+	local isRagdollOwner = ply:IsRagdoll() and hg.RagdollOwner(ply)
+	local targetCheck = isRagdollOwner and isRagdollOwner or ply
+	
+	local islply = (targetCheck == activeViewer) and (GetViewEntity() == activeViewer)
 	
 	local fountains = GetNetVar("fountains") or {}
-	if ent == follow and hg_firstperson_death:GetBool() and !fountains[ent] then islply = true end
+	if ent == follow and hg_firstperson_death:GetBool() and not fountains[ent] then 
+		islply = true 
+	end
 
+	local wep = ply:IsPlayer() and ply:GetActiveWeapon()
 	if islply and IsValid(wep) and whitelist[wep:GetClass()] then
-		if not ent.modelAccess then return end
-		for k,v in ipairs(ent.modelAccess) do
-			if IsValid(v) then
-				v:Remove()
-				v = nil
+		local modelAccess = ent.modelAccess
+		if modelAccess then
+			for i = 1, #modelAccess do
+				local v = modelAccess[i]
+				if IsValid(v) then v:Remove() end
 			end
+			ent.modelAccess = {}
 		end
 		return
 	end
 
 	if not ent.shouldTransmit or ent.NotSeen then
-		if not ent.modelAccess then return end
-		for k,v in ipairs(ent.modelAccess) do
-			if IsValid(v) then
-				v:Remove()
-				v = nil
+		local modelAccess = ent.modelAccess
+		if modelAccess then
+			for i = 1, #modelAccess do
+				local v = modelAccess[i]
+				if IsValid(v) then v:Remove() end
 			end
+			ent.modelAccess = {}
 		end
 		return
 	end
 
 	if istable(accessories) then
-		for k = 1, #accessories do
+		local count = #accessories
+		for k = 1, count do
 			local accessoriess = accessories[k]
 			local accessData = hg.Accessories[accessoriess]
-			if not accessData then continue end
-			if accessData.needcoolRender then continue end
+			if not accessData or accessData.needcoolRender then continue end
 
 			DrawAccesories(ply, ent, accessoriess, accessData, islply, nil, setup)
 		end
 	else
 		local accessData = hg.Accessories[accessories]
-		if not accessData then return end
-		if accessData.needcoolRender then return end
+		if not accessData or accessData.needcoolRender then return end
 
 		DrawAccesories(ply, ent, accessories, accessData, islply, nil, setup)
 	end
 end
 
-local huy_addvec = Vector(0.4,0,0.4)
-function DrawAccesories(ply, ent, accessories,accessData, islply, force, setup)
-	if not accessories then return end
-	if not accessData then return end
+function DrawAccesories(ply, ent, accessories, accessData, islply, force, setup)
+	if not accessories or not accessData then return end
 
 	ply.modelAccess = ply.modelAccess or {}
-
 	local fem = ThatPlyIsFemale(ent)
-	if not IsValid(ply.modelAccess[accessories]) then
-		if not accessData["model"] then return end
-		ply.modelAccess[accessories] = ClientsideModel(fem and accessData["femmodel"] or accessData["model"], RENDERGROUP_BOTH)
+	local model = ply.modelAccess[accessories]
 
-		local model = ply.modelAccess[accessories]
+	if not IsValid(model) then
+		if not accessData["model"] then return end
+		model = ClientsideModel(fem and accessData["femmodel"] or accessData["model"], RENDERGROUP_BOTH)
+		if not IsValid(model) then return end
+		
+		ply.modelAccess[accessories] = model
 		model:SetNoDraw(true)
-		model:SetModelScale( accessData[fem and "fempos" or "malepos"][3] )
-		model:SetSkin( isfunction(accessData["skin"]) and accessData["skin"](ent) or accessData["skin"] )
-		model:SetBodyGroups( accessData["bodygroups"] or "" )
+		
+		local posKey = fem and "fempos" or "malepos"
+		local posData = accessData[posKey]
+		if posData then model:SetModelScale(posData[3] or 1) end
+		
+		model:SetSkin(isfunction(accessData["skin"]) and accessData["skin"](ent) or accessData["skin"] or 0)
+		model:SetBodyGroups(accessData["bodygroups"] or "")
 		model:SetParent(ent, ent:LookupBone(accessData["bone"]))
+		
 		if accessData.bonemerge then
 			model:AddEffects(EF_BONEMERGE)
 		end
+		
 		if accessData["bSetColor"] then
 			if ply.GetPlayerColor then 
 				model:SetColor(ply:GetPlayerColor():ToColor())
 			else
-				model:SetColor(ply:GetNWVector("PlayerColor",Vector(1,1,1)):ToColor())
+				model:SetColor(ply:GetNWVector("PlayerColor", Vector(1, 1, 1)):ToColor())
 			end
 		end
 
 		if accessData["SubMat"] then
-			model:SetSubMaterial(0,accessData["SubMat"])
+			model:SetSubMaterial(0, accessData["SubMat"])
 		end
 
-		ply:CallOnRemove("RemoveAccessories"..accessories,function() 
-			if ply.modelAccess and IsValid(model) then
-				model:Remove()
-				model = nil
-			end
+		local removeKey1 = "RemoveAccessories" .. accessories
+		ply:CallOnRemove(removeKey1, function() 
+			if IsValid(model) then model:Remove() end
 		end)
-		ent:CallOnRemove("RemoveAccessories2"..accessories,function() 
-			if ply.modelAccess and IsValid(model) then
-				model:Remove()
-				model = nil
-			end
+		
+		local removeKey2 = "RemoveAccessories2" .. accessories
+		ent:CallOnRemove(removeKey2, function() 
+			if IsValid(model) then model:Remove() end
 		end)
 	end
 
-	local model = ply.modelAccess[accessories]
-	--print(ent:GetModel(),ent)
-	local mdl = string.Split(string.sub(ent:GetModel(),1,-5),"/")[#string.Split(string.sub(ent:GetModel(),1,-5),"/")]
-	if mdl and model:GetFlexIDByName(mdl) then
-		model:SetFlexWeight(model:GetFlexIDByName(mdl),1)
+	local entModel = ent:GetModel()
+	if entModel and ent.__cachedMdlName ~= entModel then
+		ent.__cachedMdlName = entModel
+		local tokens = string_Split(string_sub(entModel, 1, -5), "/")
+		ent.__cachedMdl = tokens[#tokens]
 	end
-	--if model:GetFlexIDByName(ThatPlyIsFemale(ply) and "F" or "M") then
-	--	model:SetFlexWeight(model:GetFlexIDByName(ThatPlyIsFemale(ply) and "F" or "M"),1)
-	--end
-	model:SetSkin( isfunction(accessData["skin"]) and accessData["skin"](ent) or accessData["skin"] )
+	
+	local mdl = ent.__cachedMdl
+	if mdl then
+		local flexID = model:GetFlexIDByName(mdl)
+		if flexID then model:SetFlexWeight(flexID, 1) end
+	end
 
-	if not IsValid(model) then ply.modelAccess[accessories] = nil return end
+	model:SetSkin(isfunction(accessData["skin"]) and accessData["skin"](ent) or accessData["skin"] or 0)
+
+	if not IsValid(model) then 
+		ply.modelAccess[accessories] = nil 
+		return 
+	end
 
 	if ply.armors and accessData["placement"] and ply.armors[accessData["placement"]] then
-
 		return
 	end
 
 	if not force and ((ent.NotSeen or not ent.shouldTransmit) or (ply:IsPlayer() and not ply:Alive())) then
-
 		return
 	end
 
-	if ply.organism and hg.amputatedlimbs2[accessData["bone"]] and ply.organism[hg.amputatedlimbs2[accessData["bone"]].."amputated"] then return end
+	if ply.organism then
+		local ampBone = hg.amputatedlimbs2[accessData["bone"]]
+		if ampBone and ply.organism[ampBone .. "amputated"] then return end
+	end
 
-	if setup != false then
+	if setup ~= false then
 		local bone = ent:LookupBone(accessData["bone"])
 		if not bone then return end
 		if ent:GetManipulateBoneScale(bone):LengthSqr() < 0.1 then return end
@@ -255,38 +309,38 @@ function DrawAccesories(ply, ent, accessories,accessData, islply, force, setup)
 		if not matrix then return end
 
 		local bonePos, boneAng = matrix:GetTranslation(), matrix:GetAngles()
-
-		local addvec = ((ent:GetModel() == "models/player/group01/male_06.mdl") and ((accessData.placement == "head") or (accessData.placement == "face"))) and huy_addvec or vector_origin
-
-		local pos, ang = LocalToWorld(accessData[fem and "fempos" or "malepos"][1], accessData[fem and "fempos" or "malepos"][2], bonePos, boneAng)
-		local pos = LocalToWorld(addvec, angle_zero, pos, ang)
+		local isSpecificMale = (entModel == "models/player/group01/male_06.mdl")
+		local placement = accessData.placement
+		local isHeadOrFace = (placement == "head" or placement == "face")
 		
-		--model:SetupBones()
+		local addvec = (isSpecificMale and isHeadOrFace) and huy_addvec or vector_origin
+
+		local posKey = fem and "fempos" or "malepos"
+		local posData = accessData[posKey]
+		
+		local pos, ang = LocalToWorld(posData[1], posData[2], bonePos, boneAng)
+		pos = LocalToWorld(addvec, angle_zero, pos, ang)
+		
 		model:SetRenderOrigin(pos)
 		model:SetRenderAngles(ang)
 	end
 
-	if model:GetParent() != ent then model:SetParent(ent, bone) end
-	if !(islply and accessData.norender) and (!setup or accessData.bonemerge) then
-		if accessData["bSetColor"] then
-			local colorDraw = accessData["vecColorOveride"] or ( ply.GetPlayerColor and ply:GetPlayerColor() or ply:GetNWVector("PlayerColor",Vector(1,1,1)) )
-			render.SetColorModulation( colorDraw[1],colorDraw[2],colorDraw[3] )
+	if model:GetParent() ~= ent then model:SetParent(ent, ent:LookupBone(accessData["bone"])) end
+	
+	if not (islply and accessData.norender) and (not setup or accessData.bonemerge) then
+		local bSetColor = accessData["bSetColor"]
+		if bSetColor then
+			local colorDraw = accessData["vecColorOveride"] or (ply.GetPlayerColor and ply:GetPlayerColor() or ply:GetNWVector("PlayerColor", Vector(1, 1, 1)))
+			render.SetColorModulation(colorDraw[1], colorDraw[2], colorDraw[3])
 		end
 		
 		model:DrawModel()
 		
-		if accessData["bSetColor"] then
-			render.SetColorModulation( 1, 1, 1 )
+		if bSetColor then
+			render.SetColorModulation(1, 1, 1)
 		end
 	end
 end
-
-local flpos,flang = Vector(4,-1,0),Angle(0,0,0)
-
-local offsetVec,offsetAng = Vector(1,0,0),Angle(100,90,0)
-
-local mat2 = Material("sprites/light_glow02_add_noz")
-local mat3 = Material("effects/flashlight/soft")
 
 function DrawAppearance(ent, ply, setup)
     local Access = ent:GetNetVar("Accessories") or ent.PredictedAccessories
@@ -296,30 +350,33 @@ function DrawAppearance(ent, ply, setup)
 	end
 	
 	if setup then return end
-	
 	if not ply:IsPlayer() then return end
 	
-	local inv = ply:GetNetVar("Inventory",{})
-	if not inv["Weapons"] or not inv["Weapons"]["hg_flashlight"] then
-		if ply.flashlight then
-			ply.flashlight:Remove()
+	local inv = ply:GetNetVar("Inventory", {})
+	local wepInv = inv["Weapons"]
+	if not wepInv or not wepInv["hg_flashlight"] then
+		local pf = ply.flashlight
+		if pf then
+			pf:Remove()
 			ply.flashlight = nil
 		end
-		if ply.flmodel then
-			ply.flmodel:Remove()
+		local pm = ply.flmodel
+		if pm then
+			pm:Remove()
 			ply.flmodel = nil
 		end
 		return
 	end
 
 	local wep = ply:GetActiveWeapon()
-	local flashlightwep
+	local flashlightwep = false
 
 	if IsValid(wep) then
-	    local laser = wep.attachments and wep.attachments.underbarrel
+	    local attachments = wep.attachments
+	    local laser = attachments and attachments.underbarrel
 	    local attachmentData
 	    
-	    if laser and next(laser) then
+	    if laser and Next(laser) ~= nil then
 	        attachmentData = hg.attachments.underbarrel[laser[1]]
 	    elseif wep.laser then
 	        attachmentData = wep.laserData
@@ -330,93 +387,98 @@ function DrawAppearance(ent, ply, setup)
 	    end
 	end
 
-	if IsValid(ply.flmodel) then
-		ply.flmodel:SetNoDraw(!(ply:GetNetVar("flashlight") and (!wep.IsPistolHoldType or wep:IsPistolHoldType())) or wep.reload or flashlightwep)
+	local flModel = ply.flmodel
+	if IsValid(flModel) then
+		flModel:SetNoDraw(not (ply:GetNetVar("flashlight") and (not wep.IsPistolHoldType or wep:IsPistolHoldType())) or wep.reload or flashlightwep)
 	end
 
-	if ply:GetNetVar("flashlight") and not flashlightwep and (!wep.IsPistolHoldType or wep:IsPistolHoldType() or ply.PlayerClassName == "Gordon") and not wep.reload then
+	if ply:GetNetVar("flashlight") and not flashlightwep and (not wep.IsPistolHoldType or wep:IsPistolHoldType() or ply.PlayerClassName == "Gordon") and not wep.reload then
 		local hand = ent:LookupBone("ValveBiped.Bip01_L_Hand")
 		if not hand then return end
 
 		local handmat = ent:GetBoneMatrix(hand)
 		if not handmat then return end
 
-		local pos,ang = handmat:GetTranslation(),handmat:GetAngles()--ply:EyeAngles()--(ply:GetEyeTrace().HitPos - ply:EyePos()):Angle()
-		local pos,ang = LocalToWorld(offsetVec,offsetAng,pos,ang)
+		local pos, ang = handmat:GetTranslation(), handmat:GetAngles()
+		pos, ang = LocalToWorld(offsetVec, offsetAng, pos, ang)
 
-		ply.flmodel = IsValid(ply.flmodel) and ply.flmodel or ClientsideModel("models/runaway911/props/item/flashlight.mdl")
-		ply.flmodel:SetModelScale(0.75)
+		if not IsValid(flModel) then
+			flModel = ClientsideModel("models/runaway911/props/item/flashlight.mdl")
+			ply.flmodel = flModel
+			if IsValid(flModel) then flModel:SetModelScale(0.75) end
+		end
 
 		if ent ~= ply then pos = handmat:GetTranslation() end
 
-		local pos,_ = LocalToWorld(flpos,flang,pos,handmat:GetAngles())
+		local pos2, _ = LocalToWorld(flpos, flang, pos, handmat:GetAngles())
 
-		if IsValid(ply.flmodel) and (ply ~= LocalPlayer() or ply ~= GetViewEntity()) then
-			local veclh,lang = hg.FlashlightTransform(ply)
+		if IsValid(flModel) and (ply ~= LocalPlayer() or ply ~= GetViewEntity()) then
+			local veclh, lang = hg.FlashlightTransform(ply)
 		end
 
-		ply.flmodel:DrawModel()
+		if IsValid(flModel) then flModel:DrawModel() end
 
-		ply.flashlight = IsValid(ply.flashlight) and ply.flashlight or ProjectedTexture()
-		if ply.flashlight and ply.flashlight:IsValid() and (ply.FlashlightUpdateTime or 0) < CurTime() then
-			local flash = ply.flashlight
-			ply.FlashlightUpdateTime = CurTime() + 0.01
+		local flash = ply.flashlight
+		if not IsValid(flash) then
+			flash = ProjectedTexture()
+			ply.flashlight = flash
+		end
+		
+		local curT = CurTime()
+		if flash and flash:IsValid() and (ply.FlashlightUpdateTime or 0) < curT then
+			ply.FlashlightUpdateTime = curT + 0.01
 			flash:SetTexture(mat3:GetTexture("$basetexture"))
 			flash:SetFarZ(1500)
 			flash:SetHorizontalFOV(60)
 			flash:SetVerticalFOV(60)
 			flash:SetConstantAttenuation(0.1)
 			flash:SetLinearAttenuation(50)
-			flash:SetPos(ply.flmodel:GetPos() + ply.flmodel:GetAngles():Forward() * (ply:GetVelocity():Length() / 10 + 15))
-			flash:SetAngles(ply.flmodel:GetAngles())
+			if IsValid(flModel) then
+				flash:SetPos(flModel:GetPos() + flModel:GetAngles():Forward() * (ply:GetVelocity():Length() * 0.1 + 15))
+				flash:SetAngles(flModel:GetAngles())
+			end
 			flash:Update()
 		end
 
-		--[[ply.dlight = DynamicLight( ply:EntIndex() )
-		if ( ply.dlight ) then
-			ply.dlight.pos = ply.flmodel:GetPos()
-			ply.dlight.r = 255
-			ply.dlight.g = 255
-			ply.dlight.b = 255
-			ply.dlight.brightness = -3
-			ply.dlight.decay = 400
-			ply.dlight.size = 100
-			ply.dlight.dietime = CurTime() + 0.1
-		else
-			ply.dlight = DynamicLight( ply:EntIndex() )
-		end--]]
+		if IsValid(flModel) then
+			local view = render.GetViewSetup(true)
+			local deg = flModel:GetAngles():Forward():Dot(view.angles:Forward())
+			deg = math.ease.InBack(-deg + 0.05) * 2
+			deg = -deg
+			
+			local chekvisible = util.TraceLine({
+				start = flModel:GetPos() + flModel:GetAngles():Forward() * 6,
+				endpos = view.origin,
+				filter = {ply, ent, flModel, LocalPlayer()},
+				mask = MASK_VISIBLE
+			})
 
-		local view = render.GetViewSetup(true)
-		local deg = ply.flmodel:GetAngles():Forward():Dot(view.angles:Forward())
-		deg = math.ease.InBack(-deg + 0.05) * 2
-		deg = -deg
-		local chekvisible = util.TraceLine({
-			start = ply.flmodel:GetPos() + ply.flmodel:GetAngles():Forward() * 6,
-			endpos = view.origin,
-			filter = {ply, ent, ply.flmodel, LocalPlayer()},
-			mask = MASK_VISIBLE
-		})
-
-		if deg < 0 and not chekvisible.Hit then
-			render.SetMaterial(mat2)
-			render.DrawSprite(ply.flmodel:GetPos() + ply.flmodel:GetAngles():Forward() * 5 + ply.flmodel:GetAngles():Right() * -0.5, 50 * math.min(deg, 0), 50 * math.min(deg, 0), color_white)
+			if deg < 0 and not chekvisible.Hit then
+				render.SetMaterial(mat2)
+				render.DrawSprite(flModel:GetPos() + flModel:GetAngles():Forward() * 5 + flModel:GetAngles():Right() * -0.5, 50 * math.min(deg, 0), 50 * math.min(deg, 0), color_white)
+			end
 		end
 	else
-		if ply.flashlight and IsValid(ply.flashlight) then
-			ply.flashlight:Remove()
+		local flash = ply.flashlight
+		if flash and IsValid(flash) then
+			flash:Remove()
 			ply.flashlight = nil
 		end
 	end
 end
 
-hook.Add("RenderScreenspaceEffects","AppearanceShitty",function()
-	if (not LocalPlayer():Alive()) or LocalPlayer():GetViewEntity() ~= LocalPlayer() then return end
+hook.Add("RenderScreenspaceEffects", "AppearanceShitty", function()
 	local ply = LocalPlayer()
+	if not IsValid(ply) or (not ply:Alive()) or LocalPlayer():GetViewEntity() ~= ply then return end
+	
 	local acsses = ply:GetNetVar("Accessories", "none")
+	if acsses == "none" then return end
 
 	if istable(acsses) then
-		for k,accessoriess in ipairs(acsses) do
-			local accessData = hg.Accessories[accessoriess]
+		local count = #acsses
+		for k = 1, count do
+			local accessoriess = acsses[k]
+			local accessData = hg.Accessories[accessories]
 			if not accessData then continue end
 			if ply.armors and accessData["placement"] and ply.armors[accessData["placement"]] then continue end
 			if accessData.ScreenSpaceEffects then
@@ -434,58 +496,61 @@ hook.Add("RenderScreenspaceEffects","AppearanceShitty",function()
 end)
 
 function CoolRenderAccessories(ply, accessories)
-
-	if not IsValid(ply) or not accessories then return end
-
-	if accessories == "none" then return end
-
-	local wep = ply:IsPlayer() and ply:GetActiveWeapon()
+	if accessories == "none" or not accessories or not IsValid(ply) then return end
 
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
+	local viewer = LocalPlayer()
+	local spectEnt = viewer:GetNWEntity("spect", viewer)
+	local activeViewer = viewer:Alive() and viewer or spectEnt
+	
+	local isRagdollOwner = ply:IsRagdoll() and hg.RagdollOwner(ply)
+	local targetCheck = isRagdollOwner and isRagdollOwner or ply
+	
+	local islply = (targetCheck == activeViewer) and (GetViewEntity() == activeViewer)
 
-	islply = ((ply:IsRagdoll() and hg.RagdollOwner(ply)) or ply) == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer())) and GetViewEntity() == (LocalPlayer():Alive() and LocalPlayer() or LocalPlayer():GetNWEntity("spect",LocalPlayer()))
-
+	local wep = ply:IsPlayer() and ply:GetActiveWeapon()
 	if islply and IsValid(wep) and whitelist[wep:GetClass()] then
-		if not ent.modelAccess then return end
-		for k,v in ipairs(ent.modelAccess) do
-			if IsValid(v) then
-				v:Remove()
-				v = nil
+		local modelAccess = ent.modelAccess
+		if modelAccess then
+			for i = 1, #modelAccess do
+				local v = modelAccess[i]
+				if IsValid(v) then v:Remove() end
 			end
+			ent.modelAccess = {}
 		end
 		return
 	end
 
 	if not ent.shouldTransmit or ent.NotSeen then
-		if not ent.modelAccess then return end
-		for k,v in ipairs(ent.modelAccess) do
-			if IsValid(v) then
-				v:Remove()
-				v = nil
+		local modelAccess = ent.modelAccess
+		if modelAccess then
+			for i = 1, #modelAccess do
+				local v = modelAccess[i]
+				if IsValid(v) then v:Remove() end
 			end
+			ent.modelAccess = {}
 		end
 		return
 	end
 
 	if istable(accessories) then
-		for k = 1, #accessories do
+		local count = #accessories
+		for k = 1, count do
 			local accessoriess = accessories[k]
 			local accessData = hg.Accessories[accessoriess]
-			if not accessData then continue end
-			if not accessData.needcoolRender then continue end
+			if not accessData or not accessData.needcoolRender then continue end
 
-			DrawAccesories(ply,ent,accessoriess,accessData,islply)
+			DrawAccesories(ply, ent, accessoriess, accessData, islply)
 		end
 	else
 		local accessData = hg.Accessories[accessories]
-		if not accessData then return end
-		if not accessData.needcoolRender then return end
+		if not accessData or not accessData.needcoolRender then return end
 
-		DrawAccesories(ply,ent,accessories,accessData,islply)
+		DrawAccesories(ply, ent, accessories, accessData, islply)
 	end
 end
 
-function RenderAccessoriesCool(ent,ply)
+function RenderAccessoriesCool(ent, ply)
 	if IsValid(ent) and ent:GetNetVar("Accessories") then
 		CoolRenderAccessories(ent, ent:GetNetVar("Accessories", "none"))
 	end
