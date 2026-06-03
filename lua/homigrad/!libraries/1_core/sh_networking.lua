@@ -1,142 +1,228 @@
+local net          = net
+local hook         = hook
+local util         = util
+local player       = player
+local gameevent    = gameevent
+local FindMetaTable = FindMetaTable
+local IsValid      = IsValid
+local Entity       = Entity
+local Player       = Player
+local LocalPlayer  = LocalPlayer
+local CLIENT       = CLIENT
+local next         = next
+local istable      = istable
+local isbool       = isbool
+local IsEntity     = IsEntity
+local tostring     = tostring
+local ErrorNoHalt  = ErrorNoHalt
+local CurTime      = CurTime
+local rawget       = rawget
+local rawset       = rawset
+local timer_Simple = timer.Simple
+local STR_INVENTORY        = "Inventory"
+local STR_WOUNDS           = "wounds"
+local STR_ARTERIALWOUNDS   = "arterialwounds"
+
+local NET_GLOBAL_VAR_SET   = "zbGlobalVarSet"
+local NET_NET_VAR_SET      = "zbNetVarSet"
+local NET_NET_VAR_SET_SFS  = "zbNetVarSetSFS"
+local NET_NET_VAR_DELETE   = "zbNetVarDelete"
+local NET_LOCAL_VAR_SET    = "zbLocalVarSet"
+local NET_FULLUPDATE_REQ   = "ZB_request_fullupdate"
+
+local HOOK_GLOBAL_SET      = "OnGlobalVarSet"
+local HOOK_NET_SET         = "OnNetVarSet"
+local HOOK_LOCAL_SET       = "OnLocalVarSet"
+local HOOK_INIT_POST_ENT   = "InitPostEntity"
+local HOOK_REQ_FULLUPDATE  = "OnRequestFullUpdate"
+local HOOK_ENT_REMOVED     = "EntityRemoved"
+local HOOK_PLY_DISCONNECT  = "PlayerDisconnected"
+
+local ID_INIT_POST_ENT_ZB  = "OnRequestFullUpdate_zb"
+local ID_CLEAR_NET         = "ZB_clear_net"
+
+local ERROR_SFS_FALLBACK   = "sh_networking.lua: SFS fail key=%s, fallback WriteType\n"
+
 zb = zb or {}
 
-zb.netSFSKeys = {
-    Inventory = true,
-    wounds = true,
-    arterialwounds = true,
+zb.netSFSKeys = zb.netSFSKeys or {
+    [STR_INVENTORY]      = true,
+    [STR_WOUNDS]         = true,
+    [STR_ARTERIALWOUNDS] = true,
 }
 
-zb.netSFSLim = {
-    Inventory = 16384,
-    wounds = 8192,
-    arterialwounds = 8192,
+zb.netSFSLim = zb.netSFSLim or {
+    [STR_INVENTORY]      = 16384,
+    [STR_WOUNDS]         = 8192,
+    [STR_ARTERIALWOUNDS] = 8192,
 }
 
-if (CLIENT) then
-    local entityMeta = FindMetaTable("Entity")
-    local playerMeta = FindMetaTable("Player")
+local zb_netSFSKeys = zb.netSFSKeys
+local zb_netSFSLim  = zb.netSFSLim
 
-    zb.net = zb.net or {}
-    zb.net.globals = zb.net.globals or {}
+zb.net = zb.net or {}
+local zb_net = zb.net
+zb_net.globals = zb_net.globals or {}
+local zb_net_globals = zb_net.globals
 
-    net.Receive("zbGlobalVarSet", function()
-        local key, var = net.ReadString(), net.ReadType()
+local entityMeta = FindMetaTable("Entity")
+local playerMeta = FindMetaTable("Player")
 
-    	zb.net.globals[key] = var
+local Entity_EntIndex = entityMeta.EntIndex
+if CLIENT then
 
-        hook.Run("OnGlobalVarSet", key, var)
+    local net_ReadString = net.ReadString
+    local net_ReadType   = net.ReadType
+    local net_ReadUInt   = net.ReadUInt
+    local net_Receive    = net.Receive
+    local hook_Run       = hook.Run
+
+    net_Receive(NET_GLOBAL_VAR_SET, function()
+        local key = net_ReadString()
+        local var = net_ReadType()
+
+        rawset(zb_net_globals, key, var)
+        hook_Run(HOOK_GLOBAL_SET, key, var)
     end)
 
-    net.Receive("zbNetVarSet", function()
-        local index = net.ReadUInt(16)
+    net_Receive(NET_NET_VAR_SET, function()
+        local index = net_ReadUInt(16)
+        local key   = net_ReadString()
+        local var   = net_ReadType()
 
-		local key = net.ReadString()
-    	local var = net.ReadType()
-		
-        zb.net[index] = zb.net[index] or {}
-        zb.net[index][key] = var
-
-		if IsValid(Entity(index)) then
-			hook.Run("OnNetVarSet", index, key, var)
-		else
-			zb.net[index].waiting = true
-		end
-    end)
-
-    net.Receive("zbNetVarSetSFS", function()
-        local index = net.ReadUInt(16)
-        local key = net.ReadString()
-        local var = hg.netReadSFS(zb.netSFSLim[key])
-
-        zb.net[index] = zb.net[index] or {}
-        zb.net[index][key] = var
+        local entCache = rawget(zb_net, index)
+        if not entCache then
+            entCache = {}
+            rawset(zb_net, index, entCache)
+        end
+        rawset(entCache, key, var)
 
         if IsValid(Entity(index)) then
-            hook.Run("OnNetVarSet", index, key, var)
+            hook_Run(HOOK_NET_SET, index, key, var)
         else
-            zb.net[index].waiting = true
+            rawset(entCache, "waiting", true)
         end
     end)
-	
-    net.Receive("zbNetVarDelete", function()
-    	zb.net[net.ReadUInt(16)] = nil
+
+    net_Receive(NET_NET_VAR_SET_SFS, function()
+        local index = net_ReadUInt(16)
+        local key   = net_ReadString()
+        
+        local hg = hg
+        local var = hg and hg.netReadSFS and hg.netReadSFS(rawget(zb_netSFSLim, key))
+
+        local entCache = rawget(zb_net, index)
+        if not entCache then
+            entCache = {}
+            rawset(zb_net, index, entCache)
+        end
+        rawset(entCache, key, var)
+
+        if IsValid(Entity(index)) then
+            hook_Run(HOOK_NET_SET, index, key, var)
+        else
+            rawset(entCache, "waiting", true)
+        end
+    end)
+    
+    net_Receive(NET_NET_VAR_DELETE, function()
+        rawset(zb_net, net_ReadUInt(16), nil)
     end)
 
-    net.Receive("zbLocalVarSet", function()
-    	local key = net.ReadString()
-    	local var = net.ReadType()
+    net_Receive(NET_LOCAL_VAR_SET, function()
+        local key = net_ReadString()
+        local var = net_ReadType()
+        local localIdx = Entity_EntIndex(LocalPlayer())
 
-    	zb.net[LocalPlayer():EntIndex()] = zb.net[LocalPlayer():EntIndex()] or {}
-    	zb.net[LocalPlayer():EntIndex()][key] = var
+        local entCache = rawget(zb_net, localIdx)
+        if not entCache then
+            entCache = {}
+            rawset(zb_net, localIdx, entCache)
+        end
+        rawset(entCache, key, var)
 
-    	hook.Run("OnLocalVarSet", key, var)
+        hook_Run(HOOK_LOCAL_SET, key, var)
     end)
 
-    function GetNetVar(key, default) -- luacheck: globals GetNetVar
-    	local value = zb.net.globals[key]
-
-    	return value != nil and value or default
+    function GetNetVar(key, default)
+        local value = rawget(zb_net_globals, key)
+        return value ~= nil and value or default
     end
 
     function entityMeta:GetNetVar(key, default)
-    	local index = self:EntIndex()
+        local index = Entity_EntIndex(self)
+        local entCache = rawget(zb_net, index)
 
-    	if (zb.net[index] and zb.net[index][key] != nil) then
-    		return zb.net[index][key]
-    	end
+        if entCache then
+            local value = rawget(entCache, key)
+            if value ~= nil then
+                return value
+            end
+        end
 
-    	return default
+        return default
     end
 
     playerMeta.GetLocalVar = entityMeta.GetNetVar
 
-	hook.Add("InitPostEntity", "OnRequestFullUpdate_zb", function()
-		LocalPlayer():SyncVars()
-	end)
+    local net_Start = net.Start
+    local net_SendToServer = net.SendToServer
 
-	function playerMeta:SyncVars()
-		net.Start("ZB_request_fullupdate")
-		net.SendToServer()
-	end
+    function playerMeta:SyncVars()
+        net_Start(NET_FULLUPDATE_REQ)
+        net_SendToServer()
+    end
+
+    hook.Add(HOOK_INIT_POST_ENT, ID_INIT_POST_ENT_ZB, function()
+        local lp = LocalPlayer()
+        if IsValid(lp) then
+            lp:SyncVars()
+        end
+    end)
 else
-	util.AddNetworkString("ZB_request_fullupdate")
+    util.AddNetworkString(NET_FULLUPDATE_REQ)
+    util.AddNetworkString(NET_GLOBAL_VAR_SET)
+    util.AddNetworkString(NET_LOCAL_VAR_SET)
+    util.AddNetworkString(NET_NET_VAR_SET)
+    util.AddNetworkString(NET_NET_VAR_SET_SFS)
+    util.AddNetworkString(NET_NET_VAR_DELETE)
 
-	net.Receive("ZB_request_fullupdate",function(len,ply)
-		ply.cooldown_sendnet = ply.cooldown_sendnet or 0
-		if ply.cooldown_sendnet < CurTime() then
-			ply.cooldown_sendnet = CurTime() + 1
+    zb_net.list    = zb_net.list or {}
+    zb_net.locals  = zb_net.locals or {}
+    
+    local zb_net_list   = zb_net.list
+    local zb_net_locals = zb_net.locals
 
-			ply:SyncVars()
-		end
-	end)
+    local net_Start     = net.Start
+    local net_WriteString = net.WriteString
+    local net_WriteType = net.WriteType
+    local net_WriteUInt = net.WriteUInt
+    local net_Broadcast = net.Broadcast
+    local net_Receive   = net.Receive
+    local net_Send      = net.Send 
 
-	gameevent.Listen( "OnRequestFullUpdate" )
-	hook.Add("OnRequestFullUpdate", "OnRequestFullUpdate_zb", function(data)
-		local id = data.userid
-		local ply = Player(id)
-		
-		ply:SyncVars()
-	end)
-	
-	
-    local entityMeta = FindMetaTable("Entity")
-    local playerMeta = FindMetaTable("Player")
+    net_Receive(NET_FULLUPDATE_REQ, function(len, ply)
+        if not IsValid(ply) then return end
+        ply.cooldown_sendnet = ply.cooldown_sendnet or 0
+        if ply.cooldown_sendnet < CurTime() then
+            ply.cooldown_sendnet = CurTime() + 1
+            ply:SyncVars()
+        end
+    end)
 
-    zb.net = zb.net or {}
-    zb.net.list = zb.net.list or {}
-    zb.net.locals = zb.net.locals or {}
-    zb.net.globals = zb.net.globals or {}
-
-    util.AddNetworkString("zbGlobalVarSet")
-    util.AddNetworkString("zbLocalVarSet")
-    util.AddNetworkString("zbNetVarSet")
-    util.AddNetworkString("zbNetVarSetSFS")
-    util.AddNetworkString("zbNetVarDelete")
+    gameevent.Listen(HOOK_REQ_FULLUPDATE)
+    hook.Add(HOOK_REQ_FULLUPDATE, ID_INIT_POST_ENT_ZB, function(data)
+        local ply = Player(data.userid)
+        if IsValid(ply) then
+            ply:SyncVars()
+        end
+    end)
 
     local function invForNet(inv)
         if not istable(inv) then return inv end
         local w = inv.Weapons
         if not w then return inv end
+        
         local out = {
             Ammo = inv.Ammo,
             Armor = inv.Armor,
@@ -144,210 +230,234 @@ else
             Money = inv.Money,
             Weapons = {},
         }
-        for k, v in pairs(w) do
+        
+        local out_weapons = out.Weapons
+        for k, v in next, w do
             if isbool(v) or istable(v) then
-                out.Weapons[k] = v
+                out_weapons[k] = v
             elseif IsEntity(v) then
-                out.Weapons[k] = IsValid(v) and v:EntIndex() or nil
+                out_weapons[k] = IsValid(v) and Entity_EntIndex(v) or nil
             else
-                out.Weapons[k] = v
+                out_weapons[k] = v
             end
         end
         return out
     end
 
-    hg.InvForNet = hg.InvForNet or invForNet
+    local hg = hg or {}
+    hg.InvForNet = invForNet
 
     local function netVarEq(key, a, b)
         if a == b then return true end
         if not istable(a) or not istable(b) then return false end
-        if not hg.sfs then return false end
-        local ea, eb = hg.sfs.encode(a), hg.sfs.encode(b)
+        
+        local hg_sfs = hg.sfs
+        if not hg_sfs then return false end
+        
+        local hg_sfs_encode = hg_sfs.encode
+        if not hg_sfs_encode then return false end
+
+        local ea, eb = hg_sfs_encode(a), hg_sfs_encode(b)
         return ea and eb and ea == eb
     end
 
     local function prepNetVar(ent, key, value)
-        if key == "Inventory" and istable(value) then
+        if key == STR_INVENTORY and istable(value) then
             ent.inventory = value
             value = invForNet(value)
         end
         return value
     end
-
     local function sendNetVarData(index, key, var, receiver)
-        if zb.netSFSKeys[key] and hg.netWriteSFS then
-            net.Start("zbNetVarSetSFS")
-            net.WriteUInt(index, 16)
-            net.WriteString(key)
-            if not hg.netWriteSFS(var, zb.netSFSLim[key]) then
-                ErrorNoHalt("sh_networking.lua: SFS fail key=" .. tostring(key) .. ", fallback WriteType\n")
-                net.Start("zbNetVarSet")
-                net.WriteUInt(index, 16)
-                net.WriteString(key)
-                net.WriteType(var)
-            end
-        else
-            net.Start("zbNetVarSet")
-            net.WriteUInt(index, 16)
-            net.WriteString(key)
-            net.WriteType(var)
-        end
+        timer_Simple(0, function()
+            if receiver ~= nil and not IsValid(receiver) then return end
 
-        if receiver == nil then
-            net.Broadcast()
-        else
-            net.Send(receiver)
-        end
+            local hg_netWriteSFS = hg.netWriteSFS
+
+            if rawget(zb_netSFSKeys, key) and hg_netWriteSFS then
+                net_Start(NET_NET_VAR_SET_SFS)
+                net_WriteUInt(index, 16)
+                net_WriteString(key)
+                if not hg_netWriteSFS(var, rawget(zb_netSFSLim, key)) then
+                    ErrorNoHalt(ERROR_SFS_FALLBACK:format(tostring(key)))
+                    net_Start(NET_NET_VAR_SET)
+                    net_WriteUInt(index, 16)
+                    net_WriteString(key)
+                    net_WriteType(var)
+                end
+            else
+                net_Start(NET_NET_VAR_SET)
+                net_WriteUInt(index, 16)
+                net_WriteString(key)
+                net_WriteType(var)
+            end
+
+            if receiver == nil then
+                net_Broadcast()
+            else
+                net_Send(receiver)
+            end
+        end)
     end
 
     local function CheckBadType(name, object)
-		return false
-    	--[[if (isfunction(object)) then
-    		ErrorNoHalt("Net var '" .. name .. "' contains a bad object type!")
-
-    		return true
-    	elseif (istable(object)) then
-    		for k, v in pairs(object) do
-    			if (CheckBadType(name, k) or CheckBadType(name, v)) then
-    				return true
-    			end
-    		end
-    	end--]]
+        return false
     end
 
     function GetNetVar(key, default)
-    	local value = zb.net.globals[key]
-
-    	return value != nil and value or default
+        local value = rawget(zb_net_globals, key)
+        return value ~= nil and value or default
     end
 
     function SetNetVar(key, value, receiver, unreliable)
-    	if (CheckBadType(key, value)) then return end
-    	--if (GetNetVar(key) == value) then return end
-		
-    	zb.net.globals[key] = value
+        rawset(zb_net_globals, key, value)
 
-    	net.Start("zbGlobalVarSet", unreliable)
-    	net.WriteString(key)
-    	net.WriteType(value)
+        timer_Simple(0, function()
+            if receiver ~= nil and not IsValid(receiver) then return end
+            
+            net_Start(NET_GLOBAL_VAR_SET, unreliable)
+            net_WriteString(key)
+            net_WriteType(value)
 
-    	if (receiver == nil) then
-    		net.Broadcast()
-    	else
-    		net.Send(receiver)
-    	end
+            if (receiver == nil) then
+                net_Broadcast()
+            else
+                net_Send(receiver)
+            end
+        end)
     end
-	
+    
     function playerMeta:SyncVars()
-    	for k, v in pairs(zb.net.globals) do
-    		net.Start("zbGlobalVarSet")
-    			net.WriteString(k)
-    			net.WriteType(v)
-    		net.Send(self)
-    	end
+        local hg_netWriteSFS = hg.netWriteSFS
 
-    	for k, v in pairs(zb.net.locals[self] or {}) do
-    		net.Start("zbLocalVarSet")
-    			net.WriteString(k)
-    			net.WriteType(v)
-    		net.Send(self)
-    	end
+        for k, v in next, zb_net_globals do
+            net_Start(NET_GLOBAL_VAR_SET)
+                net_WriteString(k)
+                net_WriteType(v)
+            net_Send(self)
+        end
 
-    	for entity, data in pairs(zb.net.list) do
-    		if (IsValid(entity)) then
-    			local index = entity:EntIndex()
+        local myLocals = rawget(zb_net_locals, self)
+        if myLocals then
+            for k, v in next, myLocals do
+                net_Start(NET_LOCAL_VAR_SET)
+                    net_WriteString(k)
+                    net_WriteType(v)
+                net_Send(self)
+            end
+        end
 
-    			for k, v in pairs(data) do
-                    if zb.netSFSKeys[k] and hg.netWriteSFS then
-                        net.Start("zbNetVarSetSFS")
-                        net.WriteUInt(index, 16)
-                        net.WriteString(k)
-                        hg.netWriteSFS(v, zb.netSFSLim[k])
+        for entity, data in next, zb_net_list do
+            if IsValid(entity) then
+                local index = Entity_EntIndex(entity)
+
+                for k, v in next, data do
+                    if rawget(zb_netSFSKeys, k) and hg_netWriteSFS then
+                        net_Start(NET_NET_VAR_SET_SFS)
+                        net_WriteUInt(index, 16)
+                        net_WriteString(k)
+                        hg_netWriteSFS(v, rawget(zb_netSFSLim, k))
                     else
-                        net.Start("zbNetVarSet")
-                        net.WriteUInt(index, 16)
-                        net.WriteString(k)
-                        net.WriteType(v)
+                        net_Start(NET_NET_VAR_SET)
+                        net_WriteUInt(index, 16)
+                        net_WriteString(k)
+                        net_WriteType(v)
                     end
-    				net.Send(self)
-    			end
-			else
-				zb.net.list[entity] = nil
-    		end
-    	end
+                    net_Send(self)
+                end
+            else
+                rawset(zb_net_list, entity, nil)
+            end
+        end
     end
-	
+    
     function playerMeta:GetLocalVar(key, default)
-    	if (zb.net.locals[self] and zb.net.locals[self][key] != nil) then
-    		return zb.net.locals[self][key]
-    	end
+        local plCache = rawget(zb_net_locals, self)
+        if plCache and rawget(plCache, key) ~= nil then
+            return rawget(plCache, key)
+        end
 
-    	return default
+        return default
     end
 
     function playerMeta:SetLocalVar(key, value)
-    	if (CheckBadType(key, value)) then return end
+        local plCache = rawget(zb_net_locals, self)
+        if not plCache then
+            plCache = {}
+            rawset(zb_net_locals, self, plCache)
+        end
+        rawset(plCache, key, value)
 
-    	zb.net.locals[self] = zb.net.locals[self] or {}
-    	zb.net.locals[self][key] = value
-
-    	net.Start("zbLocalVarSet")
-    		net.WriteString(key)
-    		net.WriteType(value)
-    	net.Send(self)
+        timer_Simple(0, function()
+            if not IsValid(self) then return end
+            net_Start(NET_LOCAL_VAR_SET)
+                net_WriteString(key)
+                net_WriteType(value)
+            net_Send(self)
+        end)
     end
 
     function entityMeta:GetNetVar(key, default)
-    	if (zb.net.list[self] and zb.net.list[self][key] != nil) then
-    		return zb.net.list[self][key]
-    	end
+        local entCache = rawget(zb_net_list, self)
+        if entCache and rawget(entCache, key) ~= nil then
+            return rawget(entCache, key)
+        end
 
-    	return default
+        return default
     end
 
     function entityMeta:SetNetVar(key, value, receiver)
-    	if (CheckBadType(key, value)) then return end
-
-		zb.net.list[self] = zb.net.list[self] or {}
+        local entCache = rawget(zb_net_list, self)
+        if not entCache then
+            entCache = {}
+            rawset(zb_net_list, self, entCache)
+        end
+        
         value = prepNetVar(self, key, value)
+        local old = rawget(entCache, key)
 
-        local old = zb.net.list[self][key]
         if istable(value) and istable(old) and old == value then
-            if zb.netSFSKeys[key] and netVarEq(key, old, value) then return end
+            if rawget(zb_netSFSKeys, key) and netVarEq(key, old, value) then return end
         elseif old == value then
             return
-        elseif istable(value) and istable(old) and zb.netSFSKeys[key] and netVarEq(key, old, value) then
+        elseif istable(value) and istable(old) and rawget(zb_netSFSKeys, key) and netVarEq(key, old, value) then
             return
         end
 
-    	zb.net.list[self][key] = value
-		self:SendNetVar(key, receiver)
-	end
+        rawset(entCache, key, value)
+        self:SendNetVar(key, receiver)
+    end
 
     function entityMeta:SendNetVar(key, receiver)
-        local var = zb.net.list[self] and zb.net.list[self][key]
-        sendNetVarData(self:EntIndex(), key, var, receiver)
+        local entCache = rawget(zb_net_list, self)
+        local var = entCache and rawget(entCache, key)
+        sendNetVarData(Entity_EntIndex(self), key, var, receiver)
     end
 
     function entityMeta:ClearNetVars(receiver)
-    	zb.net.list[self] = nil
-    	zb.net.locals[self] = nil
+        rawset(zb_net_list, self, nil)
+        rawset(zb_net_locals, self, nil)
 
-    	net.Start("zbNetVarDelete")
-    	net.WriteUInt(self:EntIndex(), 16)
+        timer_Simple(0, function()
+            if receiver ~= nil and not IsValid(receiver) then return end
+            if not IsValid(self) then return end
+            
+            net_Start(NET_NET_VAR_DELETE)
+            net_WriteUInt(Entity_EntIndex(self), 16)
 
-    	if (receiver == nil) then
-    		net.Broadcast()
-    	else
-    		net.Send(receiver)
-    	end
+            if (receiver == nil) then
+                net_Broadcast()
+            else
+                net_Send(receiver)
+            end
+        end)
     end
-	
-	hook.Add("EntityRemoved","ZB_clear_net",function(ent,fullUpdate)
-		ent:ClearNetVars()
-	end)
+    
+    hook.Add(HOOK_ENT_REMOVED, ID_CLEAR_NET, function(ent, fullUpdate)
+        if IsValid(ent) then ent:ClearNetVars() end
+    end)
 
-	hook.Add("PlayerDisconnected","ZB_clear_net",function(ply)
-		ply:ClearNetVars()
-	end)
+    hook.Add(HOOK_PLY_DISCONNECT, ID_CLEAR_NET, function(ply)
+        if IsValid(ply) then ply:ClearNetVars() end
+    end)
 end
