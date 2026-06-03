@@ -383,12 +383,12 @@ function MODE:EndRound()
 		local ent = zb:CheckAlive(true)[1]
 		
 		if IsValid(ent) then
-			ent:GiveExp(math.random(150,200))
+			ent:GiveRoundExp("major")
 			ent:GiveSkill(math.Rand(0.2,0.3))
 		end
 
 		if IsValid(most_violent_player) then
-			most_violent_player:GiveExp(math.random(150,200))
+			most_violent_player:GiveRoundExp("major")
 			most_violent_player:GiveSkill(math.Rand(0.2,0.3))
 		end
 

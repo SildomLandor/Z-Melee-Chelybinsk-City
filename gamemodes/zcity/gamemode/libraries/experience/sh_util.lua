@@ -56,59 +56,6 @@ zb.Experience.SkillMedals = {
     },
 }
 
-zb.Experience.Bands = {
-    {
-        icon = Material("vgui/mats_jack_awards/10"),
-        name = "",
-        skill = { 15360, 999999999999999999 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/9"),
-        name = "",
-        skill = { 7680, 15360 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/8"),
-        name = "",
-        skill = { 3840, 7680 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/7"),
-        name = "",
-        skill = { 1920, 3840 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/6"),
-        name = "",
-        skill = { 960, 1920 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/5"),
-        name = "",
-        skill = { 480, 960 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/4"),
-        name = "",
-        skill = { 240, 480 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/3"),
-        name = "",
-        skill = { 120, 240 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/2"),
-        name = "",
-        skill = { 60, 120 }
-    },
-    {
-        icon = Material("vgui/mats_jack_awards/1"),
-        name = "",
-        skill = { 0, 60 }
-    },
-}
-
 local SHTable = zb.Experience
 zb.Experience.UI = zb.Experience.UI or {}
 
