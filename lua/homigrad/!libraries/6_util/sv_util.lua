@@ -1240,16 +1240,16 @@ local TrackedModelsa = {
 	["models/props_c17/tools_wrench01a.mdl"] = "weapon_wrench",
 	["models/props_interiors/pot02a.mdl"] = "ent_armor_helmet4",
 	["models/props_lab/Cleaver.mdl"] = "weapon_pocketknife",
-	["models/props_junk/CinderBlock01a.mdl"] = "weapon_hg_cinderblock"
-	["models/props_wasteland/prison_pipefaucet001a.mdl"] = "weapon_leadpipe"
-	["models/props_silo/eli_weapon.mdl"] = "weapon_leadpipe"
-	["models/props_silo/eli_weapon_phys.mdl"] = "weapon_leadpipe"
-	["models/props/CS_militia/bottle01.mdl"] = "weapon_hg_bottle"
-	["models/props/CS_militia/bottle02.mdl"] = "weapon_hg_bottle"
-	["models/props/CS_militia/bottle03.mdl"] = "weapon_hg_bottle"
-	["models/props/cs_office/coffee_mug.mdl"] = "weapon_hg_mug"
-	["models/props/cs_office/coffee_mug2.mdl"] = "weapon_hg_mug"
-	["models/props/cs_office/coffee_mug3.mdl"] = "weapon_hg_mug"
+	["models/props_junk/CinderBlock01a.mdl"] = "weapon_hg_cinderblock",
+	["models/props_wasteland/prison_pipefaucet001a.mdl"] = "weapon_leadpipe",
+	["models/props_silo/eli_weapon.mdl"] = "weapon_leadpipe",
+	["models/props_silo/eli_weapon_phys.mdl"] = "weapon_leadpipe",
+	["models/props/CS_militia/bottle01.mdl"] = "weapon_hg_bottle",
+	["models/props/CS_militia/bottle02.mdl"] = "weapon_hg_bottle",
+	["models/props/CS_militia/bottle03.mdl"] = "weapon_hg_bottle",
+	["models/props/cs_office/coffee_mug.mdl"] = "weapon_hg_mug",
+	["models/props/cs_office/coffee_mug2.mdl"] = "weapon_hg_mug",
+	["models/props/cs_office/coffee_mug3.mdl"] = "weapon_hg_mug",
 }
 
 local TrackedModels = {}
