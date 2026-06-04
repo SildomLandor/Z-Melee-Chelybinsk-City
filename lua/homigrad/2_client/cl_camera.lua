@@ -1,4 +1,63 @@
-local view = render.GetViewSetup()
+local render_GetViewSetup = render.GetViewSetup
+local hook_Run = hook.Run
+local hook_Add = hook.Add
+local util_TraceLine = util.TraceLine
+local util_TraceHull = util.TraceHull
+local math_Clamp = math.Clamp
+local math_sin = math.sin
+local math_cos = math.cos
+local math_max = math.max
+local math_min = math.min
+local math_abs = math.abs
+local math_Round = math.Round
+local math_Rand = math.Rand
+local math_ease_InExpo = math.ease.InExpo
+local IsValid = IsValid
+local CurTime = CurTime
+local FrameTime = FrameTime
+local LocalPlayer = LocalPlayer
+local ScreenScale = ScreenScale
+local ScrW = ScrW
+local ScrH = ScrH
+local Color = Color
+local Vector = Vector
+local Angle = Angle
+local AngleRand = AngleRand
+local VectorRand = VectorRand
+local CreateClientConVar = CreateClientConVar
+local CreateConVar = CreateConVar
+local ConVarExists = ConVarExists
+local STR_WEAPON = "Weapon"
+local STR_MOTIONBLUREFFECT = "MotionBlurEffect"
+local STR_CAMERA = "Camera"
+local STR_MOTIONBLUR = "MotionBlur"
+local STR_GETMOTIONBLURVALUES = "GetMotionBlurValues"
+local STR_BODYCAMFONT = "BODYCAMFONT"
+local STR_HUDPAINT = "HUDPaint"
+local STR_HUDPAINT_DRAWABOX = "HUDPaint_DrawABox"
+local STR_HG_ZOOM_P = "+hg_zoom"
+local STR_HG_ZOOM_M = "-hg_zoom"
+local STR_HG_ZOOM = "hg_zoom"
+local STR_SHOULDDRAWLOCALPLAYER = "ShouldDrawLocalPlayer"
+local STR_DRAWLOCALPLAYERALWAYS = "drawlocalplayeralways"
+local STR_CALCVIEW = "CalcView"
+local STR_HOMIGRAD_VIEW = "homigrad-view"
+local STR_HG_INPUTMOUSEAPPLY = "HG.InputMouseApply"
+local STR_FREEZETURNING = "FreezeTurning"
+local STR_ALTLOOK_P = "+altlook"
+local STR_ALTLOOK_M = "-altlook"
+local STR_FLIPMOVE = "flipmove"
+local STR_CREATEMOVE = "CreateMove"
+local STR_ASDINVERT = "ASdInvert"
+local STR_RENDERSCENE = "RenderScene"
+local STR_JOPA = "jopa"
+local STR_LOOKAWAY = "LookAway"
+local STR_BONES = "Bones"
+local STR_HEADTURNAWAY = "HeadTurnAway"
+local STR_PREDRAWTRANSLUCENTRENDERABLES = "PreDrawTranslucentRenderables"
+local STR_FPS_FOG = "FPS_Fog"
+--
+
 local whitelist = {
 	weapon_physgun = true,
 	gmod_tool = true,
@@ -11,16 +70,9 @@ local whitelist = {
 }
 
 local vecZero, vecFull = Vector(0.001, 0.001, 0.001), Vector(1, 1, 1)
- 
-local CameraTransformApply
-local hook_Run = hook.Run
-local result
-local util_TraceLine, util_TraceHull = util.TraceLine, util.TraceHull
-local math_Clamp = math.Clamp
-local Round, Max, abs = math.Round, math.max, math.abs
 local compression = 12
 local traceBuilder = {
-	filter = lply,
+	filter = nil,
 	mins = -Vector(5, 5, 5),
 	maxs = Vector(5, 5, 5),
 	mask = MASK_SOLID,
@@ -33,13 +85,12 @@ local angVel = Angle(0, 0, 0)
 local limit = 4
 local sideMul = 5
 local eyeAngL = Angle(0, 0, 0)
-local IsValid = IsValid
 
 local hg_fov = ConVarExists("hg_fov") and GetConVar("hg_fov") or CreateClientConVar("hg_fov", "70", true, false, "Change first-person field of view", 75, 100)
 local hg_realismcam = ConVarExists("hg_realismcam") and GetConVar("hg_realismcam") or CreateClientConVar("hg_realismcam", "0", true, false, "Toggle realism first-person camera view", 0, 1)
 local hg_gopro = ConVarExists("hg_gopro") and GetConVar("hg_gopro") or CreateClientConVar("hg_gopro", "0", true, false, "Toggle GoPro-like first-person camera view", 0, 1)
 
-local oldview = render.GetViewSetup()
+local oldview = render_GetViewSetup()
 local breathing_amount = 0
 local walk_amount = 0
 local curTime = CurTime()
@@ -56,42 +107,46 @@ position_difference23 = Vector(0, 0, 0)
 position_difference3 = Vector(0, 0, 0)
 
 offsetView = offsetView or Angle(0, 0, 0)
-
 camera_position_addition = Vector(0,0,0)
-
 local swayAng = Angle(0, 0, 0)
-hook.Add("Camera", "Weapon", function(ply, ...)
-	local ply = ply or lply
+
+local lply = lply
+hook_Add(STR_CAMERA, STR_WEAPON, function(ply, ...)
+	ply = ply or lply or LocalPlayer()
 	if not IsValid(ply) then return end
 	if not ply:Alive() and not IsValid(follow) then return end
-	wep = ply:GetActiveWeapon()
+	local wep = ply:GetActiveWeapon()
 	if IsValid(wep) and wep.Camera then return wep:Camera(...) end
 end)
 
-hook.Add("MotionBlur", "Weapon", function(x,y,w,z)
-	wep = lply:GetActiveWeapon()
-	if wep.Blur then return wep:Blur(x,y,w,z) end
+hook_Add(STR_MOTIONBLUR, STR_WEAPON, function(x,y,w,z)
+	local client = lply or LocalPlayer()
+	if not IsValid(client) then return end
+	local wep = client:GetActiveWeapon()
+	if IsValid(wep) and wep.Blur then return wep:Blur(x,y,w,z) end
 end)
 
-hook.Add("GetMotionBlurValues", "MotionBlurEffect", function( x, y, w, z)
-    local blur = hook_Run("MotionBlur",x,y,w,z)
+hook_Add(STR_GETMOTIONBLURVALUES, STR_MOTIONBLUREFFECT, function(x, y, w, z)
+	local blur = hook_Run(STR_MOTIONBLUR, x, y, w, z)
 	if blur then
-		return blur[1],blur[2],blur[3],blur[4]
+		return blur[1], blur[2], blur[3], blur[4]
 	end
 end)
 
 local TickInterval = engine.TickInterval
-
--- local hg.clamp = hg.hg.clamp
-
 local lerpholdbreath = 1
-
 local velocityAdd = Vector()
 local velocityAddVel = Vector()
 local walkLerped = 0
 local walkTime = 0
-
 local lerped_ang = Angle(0,0,0)
+
+local math_pi = math.pi
+local game_GetTimeScale = game.GetTimeScale
+local ipairs = ipairs
+local pairs = pairs
+local next = next
+
 function HGAddView(ply, origin, angles, velLen)
 	if ply:Alive() then
 		local ent = hg.GetCurrentCharacter(ply)
@@ -105,57 +160,38 @@ function HGAddView(ply, origin, angles, velLen)
 		local wep = ply:GetActiveWeapon()
 		local inSight = IsValid(wep) and wep.IsZoom and wep:IsZoom()
 
-		--breathing_amount = breathing_amount + math.max((math.Clamp(pulse, 0, 80) / 120 / 30 + velLen / 100 - (30 - o2) / 3000), 0)
-		local breathing_amount = math.sin((org.pulsethink or 0) + 0.8) * (math.max(((org.heartbeat or 0) / 120 - 1) * 0.05, 0) + math.Clamp((org.stamina and org.stamina[1] and (1 - math.min(1, org.stamina[1] / (org.stamina.max * 0.75))) or 1), 0, 0.5))
-		--walk_amount = walk_amount + velLen / 100
+		local breathing_amount = math_sin((org.pulsethink or 0) + 0.8) * (math_max(((org.heartbeat or 0) / 120 - 1) * 0.05, 0) + math_Clamp((org.stamina and org.stamina[1] and (1 - math_min(1, org.stamina[1] / (org.stamina.max * 0.75))) or 1), 0, 0.5))
 
-		--[[camera_position_addition[1] = 0
-		camera_position_addition[2] = 0
-		camera_position_addition[3] = 0]]
-		
 		camera_position_addition[1] = 0
 		camera_position_addition[2] = 0
-		camera_position_addition[3] = (math.sin(breathing_amount + math.pi)) * 0.5
+		camera_position_addition[3] = (math_sin(breathing_amount + math_pi)) * 0.5
 
-		local anga2 = ply:GetBoneMatrix(ply:LookupBone("ValveBiped.Bip01_Spine")):GetAngles()---(-angles)
-		anga2:RotateAroundAxis(anga2:Right(), 90)
-		--anga2[1] = 0
-		camera_position_addition:Rotate(anga2)
+		local spineBone = ply:LookupBone("ValveBiped.Bip01_Spine")
+		if spineBone then
+			local boneMat = ply:GetBoneMatrix(spineBone)
+			if boneMat then
+				local anga2 = boneMat:GetAngles()
+				anga2:RotateAroundAxis(anga2:Right(), 90)
+				camera_position_addition:Rotate(anga2)
+				origin:Add(camera_position_addition)
+			end
+		end
 
-		origin:Add(camera_position_addition)
-
-		local ang = AngleRand(-0.1, 0.1) * math.Rand(0, math.min(adrenaline, 1)) / 1
+		local ang = AngleRand(-0.1, 0.1) * math_Rand(0, math_min(adrenaline, 1))
 		ang[1] = ang[1] + breathing_amount
 		ang[3] = 0
 
-		lerped_ang = LerpFT(0.2, lerped_ang, ang * (inSight and 1 or 1) * math.max(org.recoilmul or 1, 0.1))
-		--local tmpmul = math.max(36.6 - temp, 0)
-		--ang[1] = math.Rand(-tmpmul, tmpmul) / 155
-		--ang[2] = math.Rand(-tmpmul, tmpmul) / 155
-		--ang[3] = math.Rand(-adrenaline, adrenaline) / 15
-		--angles:Add(ang)
-		//ViewPunch2(ang * -0.05)
-		--ply:SetEyeAngles(ply:EyeAngles() + lerped_ang * 0.1)
-		//angles:Add(ang)
-		//ViewPunch2(lerped_ang * 0.1)
-
-		--[[if hg_realismcam:GetBool() then
-			origin = origin + angle_difference_localvec2 * 100
-		end]]
+		lerped_ang = LerpFT(0.2, lerped_ang, ang * math_max(org.recoilmul or 1, 0.1))
 
 		local vel = ent:GetVelocity()
 		local vellen = vel:Length()
-	
 		local vellenlerp = velocityAdd and velocityAdd:Length() or vellen
 		
 		walkLerped = LerpFT(0.1, walkLerped, ply:InVehicle() and 0 or vellenlerp * 100)
+		local walk = math_Clamp(walkLerped / 100, 0, 1)
 		
-		local walk = math.Clamp(walkLerped / 100, 0, 1)
-		
-		walkTime = walkTime + walk * FrameTime() * 2 * game.GetTimeScale() * (ply:OnGround() and 1 or 0)
-		
+		walkTime = walkTime + walk * FrameTime() * 2 * game_GetTimeScale() * (ply:OnGround() and 1 or 0)
 		velocityAddVel = LerpFT(0.9, velocityAddVel * 0.9, -vel * 0.1)
-	
 		velocityAdd = LerpFT(0.1, velocityAdd, velocityAddVel)
 	
 		if ply:IsSprinting() then
@@ -163,46 +199,45 @@ function HGAddView(ply, origin, angles, velLen)
 		end
 	
 		local huy = walkTime
-		
-		local x, y = math.cos(huy) * math.sin(huy) * walk * 1, math.sin(huy) * walk * 1
-		local x2, y2 = math.cos(huy) * math.sin(huy) * walk + math.sin(huy + 0.25) * 0.25 * walk, math.sin(huy) * walk + math.cos(huy) * 0.25 * walk
+		local x, y = math_cos(huy) * math_sin(huy) * walk, math_sin(huy) * walk
+		local x2, y2 = math_cos(huy) * math_sin(huy) * walk + math_sin(huy + 0.25) * 0.25 * walk, math_sin(huy) * walk + math_cos(huy) * 0.25 * walk
 
-		//angles[1] = angles[1] + x * 1
-		//angles[2] = angles[2] + y * 1
 		ViewPunch4(Angle(y2, x2, x2 * 50) * 0.0005 * (ishgweapon(wep) and 1.5 or 1))
 
 		local music = hg.DynamicMusicV2.Player.GetTrack()
-
 		if music then
-			local layer = hg.DynamicMusicV2.Player.Layers[1] and hg.DynamicMusicV2.Player.Layers[1][2] or false
+			local layers = hg.DynamicMusicV2.Player.Layers
+			local layerIdx = layers[1]
+			local layer = layerIdx and layerIdx[2] or false
 
 			if layer then
 				local offset = music.Offset or 0
 				local bpm = music.BPM or 140
 				local intensity = 1 - ((layer:GetTime() - offset) / 60 * bpm)
-				intensity = (intensity - math.Round(intensity)) % 1
-				intensity = math.Clamp((intensity * 0.25 + 0.75), 0, 1)
-				intensity = math.ease.InExpo(intensity) * 1
-			
-			--angles[1] = angles[1] + intensity * 1
+				intensity = (intensity - math_Round(intensity)) % 1
+				intensity = math_Clamp((intensity * 0.25 + 0.75), 0, 1)
+				intensity = math_ease_InExpo(intensity)
 			end
 		end
 
 		ply.xMove = x
 
-		if(ply.MovementInertiaAddView)then
-			angles = angles + ply.MovementInertiaAddView
-			ply.MovementInertiaAddView.r = Lerp(FrameTime() * 5, ply.MovementInertiaAddView.r, 0)
-			ply.MovementInertiaAddView.p = Lerp(FrameTime() * 5, ply.MovementInertiaAddView.p, 0)
+		if ply.MovementInertiaAddView then
+			local pInertia = ply.MovementInertiaAddView
+			angles = angles + pInertia
+			local fTime5 = FrameTime() * 5
+			pInertia.r = Lerp(fTime5, pInertia.r, 0)
+			pInertia.p = Lerp(fTime5, pInertia.p, 0)
 		end
 	else
-		if(ply.MovementInertiaAddView)then
-			ply.MovementInertiaAddView.r = 0
-			ply.MovementInertiaAddView.p = 0
+		if ply.MovementInertiaAddView then
+			local pInertia = ply.MovementInertiaAddView
+			pInertia.r = 0
+			pInertia.p = 0
 		end
 	end
 
-	local ply_override, origin_override, angles_override = hook.Run("HGAddView", ply, origin, angles)
+	local ply_override, origin_override, angles_override = hook_Run("HGAddView", ply, origin, angles)
 	if origin_override ~= nil then
 		origin, angles = origin_override, angles_override
 	end
@@ -210,16 +245,15 @@ function HGAddView(ply, origin, angles, velLen)
 	return origin, angles
 end
 
-hook.Add("ShouldDrawLocalPlayer","drawlocalplayeralways",function(ply)
-	--return true
+hook_Add(STR_SHOULDDRAWLOCALPLAYER, STR_DRAWLOCALPLAYERALWAYS, function(ply)
 end)
+
 local materialsWheelDirve = {
 	["dirt"] = true, ["sand"] = true, ["grass"] = true
 }
 
 LookX, LookY = 0, 0
 local altlook = false
-
 lerpfovadd = 0
 local CalcView
 local oldVechicleAng = Angle(0,0,0)
@@ -229,29 +263,20 @@ local hg_thirdperson = ConVarExists("hg_thirdperson") and GetConVar("hg_thirdper
 local hg_legacycam = ConVarExists("hg_legacycam") and GetConVar("hg_legacycam") or CreateConVar("hg_legacycam", 0, FCVAR_REPLICATED, "Toggle legacy first-person camera view if hg_thirdperson is enabled", 0, 1)
 local lerpasad = 0
 
-hook.Remove("CalcView", "wac_air_calcview")
-hook.Remove("CreateMove", "wac_cl_seatswitch_centerview")
-//PrintTable(wac)
+hook.Remove(STR_CALCVIEW, "wac_air_calcview")
+hook.Remove(STR_CREATEMOVE, "wac_cl_seatswitch_centerview")
 
 local lerpaim = 1
 local hg_leancam_mul = ConVarExists("hg_leancam_mul") and GetConVar("hg_leancam_mul") or CreateClientConVar("hg_leancam_mul", "7", true, false, "Multiply first-person camera view leaning angle", -10, 10)
 zooming = false
 lerpfovadd2 = 0
 
-concommand.Add("+hg_zoom",function()
-	zooming = true
-end)
-
-concommand.Add("-hg_zoom",function()
-	zooming = false
-end)
-
-concommand.Add("hg_zoom",function()
-	zooming = not zooming
-end)
+concommand.Add("+hg_zoom", function() zooming = true end)
+concommand.Add("-hg_zoom", function() zooming = false end)
+concommand.Add("hg_zoom", function() zooming = not zooming end)
 
 surface.CreateFont(
-	"BODYCAMFONT",
+	STR_BODYCAMFONT,
 	{
 		font = "Bahnschrift",
 		size = ScreenScale(16),
@@ -260,50 +285,76 @@ surface.CreateFont(
 	}
 )
 
-hook.Add("HUDPaint", "HUDPaint_DrawABox", function() -- этот код старше вас, не судите строго
-	local lply = LocalPlayer()
+local color_black = Color(0, 0, 0)
+local color_white = color_white
+local color_gopro1 = Color(0, 173, 255)
+local color_gopro2 = Color(0, 70, 103)
+local draw_DrawText = draw.DrawText
+local draw_RoundedBox = draw.RoundedBox
+local DrawBloom = DrawBloom
+local DrawSharpen = DrawSharpen
+local util_SharedRandom = util.SharedRandom
+
+hook_Add(STR_HUDPAINT, STR_HUDPAINT_DRAWABOX, function()
+	lply = IsValid(lply) and lply or LocalPlayer()
 	if lply:Alive() and hg_gopro:GetBool() then
-		local specPly = lply
-		if not specPly:IsValid() then return end
-		local Text = "GoPro #" .. math.Round(util.SharedRandom(specPly:SteamID(),1000,9999,1),0)
-		draw.DrawText(Text, "BODYCAMFONT", ScrW() * 0.905 + 2, ScrH() * 0.035 + 2, Color(0, 0, 0), TEXT_ALIGN_CENTER)
-		draw.DrawText(Text, "BODYCAMFONT", ScrW() * 0.905, ScrH() * 0.035, Color(255, 255, 255), TEXT_ALIGN_CENTER)
-		draw.RoundedBox(0, ScrW() * 0.85, ScrH() * 0.085, 50, 28, Color(0, 173, 255))
-		draw.RoundedBox(0, ScrW() * 0.85 + 58, ScrH() * 0.085, 50, 28, Color(0, 173, 255))
-		draw.RoundedBox(0, ScrW() * 0.85 + 58 * 2, ScrH() * 0.085, 50, 28, Color(0, 70, 103))
-		draw.RoundedBox(0, ScrW() * 0.85 + 58 * 3, ScrH() * 0.085, 50, 28, color_white)
-		Text = specPly:GetName()
-		draw.DrawText(Text, "BODYCAMFONT", ScrW() * 0.905 + 2, ScrH() * 0.11 + 2, Color(0, 0, 0), TEXT_ALIGN_CENTER)
-		draw.DrawText(Text, "BODYCAMFONT", ScrW() * 0.905, ScrH() * 0.11, Color(255, 255, 255), TEXT_ALIGN_CENTER)
+		local sW, sH = ScrW(), ScrH()
+		local Text = "GoPro #" .. math_Round(util_SharedRandom(lply:SteamID(), 1000, 9999, 1), 0)
+		local sW0905 = sW * 0.905
+		local sH0035 = sH * 0.035
+		draw_DrawText(Text, STR_BODYCAMFONT, sW0905 + 2, sH0035 + 2, color_black, TEXT_ALIGN_CENTER)
+		draw_DrawText(Text, STR_BODYCAMFONT, sW0905, sH0035, color_white, TEXT_ALIGN_CENTER)
+		
+		local sW085 = sW * 0.85
+		local sH0085 = sH * 0.085
+		draw_RoundedBox(0, sW085, sH0085, 50, 28, color_gopro1)
+		draw_RoundedBox(0, sW085 + 58, sH0085, 50, 28, color_gopro1)
+		draw_RoundedBox(0, sW085 + 116, sH0085, 50, 28, color_gopro2)
+		draw_RoundedBox(0, sW085 + 174, sH0085, 50, 28, color_white)
+		
+		local nameText = lply:GetName()
+		local sH011 = sH * 0.11
+		draw_DrawText(nameText, STR_BODYCAMFONT, sW0905 + 2, sH011 + 2, color_black, TEXT_ALIGN_CENTER)
+		draw_DrawText(nameText, STR_BODYCAMFONT, sW0905, sH011, color_white, TEXT_ALIGN_CENTER)
 		DrawBloom(0.8, 1, 9, 9, 1, 1.2, 0.8, 0.8, 1.2)
 		DrawSharpen(0.2, 1.2)
 	end
 end)
 
 function SpecCam(ply, vec, ang, fov, znear, zfar)
-	if !ply:Alive() then return end
-	--local hand = ply:GetAttachment(ply:LookupAttachment("anim_attachment_rh"))
+	if not ply:Alive() then return end
 	local eye = ply:GetAttachment(ply:LookupAttachment("eyes"))
-	--local org = eye.Pos
+	if not eye then return end
 	local ang1 = eye.Ang + Angle(5, 2, 0)
-	local org1 = eye.Pos + eye.Ang:Up() * 6 + eye.Ang:Forward() * -3 + eye.Ang:Right() * 6.5
+	local eyeAng = eye.Ang
+	local org1 = eye.Pos + eyeAng:Up() * 6 + eyeAng:Forward() * -3 + eyeAng:Right() * 6.5
 
-	local view = {
+	return {
 		origin = org1,
 		angles = ang1,
 		fov = 110,
 		drawviewer = true,
 		znear = 0.7
 	}
-
-	return view
 end
 
 local hg_coolcamera = ConVarExists("hg_coolcamera") and GetConVar("hg_coolcamera") or CreateConVar("hg_coolcamera", 0, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Cool camera movement", 0, 5)
+local vector_up = vector_up
+local MASK_SOLID_BRUSHONLY = MASK_SOLID_BRUSHONLY
+local VectorRand = VectorRand
+local GetViewPunchAngles2 = GetViewPunchAngles2
+local GetViewPunchAngles3 = GetViewPunchAngles3
+local GetViewPunchAngles4 = GetViewPunchAngles4
+local GetAllViewPunchAngles = GetAllViewPunchAngles
+local GetViewPunchAngles = GetViewPunchAngles
+local IsAimingNoScope = IsAimingNoScope
+local ishgweapon = ishgweapon
 
 CalcView = function(ply, origin, angles, fov, znear, zfar)
 	if g_VR and g_VR.active then return end
-	if GetViewEntity() ~= (ply or LocalPlayer()) then return end
+	lply = IsValid(lply) and lply or LocalPlayer()
+	local activeViewEnt = GetViewEntity()
+	if activeViewEnt ~= (ply or lply) then return end
 
 	local view = {
 		["origin"] = origin,
@@ -317,182 +368,147 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 	if drive.CalcView(ply, view) then return view end
 
 	local rlEnt = hg.GetCurrentCharacter(ply)
-	lerpfovadd = LerpFT(0.01, lerpfovadd, (ply:IsSprinting() and rlEnt == ply and rlEnt:GetVelocity():LengthSqr() > 1500 and 10 or 0) - ( ply.organism and (ply.organism and (((ply.organism.immobilization or 0) / 4) - (ply.organism.adrenaline or 0) * 5 - (ply.organism.noradrenaline or 0) * 15)) or 0) / 2 - (ply.suiciding and (ply:GetNetVar("suicide_time",CurTime()) < CurTime()) and (1 - math.max(ply:GetNetVar("suicide_time",CurTime()) + 8 - CurTime(),0) / 8) * 20 or 0))
-	lerpfovadd2 = LerpFT(0.1, lerpfovadd2, zooming and -25 or 0)
+	local pOrg = ply.organism
+	local fovSub = 0
+	if pOrg then
+		fovSub = (((pOrg.immobilization or 0) / 4) - (pOrg.adrenaline or 0) * 5 - (pOrg.noradrenaline or 0) * 15)
+	end
+	
+	local suicideSub = 0
+	if ply.suiciding then
+		local sTime = ply:GetNetVar("suicide_time", CurTime())
+		if sTime < CurTime() then
+			suicideSub = (1 - math_max(sTime + 8 - CurTime(), 0) / 8) * 20
+		end
+	end
 
+	local sprintCond = (ply:IsSprinting() and rlEnt == ply and rlEnt:GetVelocity():LengthSqr() > 1500) and 10 or 0
+	lerpfovadd = LerpFT(0.01, lerpfovadd, sprintCond - fovSub / 2 - suicideSub)
+	lerpfovadd2 = LerpFT(0.1, lerpfovadd2, zooming and -25 or 0)
 	fov = hg_fov:GetInt()
 	
 	if not IsValid(ply) then return end
-	//do return end
-
-	--print(ply, ply.FakeRagdoll, ply:GetNWEntity("FakeRagdoll"))
 	
-	if LocalPlayer().lean and math.abs(LocalPlayer().lean) < 0.01 then
+	if lply.lean and math_abs(lply.lean) < 0.01 then
 		oldlean = 0
 		lean_lerp = 0
 	end
 
-	--angles.roll = (turned and 180 or 0) + lean_lerp * 10
-
 	local vpang = GetViewPunchAngles2() + GetViewPunchAngles3()
 	vpang[3] = 0
-
-
 
 	if IsValid(follow) then
 		return hg.CalcViewFake(ply, origin, angles, fov, znear, zfar)
 	end
-	if ply:InVehicle() then
-		ply.lockcamera = false//true
-	else
-		ply.lockcamera = false
-	end
+	ply.lockcamera = false
 
 	if not ply:Alive() and not follow then
-		return hook.Run("HG_CalcView", lply, origin, angles, fov, znear, zfar)
+		return hook_Run("HG_CalcView", lply, origin, angles, fov, znear, zfar)
 	end
 
-	if not IsValid(ply) or not ply.LookupBone or not ply:LookupBone("ValveBiped.Bip01_Head1") then return end
-	
+	if not ply.LookupBone or not ply:LookupBone("ValveBiped.Bip01_Head1") then return end
 	if not ply.GetAimVector then return end
 
-	local firstPerson = GetViewEntity() == lply
-
+	local firstPerson = activeViewEnt == lply
 	local fova = {0}
-	hook.Run("HG_CalcView", ply, origin, angles, fova, znear, zfar)
+	hook_Run("HG_CalcView", ply, origin, angles, fova, znear, zfar)
 	
 	if not firstPerson then return end
 	
-	att = ply:GetAttachment(ply:LookupAttachment("eyes"))
-	if not att or not istable(att) then return end
+	local att = ply:GetAttachment(ply:LookupAttachment("eyes"))
+	if not att then return end
 	
-	--ply:SetupBones()
-	--selfdraw = true
-	--ply:DrawModel()
-	--selfdraw = nil
-	//hg.DoTPIK(lply, lply)
 	local tr, hullcheck, headm = hg.eyeTrace(ply, 10, ply, att.Ang)
-	
-	--[[if hg_realismcam:GetBool() and ishgweapon(ply:GetActiveWeapon()) then
-		tr = hg.torsoTrace(ply)
-		local huy = angles[3]
-		angles = tr.Normal:Angle()
-		angles[3] = huy
-		local att = ply:GetAttachment(ply:LookupAttachment("eyes"))
-		angles = LerpAngle(0.5, angles, att.Ang)
-	end]]
-
 	local eyePos = tr.StartPos
 	local vehicle = ply:GetVehicle()
 	local vehiclebase = ply.GetSimfphys and ply:GetSimfphys() or nil
 	local BadSurfaceDrive = false
 	local vel = ply:GetMoveType() ~= MOVETYPE_NOCLIP and ( ( ply:InVehicle() and -vehicle:GetVelocity() or -ply:GetVelocity()) / (ply:InVehicle() and (BadSurfaceDrive and 150 or 550) or 200)) or vector_origin
 
-	//local ent = tr.Entity
-	//if IsValid(ent) then
-	//	debugoverlay.Line(ent:GetPos(), ent:GetPos() + ent:GetAngles():Forward() * 102, 1, color_white, false)
-	//end
-
 	if IsValid(vehicle) then
 		if IsValid(vehiclebase) then
 			vehicle = vehiclebase
 		end
-		local tr = util.TraceLine( {
+		
+		local traceStruct = {
 			start = vehicle:GetPos(),
 			endpos = vehicle:GetPos() + vector_up * -75,
-			mask = MASK_SOLID_BRUSHONLY,
-		} )
-		local surfaces = util.GetSurfacePropName( tr.SurfaceProps )
-		if materialsWheelDirve[surfaces] then
+			mask = MASK_SOLID_BRUSHONLY
+		}
+		local trVeh = util_TraceLine(traceStruct)
+		if materialsWheelDirve[util.GetSurfacePropName(trVeh.SurfaceProps)] then
 			BadSurfaceDrive = true
 		end
+		
 		local angPunch = vehicle:GetAngles()
-		--oldVechicleAng = angPunch
 		angPunch:Sub(oldVechicleAng)
 		angPunch:Normalize()
-		angPunch:Div(5) -- Ставьте это на 1 чтобы врубить блевота мод
+		angPunch:Div(5)
 		
-		--print(angPunch)
 		local PunchFinal = -angPunch
-		--print(PunchFinal)
 		ViewPunch2(PunchFinal)
 		ViewPunch(PunchFinal)
 		oldVechicleAng = vehicle:GetAngles()
-		--oldVechicleAng:Normalize()
 		vel = vehicle:GetVelocity() / (BadSurfaceDrive and 350 or 550)
 	end
 
 	local velLen = vel:Length()
-	--print()
 	ViewPunch(AngleRand(-1,1) * velLen / (BadSurfaceDrive and 5 or 50))
 
-	eyePos:Add(VectorRand() * ( (ply:InVehicle() or velLen > 2) and (velLen +( ply:InVehicle() and 0 or - 2)) / (ply:InVehicle() and 50 or 10) or 0))
-	hg.clamp(vel, limit)
-	angles = ply:InVehicle() and ply:GetAimVector():AngleEx(vehicle:GetUp()) or angles
-
-	--angles = angles + Angle(LookY,-LookX,0)
+	if ply:InVehicle() or velLen > 2 then
+		eyePos:Add(VectorRand() * ((velLen + (ply:InVehicle() and 0 or -2)) / (ply:InVehicle() and 50 or 10)))
+	end
 	
-	hg.cam_things(ply,view,angles)
-	--print(ply:EyeAngles())
+	hg.clamp(vel, limit)
+	if ply:InVehicle() then
+		angles = ply:GetAimVector():AngleEx(vehicle:GetUp())
+	end
+	
+	hg.cam_things(ply, view, angles)
+	
 	if not RENDERSCENE then
-		--[[local CamControl = hook.Run("HG_CalcView",ply, origin, angles, fov, znear, zfar)
-		if CamControl ~= nil then
-			return CamControl
-		end]]
-
 		local HuyControl = (zb and zb.OverrideCalcView) and zb.OverrideCalcView(ply, origin, angles, fov, znear, zfar)
 		if HuyControl ~= nil then
 			return HuyControl
 		end
 	end
 
-	--ply:ManipulateBoneScale(ply:LookupBone("ValveBiped.Bip01_Head1"), firstPerson and (not hg_thirdperson:GetBool() or hg_legacycam:GetBool() or lerpaim < 0.3) and vecZero or vecFull)
-
-	--local angle = tr.Normal:Angle()
-	--angle[3] = angles[3]
-
 	if hg_thirdperson:GetBool() then
-		lerpaim = LerpFT(0.1, lerpaim, (not IsAimingNoScope(ply)) and 1 or (hg_legacycam:GetBool() and 1 or 0))
-		leanmul1 = ((ply.lean < 0 and ply.lean * 2.2 or 0) + 1)
-		leanmul2 = ((ply.lean > 0 and ply.lean * 2.2 or 0) + 1)
+		local insideScope = IsAimingNoScope(ply)
+		lerpaim = LerpFT(0.1, lerpaim, (not insideScope) and 1 or (hg_legacycam:GetBool() and 1 or 0))
+		local pLean = ply.lean or 0
+		local leanmul1 = ((pLean < 0 and pLean * 2.2 or 0) + 1)
+		
 		origin = origin + ((angles:Forward() * -30 + angles:Right() * 15 * leanmul1) * lerpaim)
-		view = hook.Run("Camera", ply, view.origin, view.angles, view, vector_origin) or view
-		lerpasad = Lerp(0.1, lerpasad, ((IsAimingNoScope(ply) or hg_legacycam:GetBool()) and 0.001 or 1))
+		view = hook_Run(STR_CAMERA, ply, view.origin, view.angles, view, vector_origin) or view
+		lerpasad = Lerp(0.1, lerpasad, ((insideScope or hg_legacycam:GetBool()) and 0.001 or 1))
 
 		local pos = hg.eye(ply, 10, follow)
 		local ang = ply:EyeAngles()
-		local tr = {}
-		tr.start = pos
-		tr.endpos = pos - ang:Forward() * 60 * lerpasad + ang:Right() * 15 * lerpasad
-		tr.filter = {ply}
-		tr.mask = MASK_SOLID
+		
+		local trThird = {
+			start = pos,
+			endpos = pos - ang:Forward() * 60 * lerpasad + ang:Right() * 15 * lerpasad,
+			filter = {ply},
+			mask = MASK_SOLID
+		}
 
-		view.origin = util.TraceLine(tr).HitPos + ((tr.endpos - tr.start):GetNormalized() * -5)
+		view.origin = util_TraceLine(trThird).HitPos + ((trThird.endpos - trThird.start):GetNormalized() * -5)
 		view.angles = angles
 		view.drawviewer = true
 		view.fov = 95 + lerpfovadd + lerpfovadd2
 		return view
 	end
 
-	view.znear = 1 -- 3
+	view.znear = 1
 	view.zfar = zfar
-	view.fov = math.Clamp(hg_fov:GetFloat(),75,100) + fova[1] + lerpfovadd + lerpfovadd2
-	view.drawviewer = true--not hullcheck.Hit
+	view.fov = math_Clamp(hg_fov:GetFloat(), 75, 100) + fova[1] + lerpfovadd + lerpfovadd2
+	view.drawviewer = true
 	view.origin = origin
 	view.angles = angles
 
-	--local fixVal = math.min(math.max(angles[1] -30,0),40)/40
-	--fixLerp = LerpFT(.4,fixLerp, fixVal)
-	--local fixBlinkingModel = angles:Forward() * (-8 * fixLerp) + angles:Up()* (2 * fixLerp)
-	--eyePos:Add( fixBlinkingModel )
-
-	--view.fov = view.fov - 10 * fixVal
-	
-	result = hook_Run("Camera", ply, eyePos, angles, view, velLen * 200)
-	--if not RENDERSCENE then
+	result = hook_Run(STR_CAMERA, ply, eyePos, angles, view, velLen * 200)
 	view.origin, view.angles = HGAddView(ply, view.origin, view.angles, velLen)
-	--end
-	
 	realangle = realangle or lply:EyeAngles()
 
 	if GetCoolCameraBool() then
@@ -501,28 +517,24 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		angles = view.angles
 	end
 
-	view.angles:RotateAroundAxis(view.angles:Up(),-LookX)
-	view.angles:RotateAroundAxis(view.angles:Right(),-LookY)
-	--[[if lply:InVehicle() then
-		local FPersPos =  lply:GetAttachment(lply:LookupAttachment( "eyes" ))
-		view.origin = FPersPos.Pos
-		view.angles = FPersPos.Ang
-		return view
-	end--]]
+	view.angles:RotateAroundAxis(view.angles:Up(), -LookX)
+	view.angles:RotateAroundAxis(view.angles:Right(), -LookY)
+
 	if hg_gopro:GetBool() then
 		local vpangs = GetAllViewPunchAngles()
-		local anglegopro = Angle(0, vpangs[1], -vpangs[2]) * 1--Angle(vpangs[2], -vpangs[1], vpangs[3])
-		anglegopro[2] = anglegopro[2] + math.sin(CurTime() * 2) * math.cos(CurTime() * 1) * 2
-		anglegopro[1] = anglegopro[1] + math.cos(CurTime() * 1) * math.sin(CurTime() * 1.25) * 3
+		local anglegopro = Angle(0, vpangs[1], -vpangs[2])
+		local cTime = CurTime()
+		anglegopro[2] = anglegopro[2] + math_sin(cTime * 2) * math_cos(cTime) * 2
+		anglegopro[1] = anglegopro[1] + math_cos(cTime) * math_sin(cTime * 1.25) * 3
 		
 		hg.bone.Set(ply, "head", vector_origin, anglegopro, "gopro")
-		return SpecCam(ply, origin, angles, fov, znear, zfa)
+		return SpecCam(ply, origin, angles, fov, znear, zfar)
 	end
 
 	if result == view then
 		traceBuilder.start = origin
 		traceBuilder.endpos = view.origin
-		local trace = hg.hullCheck(ply:EyePos() - vector_up * 10,view.origin,ply)
+		local trace = hg.hullCheck(ply:EyePos() - vector_up * 10, view.origin, ply)
 		view.origin = trace.HitPos
 		
 		view.angles:Add(-vpang)
@@ -533,22 +545,22 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 
 	view.origin = eyePos
 	view.angles = angles
-
 	view.angles:Add(-vpang)
 	view.angles[3] = view.angles[3] + GetViewPunchAngles4()[3]
 
-	wep = ply:GetActiveWeapon()
+	local wep = ply:GetActiveWeapon()
 	if IsValid(wep) and whitelist[wep:GetClass()] then return end
 	result = hook_Run("PostPostHGCalcView", ply, view)
-	if result then
-		return result
-	end
+	if result then return result end
 
 	return view
 end
 
 local angleZero = Angle(0,0,0)
+local angle_zero = angle_zero
 local torsoOld
+local eyeAnglesOld
+local ftlerped = ftlerped
 
 function hg.cam_things(ply, view, angles)
 	local wep = ply:GetActiveWeapon()
@@ -556,37 +568,43 @@ function hg.cam_things(ply, view, angles)
 	eyeAngs[3] = 0
 	local oldviewa = oldview or view
 	local ent = hg.GetCurrentCharacter(ply)
-	if not ent:LookupBone("ValveBiped.Bip01_Spine") then return end
-	if not ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Spine")) then return end
-	local torso = ent:GetBoneMatrix(ent:LookupBone("ValveBiped.Bip01_Spine")):GetAngles()
-	--local oldorigin = originnew or ply:EyePos()
-	oldviewa = not ply:Alive() and view or oldviewa
 	
-	local different, _ = WorldToLocal(eyeAngs:Forward(), angle_zero, (eyeAnglesOld or eyeAngs):Forward(), angle_zero)
-	local different2, _ = WorldToLocal(torso:Forward(), angle_zero, (torsoOld or torso):Forward(), angle_zero)
-	local _, localAng = WorldToLocal(vector_origin, eyeAngs, vector_origin, eyeAnglesOld or eyeAngs)
+	local spineBone = ent:LookupBone("ValveBiped.Bip01_Spine")
+	if not spineBone then return end
+	local spineMatrix = ent:GetBoneMatrix(spineBone)
+	if not spineMatrix then return end
+	local torso = spineMatrix:GetAngles()
+	
+	if not ply:Alive() then oldviewa = view end
+	
+	eyeAnglesOld = eyeAnglesOld or eyeAngs
+	torsoOld = torsoOld or torso
+	
+	local different, _ = WorldToLocal(eyeAngs:Forward(), angle_zero, eyeAnglesOld:Forward(), angle_zero)
+	local different2, _ = WorldToLocal(torso:Forward(), angle_zero, torsoOld:Forward(), angle_zero)
+	local _, localAng = WorldToLocal(vector_origin, eyeAngs, vector_origin, eyeAnglesOld)
 
 	torsoOld = torso
 
-	local fthuy = ftlerped * 150 * game.GetTimeScale()--hg.FrameTimeClamped() * 300
-	fthuy = math.max(0.0001, fthuy) -- WHAT IF...
+	local fthuy = math_max(0.0001, ftlerped * 150 * game_GetTimeScale())
 	
-	angle_difference_localvec = LerpVectorFT(0.08, angle_difference_localvec, -different / (fthuy))
-	angle_difference_localvec2 = LerpVectorFT(0.08, angle_difference_localvec2, -different2 / (fthuy))
-	angle_difference = LerpAngleFT(0.08, angle_difference, localAng * 2 / (fthuy))
-	angle_difference2 = LerpAngleFT(0.1, angle_difference2, localAng * 2 / (fthuy))
-	local vela = -(hg.GetCurrentCharacter(ply):GetVelocity() / 50)
+	angle_difference_localvec = LerpVectorFT(0.08, angle_difference_localvec, -different / fthuy)
+	angle_difference_localvec2 = LerpVectorFT(0.08, angle_difference_localvec2, -different2 / fthuy)
+	angle_difference = LerpAngleFT(0.08, angle_difference, localAng * 2 / fthuy)
+	angle_difference2 = LerpAngleFT(0.1, angle_difference2, localAng * 2 / fthuy)
+	
+	local vela = -(ent:GetVelocity() / 50)
 	position_difference = LerpVectorFT(0.15, position_difference, vela)
 	position_difference2 = LerpVectorFT(0.05, position_difference2, vela)
-	position_difference23 = ply:EyeAngles():Right() * math.Clamp(position_difference2:Dot(ply:EyeAngles():Right()), -4, 4) + ply:EyeAngles():Up() * math.Clamp(position_difference2:Dot(ply:EyeAngles():Up()), -4, 4)
-	--if hg.GetCurrentCharacter(ply) ~= ply then position_difference:Zero() end
+	
+	local eRight, eUp = ply:EyeAngles():Right(), ply:EyeAngles():Up()
+	position_difference23 = eRight * math_Clamp(position_difference2:Dot(eRight), -4, 4) + eUp * math_Clamp(position_difference2:Dot(eUp), -4, 4)
 
 	table.CopyFromTo(view, oldview)
-	--originnew = ply:GetPos()
 
 	position_difference3[1] = 0
 	position_difference3[3] = 0
-	position_difference3[2] = position_difference:Dot(eyeAngs:Right())-- * (fthuy)
+	position_difference3[2] = position_difference:Dot(eyeAngs:Right())
 	
 	hg.clamp(position_difference, 2)
 	hg.clamp(position_difference3, 5)
@@ -599,55 +617,45 @@ function hg.cam_things(ply, view, angles)
 		offsetView[2] = math_Clamp(offsetView[2] - angle_difference2[2] / 18, -4, 4)
 	end
 
-	offsetView = LerpFT(0.001,offsetView,angleZero)
-
+	offsetView = LerpFT(0.001, offsetView, angleZero)
 	eyeAnglesOld = eyeAngs
-	local position_differencedot = position_difference:Dot(angles:Right()) * 2
-	angles[3] = angles[3] - angle_difference[2] * 0.5
-	--angles[3] = angles[3] - position_differencedot
-	angles[3] = angles[3] - (lean_lerp or 0) * hg_leancam_mul:GetInt()
+	
+	angles[3] = angles[3] - angle_difference[2] * 0.5 - (lean_lerp or 0) * hg_leancam_mul:GetInt()
 end
 
-concommand.Add("+altlook",function()
-	altlook = true
-end)
-concommand.Add("-altlook",function()
-	altlook = false
-end)
+concommand.Add("+altlook", function() altlook = true end)
+concommand.Add("-altlook", function() altlook = false end)
 
-local MaxLookX,MinLookX = 55,-55 
-local MaxLookY,MinLookY = 45,-45
+local MaxLookX, MinLookX = 55, -55 
+local MaxLookY, MinLookY = 45, -45
 
-hook.Add( "HG.InputMouseApply", "FreezeTurning", function( tbl )
-
-	MaxLookX,MinLookX = hg.MaxLookX or MaxLookX, hg.MinLookX or MinLookX
-	MaxLookY,MinLookY = hg.MaxLookY or MaxLookY, hg.MinLookY or MinLookY
+hook_Add(STR_HG_INPUTMOUSEAPPLY, STR_FREEZETURNING, function(tbl)
+	MaxLookX, MinLookX = hg.MaxLookX or MaxLookX, hg.MinLookX or MinLookX
+	MaxLookY, MinLookY = hg.MaxLookY or MaxLookY, hg.MinLookY or MinLookY
 
 	if not altlook then
 		LookY = LerpFT(0.1, LookY, 0)
-		LookY = math.abs(LookY) > 0.01 and LookY or 0
+		if math_abs(LookY) <= 0.01 then LookY = 0 end
 		LookX = LerpFT(0.1, LookX, 0)
-		LookX = math.abs(LookX) > 0.01 and LookX or 0
+		if math_abs(LookX) <= 0.01 then LookX = 0 end
+	else
+		lply = IsValid(lply) and lply or LocalPlayer()
+		if lply:Alive() then
+			LookX = math_Clamp(LookX + tbl.x * 0.015, MinLookX, MaxLookX)
+			LookY = math_Clamp(LookY + tbl.y * 0.015, MinLookY, MaxLookY)
+			tbl.x = 0
+			tbl.y = 0
+		end
 	end
-	
-	if altlook and LocalPlayer():Alive() then
-		LookX = math.Clamp(LookX + tbl.x * 0.015, MinLookX, MaxLookX)
-    	LookY = math.Clamp(LookY + tbl.y * 0.015, MinLookY, MaxLookY)
-		
-		tbl.x = 0
-		tbl.y = 0
-	end
-
-end )
+end)
 
 hg.CalcView = CalcView
-hook.Add("CalcView", "homigrad-view", function(ply, origin, angles, fov, znear, zfar)
+hook_Add(STR_CALCVIEW, STR_HOMIGRAD_VIEW, function(ply, origin, angles, fov, znear, zfar)
 	local viewa = viewOverride
 	viewOverride = nil
 	return viewa or CalcView(ply, origin, angles, fov, znear, zfar)
 end)
 
-local hook_Run = hook.Run
 local render_RenderView = render.RenderView
 local renderView = {
 	x = 0,
@@ -658,54 +666,41 @@ local renderView = {
 	drawmonitors = true,
 	fov = 100
 }
-local fliprt = GetRenderTarget( "fb_flipped", ScrW(), ScrH(), false )
+
+local fliprt = GetRenderTarget("fb_flipped", ScrW(), ScrH(), false)
 local fliprtmat = CreateMaterial(
-    "fliprtmat",
-    "UnlitGeneric",
-    {
-        [ '$basetexture' ] = fliprt,
-        [ '$basetexturetransform' ] = "center .5 .5 scale -1 1 rotate 0 translate 0 0",
-    }
+	"fliprtmat",
+	"UnlitGeneric",
+	{
+		['$basetexture'] = fliprt,
+		['$basetexturetransform'] = "center .5 .5 scale -1 1 rotate 0 translate 0 0",
+	}
 )
 
-local invertCam = CreateClientConVar("hg_cheats","0",false,false,"Toggle uselezz cheats",0,1)
+local invertCam = CreateClientConVar("hg_cheats", "0", false, false, "Toggle uselezz cheats", 0, 1)
 
-hook.Add("HG.InputMouseApply","ASdInvert",function(tbl)
+hook_Add(STR_HG_INPUTMOUSEAPPLY, STR_ASDINVERT, function(tbl)
 	if invertCam:GetBool() then
 		tbl.x = -tbl.x
-		--print("huy")
-		--return true
 	end
 end)
 
-hook.Add( "CreateMove", "flipmove", function( cmd )	
+hook_Add(STR_CREATEMOVE, STR_FLIPMOVE, function(cmd)	
 	if invertCam:GetBool() then
-		cmd:SetSideMove( -cmd:GetSideMove() )
+		cmd:SetSideMove(-cmd:GetSideMove())
 	end
 end)
 
---local hg_norenderoverride = ConVarExists("hg_norenderoverride") and GetConVar("hg_norenderoverride") or CreateClientConVar("hg_norenderoverride", 0, true, false, "if you have lags you can try turning that on", 0, 1)
-local mapswithfog = { -- Надо от сервер сайда сделать...
-	--["gm_freespace_09_super_extended_night"] = 5500,
-	--["gm_white_forest_countryside"] = 6000,
-	--["gm_york_remaster"] = 9500,
-	--["gm_city_of_silence"] = 1500,
-	----["gm_construct"] = 8000,
-	--["gm_fork"] = 9500,
-	--["rp_zapolye_v2"] = 7500
-}
---GlobalRenderOverideTickOFF = true
+local mapswithfog = {}
 local zfar = mapswithfog[game.GetMap()] or 0
 local map = game.GetMap()
-local render_RenderView
-local scrw,scrh = ScrW(),ScrH()
+local scrw, scrh = ScrW(), ScrH()
 local entmeta = FindMetaTable("Entity")
 local eyepos = entmeta.EyePos
 local eyeangles = entmeta.EyeAngles
-local fLPly = LocalPlayer
-local IsValid = IsValid
+
 local function renderscene(pos, angle, fov)
-	lply = IsValid(lply) and lply or fLPly()
+	lply = IsValid(lply) and lply or LocalPlayer()
 	
 	pos = eyepos(lply)
 	angle = eyeangles(lply)
@@ -713,95 +708,80 @@ local function renderscene(pos, angle, fov)
 	viewOverride = view
 	
 	local invert = invertCam:GetBool()
-	
 	RENDERSCENE = nil
 	if not view then return end
+	
+	local oldrt
 	if invert then
-		local oldrt = render.GetRenderTarget()
-		render.SetRenderTarget( fliprt )
+		oldrt = render.GetRenderTarget()
+		render.SetRenderTarget(fliprt)
 	end
 
-	--hook.Run("HG_RenderScene", pos, angle, fov)
-
-	renderView.w = scrw
-	renderView.h = scrh
+	renderView.w = ScrW()
+	renderView.h = ScrH()
 	renderView.fov = fov
 	renderView.origin = view.origin
 	renderView.angles = view.angles
 	if mapswithfog[map] then
 		renderView.zfar = zfar
 	end
-	//local cur = hg.GetCurrentCharacter(lply)
-	//if cur == lply then hg.renderOverride(cur, lply) end
 
 	lply.norender = true
-	
-	if not render_RenderView then render_RenderView = render.RenderView return end
 	if not isvector(view.origin) or not isangle(view.angles) then return end
-	--if GlobalRenderOverideTickOFF then GlobalRenderOverideTickOFF = nil return end
-	--lply:DrawModel()
 
 	render_RenderView(renderView)
 	lply.norender = nil
 	
 	if invert then
-		render.SetRenderTarget( oldrt )
-		fliprtmat:SetTexture( "$basetexture", fliprt )
-		render.SetMaterial( fliprtmat )
+		render.SetRenderTarget(oldrt)
+		fliprtmat:SetTexture("$basetexture", fliprt)
+		render.SetMaterial(fliprtmat)
 		render.DrawScreenQuad()
 	end
 
 	return true
 end
 
-
---[[cvars.AddChangeCallback( "hg_norenderoverride", function(cvar, old, new)
-	if tonumber(new) == 0 then
-		hook.Add("RenderScene", "jopa", renderscene)
-	else
-		--hook.Remove("RenderScene", "jopa")
-	end
-end, "huynuck")]]
-
-hook.Add("RenderScene", "jopa", renderscene)
+hook_Add(STR_RENDERSCENE, STR_JOPA, renderscene)
 
 local vector_zero = Vector(0,0,0)
-net.Receive("LookAway",function()
+net.Receive(STR_LOOKAWAY, function()
 	local ply = net.ReadEntity()
-	local LookX = net.ReadFloat()
-	local LookY = net.ReadFloat()
-	-- THE MOST TERRRRIBLE EXPPPLOIT EVERRR IS FFFRIXED!!!!!!!!!! :3 -w-
-	ply.LookX1 = math.Clamp(LookX,MinLookX,MaxLookX)
-	ply.LookY1 = math.Clamp(LookY,MinLookY,MaxLookY)
+	if not IsValid(ply) then return end
+	local rX = net.ReadFloat()
+	local rY = net.ReadFloat()
+	ply.LookX1 = math_Clamp(rX, MinLookX, MaxLookX)
+	ply.LookY1 = math_Clamp(rY, MinLookY, MaxLookY)
 	ply.LastLookSend = CurTime()
 end)
 
 local angle_use = Angle(0,0,0)
-hook.Add("Bones","HeadTurnAway",function(ply)
-	if (ply.head_netsendtime or 0) < CurTime() and ply == LocalPlayer() and (hg.IsChanged(LookX, "LookX") or hg.IsChanged(LookY, "LookY")) then
-		ply.head_netsendtime = CurTime() + 0.1
-		
-		net.Start("LookAway", true)
+hook_Add(STR_BONES, STR_HEADTURNAWAY, function(ply)
+	local cTime = CurTime()
+	lply = IsValid(lply) and lply or LocalPlayer()
+	local isLocal = ply == lply
+
+	if (ply.head_netsendtime or 0) < cTime and isLocal and (hg.IsChanged(LookX, "LookX") or hg.IsChanged(LookY, "LookY")) then
+		ply.head_netsendtime = cTime + 0.1
+		net.Start(STR_LOOKAWAY, true)
 			net.WriteFloat(LookX)
 			net.WriteFloat(LookY)
 		net.SendToServer()
 	end
 
-	local lply = ply == LocalPlayer()
-
-	if not lply and ((ply.LastLookSend or 0) + 1) < CurTime() then
+	if not isLocal and ((ply.LastLookSend or 0) + 1) < cTime then
 		ply.LookX = nil
 		ply.LookY = nil
 	end
 
-	ply.LookX = Lerp(0.1, ply.LookX or 0, lply and LookX or ply.LookX1 or 0)
-	ply.LookY = Lerp(0.1, ply.LookY or 0, lply and LookY or ply.LookY1 or 0)
+	ply.LookX = Lerp(0.1, ply.LookX or 0, isLocal and LookX or ply.LookX1 or 0)
+	ply.LookY = Lerp(0.1, ply.LookY or 0, isLocal and LookY or ply.LookY1 or 0)
 
 	local angle = angle_use
 	angle[2] = -(ply.LookY or 0) * 0.6
 	angle[3] = -(ply.LookX or 0) * 0.6
 
-	if !angle:IsEqualTol(angle_zero, 0.01) then
+	if not angle:IsEqualTol(angle_zero, 0.01) then
 		hg.bone.Set(ply, "head", vector_origin, angle, "headturn")
 	end
 end)
@@ -810,35 +790,27 @@ local n = 35
 local color = Color(render.GetFogColor())
 local fogcolor = Color(render.GetFogColor())
 local tbl = {}
+local render_SetColorMaterial = render.SetColorMaterial
+local render_DrawSphere = render.DrawSphere
+local ColorAlpha = ColorAlpha
+
 local function DrawFog(bDepth, bSkybox)
 	if not mapswithfog[map] then return end
-	--if ( bSkybox ) then return end
 
-	render.SetColorMaterial()
+	render_SetColorMaterial()
 
-	local view = render.GetViewSetup()
+	local view = render_GetViewSetup()
 	local pos = view.origin
-	local ang = view.angles
+	zfar = LerpFT(0.005, zfar, not util.IsSkyboxVisibleFromPoint(pos) and 15000 or mapswithfog[map])
 
-	zfar = LerpFT(0.005, zfar, not util.IsSkyboxVisibleFromPoint( pos ) and 15000 or mapswithfog[map])
-
-	local zfar = zfar-(mapswithfog[map]/2.5)
+	local baseZFar = zfar - (mapswithfog[map] / 2.5)
+	local step = mapswithfog[map] / 2.5
 	for i = 1, n do
-		tbl[i] = tbl[i] or ColorAlpha(color, (i/n) * 110 )
-		--tbl[i]["r"] = fogcolor["r"]
-		--tbl[i]["g"] = fogcolor["g"]
-		--tbl[i]["b"] = fogcolor["b"]
-		render.DrawSphere( pos, -(zfar+((i-1)*(n))), 15, 15, tbl[i] )
+		tbl[i] = tbl[i] or ColorAlpha(color, (i / n) * 110)
+		render_DrawSphere(pos, -(baseZFar + ((i - 1) * n)), 15, 15, tbl[i])
 	end
-	--local clr1, clr2, clr3 = render.GetFogColor()
-	--fogcolor["r"] = clr1
-	--fogcolor["g"] = clr2
-	--fogcolor["b"] = clr3
 end
-hook.Add( "PreDrawTranslucentRenderables", "FPS_Fog", function( bDepth, bSkybox )
-	DrawFog(bDepth, bSkybox)
-end )
 
---hook.Add( "PreDrawOpaqueRenderables", "FPS_Fog", function( bDepth, bSkybox )
---	--DrawFog(bDepth, bSkybox)
---end )
+hook_Add(STR_PREDRAWTRANSLUCENTRENDERABLES, STR_FPS_FOG, function(bDepth, bSkybox)
+	DrawFog(bDepth, bSkybox)
+end)
