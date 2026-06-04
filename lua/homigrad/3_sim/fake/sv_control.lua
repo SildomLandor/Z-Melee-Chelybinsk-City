@@ -87,7 +87,6 @@ local shadowControl = hg.ShadowControl
 hook.Add("Fake", "Contorl", function(ply, ragdoll)
 	ragdoll.cooldownLH = 0
 	ragdoll.cooldownRH = 0
-	ragdoll.dtimeSmooth = nil
 end)
 
 local att, trace, ent
@@ -133,13 +132,11 @@ local speedupbones = {
 	["ValveBiped.Bip01_R_Foot"] = true,
 }
 
+local vecfive = Vector(5,5,5)
+
 local player_GetHumans = player.GetHumans
-local fakeTickBase = 1 / 33
-local fakeTickIdle = 1 / 10
-local dtimeMax = fakeTickBase * 1.4
 
 hook.Add("Think", "Fake", function()
-	local timeNow = CurTime()
 	hg.humans_cached = player_GetHumans()
 
 	//for ply, ragdoll in pairs(hg.ragdollFake) do
@@ -169,19 +166,10 @@ hook.Add("Think", "Fake", function()
 			continue
 		end
 
-		local phys = ragdoll:GetPhysicsObject()
-		local vellen = IsValid(phys) and phys:GetVelocity():Length() or 0
-		local activeInput = ply:KeyDown(IN_FORWARD) or ply:KeyDown(IN_BACK) or ply:KeyDown(IN_MOVELEFT) or ply:KeyDown(IN_MOVERIGHT)
-			or ply:KeyDown(IN_ATTACK) or ply:KeyDown(IN_ATTACK2) or ply:KeyDown(IN_USE) or ply:KeyDown(IN_SPEED) or ply:KeyDown(IN_JUMP)
-		if (ragdoll.nextControlThink or 0) > timeNow then continue end
-		ragdoll.nextControlThink = timeNow + ((not activeInput and vellen < 80) and fakeTickIdle or fakeTickBase)
+		ragdoll.dtime = (SysTime() - (ragdoll.lastCallTime or SysTime())) * game.GetTimeScale()
+		ragdoll.lastCallTime = SysTime()
 
-		local sysNow = SysTime()
-		local rawDTime = (sysNow - (ragdoll.lastCallTime or sysNow)) * game.GetTimeScale()
-		ragdoll.lastCallTime = sysNow
-		local clampedDTime = math.Clamp(rawDTime, 0, dtimeMax)
-		ragdoll.dtimeSmooth = ragdoll.dtimeSmooth and Lerp(0.2, ragdoll.dtimeSmooth, clampedDTime) or clampedDTime
-		ragdoll.dtime = ragdoll.dtimeSmooth
+		local vellen = ragdoll:GetPhysicsObject():GetVelocity():Length()
 
 		local org = ply.organism
 		local wep = ply:GetActiveWeapon()
@@ -218,7 +206,7 @@ hook.Add("Think", "Fake", function()
 					local name = ragdoll:GetBoneName(bone)
 
 					if IsValid(physobj) then
-						local bone_impulse = ply.HitBones and ply.HitBones[name] or CurTime()
+						local bone_impulse = ply.HitBones and ply.HitBones[bonename] or CurTime()
 						local amt_impulse = (2 - math.Clamp(bone_impulse - CurTime(),0,2)) / 2
 						
 						local p = {}
@@ -554,7 +542,7 @@ hook.Add("Think", "Fake", function()
 			end
 
 			if org.stamina[1] < 50 and (IsValid(ragdoll.ConsRH) or IsValid(ragdoll.ConsLH)) then
-				ply:Notify( math.random(1,2) == 1 and "Пальцы скользят... Я сейчас упаду..." or "Пальцы... Больше не держат...", 25, "ragdoll_almostfall", 0, nil, Color(200, 55, 55))
+				ply:Notify( math.random(1,2) == 1 and "I'm at my limits here!" or "I can't hold much longer...", 25, "ragdoll_almostfall", 0, nil, Color(200, 55, 55))
 			end
 
 			if ply:KeyDown(IN_SPEED) and org.canmove and !org.larmamputated and (!ply.HandsStun or ply.HandsStun < CurTime()) then
@@ -756,7 +744,7 @@ hook.Add("Think", "Fake", function()
 				end
 
 				if org.otrub then
-					ply:Notify("Кажеться... Он не дышит", 60, "Не дышит"..(org.owner:EntIndex()))
+					ply:Notify("They seem unresponsive.", 60, "choked"..(org.owner:EntIndex()))
 				end
 			end
 			--print("huy")
