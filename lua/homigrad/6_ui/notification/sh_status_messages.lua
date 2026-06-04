@@ -390,8 +390,6 @@ local function get_status_message(ply)
 		if not most_wanted_phraselist then
 			if (broken_dislocated_notify) and (blood < 3100) then
 				most_wanted_phraselist = blood < 2900 and (near_death_poetic) or (math.random(2) == 1 and (broken_notify and broken_limb or dislocated_limb) or near_death_poetic)
-			--elseif(broken_dislocated_notify)then
-				--most_wanted_phraselist = (broken_notify and broken_limb or dislocated_limb)
 			elseif(blood < 3100)then
 				most_wanted_phraselist = near_death_poetic
 			end
