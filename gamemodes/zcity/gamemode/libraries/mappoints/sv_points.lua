@@ -107,7 +107,7 @@ function zb.GetAllPoints(forceupdate)
     return allpoints
 end
 
-hook.Add("InitPostEntity", "inithuyOwOs", function()
+hook.Add("InitPostEntity", "initallpoints", function()
     zb.GetAllPoints(true)
 end)
 

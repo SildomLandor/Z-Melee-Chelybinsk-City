@@ -1,4 +1,4 @@
-local inchtmhuy = 0.0254
+local intbin = 0.0254
 local skey = { [1] = "BOMB_ZONE_A", [2] = "BOMB_ZONE_B" }
 
 local function siteKey(site)
@@ -6,7 +6,7 @@ local function siteKey(site)
 end
 
 function zb.InchesToMeters(units)
-	return units * inchtmhuy
+	return units * intbin
 end
 
 function zb.GetBombSitePoints(site)
@@ -40,7 +40,7 @@ end
 local function baseRadiusUnits()
 	local cv = GetConVar("zb_bomb_site_radius")
 	local m = cv and cv:GetFloat() or 25
-	return math.Clamp(m, 15, 40) / inchtmhuy
+	return math.Clamp(m, 15, 40) / intbin
 end
 
 function zb.GetBombSiteRadius(site)
