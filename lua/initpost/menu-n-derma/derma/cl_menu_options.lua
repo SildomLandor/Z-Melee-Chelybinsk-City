@@ -31,6 +31,20 @@ hg.settings:AddOpt("Оптимизация","hg_attachment_draw_distance", "Да
 hg.settings:AddOpt("Оптимизация","hg_maxsmoketrails", "Максимум дымовых следов")
 hg.settings:AddOpt("Оптимизация","hg_tpik_distance", "Дальность рендера TPIK")
 
+hg.settings:AddOpt("Шейдеры","pp_ssdo", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","pp_ssss", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","pp_hbao", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_ffx_cas", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_fxaa", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_ddof_gshader", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","pp_pbb", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","cl_physsky", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_ssr", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_smaa", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","pp_ssao_plus", "Дальность рендера TPIK")
+hg.settings:AddOpt("Шейдеры","r_motionblur", "Дальность рендера TPIK")
+
+
 hg.settings:AddOpt("Кровь","hg_blood_draw_distance", "Дальность прорисовки крови")
 hg.settings:AddOpt("Кровь","hg_blood_fps", "FPS крови")
 --hg.settings:AddOpt("Кровь","hg_blood_sprites", "Спрайты крови (ОТКЛЮЧЕНО ДЛЯ ВСЕХ)")
