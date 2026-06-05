@@ -62,7 +62,12 @@ function CLASS.On(self)
 
     self:SetNWString("PlayerName", rank .. " " .. Appearance.AName)
     self:SetPlayerColor(clr)
-    self:SetModel(models)
+        local modelList = {}
+    for _, mdl in pairs(models) do
+        table.insert(modelList, mdl)
+    end
+    local selectedModel = modelList[math.random(#modelList)]
+    self:SetModel(selectedModel)
     self:SetBodygroup(00)
     self:SetSubMaterial()
     self:SetNetVar("Accessories", Appearance.AAttachmets or "none")
