@@ -537,6 +537,13 @@ hook.Add("Think", "ItHurtsThink", function()
 
 	fx.active = fx.drawBlind or fx.drawHurt or fx.drawHeat or fx.drawAssim or fx.drawGrain or fx.drawCold
 		or fx.drawPain or fx.drawO2 or fx.drawBrainBlur or fx.drawBrainImg
+
+	if PainLerp > 20 then
+		local chromIntensity = math.Clamp((PainLerp - 20) / 1, 0, 100)
+		RunConsoleCommand("pp_scaf_intensity", tostring(chromIntensity))
+	else
+		RunConsoleCommand("pp_scaf_intensity", "0")
+	end
 end)
 
 hook.Add("Post Post Processing", "ItHurts", function()
