@@ -457,7 +457,7 @@ local male09facemap = "models/humans/male/group01/erdim_cylmap"
 AddFacemap(male09facemap, "Default", "", "models/zcity/m/male_09.mdl")
 AddFacemap(male09facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap")
 for i = 2, 11 do
-	tFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
+	AddFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
 end
 
 -- Bodygroups

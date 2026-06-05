@@ -28,7 +28,6 @@ local fovlerp = 0
 
 local hg_setzoompos = CreateClientConVar("hg_setzoompos", "0", false, false, "settingzoom", 0, 1)
 local hg_gun_cam = CreateClientConVar("hg_gun_cam", "0", false, false, "settingzoom", 0, 1)
-local hg_realismcam = ConVarExists("hg_realismcam") and GetConVar("hg_realismcam") or CreateClientConVar("hg_realismcam", "0", true, false, "realism camera", 0, 1)
 
 local zoomPosSetter = Vector()
 local isSettingZoom = false
@@ -344,12 +343,11 @@ function SWEP:Camera(eyePos, eyeAng, view, vellen, ply)
 
 	ply:SetLOD(0);
 
-	if hg_realismcam:GetBool() then
-		outputPos:Add(-(angle_difference_localvec * 150))
-		local ang = -(angle_difference * 5)
-		ang[3] = ang[3] / 2
-		outputAng:Add(ang)
-	end
+	outputPos:Add(-(angle_difference_localvec * 150))
+	local ang = -(angle_difference * 5)
+	ang[3] = ang[3] / 2
+	outputAng:Add(ang)
+
 
 	if not hg_nofovzoom:GetBool() then
 		fov_mode_lerp = LerpFT(0.12, fov_mode_lerp, (self:HasAttachment("sight","optic") and not self.viewmode1 and -15 - (hg_fov:GetInt() - 75)) or - (hg_fov:GetInt() - 80))
