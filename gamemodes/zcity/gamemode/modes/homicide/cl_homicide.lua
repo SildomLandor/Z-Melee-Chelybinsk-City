@@ -239,6 +239,7 @@ surface.CreateFont("ZB_HomicideSmall", {
 	font = font(),
 	size = ScreenScale(15),
 	weight = 400,
+	extended = true,
 	antialias = true
 })
 
@@ -246,6 +247,7 @@ surface.CreateFont("ZB_HomicideMedium", {
 	font = font(),
 	size = ScreenScale(15),
 	weight = 400,
+	extended = true,
 	antialias = true
 })
 
@@ -253,6 +255,7 @@ surface.CreateFont("ZB_HomicideMediumLarge", {
 	font = font(),
 	size = ScreenScale(25),
 	weight = 400,
+	extended = true,
 	antialias = true
 })
 
@@ -260,6 +263,7 @@ surface.CreateFont("ZB_HomicideLarge", {
 	font = font(),
 	size = ScreenScale(30),
 	weight = 400,
+	extended = true,
 	antialias = true
 })
 
@@ -267,6 +271,7 @@ surface.CreateFont("ZB_HomicideHumongous", {
 	font = font(),
 	size = 255,
 	weight = 400,
+	extended = true,
 	antialias = true
 })
 

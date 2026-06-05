@@ -343,8 +343,8 @@ local function OpenBuyMenu()
 	if not ply:Alive() or startTime + 40 < CurTime() then return end
 
 	local sw, sh = ScrW(), ScrH()
-	local sizeX = math.Clamp(math.floor(sw * 0.46), 520, 820)
-	local sizeY = math.Clamp(math.floor(sh * 0.78), 420, sh - ScreenScaleH(40))
+	local sizeX = sw - ScreenScale(280)   -- ширина экрана минус отступы
+	local sizeY = sh - ScreenScaleH(40)  -- высота экрана минус место под верхнюю панель и footer
 	local posX = math.floor(sw * 0.5 - sizeX * 0.5)
 	local posY = math.floor(sh * 0.5 - sizeY * 0.5)
 	local margin = ScreenScale(6)

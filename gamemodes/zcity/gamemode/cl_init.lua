@@ -994,7 +994,7 @@ function GM:ScoreboardShow()
 
 		tick = math.Round(LerpFT(0.1, tick, 1 / engine.ServerFrameTime()))
 		surface.SetFont("ZCity_Veteran")
-		local tickText = tick .. " Тикрейт"
+		local tickText = " Тикрейт: " .. tick
 		local tickTW = surface.GetTextSize(tickText)
 		local tickCol = tick >= 60 and col.textDim or (tick >= 30 and Color(220, 180, 60, 200) or col.textBlood)
 		surface.SetTextColor(tickCol)
