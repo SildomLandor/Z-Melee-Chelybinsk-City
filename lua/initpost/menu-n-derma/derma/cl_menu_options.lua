@@ -52,8 +52,8 @@ hg.settings:AddOpt("Вид","hg_cshs_fake", "Камера тряпичной к�
 hg.settings:AddOpt("Вид","hg_nofovzoom", "Отключить/Включить зум FOV")
 
 --hg.settings:AddOpt("Звук","volume", "Общая громкость", true)
---hg.settings:AddOpt("Звук","snd_musicvolume", "Громкость музыки", true)
---hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
+hg.settings:AddOpt("Звук","snd_musicvolume", "Громкость музыки", true)
+hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
 
 hg.settings:AddOpt("Звук","hg_quietshots", "Вкл/Выкл тихие звуки выстрелов (ДЛЯ СЛАБАКОВ)")
 
