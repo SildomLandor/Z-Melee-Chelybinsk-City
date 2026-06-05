@@ -405,6 +405,8 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		return SpecCam(follow, origin, angles, fov, znear, zfar)
 	end
 
+	hg.gshaderView = view
+
 	hook.Run("PostHGCalcView", ply, view)
 
 	result = hook.Run("PostPostHGCalcView", ply, view)
@@ -509,6 +511,7 @@ hook.Add("RagdollEntityCreated", "RagdollFinder", function(ply, ent, key)
 	
 	if ply == lply then
 		follow = ragdoll
+		if not ragdoll then hg.gshaderView = nil end
 
 		if follow and hg.IsChanged(follow,1,tblfollow) then
 			if IsValid(tblfollow[1]) then
