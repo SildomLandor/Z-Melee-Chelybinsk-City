@@ -132,17 +132,30 @@ local tWaitResponse = {}
 
 function ApplyAppearance(Client,tAppearance,bRandom,bResponeIsValid,bUseCahsed)
     if not IsValid(Client) then return end
+
+    if not hg.Appearance.GetRandomAppearance then
+        MsgC(Color(255, 0, 0), "[Appearance Error] hg.Appearance.GetRandomAppearance отсутствует! Отмена применения.\n")
+        return
+    end
+
     if bRandom or (Client.IsBot and Client:IsBot()) or (Client.IsRagdoll and Client:IsRagdoll()) then
-        tAppearance = APmodule.GetRandomAppearance()
+        tAppearance = hg.Appearance.GetRandomAppearance()
         WearAppearance(Client,tAppearance)
         return
     end
+
     if bUseCahsed then
-        tAppearance = APmodule.GetRandomAppearance()
+        tAppearance = hg.Appearance.GetRandomAppearance()
         tAppearance = Client.CachedAppearance or tAppearance
-        --Client:ChatPrint(tAppearance.AModel)
-        APmodule.FixAppearanceNameSex(tAppearance)
-        if !APmodule.AppearanceValidater(tAppearance) then tAppearance = APmodule.GetRandomAppearance() end
+
+        if APmodule.FixAppearanceNameSex then
+            APmodule.FixAppearanceNameSex(tAppearance)
+        end
+
+        if not APmodule.AppearanceValidater or !APmodule.AppearanceValidater(tAppearance) then 
+            tAppearance = hg.Appearance.GetRandomAppearance() 
+        end
+
         net.Start("OnlyGet_Appearance")
         net.Send(Client)
         WearAppearance(Client,tAppearance)
@@ -153,15 +166,28 @@ function ApplyAppearance(Client,tAppearance,bRandom,bResponeIsValid,bUseCahsed)
         tWaitResponse[Client] = CurTime() + 3
         net.Start("Get_Appearance")
         net.Send(Client)
-    return end
+        return 
+    end
+
     if !tWaitResponse[Client] then return end
     if tWaitResponse[Client] < CurTime() then
         ApplyAppearance(Client,nil,true)
-    return end
+        return 
+    end
 
-    if !tAppearance then ApplyAppearance(Client,nil,true) return end
-    APmodule.FixAppearanceNameSex(tAppearance)
-    if !APmodule.AppearanceValidater(tAppearance) then ApplyAppearance(Client,nil,true) return end
+    if !tAppearance then 
+        ApplyAppearance(Client,nil,true) 
+        return 
+    end
+
+    if APmodule.FixAppearanceNameSex then
+        APmodule.FixAppearanceNameSex(tAppearance)
+    end
+
+    if not APmodule.AppearanceValidater or !APmodule.AppearanceValidater(tAppearance) then 
+        ApplyAppearance(Client,nil,true) 
+        return 
+    end
 
     WearAppearance(Client,tAppearance)
 end
