@@ -294,7 +294,7 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		if mentid = ply:SteamID() then  -- сделайте ему 1.2x кармы ну как этот педик просит
+		if mentid[1] == ply:SteamID() then
 			give_wep(ply, "weapon_makarov", 0)
 			ply:Give("weapon_handcuffs")
 		    ply:Give("weapon_handcuffs_key")

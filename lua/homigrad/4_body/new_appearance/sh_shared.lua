@@ -299,10 +299,7 @@ hg.Appearance.Clothes[1] = {
 	pilot_jacket    = "models/humans/male/group01/pilotjacket",
 	tactical_outfit = "models/humans/male/group01/tacticalgop",
 	hussar_jacket   = "models/humans/male/group01/hussar",
-	Tshirt3         = "models/humans/male/group01/bersk",
 	leather_jacket  = "models/humans/male/group01/jacket",
-	Tshirt1         = "models/humans/male/group01/promised",
-	Tshirt2         = "models/humans/male/group01/simon",
 	alpha_bomber    = "models/humans/male/group01/alphaindustry",
 	alpha_hoodie    = "models/humans/male/group01/alphahoodie",
 	lonsdale_hoodie = "models/humans/male/group01/LondsdaleHoodie",
@@ -315,7 +312,6 @@ hg.Appearance.Clothes[1] = {
 	Zcity_Hoodie    = "models/humans/male/group01/zcityhoodie",
 	Flecktarn       = "models/humans/male/group01/flecktarn",
 	Hawaiian_Shirt  = "models/humans/male/group01/tommy",
-	Hawaiian_Shirt2 = "models/humans/male/group01/Hawaiian1",
 	Sadsalat        = "models/humans/male/group01/sadsalat",
 	Army_Shirt      = "models/humans/male/group01/armyshirt",
 	Lambda          = "models/humans/male/group01/lambda",
@@ -336,13 +332,6 @@ hg.Appearance.Clothes[2] = {
 	cold            = "models/humans/female/group01/cold",
 	casual          = "models/humans/female/group01/casual",
 	sweater_xmas    = "models/humans/female/group01/sweater",
-	adidas_tracksuit = "models/humans/female/group01/adidas",
-	Tshirt1         = "models/humans/female/group01/flowers",
-	Tshirt2         = "models/humans/female/group01/skullshirt",
-	Tshirt3         = "models/humans/female/group01/skeletal",
-	Tshirt4         = "models/humans/female/group01/redskull",
-	Hawaiian_Shirt1 = "models/humans/female/group01/Hawaiian1",
-	swiss           = "models/humans/female/group01/swiss",
 }
 
 hg.Appearance.ClothesDesc = {
@@ -495,7 +484,7 @@ local male09facemap = "models/humans/male/group01/erdim_cylmap"
 AddFacemap(male09facemap, "Default", "", "models/zcity/m/male_09.mdl")
 AddFacemap(male09facemap, "Face 1", "models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap")
 for i = 2, 11 do
-	AddFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
+	tFacemap(male09facemap,"Face " .. i,"models/bloo_ltcom_zel/citizens/facemaps/erdim_facemap" .. i)
 end
 
 -- Bodygroups
