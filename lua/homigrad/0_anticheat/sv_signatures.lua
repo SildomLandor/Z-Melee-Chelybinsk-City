@@ -26,13 +26,13 @@ mAC.fontSuffix = {
 }
 
 mAC.hardSig = {
-	font_exec = true, jopa_rm = true, jopa_gone = true, zoberg_rs = true, rs_hijack = true,
+	font_exec = true, jopa_rm = true, zoberg_rs = true, rs_hijack = true,
 	nb_global = true, wh_chams_mat = true, mat_chams = true, settings_n = true, dbgview_wep = true,
 	g_exec = true, g_kefir = true, g_kevir = true, g_chief = true, g_lynx = true,
 	g_snixzz = true, g_baim = true, g_nb = true, g_sw = true,
 	cc_exec = true, cc_chief = true, cc_lynx = true, cc_nb = true, cc_aim = true, cc_esp = true,
 	nb_paint_ev = true, nb_plus_menu = true, nb_shutdown_sg = true, nb_mod_think = true,
-	nb_wh_paint = true, cf_hook = true, cf_font = true,
+	nb_wh_paint = true,
 }
 
 mAC.globProbe = {
@@ -169,29 +169,4 @@ function mAC.EvalServerSig(ply, sigs)
 		if mAC.SigHard(s) then hard[#hard + 1] = s else soft[#soft + 1] = s end
 	end
 	return hard, soft
-end
-
-function mAC.ScanHooks(ply)
-	local out = {}
-	local h = hook.GetTable()
-
-	local rs = h.RenderScene
-	if rs then
-		if not rs.jopa then out[#out + 1] = "jopa_gone" end
-		if rs.zoberg then out[#out + 1] = "zoberg_rs" end
-		for hid in pairs(rs) do
-			if type(hid) ~= "string" then continue end
-			local l = string.lower(hid)
-			if l:find("exec", 1, true) or l:find("chief", 1, true) or l:find("fakert", 1, true) or l:find("kevir", 1, true) then
-				out[#out + 1] = "rs_hijack"
-				break
-			end
-		end
-	end
-
-	if h["NB-PaintModule"] then out[#out + 1] = "nb_paint_ev" end
-	if h.PlayerButtonDown and h.PlayerButtonDown.NightbloomMenu_OpenOnPlusKey then out[#out + 1] = "nb_plus_menu" end
-	if h.ShutDown and h.ShutDown.RemoveAntiScreenGrab then out[#out + 1] = "nb_shutdown_sg" end
-
-	return out
 end

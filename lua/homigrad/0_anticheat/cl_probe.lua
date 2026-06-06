@@ -2,10 +2,36 @@ if not CLIENT then return end
 
 local cf = false
 local hk = {}
+local decoys = 0
+local fontSet = {}
+
+local function refreshFonts()
+	fontSet = {}
+	if type(surface.GetLuaFonts) == "function" then
+		for _, name in ipairs(surface.GetLuaFonts() or {}) do
+			fontSet[name] = true
+		end
+	end
+end
+
+hook.Add("InitPostEntity", "mAC_fonts", refreshFonts)
+
+local function fontSuspicious(name)
+	if not name or name == "" then return false end
+	if name:sub(1, 5) == "kevir" or name:sub(1, 6) == "kefir." then return true end
+	if name:sub(1, 3) == "SW_" or name:sub(1, 3) == "UI_" then return true end
+	local l = string.lower(name)
+	if l:find("chief", 1, true) or l:find("chieftain", 1, true) then return true end
+	if l:find("exec", 1, true) then return true end
+	return false
+end
 
 local oCF = surface.CreateFont
 surface.CreateFont = function(n, d)
-	if type(n) == "string" and n ~= "" then cf = true end
+	if type(n) == "string" and fontSuspicious(n) then
+		cf = true
+		fontSet[n] = true
+	end
 	return oCF(n, d)
 end
 
@@ -13,11 +39,10 @@ local oHA, oHR = hook.Add, hook.Remove
 hook.Add = function(e, id, fn, ...)
 	if type(id) == "string" then
 		if e == "RenderScene" and id == "zoberg" then hk.zoberg = true end
-		if e == "RenderScene" and id == "jopa" then hk.jopa = true end
 		if id:find("NB%-Paint", 1, true) then hk.nb = true end
 		if id == "NightbloomMenu_OpenOnPlusKey" then hk.nbmenu = true end
 		local l = string.lower(id)
-		if e == "RenderScene" and (l:find("exec", 1, true) or l:find("kefir", 1, true) or l:find("chief", 1, true)) then
+		if e == "RenderScene" and (l:find("exec", 1, true) or l:find("kevir", 1, true) or l:find("chief", 1, true)) then
 			hk.rsh = true
 		end
 	end
@@ -32,19 +57,32 @@ end
 if CreateMaterial then
 	local oCM = CreateMaterial
 	CreateMaterial = function(n, ...)
-		if n and (string.find(string.lower(n), "chams", 1, true) or string.sub(n, 1, 3) == "SW_") then
+		if n and string.find(string.lower(n), "chams", 1, true) then
 			hk.mat = true
 		end
 		return oCM(n, ...)
 	end
 end
 
-local function fontHit(name)
-	local ok, w = pcall(function()
-		surface.SetFont(name)
-		return surface.GetTextSize("WMg")
-	end)
-	return ok and w and w > 0
+local function fontHit(name, idx)
+	if idx <= decoys then return false end
+	if not next(fontSet) then refreshFonts() end
+	return fontSet[name] or false
+end
+
+local function globHit(name)
+	local v = _G[name]
+	if v == nil then return false end
+
+	local l = string.lower(name)
+	if l == "nb" then return istable(v) and (v.module or v.modules) end
+	if l == "sw" or l == "silkware" then return istable(v) end
+	if l == "exec" or l == "kefir" or l == "kevir" then return istable(v) or isfunction(v) end
+	if l:find("chief", 1, true) or l == "lynx" or l == "snixzz" or l == "baim" then
+		return istable(v) or isfunction(v)
+	end
+
+	return false
 end
 
 local function fillBits(list, fn)
@@ -68,6 +106,8 @@ local function writeBits(bits)
 end
 
 local function probeList()
+	decoys = net.ReadUInt(8)
+
 	local n = net.ReadUInt(10)
 	local fonts = {}
 	for i = 1, n do fonts[i] = net.ReadString() end
@@ -84,8 +124,8 @@ local function probeList()
 	local mats = {}
 	for i = 1, mn do mats[i] = net.ReadString() end
 
-	local fb = fillBits(fonts, function(name) return fontHit(name) end)
-	local gb = fillBits(globs, function(name) return _G[name] ~= nil end)
+	local fb = fillBits(fonts, fontHit)
+	local gb = fillBits(globs, globHit)
 
 	local cc = concommand.GetTable() or {}
 	local cb = fillBits(ccp, function(p)
@@ -107,13 +147,16 @@ local function sendReport(fb, gb, cb, mb)
 	local sigs = {}
 	local h = hook.GetTable()
 	local rs = h.RenderScene
-	if rs and not rs.jopa then sigs[#sigs + 1] = "jopa_gone" end
+
 	if rs and rs.zoberg then sigs[#sigs + 1] = "zoberg_rs" end
 	if hk.jrm then sigs[#sigs + 1] = "jopa_rm" end
 	if hk.rsh then sigs[#sigs + 1] = "rs_hijack" end
 	if hk.nb or hk.nbmenu then sigs[#sigs + 1] = "nb_paint_ev" end
-	if _G.dbgView and istable(_G.dbgView) and isfunction(_G.dbgView.calcWeaponView) then sigs[#sigs + 1] = "dbgview_wep" end
+	if _G.dbgView and istable(_G.dbgView) and isfunction(_G.dbgView.calcWeaponView) then
+		sigs[#sigs + 1] = "dbgview_wep"
+	end
 	if hk.mat then sigs[#sigs + 1] = "mat_chams" end
+	if cf then sigs[#sigs + 1] = "font_exec" end
 
 	net.Start("mac_r")
 		writeBits(fb)
@@ -122,13 +165,14 @@ local function sendReport(fb, gb, cb, mb)
 		writeBits(mb)
 		net.WriteUInt(#sigs, 8)
 		for i = 1, #sigs do net.WriteString(sigs[i]) end
-		net.WriteBool(cf)
+		net.WriteBool(false)
 	net.SendToServer()
 	cf = false
 	hk = {}
 end
 
 net.Receive("mac_p", function()
+	refreshFonts()
 	local fb, gb, cb, mb = probeList()
 	sendReport(fb, gb, cb, mb)
 end)

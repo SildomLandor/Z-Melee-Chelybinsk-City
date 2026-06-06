@@ -7,6 +7,7 @@ function mAC.SendProbe(ply)
 	if not IsValid(ply) or not ply.mAC_probe then return end
 	local list = ply.mAC_probe
 	net.Start("mac_p")
+		net.WriteUInt(ply.mAC_decoys or 0, 8)
 		net.WriteUInt(#list, 10)
 		for i = 1, #list do
 			net.WriteString(list[i])

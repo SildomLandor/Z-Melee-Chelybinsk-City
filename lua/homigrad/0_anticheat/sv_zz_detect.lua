@@ -8,17 +8,13 @@ net.Receive("mac_r", function(_, ply)
 	local sigN = net.ReadUInt(8)
 	local sigs = {}
 	for i = 1, sigN do sigs[i] = net.ReadString() end
-	local cf = net.ReadBool()
-
-	if cf then sigs[#sigs + 1] = "cf_font" end
+	net.ReadBool()
 
 	local fonts = mAC.EvalFonts(ply, fontBits) or {}
 	local globs = mAC.EvalGlobals(ply, globBits) or {}
 	local ccs = mAC.EvalCC(ply, ccBits) or {}
 	local mats = mAC.EvalMats(ply, matBits) or {}
-	local srv = mAC.ScanHooks(ply)
 
-	for i = 1, #srv do sigs[#sigs + 1] = srv[i] end
 	for i = 1, #ccs do sigs[#sigs + 1] = ccs[i] end
 	if #mats > 0 then sigs[#sigs + 1] = "mat_chams" end
 
