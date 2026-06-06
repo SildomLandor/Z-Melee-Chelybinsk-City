@@ -365,8 +365,8 @@ if SERVER then
 
     local function syncMoveAnim(npc, run)
         local act = run and ACT_RUN or ACT_WALK
-        if npc:SelectWeightedSequence(act) < 0 then act = ACT_WALK end
-        if npc:SelectWeightedSequence(act) < 0 then return end
+        if (npc:SelectWeightedSequence(act) or -1) < 0 then act = ACT_WALK end
+        if (npc:SelectWeightedSequence(act) or -1) < 0 then return end
 
         npc:SetIdealActivity(act)
         npc:SetActivity(act)
