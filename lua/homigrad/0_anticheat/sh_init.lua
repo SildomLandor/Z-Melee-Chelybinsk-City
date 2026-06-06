@@ -120,6 +120,28 @@ function mAC.SecretBanNote(reason, detail, code)
 	return s
 end
 
+function mAC.PlayerLabel(ply)
+	if not IsValid(ply) then return "?" end
+	return string.format("%s (%s | %s)", ply:Nick(), ply:SteamID(), mAC.IP(ply) or "?")
+end
+
+function mAC.Debug(...)
+	if not SERVER then return end
+	if not mAC.cfg or not mAC.cfg.debug then return end
+
+	local n = select("#", ...)
+	local parts = {}
+	for i = 1, n do parts[i] = tostring(select(i, ...)) end
+
+	local line = table.concat(parts, " ")
+	print("[mAC] " .. line)
+
+	if mAC.cfg.logFile then
+		file.CreateDir("mac")
+		file.Append(mAC.cfg.logFile, string.format("[%s] [dbg] %s\n", os.date("%Y-%m-%d %H:%M:%S"), line))
+	end
+end
+
 function mAC.PlayerSnap(ply)
 	if not IsValid(ply) then return end
 	return {

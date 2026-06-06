@@ -459,6 +459,7 @@ hook.Add("DatabaseConnected", "mAC_db_tables", function()
 	local mod = cfg.module or mysql.module or "sqlite"
 	local where = mod == "sqlite" and "sqlite" or string.format("%s:%s/%s", cfg.host or "?", cfg.port or 3306, cfg.database or "?")
 	print("[mAC] DB connected (" .. mod .. " @ " .. where .. ")")
+	mAC.Debug("db ready", mod, where)
 
 	local q = mysql:Select("mac_players")
 		q:Where("banned", 1)

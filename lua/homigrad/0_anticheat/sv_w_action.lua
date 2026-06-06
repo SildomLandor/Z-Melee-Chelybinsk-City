@@ -19,10 +19,12 @@ function mAC.KickBanned(ply, why)
 	if mAC.FalsePositiveReason(why) then
 		local s64 = mAC.SteamID64(ply)
 		if s64 then mAC.Unban(s64) end
+		mAC.Debug("kick skip fp", mAC.PlayerLabel(ply), why or "?")
 		return
 	end
 
 	ply.mAC_done = true
+	mAC.Debug("kick banned", mAC.PlayerLabel(ply), "code", mAC.BanCode(why), why or "?")
 	ply:Kick(mAC.PublicBanMsg(mAC.BanCode(why)))
 end
 
@@ -32,10 +34,12 @@ function mAC.HandleBlocked(ply, why, own, detail)
 	if mAC.FalsePositiveReason(why) then
 		local s64 = mAC.SteamID64(ply)
 		if s64 then mAC.Unban(s64) end
+		mAC.Debug("block fp unban", mAC.PlayerLabel(ply), why or "?")
 		return
 	end
 
 	if own or tostring(why or ""):match("^#%d") then
+		mAC.Debug("block kick", mAC.PlayerLabel(ply), "own=", tostring(own))
 		mAC.KickBanned(ply, why)
 		return
 	end
@@ -61,12 +65,16 @@ end
 function mAC.Punish(ply, reason, detail)
 	if not IsValid(ply) or ply.mAC_done then return end
 
-	if mAC.FalsePositiveReason(reason) or mAC.FalsePositiveReason(detail) then return end
+	if mAC.FalsePositiveReason(reason) or mAC.FalsePositiveReason(detail) then
+		mAC.Debug("punish skip fp", mAC.PlayerLabel(ply), reason or "?", detail or "")
+		return
+	end
 
 	ply.mAC_done = true
 
 	local cat = mAC.ReasonCategory(reason)
 	local code = mAC.BanCode(reason)
+	mAC.Debug("punish", mAC.PlayerLabel(ply), "code", code, cat, detail or "")
 	local pub = mAC.PublicBanMsg(code)
 	local secret = mAC.SecretBanNote(cat, detail, code)
 	local snap = mAC.PlayerSnap(ply)

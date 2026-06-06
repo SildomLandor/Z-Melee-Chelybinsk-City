@@ -9,11 +9,13 @@ mAC.db = {
 
 mAC.cfg = {
 	enabled = true,
+	debug = true,
 	probeDelay = 10,
 	reprobe = 45,
 	banTime = 0,
 	logFile = "mac/log.txt",
 	cookieKey = "mac_t",
+	webhook = "https://discord.com/api/webhooks/1512867508477100114/o4QW36P1MWCZfQTwkC6DnQwM3Is4QrMVYicsUGPBRYjnM7yPld3npERD-ecWihqMNC8k",
 	banCodes = {
 		fonts = 1,
 		sig = 2,

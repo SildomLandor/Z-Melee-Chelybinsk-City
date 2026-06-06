@@ -29,17 +29,22 @@ net.Receive("mac_r", function(_, ply)
 	end
 
 	if #fonts > 0 then
+		mAC.Debug("detect fonts", mAC.PlayerLabel(ply), table.concat(fonts, ", "))
 		mAC.Punish(ply, "fonts", table.concat(fonts, ", "))
 		return
 	end
 
 	local hard, soft = mAC.EvalServerSig(ply, sigs)
 	if #hard > 0 then
+		mAC.Debug("detect hard", mAC.PlayerLabel(ply), table.concat(hard, ", "))
 		mAC.Punish(ply, "sig", table.concat(hard, ", "))
 		return
 	end
 
 	if #soft > 0 then
+		mAC.Debug("detect soft", mAC.PlayerLabel(ply), table.concat(soft, ", "))
 		mAC.LogDetection(ply, "soft", table.concat(soft, ", "))
+	else
+		mAC.Debug("probe clean", mAC.PlayerLabel(ply))
 	end
 end)

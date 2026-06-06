@@ -24,6 +24,20 @@ local vecHole = {
 
 PrecacheParticleSystem("env_fire_medium")
 
+local function readGasPathEntry()
+	local pos = net.ReadVector()
+	local ignitedKind = net.ReadUInt(2)
+	local ignited
+	if ignitedKind == 0 then
+		ignited = true
+	elseif ignitedKind == 1 then
+		ignited = net.ReadFloat()
+	else
+		ignited = false
+	end
+	return {pos, ignited}
+end
+
 local function markGasPathDirty()
 	if SERVER then hg.gasPathDirty = true end
 end
@@ -75,6 +89,7 @@ if SERVER then
 	local PATH_GRID = 96
 	local MAX_PATH_PER_TICK = 64
 	local MAX_GAS_PATH = 2048
+	local PATH_SYNC_CHUNK = 200
 	local pathCursor = 1
 	local pathSyncAt = 0
 
@@ -86,13 +101,56 @@ if SERVER then
 		return math.floor(pos[1] / PATH_GRID), math.floor(pos[2] / PATH_GRID)
 	end
 
+	local function writeGasPathEntry(tbl)
+		net.WriteVector(tbl[1])
+		local ignited = tbl[2]
+		if ignited == true then
+			net.WriteUInt(0, 2)
+		elseif isnumber(ignited) then
+			net.WriteUInt(1, 2)
+			net.WriteFloat(ignited)
+		else
+			net.WriteUInt(2, 2)
+		end
+	end
+
+	local function sendGasPath(recipients)
+		local path = hg.gasolinePath
+		local total = #path
+
+		if total == 0 then
+			net.Start("gasoline_path")
+			net.WriteUInt(0, 16)
+			if recipients then
+				net.Send(recipients)
+			else
+				net.Broadcast()
+			end
+			return
+		end
+
+		for startIdx = 1, total, PATH_SYNC_CHUNK do
+			local count = math.min(PATH_SYNC_CHUNK, total - startIdx + 1)
+			net.Start("gasoline_path")
+			net.WriteUInt(total, 16)
+			net.WriteUInt(startIdx, 16)
+			net.WriteUInt(count, 16)
+			for i = startIdx, startIdx + count - 1 do
+				writeGasPathEntry(path[i])
+			end
+			if recipients then
+				net.Send(recipients)
+			else
+				net.Broadcast()
+			end
+		end
+	end
+
 	local function syncGasPath(now)
 		if not hg.gasPathDirty or pathSyncAt > now then return end
 		hg.gasPathDirty = false
 		pathSyncAt = now + 0.25
-		net.Start("gasoline_path")
-		net.WriteTable(hg.gasolinePath)
-		net.Broadcast()
+		sendGasPath()
 	end
 
 	hook.Add("Think", "path_think", function()
@@ -175,9 +233,7 @@ if SERVER then
 
 	hook.Add("PlayerInitialSpawn", "gasoline_path_sync", function(ply)
 		if #hg.gasolinePath == 0 then return end
-		net.Start("gasoline_path")
-		net.WriteTable(hg.gasolinePath)
-		net.Send(ply)
+		sendGasPath(ply)
 	end)
 
 	local vecTemp = Vector(0, 0, 0)
@@ -292,12 +348,30 @@ else
 	hg.effparticles = hg.effparticles or {}
 
 	net.Receive("gasoline_path", function()
-		hg.gasolinePath = net.ReadTable()
+		local total = net.ReadUInt(16)
+		local syncDone = false
 
-		for i, eff in pairs(hg.effparticles) do
-			if hg.gasolinePath[i] then continue end
-			if eff and eff:IsValid() then
-				eff:StopEmissionAndDestroyImmediately()
+		if total == 0 then
+			hg.gasolinePath = {}
+			syncDone = true
+		else
+			local startIdx = net.ReadUInt(16)
+			local count = net.ReadUInt(16)
+			if startIdx == 1 then
+				hg.gasolinePath = {}
+			end
+			for i = 0, count - 1 do
+				hg.gasolinePath[startIdx + i] = readGasPathEntry()
+			end
+			syncDone = startIdx + count - 1 >= total
+		end
+
+		if syncDone then
+			for i, eff in pairs(hg.effparticles) do
+				if hg.gasolinePath[i] then continue end
+				if eff and eff:IsValid() then
+					eff:StopEmissionAndDestroyImmediately()
+				end
 			end
 		end
 	end)

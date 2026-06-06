@@ -63,9 +63,10 @@ function CLASS.On(self)
     local selectedModelTable = models[math.random(#models)]
     self:SetModel(selectedModelTable[1])
     
-    --local top = math.random(0,1) -- я глупый и не знаю как по-другому сделать
-    self:SetBodygroup(05)   --self:SetBodygroup(05,2,top,3,rankBg,81)  -- сделайте пж когда нибудь нормальный рандом для рангов и рукавов
-    -- top = 2 рукава rang = 3 ранг vest = 8 жилтка хочу чтобы они рандомились, но пока так, потому что я глупый и не знаю как по-другому сделать
+    local top = math.random(0, 1)
+    self:SetBodygroup(2, top)
+    self:SetBodygroup(3, rankBg)
+    self:SetBodygroup(8, math.random(0, 1))
     self.CurAppearance = Appearance
 end
 
