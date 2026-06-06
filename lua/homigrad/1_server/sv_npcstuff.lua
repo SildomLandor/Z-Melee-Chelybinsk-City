@@ -1,6 +1,8 @@
 local CurTime, timer, math, table, Angle, Vector, IsValid, LerpAngle, LerpVector = CurTime, timer, math, table, Angle, Vector, IsValid, LerpAngle, LerpVector
 local math_random, math_Rand = math.random, math.Rand
 
+hg.organism = hg.organism or {}
+
 --\\ NPCs with organism (loot table optional)
 	local organismNPCs = {
 		["npc_metropolice"] = true,
