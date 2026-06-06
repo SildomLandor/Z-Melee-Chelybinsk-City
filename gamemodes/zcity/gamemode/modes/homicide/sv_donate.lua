@@ -49,8 +49,6 @@ end
 
 function MODE.SurgeonGiveLoadout(ply)
 	if not IsValid(ply) or ply.Profession ~= "surgeon" then return end
-	if ply:HasWeapon("weapon_scalpel") then return end
-	ply:Give("weapon_scalpel")
 end
 
 local function ment_give_wep(ply, class)

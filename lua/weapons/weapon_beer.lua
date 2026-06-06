@@ -299,6 +299,7 @@ function SWEP:PrimaryAttack()
                     org.alcohol = math.min((org.alcohol or 0) + 0.38, 4)
                     org.alcoholRecentDose = CurTime()
                 end
+                if hg.organism and hg.organism.Feed then hg.organism.Feed(org, true) end
                 owner:EmitSound("food/beer_drink1.wav", 60, math.random(95, 105))
                 owner:Notify(phrasesalco[math.random(1, #phrasesalco)], 3)
             end

@@ -85,11 +85,13 @@ if SERVER then
 		self.CDEating = self.CDEating or 0
 		if self.CDEating > CurTime() then return end
 
+		local isDrink = self.WaterModel[self.WorldModel] and true or false
 		org.satiety = org.satiety + 10/5
+		if hg.organism and hg.organism.Feed then hg.organism.Feed(org, isDrink) end
 		local ply = self:GetOwner()
 		ply:ViewPunch(Angle(3,0,0))
 		
-		ent:EmitSound( self.WaterModel[self.WorldModel] and "snd_jack_hmcd_drink"..math.random(3)..".wav" or "snd_jack_hmcd_eat"..math.random(4)..".wav", 60, math.random(95, 105))
+		ent:EmitSound(isDrink and "snd_jack_hmcd_drink"..math.random(3)..".wav" or "snd_jack_hmcd_eat"..math.random(4)..".wav", 60, math.random(95, 105))
 		
 		self.CDEating = CurTime() + 0.5
 		self.Eating = self.Eating + 1

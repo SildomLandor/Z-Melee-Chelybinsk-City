@@ -39,6 +39,7 @@ module[1] = function(org)
 	org.alcoholTurnLag = 0
 	org.alcoholTurnLagTarget = 0
 	org.nextWithdrawalShake = 0
+	org.alcoholRecoilBonus = 0
 end
 
 module[2] = function(owner, org, timeValue)
@@ -89,7 +90,9 @@ module[2] = function(owner, org, timeValue)
 		local analgesiaBoost = Clamp((sed - 0.25) * 0.35, 0, 0.8)
 		org.analgesia = math.max(org.analgesia or 0, analgesiaBoost)
 
-		org.recoilmul = (org.recoilmul or 1) + Clamp(sed * 0.2, 0, 0.5)
+		local drunkRecoil = Clamp(sed * 0.2, 0, 0.5)
+		org.recoilmul = (org.recoilmul or 1) - (org.alcoholRecoilBonus or 0) + drunkRecoil
+		org.alcoholRecoilBonus = drunkRecoil
 		org.meleespeed = math.max((org.meleespeed or 1) - Clamp(sed * 0.12, 0, 0.35), 0.55)
 		org.disorientation = Clamp(math.max(org.disorientation or 0, sed * 0.5 + buzz * 0.8), 0, 10)
 		org.stamina.subadd = (org.stamina.subadd or 0) + sed * 0.2
@@ -120,6 +123,8 @@ module[2] = function(owner, org, timeValue)
 			end
 		end
 	else
+		org.recoilmul = (org.recoilmul or 1) - (org.alcoholRecoilBonus or 0)
+		org.alcoholRecoilBonus = 0
 		org.alcoholTurnLag = Approach(org.alcoholTurnLag or 0, 0, timeValue * 3)
 		org.alcoholTurnLagTarget = 0
 	end

@@ -112,8 +112,10 @@ if SERVER then
 		if ent ~= self:GetOwner() and not ent.organism.otrub then return end
 		local owner = self:GetOwner()
 		local entOwner = IsValid(owner.FakeRagdoll) and owner.FakeRagdoll or owner
-		ent:EmitSound( self.WaterModel[self.WorldModel] and "snd_jack_hmcd_drink"..math.random(3)..".wav" or "snd_jack_hmcd_eat"..math.random(4)..".wav", 60, math.random(95, 105))
+		local isDrink = self.WaterModel[self.WorldModel] and true or false
+		ent:EmitSound(isDrink and "snd_jack_hmcd_drink"..math.random(3)..".wav" or "snd_jack_hmcd_eat"..math.random(4)..".wav", 60, math.random(95, 105))
 		org.satiety = org.satiety + 25/5
+		if hg.organism and hg.organism.Feed then hg.organism.Feed(org, isDrink) end
 		owner:SelectWeapon("weapon_hands_sh")
 		self:Remove()
 
