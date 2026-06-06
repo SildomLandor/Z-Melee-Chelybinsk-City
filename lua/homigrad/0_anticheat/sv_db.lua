@@ -255,12 +255,22 @@ function mAC.Unban(s64)
 		mAC.fileDB.bans[s64] = nil
 		saveFileDB()
 	end
+
+	if ULib and ULib.unban then
+		local sid = util.SteamIDFrom64(s64)
+		if sid then ULib.unban(sid) end
+	end
 end
 
 function mAC.IsBanned(s64, ip, cookie, cb)
 	if not cb then return end
 
 	local function finish(hit, why, own)
+		if hit and own and mAC.FalsePositiveReason(why) then
+			mAC.Unban(s64)
+			cb(false)
+			return
+		end
 		if hit and own and not mAC.ULibBanned(s64) then
 			mAC.Unban(s64)
 			cb(false)
@@ -417,6 +427,17 @@ end
 
 loadFileDB()
 
+if mAC.FalsePositiveReason then
+	local dirty
+	for s64, row in pairs(mAC.fileDB.bans) do
+		if mAC.FalsePositiveReason(row.reason) then
+			mAC.fileDB.bans[s64] = nil
+			dirty = true
+		end
+	end
+	if dirty then saveFileDB() end
+end
+
 hook.Add("InitPostEntity", "mAC_db_connect", function()
 	if not mAC.db or not mysql then return end
 
@@ -438,6 +459,19 @@ hook.Add("DatabaseConnected", "mAC_db_tables", function()
 	local mod = cfg.module or mysql.module or "sqlite"
 	local where = mod == "sqlite" and "sqlite" or string.format("%s:%s/%s", cfg.host or "?", cfg.port or 3306, cfg.database or "?")
 	print("[mAC] DB connected (" .. mod .. " @ " .. where .. ")")
+
+	local q = mysql:Select("mac_players")
+		q:Where("banned", 1)
+		q:Callback(function(res)
+			if not istable(res) then return end
+			for i = 1, #res do
+				local row = res[i]
+				if mAC.FalsePositiveReason(row.ban_reason) then
+					mAC.Unban(row.steamid64)
+				end
+			end
+		end)
+	q:Execute()
 end)
 
 hook.Add("DatabaseConnected", "mAC_db_think", function()

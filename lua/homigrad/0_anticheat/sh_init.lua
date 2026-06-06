@@ -59,19 +59,52 @@ function mAC.WriteBits(bits)
 	end
 end
 
+local fpmarks = { "cf_font", "font_exec", "jopa_gone", "jopa_rm" }
+
+function mAC.FalsePositiveReason(reason)
+	reason = tostring(reason or "")
+	for i = 1, #fpmarks do
+		if reason:find(fpmarks[i], 1, true) then return true end
+	end
+	return false
+end
+
+function mAC.ReasonCategory(reason)
+	reason = tostring(reason or "")
+
+	if reason == "cookie_alt" or reason == "cookie" then return "cookie_alt" end
+	if reason == "ip" then return "bypass" end
+	if reason:sub(1, 7) == "cookie:" then return "cookie" end
+	if reason:sub(1, 3) == "ip:" then return "ip" end
+
+	local body = reason
+	while body:match("^#%d+%s*") do
+		body = body:gsub("^#%d+%s*", "", 1)
+	end
+	body = body:match("^([^|]+)") or body
+	body = body:match("^(%S+)") or body
+
+	if body == "ban" or body == "banned" then return "banned" end
+	if body == "cookie_alt" then return "cookie_alt" end
+	if body == "bypass" then return "bypass" end
+	if body == "fonts" or body == "sig" or body == "soft" then return body end
+
+	return body
+end
+
 function mAC.BanCode(reason)
 	local cfg = mAC.cfg and mAC.cfg.banCodes or {}
 	reason = tostring(reason or "")
 
-	local stored = reason:match("^#(%d+)")
-	if stored then return tonumber(stored) end
-
-	if cfg[reason] then return cfg[reason] end
-	if reason == "ban" or reason == "banned" then return cfg.banned or 4 end
-	if reason == "cookie_alt" then return cfg.cookie_alt or 6 end
 	if reason:sub(1, 7) == "cookie:" then return cfg.cookie or 5 end
 	if reason:sub(1, 3) == "ip:" then return cfg.ip or 7 end
-	if reason == "bypass" then return cfg.bypass or 3 end
+
+	local cat = mAC.ReasonCategory(reason)
+
+	if cfg[cat] then return cfg[cat] end
+	if cat == "ban" or cat == "banned" then return cfg.banned or 4 end
+	if cat == "cookie_alt" then return cfg.cookie_alt or 6 end
+	if cat == "bypass" then return cfg.bypass or 3 end
 
 	return cfg.default or 9
 end
@@ -81,7 +114,8 @@ function mAC.PublicBanMsg(code)
 end
 
 function mAC.SecretBanNote(reason, detail, code)
-	local s = string.format("#%s %s", tostring(code), tostring(reason or "?"))
+	local cat = mAC.ReasonCategory(reason)
+	local s = string.format("#%s %s", tostring(code), cat)
 	if detail and detail ~= "" then s = s .. " | " .. tostring(detail) end
 	return s
 end

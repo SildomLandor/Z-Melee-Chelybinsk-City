@@ -18,7 +18,7 @@ mAC.fontExact = {
 }
 
 mAC.fontPrefix = {
-	"kefir", "kefir.", "SW_", "UI_",
+	"kefir.", "kevir", "SW_",
 }
 
 mAC.fontSuffix = {
@@ -26,7 +26,7 @@ mAC.fontSuffix = {
 }
 
 mAC.hardSig = {
-	font_exec = true, jopa_rm = true, zoberg_rs = true, rs_hijack = true,
+	zoberg_rs = true, rs_hijack = true,
 	nb_global = true, wh_chams_mat = true, mat_chams = true, settings_n = true, dbgview_wep = true,
 	g_exec = true, g_kefir = true, g_kevir = true, g_chief = true, g_lynx = true,
 	g_snixzz = true, g_baim = true, g_nb = true, g_sw = true,

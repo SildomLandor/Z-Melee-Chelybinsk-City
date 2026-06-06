@@ -15,25 +15,68 @@ end
 
 function mAC.KickBanned(ply, why)
 	if not IsValid(ply) or ply.mAC_done then return end
+
+	if mAC.FalsePositiveReason(why) then
+		local s64 = mAC.SteamID64(ply)
+		if s64 then mAC.Unban(s64) end
+		return
+	end
+
 	ply.mAC_done = true
 	ply:Kick(mAC.PublicBanMsg(mAC.BanCode(why)))
 end
 
+function mAC.HandleBlocked(ply, why, own, detail)
+	if not IsValid(ply) or ply.mAC_done then return end
+
+	if mAC.FalsePositiveReason(why) then
+		local s64 = mAC.SteamID64(ply)
+		if s64 then mAC.Unban(s64) end
+		return
+	end
+
+	if own or tostring(why or ""):match("^#%d") then
+		mAC.KickBanned(ply, why)
+		return
+	end
+
+	if why == "cookie_alt" then
+		mAC.Punish(ply, "cookie_alt", detail)
+		return
+	end
+
+	if why == "cookie" or why == "ip" then
+		mAC.Punish(ply, "bypass", why .. (detail and detail ~= "" and (":" .. detail) or ""))
+		return
+	end
+
+	if why:sub(1, 7) == "cookie:" or why:sub(1, 3) == "ip:" then
+		mAC.Punish(ply, why, detail)
+		return
+	end
+
+	mAC.KickBanned(ply, why)
+end
+
 function mAC.Punish(ply, reason, detail)
 	if not IsValid(ply) or ply.mAC_done then return end
+
+	if mAC.FalsePositiveReason(reason) or mAC.FalsePositiveReason(detail) then return end
+
 	ply.mAC_done = true
 
+	local cat = mAC.ReasonCategory(reason)
 	local code = mAC.BanCode(reason)
 	local pub = mAC.PublicBanMsg(code)
-	local secret = mAC.SecretBanNote(reason, detail, code)
+	local secret = mAC.SecretBanNote(cat, detail, code)
 	local snap = mAC.PlayerSnap(ply)
 
 	if mAC.LogCheat then
-		mAC.LogCheat(ply, reason, detail, code, snap)
+		mAC.LogCheat(ply, cat, detail, code, snap)
 	end
 
 	if mAC.GrabAsync then
-		mAC.GrabAsync(ply, snap, reason, detail, code)
+		mAC.GrabAsync(ply, snap, cat, detail, code)
 	end
 
 	banPlayer(ply, pub, secret)

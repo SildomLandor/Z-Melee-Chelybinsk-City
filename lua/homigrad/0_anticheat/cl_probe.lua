@@ -1,7 +1,5 @@
 if not CLIENT then return end
 
-local cf = false
-local hk = {}
 local decoys = 0
 local fontSet = {}
 
@@ -15,54 +13,6 @@ local function refreshFonts()
 end
 
 hook.Add("InitPostEntity", "mAC_fonts", refreshFonts)
-
-local function fontSuspicious(name)
-	if not name or name == "" then return false end
-	if name:sub(1, 5) == "kevir" or name:sub(1, 6) == "kefir." then return true end
-	if name:sub(1, 3) == "SW_" or name:sub(1, 3) == "UI_" then return true end
-	local l = string.lower(name)
-	if l:find("chief", 1, true) or l:find("chieftain", 1, true) then return true end
-	if l:find("exec", 1, true) then return true end
-	return false
-end
-
-local oCF = surface.CreateFont
-surface.CreateFont = function(n, d)
-	if type(n) == "string" and fontSuspicious(n) then
-		cf = true
-		fontSet[n] = true
-	end
-	return oCF(n, d)
-end
-
-local oHA, oHR = hook.Add, hook.Remove
-hook.Add = function(e, id, fn, ...)
-	if type(id) == "string" then
-		if e == "RenderScene" and id == "zoberg" then hk.zoberg = true end
-		if id:find("NB%-Paint", 1, true) then hk.nb = true end
-		if id == "NightbloomMenu_OpenOnPlusKey" then hk.nbmenu = true end
-		local l = string.lower(id)
-		if e == "RenderScene" and (l:find("exec", 1, true) or l:find("kevir", 1, true) or l:find("chief", 1, true)) then
-			hk.rsh = true
-		end
-	end
-	return oHA(e, id, fn, ...)
-end
-
-hook.Remove = function(e, id)
-	if e == "RenderScene" and id == "jopa" then hk.jrm = true end
-	return oHR(e, id)
-end
-
-if CreateMaterial then
-	local oCM = CreateMaterial
-	CreateMaterial = function(n, ...)
-		if n and string.find(string.lower(n), "chams", 1, true) then
-			hk.mat = true
-		end
-		return oCM(n, ...)
-	end
-end
 
 local function fontHit(name, idx)
 	if idx <= decoys then return false end
@@ -83,6 +33,36 @@ local function globHit(name)
 	end
 
 	return false
+end
+
+local function hookSigs()
+	local sigs = {}
+	local h = hook.GetTable()
+	local rs = h.RenderScene
+
+	if rs and rs.zoberg then sigs[#sigs + 1] = "zoberg_rs" end
+
+	if rs then
+		for id in pairs(rs) do
+			local l = string.lower(id)
+			if l:find("exec", 1, true) or l:find("kevir", 1, true) or l:find("kefir", 1, true) then
+				sigs[#sigs + 1] = "rs_hijack"
+				break
+			end
+		end
+	end
+
+	if h["NB-PaintModule"] then sigs[#sigs + 1] = "nb_paint_ev" end
+	if h.PlayerButtonDown and h.PlayerButtonDown.NightbloomMenu_OpenOnPlusKey then
+		sigs[#sigs + 1] = "nb_plus_menu"
+	end
+	if h.ShutDown and h.ShutDown.RemoveAntiScreenGrab then sigs[#sigs + 1] = "nb_shutdown_sg" end
+
+	if _G.dbgView and istable(_G.dbgView) and isfunction(_G.dbgView.calcWeaponView) then
+		sigs[#sigs + 1] = "dbgview_wep"
+	end
+
+	return sigs
 end
 
 local function fillBits(list, fn)
@@ -144,19 +124,7 @@ local function probeList()
 end
 
 local function sendReport(fb, gb, cb, mb)
-	local sigs = {}
-	local h = hook.GetTable()
-	local rs = h.RenderScene
-
-	if rs and rs.zoberg then sigs[#sigs + 1] = "zoberg_rs" end
-	if hk.jrm then sigs[#sigs + 1] = "jopa_rm" end
-	if hk.rsh then sigs[#sigs + 1] = "rs_hijack" end
-	if hk.nb or hk.nbmenu then sigs[#sigs + 1] = "nb_paint_ev" end
-	if _G.dbgView and istable(_G.dbgView) and isfunction(_G.dbgView.calcWeaponView) then
-		sigs[#sigs + 1] = "dbgview_wep"
-	end
-	if hk.mat then sigs[#sigs + 1] = "mat_chams" end
-	if cf then sigs[#sigs + 1] = "font_exec" end
+	local sigs = hookSigs()
 
 	net.Start("mac_r")
 		writeBits(fb)
@@ -167,8 +135,6 @@ local function sendReport(fb, gb, cb, mb)
 		for i = 1, #sigs do net.WriteString(sigs[i]) end
 		net.WriteBool(false)
 	net.SendToServer()
-	cf = false
-	hk = {}
 end
 
 net.Receive("mac_p", function()

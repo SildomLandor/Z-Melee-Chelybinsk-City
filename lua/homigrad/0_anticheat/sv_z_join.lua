@@ -13,11 +13,7 @@ function mAC.OnJoin(ply)
 	mAC.CheckBypass(ply, "", function(blocked, why, own)
 		if not IsValid(ply) then return end
 		if blocked then
-			if own then
-				mAC.KickBanned(ply, why)
-			else
-				mAC.Punish(ply, why or "bypass", ip)
-			end
+			mAC.HandleBlocked(ply, why, own, ip)
 			return
 		end
 
@@ -78,11 +74,7 @@ net.Receive("mac_c", function(_, ply)
 	mAC.CheckBypass(ply, cookie, function(blocked, why, own)
 		if not IsValid(ply) then return end
 		if blocked then
-			if own then
-				mAC.KickBanned(ply, why)
-			else
-				mAC.Punish(ply, why or "bypass", cookie)
-			end
+			mAC.HandleBlocked(ply, why, own, cookie)
 		end
 	end)
 end)
