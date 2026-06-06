@@ -377,6 +377,9 @@ MODE.Professions = {
 			--; It's a bad practice to give professions any weapons or tools
 		end,
 	},
+	["surgeon"] = {
+		Name = "Хирург",
+	},
 }
 --//
 

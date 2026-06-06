@@ -1591,9 +1591,9 @@ function MODE.SpawnPlayers(spawn_with_subroles)
         end
     end
 
-    --= Профессии
+    --= Профессии (не зависят от выбора подролей — RolesPlus сейчас выключен)
     local professions = {}
-    if(spawn_with_subroles and MODE.RoleChooseRoundTypes[MODE.Type])then
+    if MODE.RoleChooseRoundTypes[MODE.Type] then
         local professions_possible_pre = MODE.RoleChooseRoundTypes[MODE.Type].Professions
 
         if(professions_possible_pre)then
@@ -1633,6 +1633,10 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                         end
                     end
                 end
+            end
+
+            if MODE.AssignDonateProfessions then
+                MODE.AssignDonateProfessions()
             end
         end
     end

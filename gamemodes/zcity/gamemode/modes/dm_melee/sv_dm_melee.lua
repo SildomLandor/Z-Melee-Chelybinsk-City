@@ -108,9 +108,29 @@ function MODE:EquipPlayer(ply, trySlayer)
 	return hasMelee(ply)
 end
 
+function MODE:Intermission()
+	local dm = zb.modes.dm
+	if dm and dm.Intermission then
+		dm.Intermission(self)
+	end
+end
+
 function MODE:RoundStart()
+	if not zonepoint then
+		zonepoint = zb:GetRandomSpawn() or Vector(0, 0, 0)
+		zonedistance = zonedistance or 2048
+		net.Start("dm_start")
+			net.WriteVector(zonepoint)
+			net.WriteFloat(zonedistance)
+		net.Broadcast()
+	end
+
 	self.slayerRoll = math.random() < 0.01
 	self.slayerGiven = false
+
+	for _, ply in player.Iterator() do
+		ply.zb_zone_dissolving = nil
+	end
 
 	local mode = self
 

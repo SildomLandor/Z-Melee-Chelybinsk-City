@@ -285,7 +285,6 @@ hook.Add("Think", "bober", function()
 	if zb.ROUND_STATE ~= 1 then return end
 	local rnd = CurrentRound()
 	if not rnd or not MODE.IsDMFamily(rnd) then return end
-	if rnd:ShouldRoundEnd() then return end
 	if (zb.ROUND_START or 0) + 20 > CurTime() then return end
 	if cooldown > CurTime() then return end
 	if deathmatch_nozone:GetBool() then return end
@@ -293,31 +292,31 @@ hook.Add("Think", "bober", function()
 	local pos = zonepoint
 	if not pos then return end
 
-	cooldown = CurTime() + 0.5
+	cooldown = CurTime() + 0.1
 
-	local radius = MODE.GetZoneRadius()
+	local getRadius = rnd.GetZoneRadius or MODE.GetZoneRadius
+	local radius = getRadius()
 	if radius <= 0 then return end
 	local radiussqr = radius * radius
 
 	for _, ent in player.Iterator() do
 		if not ent:Alive() or ent.zb_zone_dissolving then continue end
-		local org = ent.organism
-		if not org then continue end
 
 		if pos:DistToSqr(ZoneEntPos(ent)) <= radiussqr then
-			if (org.assimilated or 0) > 0 then
+			local org = ent.organism
+			if org and (org.assimilated or 0) > 0 then
 				org.assimilated = math.Approach(org.assimilated, 0, 0.2)
 				ent:SetLocalVar("assimilation", org.assimilated)
 			end
 			continue
 		end
 
-		org.assimilated = math.Approach(org.assimilated or 0, 1, 0.125)
-		ent:SetLocalVar("assimilation", org.assimilated)
-
-		if org.assimilated >= 1 then
-			DissolveZonePlayer(ent)
+		if not ent.organism then
+			ent:Kill()
+			continue
 		end
+
+		DissolveZonePlayer(ent)
 	end
 
 	for i = 1, #dmDoorClasses do

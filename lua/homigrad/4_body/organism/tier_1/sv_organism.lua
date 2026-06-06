@@ -325,7 +325,7 @@ hook.Add("Org Think", "Main", function(owner, org, timeValue)
 			org.furryinfected = false
 		end
 	else
-		if (org.lightstun - CurTime()) <= 0 then
+		if not owner.zb_zone_dissolving and (org.lightstun - CurTime()) <= 0 then
 			org.assimilated = math.Approach(org.assimilated, 0, (timeValue / 60 * org.pulse / 70) * 6)
 		end
 	end

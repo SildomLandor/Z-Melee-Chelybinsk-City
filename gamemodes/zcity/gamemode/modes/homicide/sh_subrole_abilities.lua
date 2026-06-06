@@ -236,7 +236,8 @@ function MODE.ContinueBreakingOtherNeck(ply)
 end
 
 hook.Add("HG_MovementCalc_2", "HMCD_SubRole_Abilities", function(mul, ply, cmd)
-	if(ply.BeingVictimOfNeckBreak or ply.BeingVictimOfDisarmament or ply.BeingVictimOfThroatSlit)then
+	if ply.BeingVictimOfNeckBreak or ply.BeingVictimOfDisarmament or ply.BeingVictimOfThroatSlit
+		or ply.Ability_SurgeonAnalyze or ply.Ability_SurgeonArteryCut then
 		mul[1] = mul[1] * 0.3
 	end
 end)
@@ -537,4 +538,190 @@ hook.Add("PlayerSwitchWeapon", "HMCD_SubRole_Abilities", function(ply)
 		return true
 	end
 end)
+--//
+
+--\\Surgeon
+function MODE.SurgeonWantsSharpCut(ply, wep)
+	if not IsValid(ply) or not IsValid(wep) then return false end
+	if wep:GetClass() == "weapon_scalpel" then return true end
+	return MODE.IsSharpWeapon(wep)
+end
+
+MODE.SurgeonReach = 90
+MODE.SurgeonRevealTime = 15
+MODE.SurgeonAnalyzeSpeed = 200
+MODE.SurgeonArteryCutSpeed = 220
+MODE.SurgeonRevealColor = Color(255, 0, 0)
+
+function MODE.SurgeonIsVulnerableOrgan(name)
+	if not name then return false end
+	return name == "arteria" or string.find(name, "artery", 1, true) ~= nil
+end
+
+function MODE.SurgeonCanSeeTarget(ply, other_ply)
+	if not IsValid(ply) or not IsValid(other_ply) or not other_ply:Alive() then return false end
+	if CLIENT and (other_ply.NotSeen or other_ply.shouldTransmit == false) then return false end
+
+	local ent = hg.GetCurrentCharacter(other_ply)
+	if not IsValid(ent) then return false end
+
+	local filter = {ply, ent, other_ply}
+	local rag = hg.RagdollOwner and hg.RagdollOwner(ent)
+	if IsValid(rag) then filter[#filter + 1] = rag end
+
+	return hg.isVisible(ply:GetShootPos(), ent:WorldSpaceCenter(), filter, MASK_VISIBLE)
+end
+
+function MODE.SurgeonCanTouchTarget(ply, aim_ent, other_ply)
+	if not IsValid(other_ply) or not other_ply:Alive() then return false end
+	if not MODE.SurgeonCanSeeTarget(ply, other_ply) then return false end
+	return MODE.CanPlayerDisarmOther(ply, aim_ent) or MODE.CanPlayerBreakOtherNeck(ply, aim_ent)
+end
+
+function MODE.SurgeonTraceArtery(ply, other_ply)
+	if not IsValid(other_ply) or not other_ply:Alive() then return end
+	if not MODE.SurgeonCanSeeTarget(ply, other_ply) then return end
+
+	local ent = hg.GetCurrentCharacter(other_ply)
+	if not IsValid(ent) or not hg.organism or not hg.organism.GetHitBoxOrgans then return end
+
+	local organs = hg.organism.GetHitBoxOrgans(ent:GetModel(), ent)
+	local boxs, pos, sphere = hg.organism.ShootMatrix(ent, organs, other_ply)
+	if not boxs then return end
+
+	local start = ply:GetShootPos()
+	local dir = ply:GetAimVector()
+	local _, hitBoxs = hg.organism.Trace(start, dir, 1, 2, boxs, pos, sphere, organs, false, hg.organism.Trace_Bullet, other_ply.organism)
+
+	for i, hit in pairs(hitBoxs or {}) do
+		if not hit then continue end
+		local box = boxs[i]
+		local organ = box and box[6] and organs[box[6]][box[7]]
+		if organ and MODE.SurgeonIsVulnerableOrgan(organ[1]) then
+			return organ[1], box[6], ent
+		end
+	end
+end
+
+function MODE.StartSurgeonAnalyze(ply, other_ply)
+	ply.Ability_SurgeonAnalyze = {Victim = other_ply, Progress = 0, StartTime = CurTime()}
+	if SERVER then
+		net.Start("HMCD_SurgeonAnalyzing")
+			net.WriteBool(true)
+			net.WriteEntity(other_ply)
+		net.Send(ply)
+	end
+end
+
+function MODE.StopSurgeonAnalyze(ply)
+	if SERVER then
+		net.Start("HMCD_SurgeonAnalyzing")
+			net.WriteBool(false)
+		net.Send(ply)
+	end
+	ply.Ability_SurgeonAnalyze = nil
+end
+
+function MODE.ContinueSurgeonAnalyze(ply)
+	local data = ply.Ability_SurgeonAnalyze
+	if not data then return end
+	local victim = data.Victim
+	local aim_ent, other_ply = MODE.GetPlayerTraceToOtherVictim(ply, victim, MODE.SurgeonReach)
+	local strength = IsValid(aim_ent) and MODE.SurgeonCanTouchTarget(ply, aim_ent, other_ply)
+
+	if strength and other_ply == victim then
+		data.Progress = data.Progress + FrameTime() * MODE.SurgeonAnalyzeSpeed * strength
+		if data.Progress >= 100 then
+			if SERVER then
+				MODE.SurgeonRevealTarget(ply, victim)
+			end
+			MODE.StopSurgeonAnalyze(ply)
+		end
+	else
+		MODE.StopSurgeonAnalyze(ply)
+	end
+end
+
+function MODE.SurgeonRevealTarget(ply, other_ply)
+	if not IsValid(ply) or not IsValid(other_ply) then return end
+	if not MODE.SurgeonCanSeeTarget(ply, other_ply) then return end
+	local until_time = CurTime() + MODE.SurgeonRevealTime
+	ply.SurgeonRevealVictim = other_ply
+	ply.SurgeonRevealUntil = until_time
+	if SERVER then
+		net.Start("HMCD_SurgeonReveal")
+			net.WriteEntity(other_ply)
+			net.WriteFloat(until_time)
+		net.Send(ply)
+	end
+end
+
+function MODE.SurgeonCutArtery(ply, other_ply, cut_name, cut_bone)
+	if not IsValid(other_ply) or not other_ply:Alive() or not other_ply.organism then return end
+	local wep = ply:GetActiveWeapon()
+	if not MODE.SurgeonWantsSharpCut(ply, wep) then return end
+
+	local ent = hg.GetCurrentCharacter(other_ply)
+	if not IsValid(ent) then return end
+
+	cut_name = cut_name or "arteria"
+	cut_bone = cut_bone or "ValveBiped.Bip01_Neck1"
+
+	local dmgInfo = DamageInfo()
+	dmgInfo:SetDamageType(DMG_SLASH)
+	dmgInfo:SetAttacker(ply)
+	dmgInfo:SetInflictor(IsValid(wep) and wep or ply)
+
+	local dir = ply:GetAimVector()
+	local fn = hg.organism.input_list[cut_name]
+	if fn then
+		fn(other_ply.organism, 0, 8, dmgInfo, cut_bone, -dir)
+	end
+
+	ent:EmitSound("Flesh.ImpactHard", 45, math.random(95, 105), 0.6, CHAN_AUTO)
+	hook.Run("HomigradDamage", other_ply, dmgInfo, HITGROUP_GENERIC, ent, 8)
+end
+
+function MODE.StartSurgeonArteryCut(ply, other_ply)
+	ply.Ability_SurgeonArteryCut = {Victim = other_ply, Progress = 0, StartTime = CurTime()}
+	if SERVER then
+		net.Start("HMCD_SurgeonArteryCutting")
+			net.WriteBool(true)
+			net.WriteEntity(other_ply)
+		net.Send(ply)
+	end
+end
+
+function MODE.StopSurgeonArteryCut(ply)
+	if SERVER then
+		net.Start("HMCD_SurgeonArteryCutting")
+			net.WriteBool(false)
+		net.Send(ply)
+	end
+	ply.Ability_SurgeonArteryCut = nil
+end
+
+function MODE.ContinueSurgeonArteryCut(ply)
+	local data = ply.Ability_SurgeonArteryCut
+	if not data then return end
+	local victim = data.Victim
+	local aim_ent, other_ply = MODE.GetPlayerTraceToOtherVictim(ply, victim, MODE.SurgeonReach)
+	local strength = IsValid(aim_ent) and MODE.SurgeonCanTouchTarget(ply, aim_ent, other_ply)
+	local wep = ply:GetActiveWeapon()
+	local cut_name, cut_bone = MODE.SurgeonTraceArtery(ply, victim)
+
+	if strength and other_ply == victim and MODE.SurgeonWantsSharpCut(ply, wep) and cut_name then
+		data.CutName = cut_name
+		data.CutBone = cut_bone
+		data.Progress = data.Progress + FrameTime() * MODE.SurgeonArteryCutSpeed * strength
+		if data.Progress >= 100 then
+			if SERVER then
+				MODE.SurgeonCutArtery(ply, victim, data.CutName, data.CutBone)
+			end
+			MODE.StopSurgeonArteryCut(ply)
+		end
+	else
+		MODE.StopSurgeonArteryCut(ply)
+	end
+end
 --//
