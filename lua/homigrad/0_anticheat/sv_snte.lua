@@ -1,12 +1,12 @@
 MsgC(Color(204, 0, 0), [[
 
-	╔══════════════════════════════════════════════════════════════════════════════╗
-	║   Name    : Say No To Exploits                                               ║
-	║   Idea    : Meepen                                                           ║
-	║   Credits : Maks - Zaros - YohSambre - Vitroze - Walter - Finnwinch          ║
-	║   GitHub  : https://github.com/YohSambre/gmod_snte                           ║
-	║   Years   : 2018 / 2025                                                      ║
-	╚══════════════════════════════════════════════════════════════════════════════╝
+	╔═════════════╗
+	║   zzzzzzzzz ║
+	║   	  zz  ║
+	║       zz    ║ ANTICHEAT MELEECITY VERY GOOD
+	║     zz      ║
+	║  zzzzzzzzzz ║
+	╚═════════════╝
 
 ]])
 

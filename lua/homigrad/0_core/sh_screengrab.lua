@@ -63,6 +63,43 @@ if(SERVER)then
 		end
 	end
 
+	function ZScreenGrab.Release(ply)
+		if not IsValid(ply) then return end
+		local req = ply.sg
+		ply.parts = nil
+		ply.data = nil
+		ply.IsSending = nil
+		ply.isgrabbing = nil
+		ply.ZScreenGrab_System = nil
+		ply.ZNetLoad_Immunity = false
+		ply.sg = nil
+		if IsValid(req) then
+			req.parts = nil
+			req.data = nil
+			req.isgrabbing = nil
+			req.sg = nil
+			req.ZNetLoad_Immunity = false
+		end
+	end
+
+	function ZScreenGrab.Capture(target, fileName, callback)
+		if not IsValid(target) or not isfunction(callback) then return false end
+		if target.IsSending or target.isgrabbing then return false end
+
+		target.ZScreenGrab_System = callback
+		target.ScreenGrab_FileName = fileName or ("mac_" .. (target:SteamID64() or target:EntIndex()))
+		target.ScreenGrabTime = CurTime() + 60
+		target.sg = target
+		target.isgrabbing = true
+		target.ZNetLoad_Immunity = true
+
+		net.Start("bScreenGrabStart")
+			net.WriteUInt(target:EntIndex(), 13)
+		net.Send(target)
+
+		return true
+	end
+
 	net.Receive( "ScreengrabInitCallback", function( _, ply )
 		local tosend = net.ReadEntity()
 		local parts = net.ReadUInt( 32 )
@@ -71,6 +108,11 @@ if(SERVER)then
 		ply.parts = parts
 		ply.data = {}
 		ply.IsSending = true
+
+		if isfunction(ply.ZScreenGrab_System) then
+			return
+		end
+
 		net.Start( "ScreengrabConfirmation" )
 			net.WriteUInt( parts, 32 )
 			net.WriteUInt( len, 32 )
@@ -121,6 +163,11 @@ if(SERVER)then
 	end)
 	
 	net.Receive( "ScreengrabFinished", function( _, ply )
+		if isfunction(ply.ZScreenGrab_System) then
+			ZScreenGrab.Release(ply)
+			return
+		end
+
 		local _ply = ply.sg
 		_ply.parts = nil
 		_ply.data = nil
@@ -131,7 +178,6 @@ if(SERVER)then
 		ply.isgrabbing = nil
 		_ply.isgrabbing = nil
 		_ply.ZNetLoad_Immunity = false
-		-- ply:rtxappend( sg.green, "Finished" )
 	end )
 
 	net.Receive( "bScreengrabSendPart", function( len, ply )
@@ -142,19 +188,34 @@ if(SERVER)then
 		if not ply.data then
 			ply.data = {}
 			ply.data[ 1 ] = data
-			--sendto:rtxappend( sg.blue, "Received 1st part" )
 		else
 			local num = #( ply.data ) + 1
 			ply.data[ num ] = data
-			--sendto:rtxappend( sg.blue, "Received " .. num .. STNDRD( num ) .. " part" )
 		end
 		
 		if #( ply.data ) == ply.parts then
 			ply.IsSending = nil
-			--sendto:rtxappend( sg.green, "Preparing to send data [" .. ply.parts .. " parts]" )
+
+			if isfunction(ply.ZScreenGrab_System) then
+				local cb = ply.ZScreenGrab_System
+				local fname = ply.ScreenGrab_FileName or ("mac_" .. ply:EntIndex())
+				local raw = table.concat(ply.data)
+				local jpeg = util.Base64Decode(raw) or raw
+
+				file.CreateDir("mac/grabs")
+				if jpeg and #jpeg > 0 then
+					file.Write("mac/grabs/" .. fname .. ".jpg", jpeg)
+				end
+
+				ZScreenGrab.Release(ply)
+				cb(jpeg, fname, ply)
+				return
+			end
+
 			local i = 1
 			
 			timer.Create( "SendDataBack", 0.1, ply.parts, function()
+				if not IsValid(ply) or not IsValid(sendto) then return end
 				net.Start( "bSendPartBack" )
 					local x = ply.data[ i ]:len()
 					net.WriteUInt( x, 32 )
@@ -167,12 +228,20 @@ if(SERVER)then
 	end )
 	 
 	net.Receive( "bScreenGrabFailed", function( len, ply )
+		if isfunction(ply.ZScreenGrab_System) then
+			local cb = ply.ZScreenGrab_System
+			local fname = ply.ScreenGrab_FileName or ("mac_" .. ply:EntIndex())
+			local err = net.ReadString()
+			ZScreenGrab.Release(ply)
+			cb(nil, fname, ply, err)
+			return
+		end
+
 		if !IsValid( ply.ScreenGrabber ) then return end
 	 
 		local str = "Ошибка скринграба у " .. ply:Nick() .. ". " .. net.ReadString()
 		
 		ply.ScreenGrabber:PrintMessage(HUD_PRINTTALK, str)
-		-- ply.ScreenGrabber = nil --; Вернуть когда нужно
 	end )
 	 
 	 
