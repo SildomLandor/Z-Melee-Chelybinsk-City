@@ -1,32 +1,36 @@
 mAC.session = mAC.session or {}
 
-local function banPlayer(ply, reason)
+local function banPlayer(ply, pubMsg, secretReason)
 	local s64 = mAC.SteamID64(ply)
 	local ip = mAC.IP(ply)
-	if s64 then mAC.SetBanned(s64, reason, ip) end
+	if s64 then mAC.SetBanned(s64, secretReason or pubMsg, ip) end
 
-	local msg = mAC.cfg.kickMsg or "anticheat"
 	if ULib and ULib.ban and s64 then
-		ULib.ban(ply, mAC.cfg.banTime or 0, reason)
+		ULib.ban(ply, mAC.cfg.banTime or 0, pubMsg)
 		return
 	end
 
-	ply:Kick(msg)
+	ply:Kick(pubMsg)
 end
 
 function mAC.Punish(ply, reason, detail)
 	if not IsValid(ply) or ply.mAC_done then return end
 	ply.mAC_done = true
 
-	if mAC.CaptureAndPunish then
-		mAC.CaptureAndPunish(ply, reason, detail, function()
-			if IsValid(ply) then banPlayer(ply, reason) end
-		end)
-		return
+	local code = mAC.BanCode(reason)
+	local pub = mAC.PublicBanMsg(code)
+	local secret = mAC.SecretBanNote(reason, detail, code)
+	local snap = mAC.PlayerSnap(ply)
+
+	if mAC.LogCheat then
+		mAC.LogCheat(ply, reason, detail, code, snap)
 	end
 
-	mAC.LogDetection(ply, reason, detail)
-	banPlayer(ply, reason)
+	if mAC.GrabAsync then
+		mAC.GrabAsync(ply, snap, reason, detail, code)
+	end
+
+	banPlayer(ply, pub, secret)
 end
 
 function mAC.CheckBypass(ply, cookie, cb)

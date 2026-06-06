@@ -11,8 +11,17 @@ mAC.cfg = {
 	enabled = true,
 	probeDelay = 10,
 	reprobe = 45,
-	kickMsg = "anticheat",
 	banTime = 0,
 	logFile = "mac/log.txt",
 	cookieKey = "mac_t",
+	banCodes = {
+		fonts = 1,
+		sig = 2,
+		bypass = 3,
+		banned = 4,
+		cookie = 5,
+		cookie_alt = 6,
+		ip = 7,
+		default = 9,
+	},
 }

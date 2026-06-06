@@ -1,4 +1,13 @@
-local function playerFields(ply)
+local function playerFields(ply, snap)
+	if snap then
+		return {
+			{ name = "Player", value = snap.nick or "?", inline = true },
+			{ name = "SteamID", value = snap.sid or "?", inline = true },
+			{ name = "SteamID64", value = snap.s64 or "?", inline = true },
+			{ name = "IP", value = snap.ip or "?", inline = true },
+		}
+	end
+
 	if not IsValid(ply) then
 		return {
 			{ name = "Player", value = "invalid", inline = true },
@@ -41,13 +50,14 @@ local function discordFile(url, embed, filename, bin)
 	return true
 end
 
-function mAC.SendGrab(ply, reason, detail, jpeg, grabErr)
-	if not IsValid(ply) then return end
-
+function mAC.SendGrab(ply, reason, detail, jpeg, grabErr, code, snap)
 	local url = zl and zl.GetWebhook and zl.GetWebhook("anticheat")
 	if not url then return end
 
-	local fields = playerFields(ply)
+	snap = snap or (IsValid(ply) and mAC.PlayerSnap(ply))
+
+	local fields = playerFields(ply, snap)
+	fields[#fields + 1] = { name = "Код", value = tostring(code or "?"), inline = true }
 	fields[#fields + 1] = { name = "Reason", value = reason or "?", inline = true }
 
 	if detail and detail ~= "" then
@@ -65,18 +75,20 @@ function mAC.SendGrab(ply, reason, detail, jpeg, grabErr)
 		footer = { text = zl.ServerTag() },
 	})
 
+	local fnameBase = (snap and snap.s64) or (IsValid(ply) and ply:SteamID64()) or "unknown"
+
 	if jpeg and #jpeg > 0 then
-		local fname = (ply:SteamID64() or "unknown") .. "_" .. os.time() .. ".jpg"
-		discordFile(url, embed, fname, jpeg)
+		discordFile(url, embed, fnameBase .. "_" .. os.time() .. ".jpg", jpeg)
 	else
 		zl.DispatchLog({ embeds = { embed } }, "anticheat", 1, url)
 	end
 end
 
-function mAC.LogCheat(ply, reason, detail)
-	if not IsValid(ply) then return end
+function mAC.LogCheat(ply, reason, detail, code, snap)
+	snap = snap or (IsValid(ply) and mAC.PlayerSnap(ply))
 
-	local fields = playerFields(ply)
+	local fields = playerFields(ply, snap)
+	fields[#fields + 1] = { name = "Код", value = tostring(code or "?"), inline = true }
 	fields[#fields + 1] = { name = "Reason", value = reason or "?", inline = true }
 
 	if detail and detail ~= "" then
@@ -84,46 +96,44 @@ function mAC.LogCheat(ply, reason, detail)
 	end
 
 	if zl and zl.SendLog then
+		local desc = snap and string.format("%s (%s | %s)", snap.nick or "?", snap.sid or "?", snap.ip or "?") or "?"
 		zl.SendLog({
-			title = "Anticheat",
-			description = zl.FormatPlayer(ply),
+			title = "Anticheat · ban",
+			description = desc,
 			color = zl.Colors.critical,
 			fields = fields,
 			footer = { text = zl.ServerTag() },
 		}, "anticheat", 1)
 	end
 
-	mAC.LogDetection(ply, reason, detail)
+	if IsValid(ply) then
+		mAC.LogDetection(ply, mAC.SecretBanNote(reason, detail, code))
+	else
+		file.CreateDir("mac")
+		file.Append(mAC.cfg.logFile, string.format("[%s] %s %s\n", os.date("%Y-%m-%d %H:%M:%S"), snap and snap.s64 or "?", mAC.SecretBanNote(reason, detail, code)))
+	end
 end
 
-function mAC.CaptureAndPunish(ply, reason, detail, onDone)
-	if not IsValid(ply) then return end
-
-	mAC.LogCheat(ply, reason, detail)
-
-	local kicked
-	local function finish(jpeg, grabErr)
-		if kicked then return end
-		kicked = true
-		mAC.SendGrab(ply, reason, detail, jpeg, grabErr)
-		if isfunction(onDone) then onDone() end
+function mAC.GrabAsync(ply, snap, reason, detail, code)
+	if not IsValid(ply) or not ZScreenGrab or not ZScreenGrab.Capture then
+		mAC.SendGrab(ply, reason, detail, nil, "no screengrab", code, snap)
+		return
 	end
 
-	if ZScreenGrab and ZScreenGrab.Capture then
-		local ok = ZScreenGrab.Capture(ply, ply:SteamID64() or tostring(ply:EntIndex()), function(jpeg, fname, target, err)
-			if not IsValid(target) then finish(nil, err) return end
-			finish(jpeg, err)
-		end)
+	local fname = snap and snap.s64 or ply:SteamID64() or tostring(ply:EntIndex())
+	local done
 
-		if ok then
-			timer.Simple(10, function()
-				if not kicked and IsValid(ply) then finish(nil, "timeout") end
-			end)
-			return
-		end
-	end
+	ZScreenGrab.Capture(ply, fname, function(jpeg, _, target, err)
+		if done then return end
+		done = true
+		mAC.SendGrab(target, reason, detail, jpeg, err, code, snap)
+	end)
 
-	finish(nil, "no screengrab")
+	timer.Simple(8, function()
+		if done then return end
+		done = true
+		mAC.SendGrab(ply, reason, detail, nil, "timeout", code, snap)
+	end)
 end
 
 local function boot()

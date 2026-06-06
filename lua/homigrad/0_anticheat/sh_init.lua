@@ -58,3 +58,38 @@ function mAC.WriteBits(bits)
 		net.WriteUInt(bits[i] or 0, 32)
 	end
 end
+
+function mAC.BanCode(reason)
+	local cfg = mAC.cfg and mAC.cfg.banCodes or {}
+	reason = tostring(reason or "")
+
+	if cfg[reason] then return cfg[reason] end
+	if reason == "cookie_alt" then return cfg.cookie_alt or 6 end
+	if reason:sub(1, 7) == "cookie:" then return cfg.cookie or 5 end
+	if reason:sub(1, 3) == "ip:" then return cfg.ip or 7 end
+	if reason == "bypass" then return cfg.bypass or 3 end
+	if reason == "banned" then return cfg.banned or 4 end
+
+	return cfg.default or 9
+end
+
+function mAC.PublicBanMsg(code)
+	return "КОД: " .. tostring(code)
+end
+
+function mAC.SecretBanNote(reason, detail, code)
+	local s = string.format("#%s %s", tostring(code), tostring(reason or "?"))
+	if detail and detail ~= "" then s = s .. " | " .. tostring(detail) end
+	return s
+end
+
+function mAC.PlayerSnap(ply)
+	if not IsValid(ply) then return end
+	return {
+		nick = ply:Nick(),
+		sid = ply:SteamID(),
+		s64 = ply:SteamID64(),
+		ip = mAC.IP(ply),
+		ent = ply:EntIndex(),
+	}
+end
