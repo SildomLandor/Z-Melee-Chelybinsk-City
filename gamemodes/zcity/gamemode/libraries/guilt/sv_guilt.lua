@@ -215,6 +215,16 @@ function zb.ApplyKarmaLoss(att, vic, amount, opts)
     return true, loss
 end
 
+local medicalWeps = {
+    weapon_morphine = true,
+    weapon_fentanyl = true,
+}
+
+local function guiltSkipMedical(att)
+    local wep = IsValid(att) and att:GetActiveWeapon()
+    return IsValid(wep) and medicalWeps[wep:GetClass()] or false
+end
+
 function zb.VictimIsHeadcrabThreat(victim)
     if not IsValid(victim) then return false end
     if victim:IsPlayer() then
@@ -237,6 +247,8 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     if not IsValid(Attacker) or not Attacker:IsPlayer() then return end
     if not IsValid(Victim) or not (Victim:IsPlayer() or (Victim.organism.fakePlayer and Victim.organism.alive)) then return end
     if Victim:IsNPC() or Victim:IsNextBot() then return end
+    if guiltSkipMedical(Attacker) then return end
+    if (harm or 0) <= 0 then return end
 
     Victim = hg.GetCurrentCharacter(Victim) or Victim
     Victim = hg.RagdollOwner(Victim) or Victim
@@ -308,7 +320,6 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     local guiltMul = (Victim:IsPlayer() and Attacker:PlayerClassEvent("Guilt", Victim)) or 1
     if guiltMul <= 0 then guiltMul = 1 end
     add = add * guiltMul
-    add = add * 2
 
     local mul, shouldBanGuilt
 
@@ -322,10 +333,11 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
 
     if provoked then return end
     if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
+    if harmdelta < 0.5 then return end
 
     local retal = zb.GuiltRetal(zb.GuiltTable[Victim][Attacker])
     local loss = add * math.max(1 - retal, 0) * (Attacker.MentKarmaLossMul or 1)
-    if loss <= 0 then return end
+    if loss <= 0 or loss < 1 then return end
 
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd
     Attacker.Karma = math.Clamp((Attacker.Karma or zb.DefaultKarma) - loss, zb.MinKarma, zb.MaxKarma)
@@ -470,7 +482,7 @@ local function guiltMenuPayload(victim)
     local karmaTbl = zb.HarmDoneKarma[victim] or {}
     local harmTbl = zb.HarmDone[victim] or {}
     for att, karma in pairs(karmaTbl) do
-        if karma > 0.01 and IsValid(att) and att:IsPlayer() then
+        if karma >= 1 and IsValid(att) and att:IsPlayer() and (harmTbl[att] or 0) >= 1 then
             out[#out + 1] = {
                 ent = att:EntIndex(),
                 harm = harmTbl[att] or 0,

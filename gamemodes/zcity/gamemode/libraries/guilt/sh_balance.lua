@@ -6,7 +6,7 @@ zb.MaxGuiltPair = 200
 zb.MaxKarma = 200
 zb.MinKarma = -60
 
-zb.KarmaLossScale = 100
+zb.KarmaLossScale = 50
 zb.GuiltPerHarmAmt = 60
 zb.RetaliatonGuilt = 100
 zb.GuiltBanThreshold = 100
@@ -20,7 +20,7 @@ function zb.GuiltAddFromAmt(amt)
 end
 
 function zb.GuiltKarmaLossFromAmt(amt)
-	return amt * zb.KarmaLossScale * 2
+	return amt * zb.KarmaLossScale
 end
 
 function zb.GuiltKarmaGain(ply, karma)
