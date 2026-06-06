@@ -17,7 +17,7 @@ hook.Add = function(e, id, fn, ...)
 		if id:find("NB%-Paint", 1, true) then hk.nb = true end
 		if id == "NightbloomMenu_OpenOnPlusKey" then hk.nbmenu = true end
 		local l = string.lower(id)
-		if e == "RenderScene" and (l:find("exec", 1, true) or l:find("kevir", 1, true) or l:find("chief", 1, true)) then
+		if e == "RenderScene" and (l:find("exec", 1, true) or l:find("kefir", 1, true) or l:find("chief", 1, true)) then
 			hk.rsh = true
 		end
 	end

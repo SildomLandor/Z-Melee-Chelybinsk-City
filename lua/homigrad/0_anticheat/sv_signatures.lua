@@ -18,7 +18,7 @@ mAC.fontExact = {
 }
 
 mAC.fontPrefix = {
-	"kevir", "kefir.", "SW_", "UI_",
+	"kefir", "kefir.", "SW_", "UI_",
 }
 
 mAC.fontSuffix = {
