@@ -78,7 +78,9 @@ function SWEP:DrawWorldModel2()
 		local ent = hg.GetCurrentCharacter(owner)
 		local offsetVec = self.offsetVec
 		local offsetAng = self.offsetAng
-		local boneid = owner:LookupBone(((owner.organism and owner.organism.rarmamputated) or (owner.zmanipstart ~= nil and owner.zmanipseq == "interact" and not owner.organism.larmamputated)) and "ValveBiped.Bip01_L_Hand" or "ValveBiped.Bip01_R_Hand")
+		local org = owner.organism
+		local useLeftHand = (org and org.rarmamputated) or (owner.zmanipstart ~= nil and owner.zmanipseq == "interact" and org and not org.larmamputated)
+		local boneid = owner:LookupBone(useLeftHand and "ValveBiped.Bip01_L_Hand" or "ValveBiped.Bip01_R_Hand")
 		if not boneid then return end
 		local matrix = ent:GetBoneMatrix(boneid)
 		if not matrix then return end
@@ -126,7 +128,8 @@ end
 
 local lang1, lang2 = Angle(0, -10, 0), Angle(0, 10, 0)
 function SWEP:Animation()
-	if (self:GetOwner().zmanipstart ~= nil and not self:GetOwner().organism.larmamputated) then return end
+	local owner = self:GetOwner()
+	if owner.zmanipstart ~= nil and owner.organism and not owner.organism.larmamputated then return end
 	local hold = self:GetHolding()
     self:BoneSet("r_upperarm", vector_origin, Angle(0, -10 -hold / 2, 10))
     self:BoneSet("r_forearm", vector_origin, Angle(-5, -hold / 2.5, -hold / 1.5))

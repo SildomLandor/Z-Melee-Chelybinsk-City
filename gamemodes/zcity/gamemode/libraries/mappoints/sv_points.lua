@@ -233,41 +233,43 @@ net.Receive("zb_getallpoints",function(len,ply)
 end)
 
 function zb.tdm_checkpoints()
+    if not zb.Points.HMCD_TDM_T or not zb.Points.HMCD_TDM_CT then return end
+
     local vecs = {}
-    local points = zb.GetMapPoints( "HMCD_TDM_T" )
+    local points = zb.GetMapPoints( "HMCD_TDM_T" ) or {}
     for i,ent in pairs(ents.FindByClass("info_player_terrorist")) do
         table.insert(vecs,ent:GetPos())
     end
 
-    local points = #points == 0 and zb.TranslateVectorsToPoints(vecs) or points
+    points = #points == 0 and zb.TranslateVectorsToPoints(vecs) or points
 
-    if #zb.GetMapPoints( "HMCD_TDM_T" ) == 0 then
+    if #(zb.GetMapPoints( "HMCD_TDM_T" ) or {}) == 0 then
         zb.SaveMapPoints( "HMCD_TDM_T", points )
     end
-    if #zb.GetMapPoints( "RIOT_TDM_RIOTERS" ) == 0 then
+    if zb.Points.RIOT_TDM_RIOTERS and #(zb.GetMapPoints( "RIOT_TDM_RIOTERS" ) or {}) == 0 then
         zb.SaveMapPoints( "RIOT_TDM_RIOTERS", points )
     end
-    if #zb.GetMapPoints( "HMCD_CRI_T" ) == 0 then
+    if zb.Points.HMCD_CRI_T and #(zb.GetMapPoints( "HMCD_CRI_T" ) or {}) == 0 then
         zb.SaveMapPoints( "HMCD_CRI_T", points )
     end
     
     --||
 
-    local vecs = {}
-    local points = zb.GetMapPoints( "HMCD_TDM_CT" )
+    vecs = {}
+    points = zb.GetMapPoints( "HMCD_TDM_CT" ) or {}
     for i, ent in pairs(ents.FindByClass("info_player_counterterrorist")) do
         table.insert(vecs, ent:GetPos())
     end
    
-    local points = #points == 0 and zb.TranslateVectorsToPoints(vecs) or points
+    points = #points == 0 and zb.TranslateVectorsToPoints(vecs) or points
     
-    if #zb.GetMapPoints( "HMCD_TDM_CT" ) == 0 then
+    if #(zb.GetMapPoints( "HMCD_TDM_CT" ) or {}) == 0 then
         zb.SaveMapPoints( "HMCD_TDM_CT", points )
     end
-    if #zb.GetMapPoints( "HMCD_CRI_CT" ) == 0 then
+    if zb.Points.HMCD_CRI_CT and #(zb.GetMapPoints( "HMCD_CRI_CT" ) or {}) == 0 then
         zb.SaveMapPoints( "HMCD_CRI_CT", points )
     end
-    if #zb.GetMapPoints( "RIOT_TDM_LAW" ) == 0 then
+    if zb.Points.RIOT_TDM_LAW and #(zb.GetMapPoints( "RIOT_TDM_LAW" ) or {}) == 0 then
         zb.SaveMapPoints( "RIOT_TDM_LAW", points )
     end
 
@@ -309,7 +311,7 @@ function zb.tdm_checkpoints()
 
     points = zb.TranslateVectorsToPoints(points)
 
-    if #zb.GetMapPoints( "HOSTAGE_DELIVERY_ZONE" ) == 0 then
+    if zb.Points.HOSTAGE_DELIVERY_ZONE and #(zb.GetMapPoints( "HOSTAGE_DELIVERY_ZONE" ) or {}) == 0 then
         zb.SaveMapPoints( "HOSTAGE_DELIVERY_ZONE", points )
     end
 end
