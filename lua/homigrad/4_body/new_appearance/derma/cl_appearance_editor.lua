@@ -2,6 +2,29 @@ hg.Appearance = hg.Appearance or {}
 local APmodule = hg.Appearance
 local PANEL = {}
 
+local function HasAccessToAccessory(accessoryKey, accessoryData)
+	local ply = LocalPlayer()
+	if not IsValid(ply) or not ply:IsPlayer() then return true end
+
+	if accessoryData.allowedSteamIDs then
+		if not (ply.PS_HasItem and ply:PS_HasItem(accessoryKey)) then
+			return false
+		end
+
+		local steamID = ply:SteamID()
+		for _, allowedID in ipairs(accessoryData.allowedSteamIDs) do
+			if steamID == allowedID then return true end
+		end
+		return false
+	end
+
+	if accessoryData.bIsDPoints and ply.PS_HasItem then
+		return ply:PS_HasItem(accessoryKey)
+	end
+
+	return true
+end
+
 local colors = {}
 colors.secondary = Color(25, 25, 35, 195)
 colors.mainText = Color(255, 255, 255, 255)
@@ -1563,6 +1586,7 @@ function PANEL:PostInit()
 			for k, v in SortedPairs(hg.Accessories) do
 				if not v.placement or not table.HasValue(placements, v.placement) then continue end
 				if not v.model then continue end
+				if not HasAccessToAccessory(k, v) then continue end
 				AddDropdownOption(pnl, scroll, v.name or string.NiceName(k), function()
 					main.AppearanceTable.AAttachments[slot] = k
 					surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")

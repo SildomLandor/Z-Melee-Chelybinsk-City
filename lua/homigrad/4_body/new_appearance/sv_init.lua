@@ -1,6 +1,7 @@
 -- 
 util.AddNetworkString("Get_Appearance")
 util.AddNetworkString("OnlyGet_Appearance")
+include("sh_accessories.lua")
 hg.Appearance = hg.Appearance or {}
 local APmodule = hg.Appearance
 
@@ -14,7 +15,6 @@ end
 
 local function CheckAttachments(ply,tbl)
     if !IsValid(ply) or !ply:IsPlayer() then return end
-    --print(ply:PS_HasItem(uid))
     if hg.Appearance.GetAccessToAll(ply) then return tbl end
     for i = 1, #tbl.AAttachments do
         local uid = tbl.AAttachments[i]
@@ -26,6 +26,27 @@ local function CheckAttachments(ply,tbl)
         if hg.Accessories[uid] and hg.Accessories[uid].disallowinappearance then
             tbl.AAttachments[i] = ""
             if ply.ChatPrint then ply:ChatPrint(uid .. " - is disallowed in default appearance, removed") end
+        end
+
+        if hg.Accessories[uid] and hg.Accessories[uid].allowedSteamIDs then
+            -- Проверяем, что игрок имеет право использовать аксессуар (PS_HasItem + SteamID)
+            if not (ply.PS_HasItem and ply:PS_HasItem(uid)) then
+                tbl.AAttachments[i] = ""
+                if ply.ChatPrint then ply:ChatPrint(uid .. " - item not purchased, removed") end
+            else
+                local steamID = ply:SteamID()
+                local hasAccess = false
+                for _, allowedID in ipairs(hg.Accessories[uid].allowedSteamIDs) do
+                    if steamID == allowedID then
+                        hasAccess = true
+                        break
+                    end
+                end
+                if not hasAccess then
+                    tbl.AAttachments[i] = ""
+                    if ply.ChatPrint then ply:ChatPrint(uid .. " - SteamID not allowed, removed") end
+                end
+            end
         end
     end
 
@@ -39,7 +60,6 @@ local function CheckAttachments(ply,tbl)
         if not bodygroup then continue end
 
         local uid = bodygroup["ID"]
-        --print(bodygroup[2],uid,PSmodule.Items[uid],ply:PS_HasItem(uid))
         if bodygroup[2] and uid and PSmodule.Items[uid] and (!HasItem(ply, uid) and ply:IsPlayer()) then
             tbl.ABodygroups[k] = nil
             ply:ChatPrint(v .. " - not bought, removed")
