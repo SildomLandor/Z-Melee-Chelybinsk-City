@@ -6,22 +6,23 @@ local bandanamat = Material("mats_jack_gmod_sprites/respirator_vignette.png")
 hg.Accessories = {
 	["none"] = {},
 
-    ["balaclava_for_pypyz"] = {
-        model = "models/balaclava_pypyz/balaclava.mdl",
-        bone = "ValveBiped.Bip01_Head1",
-        malepos = {Vector(-27.5,-5.5,0),Angle(90,100,90),1.05},
-        fempos = {Vector(-1,-0.8,0),Angle(180,105,90),1.05},
-        skin = 0,
-        norender = true,
-        placement = "face",
-        name = "AAA",
-        bSetColor = true,
-        allowedSteamIDs = {
-            "STEAM_0:1:448923998",
-            -- Add more Steam IDs as needed
-        },
-        bIsDPoints = true
-    },
+["balaclava_for_pypyz"] = {
+         model = "models/balaclava_pypyz/balaclava.mdl",
+         bone = "ValveBiped.Bip01_Head1",
+         malepos = {Vector(-27.5,-5.5,0),Angle(90,100,90),1.05},
+         fempos = {Vector(-1,-0.8,0),Angle(180,105,90),1.05},
+         skin = 0,
+         norender = true,
+         placement = "face",
+         name = "AAA",
+         bSetColor = true,
+         bPointShop = true,
+         price = 0,
+         allowedSteamIDs = {
+             "STEAM_0:1:448923998",
+             -- Add more Steam IDs as needed
+         }
+     },
 
     ["eyeglasses"] = {
         model = "models/captainbigbutt/skeyler/accessories/glasses01.mdl",

@@ -803,7 +803,7 @@ local function DrawHealthAccessories(healthModel, ply)
 		local accessData = hg.Accessories[accName]
 		if not accessData then continue end
 		if accessData.norender then continue end
-		
+
 		local model = healthModel.accessories[accName]
 		local isFemale = false
 		if hg.Appearance.FuckYouModels and hg.Appearance.FuckYouModels[2][healthModel:GetModel()] then
