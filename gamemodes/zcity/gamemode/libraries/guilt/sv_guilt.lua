@@ -193,7 +193,7 @@ function zb.ApplyKarmaLoss(att, vic, amount, opts)
 
     local guiltadd = opts.guiltadd or (amount / zb.MaximumHarm) * zb.GuiltPerHarmAmt
     local retal = zb.GuiltRetal(zb.GuiltTable[vic][att])
-    local loss = amount * math.max(1 - retal, 0)
+    local loss = amount * math.max(1 - retal, 0) * (att.MentKarmaLossMul or 1)
     if loss <= 0 then return false end
 
     zb.GuiltTable[att][vic] = math.Clamp((zb.GuiltTable[att][vic] or 0) + guiltadd, 0, zb.MaxGuiltPair)
@@ -324,7 +324,7 @@ hook.Add("HomigradDamage", "GuiltReg", function(ply, dmgInfo, hitgroup, ent, har
     if Victim.Guilt and Victim.Guilt > 1 and !zb.IsForce(Attacker) then return end
 
     local retal = zb.GuiltRetal(zb.GuiltTable[Victim][Attacker])
-    local loss = add * math.max(1 - retal, 0)
+    local loss = add * math.max(1 - retal, 0) * (Attacker.MentKarmaLossMul or 1)
     if loss <= 0 then return end
 
     Attacker.Guilt = (Attacker.Guilt or 0) + guiltadd

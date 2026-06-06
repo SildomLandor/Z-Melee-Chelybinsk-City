@@ -257,9 +257,6 @@ util.AddNetworkString("hmcd_announce_traitor_lose")
 
 MODE.Type = MODE.Type or "standard"
 MODE.Types = MODE.Types or {}
-local mentid = {
-	"STEAM_0:1:631692411" --sildom стим айди
-}
 MODE.Types.standard = {
 	Chance = 0.2,
 	ChanceFunction = function() return (zb.GetWorldSize() < ZBATTLE_BIGMAP) and (zb.ModesChances["standard"] or zb.modes["hmcd"].Types.standard.Chance) or 0 end,
@@ -294,34 +291,22 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		if mentid[1] == ply:SteamID() then
-			give_wep(ply, "weapon_makarov", 0)
-			ply:Give("weapon_handcuffs")
-		    ply:Give("weapon_handcuffs_key")
-		    ply:Give("weapon_hg_tonfa")
-
-			ply.organism.stamina.range = 198
-		    ply.organism.stamina.max = 198
-		    ply.organism.stamina[1] = 198
-
-	
-	    else
-		    local gunmangun = table.Random({
-		    "weapon_kar98",
-		    "weapon_remington870",
-		    "weapon_m1911",
-	     	"weapon_tokarev",
-    	 	"weapon_makarov",
-             })
-			local gun = ply:Give(gunmangun)
-			ply.organism.recoilmul = 1.5
-			if gun:GetClass() == "weapon_kar98" then
-				hg.AddAttachmentForce(ply,gun,"optic12")
-			end
-			local inv = ply:GetNetVar("Inventory")
-			inv["Weapons"]["hg_sling"] = true
-			ply:SetNetVar("Inventory",inv)
+		local gunmangun = table.Random({
+			"weapon_kar98",
+			"weapon_remington870",
+			"weapon_m1911",
+			"weapon_tokarev",
+			"weapon_makarov",
+		})
+		local gun = ply:Give(gunmangun)
+		ply.organism.recoilmul = 1.5
+		if gun:GetClass() == "weapon_kar98" then
+			hg.AddAttachmentForce(ply, gun, "optic12")
 		end
+		local inv = ply:GetNetVar("Inventory")
+		inv["Weapons"]["hg_sling"] = true
+		ply:SetNetVar("Inventory", inv)
+		hook.Run("HMCD_GunManLoot", ply)
 	end,
 	PoliceTime = 220,
 	SkillIssue = 4,
@@ -405,8 +390,8 @@ MODE.Types.gunfreezone = {
 		end
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_sling"] = true
-		ply:SetNetVar("Inventory",inv)
-
+		ply:SetNetVar("Inventory", inv)
+		hook.Run("HMCD_GunManLoot", ply)
 	end,
 	PoliceTime = 120,
 	PoliceAllowed = true,
@@ -488,8 +473,8 @@ MODE.Types.soe = {
 		end
 		local inv = ply:GetNetVar("Inventory")
 		inv["Weapons"]["hg_sling"] = true
-		ply:SetNetVar("Inventory",inv)
-
+		ply:SetNetVar("Inventory", inv)
+		hook.Run("HMCD_GunManLoot", ply)
 	end,
 	PoliceTime = 250,
 	PoliceAllowed = true,
@@ -641,7 +626,7 @@ function MODE.EnsureDuelRoles()
 	traitor.MainTraitor = true
 
 	for _, ply in ipairs(plys) do
-		if ply ~= traitor then
+		if ply ~= traitor and not (MODE.HasDonatePerk and MODE.HasDonatePerk(ply, "surgeon")) then
 			ply.isGunner = true
 			break
 		end
@@ -651,9 +636,15 @@ function MODE.EnsureDuelRoles()
 	MODE.SyncTraitorNWStrings()
 end
 
+local function hmcd_skip_gunner(ply)
+	if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then return true end
+	if MODE.HasDonatePerk and MODE.HasDonatePerk(ply, "surgeon") then return true end
+	return false
+end
+
 function MODE.AssignGunner()
 	for _, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
+		if hmcd_skip_gunner(ply) then continue end
 		if math.random(100) > (ply.Karma or 100) then continue end
 
 		ply.isGunner = true
@@ -661,7 +652,7 @@ function MODE.AssignGunner()
 	end
 
 	for _, ply in RandomPairs(player.GetAll()) do
-		if ply.isTraitor or ply.isGunner or ply:Team() == TEAM_SPECTATOR then continue end
+		if hmcd_skip_gunner(ply) then continue end
 
 		ply.isGunner = true
 		return
@@ -1626,12 +1617,12 @@ function MODE.SpawnPlayers(spawn_with_subroles)
                 end
             end
 
-            if MODE.AssignDonateProfessions then
-                MODE.AssignDonateProfessions()
-            end
         end
     end
 
+    if MODE.AssignDonateProfessions then
+        MODE.AssignDonateProfessions()
+    end
 
     local all_players = player.GetAll()
     for idx, current_ply in player.Iterator() do

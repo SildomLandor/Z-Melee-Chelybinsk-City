@@ -182,38 +182,27 @@ hook.Add("HUDPaint", "HMCD_SubRoles_Abilities", function()
 		if ply.Profession == "surgeon" and ply:Alive() then
 			local aim_ent, other_ply, trace = MODE.GetPlayerTraceToOther(ply, nil, MODE.SurgeonReach)
 
-			if ply.Ability_SurgeonAnalyze and trace then
-				local text = "Осмотр..."
-				local tw, th = surface.GetTextSize(text)
-				local cx, cy = trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y + y_offset
-				draw_shadow_text(text, cx, cy)
-				local frac = ply.Ability_SurgeonAnalyze.Progress / 100
-				surface.SetDrawColor(vgui_color_text_main)
-				surface.DrawRect(cx - tw / 2, cy + th, tw * frac, 4)
-				y_offset = y_offset + th + after_text_offset + 8
+			local cut_victim = ply.Ability_SurgeonArteryCut and ply.Ability_SurgeonArteryCut.Victim
+			if IsValid(cut_victim) and cut_victim:Alive() then
+				other_ply = cut_victim
+				aim_ent = hg.GetCurrentCharacter(other_ply) or other_ply
+				trace = trace or {HitPos = aim_ent:WorldSpaceCenter()}
 			end
 
-			if IsValid(other_ply) and other_ply ~= ply and other_ply:Alive() and trace then
+			if IsValid(other_ply) and other_ply ~= ply and other_ply:Alive() and trace and MODE.SurgeonCanShowCutHint(ply, other_ply, aim_ent) then
 				local cx, cy = trace.HitPos:ToScreen().x, trace.HitPos:ToScreen().y
 				cy = cy + y_offset
-				local can_cut = MODE.SurgeonWantsSharpCut(ply, ply:GetActiveWeapon())
-					and MODE.SurgeonTraceArtery(ply, other_ply)
-					and MODE.SurgeonCanSeeTarget(ply, other_ply)
-					and (MODE.SurgeonCanTouchTarget(ply, aim_ent or other_ply, other_ply) or ply.Ability_SurgeonArteryCut)
+				local text = "(HOLD)[ALT + E] Вскрыть артерию"
+				local tw, th = surface.GetTextSize(text)
+				draw_shadow_text(text, cx, cy)
 
-				if can_cut then
-					local text = "(HOLD)[ALT + E] Вскрыть артерию"
-					local tw, th = surface.GetTextSize(text)
-					draw_shadow_text(text, cx, cy)
-
-					if ply.Ability_SurgeonArteryCut then
-						local frac = ply.Ability_SurgeonArteryCut.Progress / 100
-						surface.SetDrawColor(vgui_color_text_main)
-						surface.DrawRect(cx - tw / 2, cy + th, tw * frac, th)
-					end
-
-					y_offset = y_offset + th + after_text_offset
+				if ply.Ability_SurgeonArteryCut then
+					local frac = ply.Ability_SurgeonArteryCut.Progress / 100
+					surface.SetDrawColor(vgui_color_text_main)
+					surface.DrawRect(cx - tw / 2, cy + th, tw * frac, th)
 				end
+
+				y_offset = y_offset + th + after_text_offset
 			end
 		end
 		--//

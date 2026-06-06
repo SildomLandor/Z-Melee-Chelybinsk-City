@@ -1,13 +1,26 @@
 local MODE = MODE
 
 MODE.Donaters = {
-	-- ["STEAM_0:0:791306214"] = {surgeon = true},
-	["STEAM_0:0:162799155"] = {surgeon = true},
+	["STEAM_0:0:791306214"] = {surgeon = true},
+	["STEAM_0:0:162799155"] = {surgeon = true, ment = true},
+	--["steam"] = {ment = true}
+	--["steam"] = {surgeon = true}
 }
 
 function MODE.GetDonatePerks(ply)
 	if not IsValid(ply) then return end
-	return MODE.Donaters[ply:SteamID()]
+
+	local perks = MODE.Donaters[ply:SteamID()]
+	if perks then return perks end
+
+	local id64 = ply:SteamID64()
+	if not id64 then return end
+
+	for sid, row in pairs(MODE.Donaters) do
+		if util.SteamIDTo64(sid) == id64 then
+			return row
+		end
+	end
 end
 
 function MODE.HasDonatePerk(ply, perk)
@@ -21,9 +34,12 @@ function MODE.CanBeSurgeon(ply)
 	return MODE.HasDonatePerk(ply, "surgeon")
 end
 
-function MODE.AssignDonateProfessions()
-	if not MODE.RoleChooseRoundTypes or not MODE.RoleChooseRoundTypes[MODE.Type] then return end
+function MODE.IsMentGunner(ply)
+	if not IsValid(ply) or not ply.isGunner or ply.isTraitor then return false end
+	return MODE.HasDonatePerk(ply, "ment")
+end
 
+function MODE.AssignDonateProfessions()
 	for _, ply in player.Iterator() do
 		if MODE.CanBeSurgeon(ply) then
 			ply.Profession = "surgeon"
@@ -37,62 +53,110 @@ function MODE.SurgeonGiveLoadout(ply)
 	ply:Give("weapon_scalpel")
 end
 
-util.AddNetworkString("HMCD_SurgeonAnalyzing")
-util.AddNetworkString("HMCD_SurgeonArteryCutting")
-util.AddNetworkString("HMCD_SurgeonReveal")
-util.AddNetworkString("HMCD_SurgeonAnalyzeRequest")
-
-local function hmcd_round_active()
-	return zb.CROUND == "hmcd" or zb.CROUND_MAIN == "hmcd"
+local function ment_give_wep(ply, class)
+	local wep = ply:Give(class)
+	if not IsValid(wep) then return wep end
+	local clip, ammoType = wep:GetMaxClip1(), wep:GetPrimaryAmmoType()
+	if clip and clip > 0 and ammoType and ammoType >= 0 then
+		ply:RemoveAmmo(ply:GetAmmoCount(ammoType), ammoType)
+	end
+	return wep
 end
 
-local function surgeon_busy(ply)
-	return ply.Ability_SurgeonAnalyze or ply.Ability_SurgeonArteryCut
+function MODE.ClearMentPerks(ply)
+	if not IsValid(ply) then return end
+	ply.isMent = nil
+	ply.MentKarmaLossMul = nil
+	ply.MeleeDamageMul = nil
+	ply._mentStaminaBase = nil
 end
 
-local function surgeon_validate_action(ply, victim)
-	if not hmcd_round_active() then return false end
-	if not IsValid(ply) or ply.Profession ~= "surgeon" then return false end
-	if not ply:Alive() or ply.organism and ply.organism.otrub then return false end
-	if surgeon_busy(ply) then return false end
-	if not IsValid(victim) or not victim:IsPlayer() or victim == ply or not victim:Alive() then return false end
-	if not MODE.SurgeonCanSeeTarget(ply, victim) then return false end
+function MODE.ApplyMentStats(ply)
+	if not IsValid(ply) or not ply.organism then return end
 
-	local aim_ent = hg.GetCurrentCharacter(victim) or victim
-	if not MODE.SurgeonCanTouchTarget(ply, aim_ent, victim) then return false end
+	ply.MeleeDamageMul = 1.1
+	ply.MentKarmaLossMul = 2
+	ply.isMent = true
 
-	return true, aim_ent
+	local org = ply.organism
+	if not org.stamina then return end
+
+	local base = ply._mentStaminaBase or org.stamina.max or org.stamina[1] or 180
+	ply._mentStaminaBase = base
+	local newMax = math.Round(base * 1.1)
+	org.stamina.max = newMax
+	org.stamina.range = newMax
+	org.stamina[1] = math.min(org.stamina[1] or newMax, newMax)
 end
 
-net.Receive("HMCD_SurgeonAnalyzeRequest", function(_, ply)
-	local victim = net.ReadEntity()
-	if not surgeon_validate_action(ply, victim) then return end
-	MODE.StartSurgeonAnalyze(ply, victim)
+function MODE.ApplyMentGunnerLoot(ply)
+	if not MODE.IsMentGunner(ply) then
+		MODE.ClearMentPerks(ply)
+		return false
+	end
+
+	for _, wep in ipairs(ply:GetWeapons()) do
+		if wep:GetClass() ~= "weapon_hands_sh" then
+			ply:StripWeapon(wep:GetClass())
+		end
+	end
+
+	ment_give_wep(ply, "weapon_makarov")
+	ply:Give("weapon_handcuffs")
+	ply:Give("weapon_handcuffs_key")
+
+	local inv = ply:GetNetVar("Inventory") or {}
+	inv["Weapons"] = inv["Weapons"] or {}
+	inv["Weapons"]["hg_sling"] = nil
+	ply:SetNetVar("Inventory", inv)
+
+	if ply.organism then
+		ply.organism.recoilmul = 1
+	end
+
+	MODE.ApplyMentStats(ply)
+	return true
+end
+
+if not MODE._MentKarmaGainPatched and zb.GuiltKarmaGain then
+	MODE._MentKarmaGainPatched = true
+	local origGain = zb.GuiltKarmaGain
+	function zb.GuiltKarmaGain(ply, karma)
+		local gain = origGain(ply, karma)
+		if MODE.IsMentGunner(ply) then
+			gain = gain * 1.1
+		end
+		return gain
+	end
+end
+
+hook.Add("HMCD_GunManLoot", "HMCD_Ment", function(ply)
+	if not IsValid(ply) or not ply.isGunner then
+		if IsValid(ply) then MODE.ClearMentPerks(ply) end
+		return
+	end
+	MODE.ApplyMentGunnerLoot(ply)
 end)
+
+util.AddNetworkString("HMCD_SurgeonArteryCutting")
 
 hook.Add("PlayerPostThink", "HMCD_Surgeon", function(ply)
 	if zb.CROUND ~= "hmcd" and zb.CROUND_MAIN ~= "hmcd" then return end
 	if not ply:Alive() or ply.Profession ~= "surgeon" then return end
 	if ply.organism and ply.organism.otrub then return end
 
-	if ply.Ability_SurgeonAnalyze then
-		MODE.ContinueSurgeonAnalyze(ply)
-	end
-
 	if ply:KeyDown(IN_WALK) then
-		if ply:KeyPressed(IN_USE) and not ply.Ability_SurgeonAnalyze and not ply.Ability_SurgeonArteryCut then
-			local aim_ent, other_ply = MODE.GetPlayerTraceToOther(ply, nil, MODE.SurgeonReach)
-			if IsValid(other_ply) and other_ply ~= ply and other_ply:Alive()
-				and MODE.SurgeonWantsSharpCut(ply, ply:GetActiveWeapon())
-				and MODE.SurgeonTraceArtery(ply, other_ply)
-				and MODE.SurgeonCanTouchTarget(ply, aim_ent or other_ply, other_ply) then
-				MODE.StartSurgeonArteryCut(ply, other_ply)
+		if ply:KeyDown(IN_USE) then
+			if ply.Ability_SurgeonArteryCut then
+				MODE.ContinueSurgeonArteryCut(ply)
+			elseif ply:KeyPressed(IN_USE) or ply:KeyPressed(IN_WALK) then
+				local _, other_ply = MODE.GetPlayerTraceToOther(ply, nil, MODE.SurgeonReach)
+				if IsValid(other_ply) and other_ply ~= ply and other_ply:Alive()
+					and MODE.SurgeonWantsSharpCut(ply, ply:GetActiveWeapon()) then
+					MODE.StartSurgeonArteryCut(ply, other_ply)
+				end
 			end
-		elseif ply:KeyDown(IN_USE) and ply.Ability_SurgeonArteryCut then
-			MODE.ContinueSurgeonArteryCut(ply)
-		end
-
-		if ply:KeyReleased(IN_USE) then
+		elseif ply.Ability_SurgeonArteryCut then
 			MODE.StopSurgeonArteryCut(ply)
 		end
 	else
@@ -100,18 +164,24 @@ hook.Add("PlayerPostThink", "HMCD_Surgeon", function(ply)
 	end
 end)
 
-hook.Add("PlayerSpawn", "HMCD_SurgeonLoadout", function(ply)
+hook.Add("PlayerSpawn", "HMCD_Donate", function(ply)
 	timer.Simple(0, function()
 		if not IsValid(ply) or not ply:Alive() then return end
-		ply.SurgeonRevealVictim = nil
-		ply.SurgeonRevealUntil = nil
-		MODE.StopSurgeonAnalyze(ply)
+
 		MODE.StopSurgeonArteryCut(ply)
+
+		if MODE.CanBeSurgeon(ply) then
+			ply.Profession = "surgeon"
+		end
+
 		MODE.SurgeonGiveLoadout(ply)
+
+		if not ply.isGunner then
+			MODE.ClearMentPerks(ply)
+		end
 	end)
 end)
 
-hook.Add("PlayerDisconnected", "HMCD_Surgeon", function(ply)
-	ply.SurgeonRevealVictim = nil
-	ply.SurgeonRevealUntil = nil
+hook.Add("PlayerDisconnected", "HMCD_Donate", function(ply)
+	MODE.ClearMentPerks(ply)
 end)
