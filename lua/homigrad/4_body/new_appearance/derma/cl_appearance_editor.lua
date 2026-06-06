@@ -16,13 +16,87 @@ colors.scrollbarBorder = Color(100, 100, 120, 200)
 
 local presetsDir = "zcity/appearances/presets/"
 local menuBtnPadding = ScreenScale(4)
+local previewTexCache = {}
+
+local function GetPreviewTexture(texturePath)
+	if not texturePath or texturePath == "" then return nil end
+
+	local cached = previewTexCache[texturePath]
+	if cached ~= nil then return cached or nil end
+
+	local mat = Material(texturePath)
+	if mat:IsError() then
+		previewTexCache[texturePath] = false
+		return nil
+	end
+
+	local tex = mat:GetTexture("$basetexture")
+	local texName = tex and tex:GetName()
+	if not texName or texName == "" then
+		previewTexCache[texturePath] = false
+		return nil
+	end
+
+	local texID = surface.GetTextureID(texName)
+	previewTexCache[texturePath] = texID
+	return texID
+end
+
+local function DrawPreviewTexture(px, py, size, texID)
+	surface.SetDrawColor(28, 28, 32, 255)
+	surface.DrawRect(px, py, size, size)
+
+	surface.SetDrawColor(255, 255, 255, 255)
+	surface.SetTexture(texID)
+	surface.DrawTexturedRect(px, py, size, size)
+	draw.NoTexture()
+
+	surface.SetDrawColor(40, 40, 40, 220)
+	surface.DrawOutlinedRect(px, py, size, size, 1)
+end
+
+local function FirstTexturePath(slotMap)
+	if isstring(slotMap) then return slotMap end
+	if not slotMap then return nil end
+
+	for _, path in pairs(slotMap) do
+		if isstring(path) and path ~= "" then return path end
+	end
+end
+
+local function GetFacemapVariantsForModel(mdl)
+	local variants = {}
+	if not mdl or not mdl.mdl then return variants end
+
+	local modelKey = string.lower(mdl.mdl)
+	local multi = hg.Appearance.MultiFacemaps and hg.Appearance.MultiFacemaps[modelKey]
+	if multi then return multi end
+
+	local facemapKey = hg.Appearance.FacemapsModels and hg.Appearance.FacemapsModels[modelKey]
+	local facemaps = facemapKey and hg.Appearance.FacemapsSlots and hg.Appearance.FacemapsSlots[facemapKey]
+	if not facemaps then return variants end
+
+	for k, tex in pairs(facemaps) do
+		variants[k] = tex
+	end
+
+	return variants
+end
 
 local function PaintMenuLabel(s, w, h)
 	local font = s:GetFont()
 	local text = s:GetText()
 	surface.SetFont(font)
 	local tw = surface.GetTextSize(text)
-	local totalW = tw + menuBtnPadding * 2
+
+	local previewSize = 0
+	local textX = menuBtnPadding
+	if s.PreviewTexture then
+		previewSize = math.min(h - ScreenScale(2), ScreenScale(18))
+		textX = menuBtnPadding + previewSize + ScreenScale(4)
+	end
+
+	local totalW = textX + tw + menuBtnPadding
 
 	if s:IsHovered() then
 		if not s.HoveredSoundPlayed then
@@ -41,16 +115,20 @@ local function PaintMenuLabel(s, w, h)
 		s:SetTextColor(Color(255, 255, 255))
 	end
 
+	if s.PreviewTexture then
+		DrawPreviewTexture(menuBtnPadding, (h - previewSize) * 0.5, previewSize, s.PreviewTexture)
+	end
+
 	local offX, offY = 0, 0
 	if math.random() > 0.9 then
 		offX = math.random(-2, 2)
 		offY = math.random(-2, 2)
 	end
 
-	draw.SimpleText(text, font, menuBtnPadding + offX, h / 2 + offY, s:GetTextColor(), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+	draw.SimpleText(text, font, textX + offX, h / 2 + offY, s:GetTextColor(), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
 	if s:IsHovered() and math.random() > 0.7 then
-		draw.SimpleText(text, font, menuBtnPadding + math.random(-5, 5), h / 2 + math.random(-2, 2), Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+		draw.SimpleText(text, font, textX + math.random(-5, 5), h / 2 + math.random(-2, 2), Color(0, 0, 0, math.random(50, 150)), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 	end
 
 	return true
@@ -174,7 +252,7 @@ local function CloseAllOpenMenus()
     end
 end
 
-local function AddDropdownOption(drop, scroll, text, onClick)
+local function AddDropdownOption(drop, scroll, text, onClick, texturePath)
 	local btn = vgui.Create("DLabel", scroll:GetCanvas())
 	btn:SetText(text)
 	btn:SetFont("ZCity_Veteran")
@@ -183,8 +261,14 @@ local function AddDropdownOption(drop, scroll, text, onClick)
 	btn:Dock(TOP)
 	btn:DockMargin(0, 0, 0, ScreenScale(3))
 	btn:SizeToContents()
+
+	local previewTex = GetPreviewTexture(texturePath)
+	if previewTex then
+		btn.PreviewTexture = previewTex
+	end
+
 	btn:SetWide(math.max(btn:GetWide() + ScreenScale(8), drop:GetWide() - ScreenScale(8)))
-	btn:SetTall(math.max(ScreenScale(16), btn:GetTall()))
+	btn:SetTall(math.max(previewTex and ScreenScale(20) or ScreenScale(16), btn:GetTall()))
 	btn.Paint = PaintMenuLabel
 	WireMenuLabel(btn, function()
 		if onClick then onClick() end
@@ -1321,7 +1405,7 @@ function PANEL:PostInit()
 						AddDropdownOption(pnl, scroll, clothName, function()
 							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 							main.AppearanceTable.AClothes.main = k
-						end)
+						end, clothes[k])
 					end
 				end
 			end
@@ -1363,8 +1447,7 @@ function PANEL:PostInit()
 				return
 			end
 
-			local facemapKey = hg.Appearance.FacemapsModels and hg.Appearance.FacemapsModels[mdl.mdl]
-			local facemaps = facemapKey and hg.Appearance.FacemapsSlots and hg.Appearance.FacemapsSlots[facemapKey] or {}
+			local facemaps = GetFacemapVariantsForModel(mdl)
 			if not next(facemaps) then
 				AddDropdownOption(pnl, scroll, "Нет вариантов", function() end)
 				return
@@ -1373,7 +1456,7 @@ function PANEL:PostInit()
 			for k in SortedPairs(facemaps) do
 				AddDropdownOption(pnl, scroll, k, function()
 					main.AppearanceTable.AFacemap = k
-				end)
+				end, FirstTexturePath(facemaps[k]))
 			end
 		end)
 	end
@@ -1412,7 +1495,7 @@ function PANEL:PostInit()
 						AddDropdownOption(pnl, scroll, clothName, function()
 							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 							main.AppearanceTable.AClothes.pants = k
-						end)
+						end, clothes[k])
 					end
 				end
 			end
@@ -1448,7 +1531,7 @@ function PANEL:PostInit()
 				AddDropdownOption(pnl, scroll, clothName, function()
 					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 					main.AppearanceTable.AClothes[slot] = k
-				end)
+				end, clothes[k])
 			end
 		end)
 	end
