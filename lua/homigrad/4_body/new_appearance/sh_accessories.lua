@@ -17,10 +17,10 @@ hg.Accessories = {
         name = "AAA",
         bSetColor = true,
         allowedSteamIDs = {
-            "STEAM_0:0:12345678",
-            "STEAM_0:1:87654321"
+            "STEAM_0:1:448923998",
             -- Add more Steam IDs as needed
-        }
+        },
+        bIsDPoints = true
     },
 
     ["eyeglasses"] = {

@@ -208,11 +208,35 @@ function RenderAccessories(ply, accessories, setup)
 			local accessData = hg.Accessories[accessoriess]
 			if not accessData or accessData.needcoolRender then continue end
 
+			if accessData.allowedSteamIDs then
+				local steamID = ply:SteamID()
+				local hasAccess = false
+				for _, allowedID in ipairs(accessData.allowedSteamIDs) do
+					if steamID == allowedID then
+						hasAccess = true
+						break
+					end
+				end
+				if not hasAccess then continue end
+			end
+
 			DrawAccesories(ply, ent, accessoriess, accessData, islply, nil, setup)
 		end
 	else
 		local accessData = hg.Accessories[accessories]
 		if not accessData or accessData.needcoolRender then return end
+
+		if accessData.allowedSteamIDs then
+			local steamID = ply:SteamID()
+			local hasAccess = false
+			for _, allowedID in ipairs(accessData.allowedSteamIDs) do
+				if steamID == allowedID then
+					hasAccess = true
+					break
+				end
+			end
+			if not hasAccess then return end
+		end
 
 		DrawAccesories(ply, ent, accessories, accessData, islply, nil, setup)
 	end
@@ -470,7 +494,7 @@ end
 hook.Add("RenderScreenspaceEffects", "AppearanceShitty", function()
 	local ply = LocalPlayer()
 	if not IsValid(ply) or (not ply:Alive()) or LocalPlayer():GetViewEntity() ~= ply then return end
-	
+
 	local acsses = ply:GetNetVar("Accessories", "none")
 	if acsses == "none" then return end
 
@@ -478,8 +502,21 @@ hook.Add("RenderScreenspaceEffects", "AppearanceShitty", function()
 		local count = #acsses
 		for k = 1, count do
 			local accessoriess = acsses[k]
-			local accessData = hg.Accessories[accessories]
+			local accessData = hg.Accessories[accessoriess]
 			if not accessData then continue end
+
+			if accessData.allowedSteamIDs then
+				local steamID = ply:SteamID()
+				local hasAccess = false
+				for _, allowedID in ipairs(accessData.allowedSteamIDs) do
+					if steamID == allowedID then
+						hasAccess = true
+						break
+					end
+				end
+				if not hasAccess then continue end
+			end
+
 			if ply.armors and accessData["placement"] and ply.armors[accessData["placement"]] then continue end
 			if accessData.ScreenSpaceEffects then
 				accessData.ScreenSpaceEffects()
@@ -488,6 +525,19 @@ hook.Add("RenderScreenspaceEffects", "AppearanceShitty", function()
 	elseif acsses then
 		local accessData = hg.Accessories[acsses]
 		if not accessData then return end
+
+		if accessData.allowedSteamIDs then
+			local steamID = ply:SteamID()
+			local hasAccess = false
+			for _, allowedID in ipairs(accessData.allowedSteamIDs) do
+				if steamID == allowedID then
+					hasAccess = true
+					break
+				end
+			end
+			if not hasAccess then return end
+		end
+
 		if ply.armors and accessData["placement"] and ply.armors[accessData["placement"]] then return end
 		if accessData.ScreenSpaceEffects then
 			accessData.ScreenSpaceEffects()

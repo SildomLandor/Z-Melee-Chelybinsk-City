@@ -2,6 +2,21 @@ hg.Appearance = hg.Appearance or {}
 local APmodule = hg.Appearance
 local PANEL = {}
 
+local function HasAccessToAccessory(accessoryKey, accessoryData)
+	local ply = LocalPlayer()
+	if not IsValid(ply) then return true end
+	
+	if accessoryData.allowedSteamIDs then
+		local steamID = ply:SteamID()
+		for _, allowedID in ipairs(accessoryData.allowedSteamIDs) do
+			if steamID == allowedID then return true end
+		end
+		return false
+	end
+	
+	return true
+end
+
 local colors = {}
 colors.secondary = Color(25, 25, 35, 195)
 colors.mainText = Color(255, 255, 255, 255)
@@ -1237,7 +1252,9 @@ function PANEL:PostInit()
 		local tbl = main.AppearanceTable
 		for k, attach in ipairs(tbl.AAttachments) do
 			if attach and attach ~= "" and attach ~= "none" and hg.Accessories[attach] then
-				DrawAccesories(Entity, Entity, attach, hg.Accessories[attach], false, true)
+				if HasAccessToAccessory(attach, hg.Accessories[attach]) then
+					DrawAccesories(Entity, Entity, attach, hg.Accessories[attach], false, true)
+				end
 			end
 		end
 		Entity:SetupBones()
@@ -1282,6 +1299,7 @@ function PANEL:PostInit()
 			for k, v in SortedPairs(hg.Accessories) do
 				if not v.placement or not table.HasValue(placements, v.placement) then continue end
 				if not v.model then continue end
+				if not HasAccessToAccessory(k, v) then continue end
 				AddDropdownOption(pnl, scroll, v.name or string.NiceName(k), function()
 					main.AppearanceTable.AAttachments[slot] = k
 					surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
@@ -1460,6 +1478,7 @@ function PANEL:PostInit()
 		local menu = CreateStyledAccessoryMenu(nil, title)
 		for k, v in pairs(hg.Accessories) do
 			if not v.placement or not table.HasValue(placements, v.placement) then continue end
+			if not HasAccessToAccessory(k, v) then continue end
 			menu:AddAccessoryIcon(v.model, k, v, function(key)
 				main.AppearanceTable.AAttachments[slot] = key
 			end)

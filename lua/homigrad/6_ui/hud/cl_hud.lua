@@ -803,6 +803,18 @@ local function DrawHealthAccessories(healthModel, ply)
 		local accessData = hg.Accessories[accName]
 		if not accessData then continue end
 		if accessData.norender then continue end
+
+		if accessData.allowedSteamIDs then
+			local steamID = ply:SteamID()
+			local hasAccess = false
+			for _, allowedID in ipairs(accessData.allowedSteamIDs) do
+				if steamID == allowedID then
+					hasAccess = true
+					break
+				end
+			end
+			if not hasAccess then continue end
+		end
 		
 		local model = healthModel.accessories[accName]
 		local isFemale = false
