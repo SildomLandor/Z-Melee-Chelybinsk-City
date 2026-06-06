@@ -41,6 +41,9 @@ SWEP.TwoHanded = false
 
 SWEP.NoHolster = true
 SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_Pelvis"
+SWEP.holsteredPos = Vector(-7.5, 0, 0)
+SWEP.holsteredAng = Angle(90, 0, 180)
 
 SWEP.DamagePrimary = 7
 

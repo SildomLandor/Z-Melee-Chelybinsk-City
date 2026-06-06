@@ -41,7 +41,7 @@ function MODE:SetupChances()
 	end
 end
 
-MODE.LootTable = {
+MODE.LootTable = {  --НУЖНО ИЗМЕНИТЬ ЛУТПУЛ У НАС КУЧУ ПРЕДМЕТОВ НОВЫХ
 	{40, {
 		{15,"weapon_smallconsumable"},
 		{12,"weapon_bigconsumable"},
@@ -190,85 +190,61 @@ MODE.LootTableStandard = {
 	}},
 }
 
--- MODE.TraitorWords = {
-	-- "пистолет",
-	-- "трейтор",
-	-- "ганмен",
-	-- "калаш (винтовка)",
-	-- "бомба",
-	-- "цианид",
-	-- "нож",
-	-- "труба",
-	-- "топор",
-	-- "юсп (пистолет)",
-	-- "арка (винтовка)",
-	-- "каряк (винтовка)",
-	-- "граната",
-	-- "улица",
-	-- "здание",
-	-- "патроны",
-	-- "бинт",
-	-- "аптечка",
-	-- "обезболивающее",
-	-- "дробовик",
--- }
-
 MODE.TraitorWordsAdjectives = {
-	"pretty",
-	"sad",
-	"bad",
-	"cool",
-	"happy",
-	"ugly",
-	"funny",
-	"red",
-	"green",
-	"blue",
-	"yellow",
-	"orange",
-	"cyan",
-	"pink",
-	"mesmerizing",
-	"",	--; да да
+	"красивый",
+	"грустный",
+	"плохой",
+	"крутой",
+	"радостный",
+	"уродливый",
+	"весёлый",
+	"красный",
+	"зелёный",
+	"синий",
+	"жёлтый",
+	"оранжевый",
+	"циановый",
+	"розовый",
+	"дерганый",
+	"боязливый",
 }
 
 MODE.TraitorWords = {
-	"crate",
-	"death",
-	"man",
-	"revolver",
-	"door",
-	"pistol",
-	"traitor",
-	"gunman",
-	"ak rifle",
-	"bomb",
-	"cyanide",
-	"knife",
-	"pipe",
-	"axe",
-	"usp pistol",
-	"ar15 rifle",
-	"kar98k rifle",
-	"grenade",
-	"outside",
-	"building",
-	"ammo",
-	"bandage",
-	"medkit",
-	"painkillers",
-	"shotgun",
-	"melancholic",
-	"poison",
-	"murder",
+	"ящик",
+	"смерть",
+	"мужчина",
+	"револьвер",
+	"дверь",
+	"пистолет",
+	"предатель",
+	"ган мэн",
+	"калашников",
+	"бомба",
+	"цианид",
+	"нож",
+	"труба",
+	"топор",
+	"USP пистолет",
+	"ar15 винтовка",
+	"kar98k винтовка",
+	"граната",
+	"снаружи",
+	"здание",
+	"боеприпасы",
+	"бинт",
+	"аптечка",
+	"обезболивающие",
+	"дробовик",
+	"яд",
+	"убийца",
 }
 
 MODE.TraitorActions = {
-	"punch air or walls",
-	"jump",
-	"crouch",
-	"ragdoll randomly",
-	"spin around",
+	"бить воздух или стены",
+	"прыгнуть",
+	"присесть",
+	"споткнутся",
+	"крутиться",
 }
 
 SetGlobalBool("RolesPlus_Enable", true)
@@ -281,6 +257,9 @@ util.AddNetworkString("hmcd_announce_traitor_lose")
 
 MODE.Type = MODE.Type or "standard"
 MODE.Types = MODE.Types or {}
+local mentid = {
+	"STEAM_0:1:631692411" --sildom стим айди
+}
 MODE.Types.standard = {
 	Chance = 0.2,
 	ChanceFunction = function() return (zb.GetWorldSize() < ZBATTLE_BIGMAP) and (zb.ModesChances["standard"] or zb.modes["hmcd"].Types.standard.Chance) or 0 end,
@@ -315,22 +294,34 @@ MODE.Types.standard = {
 		ply:SetNetVar("Inventory",inv)
 	end,
 	GunManLoot = function(ply)
-		local gunmangun = table.Random({
-		"weapon_kar98",
-		"weapon_remington870",
-		"weapon_m1911",
-		"weapon_tokarev",
-		"weapon_makarov",
-        })
-		local gun = ply:Give(gunmangun)
-		ply.organism.recoilmul = 1.5
-		if gun:GetClass() == "weapon_kar98" then
-			hg.AddAttachmentForce(ply,gun,"optic12")
-		end
-		local inv = ply:GetNetVar("Inventory")
-		inv["Weapons"]["hg_sling"] = true
-		ply:SetNetVar("Inventory",inv)
+		if mentid[1] == ply:SteamID() then
+			give_wep(ply, "weapon_makarov", 0)
+			ply:Give("weapon_handcuffs")
+		    ply:Give("weapon_handcuffs_key")
+		    ply:Give("weapon_hg_tonfa")
 
+			ply.organism.stamina.range = 198
+		    ply.organism.stamina.max = 198
+		    ply.organism.stamina[1] = 198
+
+	
+	    else
+		    local gunmangun = table.Random({
+		    "weapon_kar98",
+		    "weapon_remington870",
+		    "weapon_m1911",
+	     	"weapon_tokarev",
+    	 	"weapon_makarov",
+             })
+			local gun = ply:Give(gunmangun)
+			ply.organism.recoilmul = 1.5
+			if gun:GetClass() == "weapon_kar98" then
+				hg.AddAttachmentForce(ply,gun,"optic12")
+			end
+			local inv = ply:GetNetVar("Inventory")
+			inv["Weapons"]["hg_sling"] = true
+			ply:SetNetVar("Inventory",inv)
+		end
 	end,
 	PoliceTime = 220,
 	SkillIssue = 4,

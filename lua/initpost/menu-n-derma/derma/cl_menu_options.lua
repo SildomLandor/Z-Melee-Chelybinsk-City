@@ -31,6 +31,20 @@ hg.settings:AddOpt("Оптимизация","hg_attachment_draw_distance", "Да
 hg.settings:AddOpt("Оптимизация","hg_maxsmoketrails", "Максимум дымовых следов")
 hg.settings:AddOpt("Оптимизация","hg_tpik_distance", "Дальность рендера TPIK")
 
+hg.settings:AddOpt("Шейдеры","pp_ssdo", "SSDO (Затемнение окружающего освещения)")
+hg.settings:AddOpt("Шейдеры","pp_ssss", "SSSS (Лучи солнца)")
+hg.settings:AddOpt("Шейдеры","pp_hbao", "HBAO (Затемнение окружающего освещения)")
+hg.settings:AddOpt("Шейдеры","r_ffx_cas", "FFX-CAS (Адаптивная резкость)")
+hg.settings:AddOpt("Шейдеры","r_fxaa", "FXAA (Сглаживание)")
+hg.settings:AddOpt("Шейдеры","r_ddof_gshader", "DDoF (Адаптивная глубина резкости)")
+hg.settings:AddOpt("Шейдеры","pp_pbb", "PBB (Пересветы)")
+hg.settings:AddOpt("Шейдеры","cl_physsky", "Физическое небо")
+hg.settings:AddOpt("Шейдеры","r_ssr", "SSR (Отражения в экранном пространстве)")
+hg.settings:AddOpt("Шейдеры","r_smaa", "SMAA (Сглаживание)")
+hg.settings:AddOpt("Шейдеры","pp_ssao_plus", "SSAO+ (Затемнение окружающего освещения)")
+hg.settings:AddOpt("Шейдеры","r_motionblur", "Размытие в движении")
+
+
 hg.settings:AddOpt("Кровь","hg_blood_draw_distance", "Дальность прорисовки крови")
 hg.settings:AddOpt("Кровь","hg_blood_fps", "FPS крови")
 --hg.settings:AddOpt("Кровь","hg_blood_sprites", "Спрайты крови (ОТКЛЮЧЕНО ДЛЯ ВСЕХ)")
@@ -52,8 +66,8 @@ hg.settings:AddOpt("Вид","hg_cshs_fake", "Камера тряпичной к�
 hg.settings:AddOpt("Вид","hg_nofovzoom", "Отключить/Включить зум FOV")
 
 --hg.settings:AddOpt("Звук","volume", "Общая громкость", true)
---hg.settings:AddOpt("Звук","snd_musicvolume", "Громкость музыки", true)
---hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
+hg.settings:AddOpt("Звук","snd_musicvolume", "Громкость музыки", true)
+hg.settings:AddOpt("Звук","hg_dmusic", "Динамическая музыка")
 
 hg.settings:AddOpt("Звук","hg_quietshots", "Вкл/Выкл тихие звуки выстрелов (ДЛЯ СЛАБАКОВ)")
 

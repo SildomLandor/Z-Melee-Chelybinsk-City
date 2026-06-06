@@ -139,22 +139,6 @@ local fear_phrases = {
 	"Не чувствую рук.",
 }
 
-local is_aimed_at_phrases = {
-    "Господи. Вот и всё.",
-    "Не двигаться.",
-    "Неужели я правда сейчас умру?",
-    "Надо было бежать. Почему я не убежал?",
-    "Пожалуйста, не стреляй. Пожалуйста.",
-    "Я вижу его палец на спусковом крючке.",
-    "Я не хочу умирать. Только не так.",
-    "Если я начну умолять, станет хуже?",
-    "Это не может быть наяву. Этого не может быть.",
-    "Кто-нибудь, помогите. Пожалуйста. Кто-нибудь.",
-    "Я не хочу умирать в таком месте.",
-    "Я не хочу, чтобы мой последний миг был полон страха.",
-    "Я не хочу умирать.",
-}
-
 local near_death_poetic = {
 	"Пытаюсь встать... но не могу...",
 	"Дышу... но будто вдыхаю пустоту...",
@@ -168,65 +152,47 @@ local near_death_poetic = {
 	"Лёгкие отказываются наполняться.",
 	"Уже поздно жалеть о чём-то.",
 }
---[[
-local near_death_positive = {
-	"I don't want to die.",
-	"I have to survive.",
-	"There's still a chance.",
-	"I can't let fear win.",
-	"Just one more try.",
-	"I refuse to die here.",
-	"Alright... think this through.",
-	"Just stay still. Moving makes it worse.",
-	"Breathe slow. Panic won't help.",
-	"It's not over until it's over.",
-	"Pain is just a signal. Ignore it.",
-	"If this is it... at least it's gonna be quick.",
-	"I've survived worse. Probably.",
-	"This isn't how I pictured it.",
-}
-]]
 
 local broken_limb = {
-	"БЛЯТЬ. БЛЯТЬ. ОНО ТОЧНО СЛОМАНО!",
-	"Я ЧУВСТВУЮ, КАК КОСТОЧКИ ДВИГАЮТСЯ!",
-	"ОНА СЛОМАНА. ТОЧНО... Я ЧУВСТВУЮ...",
-	"Болит даже, когда думаю об этом. Точно сломано.",
-	"Мне кажется, тут не должно вот так сгибаться.",
-	"Чёрт... Кажется, она сломана.",
-	"Не вижу открытого перелома, но что-то там точно не так; кажется, я сломал(а) что-то.",
+	"БЛЯТЬ ОНА ТОЧНО СЛОМАНА!",
+	"Я ЧУВСТВУЮ, КАК ЧАСТИ КОСТЕЙ ДВИГАЮТСЯ!",
+	"КОСТЬ... ОНА СЛОМАНА БЛЯТЬ",
+	"Боже... Болит только от мысли... Что я её сломал",
+	"Мне кажется... она не должна так сгибаться.",
+	"Пиздец... Кажется я её сломал.",
+	"Мне страшно смотреть на кость... Я её точно сломал.",
 }
 
 local dislocated_limb = {
-	"Блять, она вообще не должна так сгибаться.",
-	"Мне нужно вправить кость на место.",
-	"Нет... Надо вернуть её обратно самостоятельно.",
-	"Там так сильно болит... Нужно бы к врачу.",
-	"Конечность не на своём месте.",
+	"Кость... Она вышла из сустава.",
+	"Кость не там... Где должна быть.",
+	"Черт... Кость вышла из сустава.",
+	"Пиздец... Я вывихнул кость.",
 }
 
 local hungry_a_bit = {
-    "Ммх... Жрать охота...",
-    "Было бы круто поесть чего-нибудь...",
-    "Я голоден...",
-    "Надо бы что-то съесть.",
+    "Я надеюсь дома осталась еда.",
+    "Было бы неплохо перексить.",
+    "Я проголодался.",
+    "Надо бы перексить.",
 }
 
 local very_hungry = {
-    "Живот... Блин...",
-    "Если не поем, будет ещё хуже...",
-    "Живот... Чёрт, тошнит уже.",
+    "Боже... я бы слона съел...",
+    "Я чувствую себя так слобо... Надо поесть...",
+    "Я настолько голоден... уже тошнит.",
+	"Живот... болит от голода...",
 }
 
 local after_unconscious = {
     "Что произошло? Больно...",
 	"Где я? Почему всё болит...",
-	"Я... Я думал(а), что сейчас умру...",
+	"Я... Я думал, что сейчас умру...",
 	"Голова... Что случилось?",
-	"Я чуть не умер(ла) только что?",
-	"Ощущение, будто реально умер(ла).",
+	"Я чуть не умер только что?",
+	"Ощущение, будто реально умер.",
 	"Меня там наверху не приняли?",
-	"Ох, блядь... башка раскалывается...",
+	"Ох, блядь... Башка раскалывается...",
 	"Сейчас встать будет адски тяжело... но надо пробовать...",
 	"Я вообще не узнаю это место... или всё же узнаю?",
 	"Я больше НИКОГДА не хочу переживать такое!",
@@ -239,32 +205,32 @@ local slight_braindamage_phraselist = {
 	"А? Что это..?",
 	"Я не понимаю, что происходит...",
 	"Алло?",
-	"Уххх... эээ... что?..",
+	"Кто я?",
 	"Что... происходит?",
 }
 
 local braindamage_phraselist = {
-	"Bbbee.. wheea mgh?!",
-	"Bmmeee... mehk...",
-	"Mm--hhhh. Mmm?",
-	"Ghmgh whhh...",
-	"Ahgg...mg?",
-	"Hgghh... D-Dmmh.",
-	"Lmmmphf, mp-hf!",
-	"Heeelllhhpphp...",
-	"Nghh... Gmh?",
-	"Ggg... Bgh..",
-	"Bhrhraihin.",
+	"Бббы... гд-е-е я мх?!",
+	"Ммн-е... нуууж...",
+	"Мм--хххх. Ммм?",
+	"Гхм-гх кхх...",
+	"Ахгг... м-г?",
+	"Хххх... Ч-Чммх.",
+	"Пмммф, мп-пф!",
+	"П-п-пооомгииии...",
+	"Нгхх... Г-мх?",
+	"Ггг... Бхх..",
+	"Ммозхх...",
 }
 
 local cold_phraselist = {
-	"Становится очень холодно...",
+	"Очень холодно...",
 	"Слишком холодно для меня.",
-	"Я весь дрожу, пиздец, честное слово.",
-	"Здесь дико морозно...",
-	"Нужно хоть что-нибудь, чтобы согреться...",
-	"Мне реально холодно...",
-	"Я себя плохо чувствую от такого холода, блядь."
+	"Я весь дрожу, пиздец.",
+	"Здесь дико холодно...",
+	"Нужно хоть согреться...",
+	"Надо было надеть куртку...",
+	"Палцы плохо слушаются от холода...",
 }
 
 local freezing_phraselist = {
@@ -283,105 +249,32 @@ local numb_phraselist = {
 	"Наконец-то хоть какое-то тепло...",
 	"Я снова чувствую тепло... Каким-то образом...",
 	"Я ведь только что мёрз... Откуда это тепло взялось?..",
+	"Боже... Я снова чувствую тепло... Тело отмирает?",
 }
 
 local hot_phraselist = {
 	"Я весь потный...",
 	"Эта жара меня убивает...",
 	"Вся одежда мокрая от пота, блядь.",
-	"Я так воняю потом, пиздец. Пора бы остудиться...",
-	"Слишком уж жарко, блин.",
-	"Меня прям жёстко накрывает от жары...",
-	"Почему здесь так жарко?",
+	"Я весь мокрый. Надо бы остудиться...",
+	"Как в бане...",
+	"Хотелось бы попить... Водички... Холодной...",
+	"Тяжело думать... от этой жары...",
 }
 
 local heatstroke_phraselist = {
 	"МНЕ НУЖНА ВОДА!!",
 	"Пожалуйста... воды...",
-	"У меня кружится голова... Бляя-",
+	"У меня кружится голова...",
 	"ГОЛОВА! – Она болит...",
 	"Голова просто раскалывается...",
 }
 
 local heatvomit_phraselist = {
-	"От этой жары... сейчас блевану-",
+	"От этой жары... сейчас блевану...",
 	"Угххх... сейчас стошнит-",
 	"Бляя... Оуух... Я себя вообще не чувствую-"
 }
-
-local drunk_light_phraselist = {
-	"Как-то тепло внутри... и мысли поплыли.",
-	"Становится слишком спокойно.",
-	"Слова в голове как будто медленнее.",
-	"Настроение странно ровное... даже слишком.",
-}
-
-local drunk_mid_phraselist = {
-	"Шатает уже заметно.",
-	"Фокус держать всё тяжелее.",
-	"Я говорю нормально?..",
-	"Координация уходит, это плохо.",
-}
-
-local drunk_heavy_phraselist = {
-	"Тошнит... и ноги не слушаются.",
-	"Голова ватная, всё плывёт.",
-	"Ещё чуть-чуть и просто отключусь.",
-	"Держаться в сознании тяжело.",
-}
-
-local hangover_phraselist = {
-	"Сушняк дикий... башка трещит.",
-	"Как будто по голове били всю ночь.",
-	"Свет режет глаза, состояние отвратное.",
-	"Собраться невозможно, всё раздражает.",
-}
-
-local withdrawal_phraselist = {
-	"Трясёт. Очень хреново.",
-	"Тревога не отпускает ни на секунду.",
-	"Руки дрожат, мысли скачут.",
-	"Накрывает так, будто внутри всё ломает.",
-}
-
-local function drunkenize_text(str, level)
-	if not isstring(str) or str == "" then return str end
-	if not isnumber(level) or level <= 0 then return str end
-
-	local t = tostring(str)
-	local strength = math.Clamp(level, 0.1, 1)
-
-	local function maybe_gsub(from, to, chance)
-		if math.random() < chance then
-			t = t:gsub(from, to, 1)
-		end
-	end
-
-	maybe_gsub("р", "л", 0.12 * strength)
-	maybe_gsub("Р", "Л", 0.08 * strength)
-	maybe_gsub("с", "ш", 0.1 * strength)
-	maybe_gsub("С", "Ш", 0.07 * strength)
-	maybe_gsub("в", "ф", 0.08 * strength)
-	maybe_gsub("В", "Ф", 0.05 * strength)
-	maybe_gsub("т", "д", 0.08 * strength)
-	maybe_gsub("Т", "Д", 0.05 * strength)
-
-	if math.random() < 0.2 * strength then
-		t = t:gsub("([%aА-Яа-яЁё])", "%1-%1", 1)
-	end
-
-	if math.random() < 0.25 * strength then
-		t = t:gsub(" ", "... ", 1)
-	end
-
-	if math.random() < 0.2 * strength then
-		t = t:gsub("%.$", "...")
-		t = t:gsub("!$", "!!")
-		t = t:gsub("%?$", "??")
-	end
-
-	return t
-end
 
 local hg_showthoughts = ConVarExists("hg_showthoughts") and GetConVar("hg_showthoughts") or CreateClientConVar("hg_showthoughts", "1", true, true, "Toggle thoughts of your character", 0, 1)
 
@@ -432,10 +325,6 @@ function hg.likely_to_phrase(ply)
 		or -0.1
 end
 
-function IsAimedAt(ply)
-    return ply.aimed_at or 0
-end
-
 local function get_status_message(ply)
 	if not IsValid(ply) then
 		if CLIENT then
@@ -459,11 +348,6 @@ local function get_status_message(ply)
 	local temperature = org.temperature
 	local blood = org.blood
 	local hungry = org.hungry
-	local alcohol = org.alcohol or 0
-	local alcohol_stage = org.alcoholStage or 0
-	local hangover = org.hangover or 0
-	local withdrawal = org.alcoholWithdrawal or 0
-	local drank_recently = (org.alcoholRecentDose or 0) + 180 > CurTime()
 	local broken_dislocated = org.just_damaged_bone and ((org.just_damaged_bone + 3 - CurTime()) < -3)
 
 	if broken_dislocated and org.just_damaged_bone then
@@ -490,20 +374,6 @@ local function get_status_message(ply)
 		most_wanted_phraselist = hungry > 45 and very_hungry or hungry_a_bit
 	end
 
-	if not most_wanted_phraselist and drank_recently and withdrawal > 0.45 then
-		most_wanted_phraselist = withdrawal_phraselist
-	elseif not most_wanted_phraselist and drank_recently and hangover > 0.35 and math.random(2) == 1 then
-		most_wanted_phraselist = hangover_phraselist
-	elseif not most_wanted_phraselist and drank_recently and alcohol > 0.22 then
-		if alcohol_stage >= 3 then
-			most_wanted_phraselist = drunk_heavy_phraselist
-		elseif alcohol_stage >= 2 then
-			most_wanted_phraselist = drunk_mid_phraselist
-		elseif math.random(2) == 1 then
-			most_wanted_phraselist = drunk_light_phraselist
-		end
-	end
-
 	if (blood < 3100) or (pain > 75) or (broken_dislocated) or (broken_notify) or (dislocated_notify) then
 		if pain > 75 and (broken_dislocated) then
 			most_wanted_phraselist = math.random(2) == 1 and audible_pain or (broken_notify and broken_limb or dislocated_limb)
@@ -520,8 +390,6 @@ local function get_status_message(ply)
 		if not most_wanted_phraselist then
 			if (broken_dislocated_notify) and (blood < 3100) then
 				most_wanted_phraselist = blood < 2900 and (near_death_poetic) or (math.random(2) == 1 and (broken_notify and broken_limb or dislocated_limb) or near_death_poetic)
-			--elseif(broken_dislocated_notify)then
-				--most_wanted_phraselist = (broken_notify and broken_limb or dislocated_limb)
 			elseif(blood < 3100)then
 				most_wanted_phraselist = near_death_poetic
 			end
@@ -535,7 +403,7 @@ local function get_status_message(ply)
 			most_wanted_phraselist = hungry > 45 and very_hungry or hungry_a_bit
 		end
 	elseif hg.fearful(ply) then
-		most_wanted_phraselist = ((IsAimedAt(ply) > 0.9) and is_aimed_at_phrases or (math.random(10) == 1 and fear_hurt_ironic or fear_phrases))
+		most_wanted_phraselist = (math.random(10) == 1 and fear_hurt_ironic or fear_phrases)
 	end
 
 	if brain > 0.1 then
@@ -544,13 +412,6 @@ local function get_status_message(ply)
 	
 	if most_wanted_phraselist then
 		str = most_wanted_phraselist[math.random(#most_wanted_phraselist)]
-
-		if drank_recently and alcohol > 0.3 and brain < 0.2 then
-			local blur = math.Clamp((alcohol - 0.3) / 2.2, 0, 1) * (1 - math.min(withdrawal, 0.6))
-			if blur > 0 then
-				str = drunkenize_text(str, blur)
-			end
-		end
 
 		return str
 	else

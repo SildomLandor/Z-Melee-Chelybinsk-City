@@ -108,7 +108,7 @@ zb.ROUND_TIME = zb.ROUND_TIME or 300
 
 function zb:ShouldRoundEnd()
 	local time = zb.ROUND_TIME
-	local shouldroundend = CurrentRound():ShouldRoundEnd()
+	local shouldroundend = CurrentRound().ShouldRoundEnd and CurrentRound():ShouldRoundEnd() or false
 	if shouldroundend ~= false then
 		local boringround = (zb.ROUND_START + time) < CurTime()
 
@@ -200,9 +200,9 @@ function zb:PrepareNextRound()
 	mode.saved = {}
 
 	timer.Simple(0, function()
-		if CurrentRound() ~= mode then return end
-		mode:Intermission()
-		mode:GiveEquipment()
+	    if CurrentRound() ~= mode then return end
+	    if mode.Intermission then mode:Intermission() end
+	    if mode.GiveEquipment then mode:GiveEquipment() end
 	end)
 end
 
@@ -287,16 +287,13 @@ function zb.GetAvailableModes()
 
 	local newtbl = {}
 
-	for i, name in pairs(zb.GetModes()) do
+	for _, name in pairs(zb.GetModes()) do
+		local mode = zb.modes[name]  -- get the mode table
+		local canlaunch = (mode.CanLaunch and mode:CanLaunch() and 1 or 0)
 
-		local tbl = zb.modes[name]
-		if (tbl.CanLaunch and tbl:CanLaunch()) and
-		(
-			( not tbl.ForBigMaps ) or
-			( zb.GetWorldSize() > ZBATTLE_BIGMAP )
-		) then
-			if tbl.SubModes then
-				for i, name2 in pairs(tbl:SubModes()) do
+		if canlaunch == 1 and ((not mode.ForBigMaps) or (zb.GetWorldSize() > ZBATTLE_BIGMAP)) then
+			if mode.SubModes then
+				for _, name2 in pairs(mode:SubModes()) do
 					table.insert(newtbl, name2)
 				end
 			else
@@ -307,7 +304,6 @@ function zb.GetAvailableModes()
 
 	return newtbl
 end
-
 zb.ModesPlaytime = zb.ModesPlaytime or {}
 
 function zb.GetModesPlaytime()
@@ -468,7 +464,7 @@ function zb.GetModesInfo()
 					name = (mode.PrintName or mode.name or name).."/"..name2,
 					description = mode.Description or "",
 					forBigMaps = mode.ForBigMaps or false,
-					canlaunch = (mode:CanLaunch() and 1 or 0)
+					canlaunch = ((mode.CanLaunch and mode:CanLaunch()) and 1 or 0)
 				})
 			end
 		else
@@ -477,7 +473,7 @@ function zb.GetModesInfo()
 				name = mode.PrintName or mode.name or name,
 				description = mode.Description or "",
 				forBigMaps = mode.ForBigMaps or false,
-				canlaunch = (mode:CanLaunch() and 1 or 0)
+				canlaunch = ((mode.CanLaunch and mode:CanLaunch()) and 1 or 0)
 			})
 		end
 	end
@@ -581,7 +577,7 @@ function zb:RoundStart()
 
 	zb.AddCurrentModePlayed()
 
-	CurrentRound():RoundStart()
+	if CurrentRound().RoundStart then CurrentRound():RoundStart() end
 
 	local nextMode
 

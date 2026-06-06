@@ -72,6 +72,12 @@ if CLIENT then
 
 		for i = 1, count do
 			local id = children[i]
+			
+			if isstring(id) then
+				id = ent:LookupBone(id)
+			end
+			if not id or id == -1 then continue end
+
 			local mat = ent:GetBoneMatrix(id)
 			if not mat then continue end
 			ent:SetBoneMatrix(id, translate * mat)

@@ -24,6 +24,12 @@ SWEP.SuicidePunchAng = Angle(5, -15, 0)
 
 SWEP.NoHolster = true
 SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(15, -3.2, 3)
+SWEP.holsteredAng = Angle(30, 180, -90)
+SWEP.DeployRHPos = Vector(15, -3.2, 3)
+SWEP.DeployRHAng = Angle(0, 0, 0)
+
 
 SWEP.HoldType = "melee"
 

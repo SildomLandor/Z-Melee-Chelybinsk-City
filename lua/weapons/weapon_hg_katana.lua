@@ -23,6 +23,9 @@ SWEP.SuicidePunchAng = Angle(5, -15, 0)
 
 SWEP.NoHolster = true
 SWEP.shouldntDrawHolstered = false
+SWEP.holsteredBone = "ValveBiped.Bip01_spine2"
+SWEP.holsteredPos = Vector(17, -3, 0)
+SWEP.holsteredAng = Angle(0, 95, -90)
 
 SWEP.HoldType = "melee"
 
@@ -111,7 +114,7 @@ SWEP.SwingSoundPitch = 110
 
 SWEP.HitFleshPlus = "machete/machetehit1.ogg"
 
-SWEP.BlockTier = 3
+SWEP.BlockTier = 4
 SWEP.MeleeMaterial = "metal"
 SWEP.BlockImpactSound = "physics/metal/metal_solid_impact_bullet1.wav"
 
