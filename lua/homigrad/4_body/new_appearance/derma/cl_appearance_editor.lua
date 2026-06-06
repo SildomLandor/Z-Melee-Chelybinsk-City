@@ -275,7 +275,7 @@ local function CloseAllOpenMenus()
     end
 end
 
-local function AddDropdownOption(drop, scroll, text, onClick, texturePath, onRightClick)
+local function AddDropdownOption(drop, scroll, text, onClick, texturePath)
 	local btn = vgui.Create("DLabel", scroll:GetCanvas())
 	btn:SetText(text)
 	btn:SetFont("ZCity_Veteran")
@@ -295,19 +295,10 @@ local function AddDropdownOption(drop, scroll, text, onClick, texturePath, onRig
 	btn.Paint = PaintMenuLabel
 	WireMenuLabel(btn, function()
 		if onClick then onClick() end
-		if IsValid(drop) then drop:Close() end
-	end)
-
-	if onRightClick then
-		btn:SetTooltip("ПКМ — превью")
-		function btn:OnMousePressed(mc)
-			if mc == MOUSE_RIGHT then
-				onRightClick()
-				return
-			end
-			if mc == MOUSE_LEFT then self:DoClick() end
+		if IsValid(drop) and drop.Close and not drop.TargetWide then
+			drop:Close()
 		end
-	end
+	end)
 
 	scroll:InvalidateLayout(true)
 	return btn
@@ -658,186 +649,9 @@ local function CreateStyledListMenu(title)
     return menu
 end
 
-local accessoryPreviewPanel
-local dermaCloseWimg = wimg.Simple("https://i.ibb.co.com/Wv16J1Vk/close.png", "smooth")
-
-local function CreateDermaCloseButton(parent, onClose)
-	local btn = vgui.Create("DButton", parent)
-	local btnSize = ScreenScale(12)
-	btn:SetSize(btnSize, btnSize)
-	btn:SetText("")
-	btn:SetZPos(500)
-	btn.NormalColor = Color(200, 195, 190, 200)
-	btn.HoverColor = Color(120, 20, 15, 255)
-	btn.CurrentColor = Color(200, 195, 190, 200)
-	btn.HoverLerp = 0
-	btn.ScaleLerp = 0
-	btn.Glitch = 0
-
-	function btn:Think()
-		if not IsValid(parent) then return end
-		self:SetPos(parent:GetWide() - btnSize - ScreenScale(4), ScreenScale(4))
-
-		local target = self:IsHovered() and 1 or 0
-		self.HoverLerp = Lerp(FrameTime() * 8, self.HoverLerp, target)
-		self.ScaleLerp = Lerp(FrameTime() * 8, self.ScaleLerp, target)
-
-		if math.random() > 0.95 then
-			self.Glitch = 0.8
-		else
-			self.Glitch = Lerp(FrameTime() * 15, self.Glitch, 0)
-		end
-
-		self.CurrentColor = Color(
-			Lerp(self.HoverLerp, self.NormalColor.r, self.HoverColor.r),
-			Lerp(self.HoverLerp, self.NormalColor.g, self.HoverColor.g),
-			Lerp(self.HoverLerp, self.NormalColor.b, self.HoverColor.b),
-			Lerp(self.HoverLerp, self.NormalColor.a, self.HoverColor.a)
-		)
-	end
-
-	function btn:Paint(w, h)
-		local centerX, centerY = w * 0.5, h * 0.5
-		local shakeX = self.HoverLerp > 0 and math.random(-2, 2) * self.HoverLerp or 0
-		local shakeY = self.HoverLerp > 0 and math.random(-2, 2) * self.HoverLerp or 0
-		local hoverScale = Lerp(self.ScaleLerp, 1, 1.1)
-		local iconSize = (btnSize - ScreenScale(2)) * hoverScale
-		local iconX = centerX - iconSize * 0.5 + shakeX
-		local iconY = centerY - iconSize * 0.5 + shakeY
-
-		dermaCloseWimg:Draw(iconX, iconY, iconSize, iconSize, self.CurrentColor)
-
-		if self.HoverLerp > 0 then
-			dermaCloseWimg:Draw(iconX - 8, iconY - 8, iconSize + 16, iconSize + 16, Color(self.HoverColor.r, self.HoverColor.g, self.HoverColor.b, 40 * self.HoverLerp))
-		end
-
-		if self.Glitch > 0 then
-			dermaCloseWimg:Draw(iconX + 2, iconY, iconSize, iconSize, Color(255, 255, 255, 100 * self.Glitch))
-		end
-	end
-
-	function btn:DoClick()
-		if onClose then onClose() end
-	end
-
-	return btn
+local function PlayTryOnSound()
+	surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
 end
-
-local function SetupAccessoryPreviewEntity(ent, accessoryData)
-	if not IsValid(ent) or not accessoryData then return end
-
-	ent:SetSkin((isfunction(accessoryData.skin) and accessoryData.skin()) or (accessoryData.skin or 0))
-	ent:SetBodyGroups(accessoryData.bodygroups or "0000000")
-	if accessoryData.SubMat then
-		ent:SetSubMaterial(0, accessoryData.SubMat)
-	end
-end
-
-local function OpenAccessoryPreviewPanel(accessorKey, accessoryData)
-	if not accessoryData or not accessoryData.model then return end
-
-	if IsValid(accessoryPreviewPanel) then
-		accessoryPreviewPanel:Remove()
-	end
-
-	local size = math.floor(math.min(ScrW(), ScrH()) * 0.36)
-	size = math.Clamp(size, ScreenScale(110), ScreenScale(260))
-
-	local frame = vgui.Create("DPanel")
-	accessoryPreviewPanel = frame
-	frame:SetSize(size, size)
-	frame:Center()
-	frame:MakePopup()
-	frame:SetKeyboardInputEnabled(true)
-	frame:SetZPos(200)
-	frame.Title = accessoryData.name or string.NiceName(accessorKey)
-
-	function frame:Paint(w, h)
-		surface.SetDrawColor(25, 25, 31, 245)
-		surface.DrawRect(0, 0, w, h)
-		surface.SetDrawColor(50, 50, 53)
-		surface.DrawOutlinedRect(0, 0, w, h, 1)
-		draw.SimpleText(self.Title, "ZCity_Tiny", w * 0.5, ScreenScale(8), Color(220, 220, 220), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-		draw.SimpleText("ЛКМ — крутить", "ZCity_Tiny", w * 0.5, h - ScreenScale(8), Color(130, 130, 140), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-	end
-
-	function frame:Close()
-		self:Remove()
-	end
-
-	CreateDermaCloseButton(frame, function() frame:Close() end)
-
-	local preview = vgui.Create("DModelPanel", frame)
-	preview:SetPos(ScreenScale(6), ScreenScale(16))
-	preview:SetSize(size - ScreenScale(12), size - ScreenScale(28))
-	preview:SetModel(accessoryData.model)
-	preview:SetFOV(accessoryData.previewFOV or 15)
-	preview:SetLookAt(accessoryData.vpos or Vector(0, 0, 0))
-	preview:SetAnimated(false)
-	preview:SetMouseInputEnabled(true)
-	preview:SetDirectionalLight(BOX_RIGHT, Color(255, 160, 160))
-	preview:SetDirectionalLight(BOX_LEFT, Color(120, 150, 255))
-	preview:SetDirectionalLight(BOX_FRONT, Color(180, 180, 180))
-	preview:SetAmbientLight(Color(179, 179, 179))
-
-	local viewAng = Angle(0, 0, 0)
-
-	function preview:PreDrawModel(ent)
-		if accessoryData.bSetColor then
-			local ply = LocalPlayer()
-			local colorDraw = accessoryData.vecColorOveride or (IsValid(ply) and ply.GetPlayerColor and ply:GetPlayerColor() or Vector(1, 1, 1))
-			render.SetColorModulation(colorDraw[1], colorDraw[2], colorDraw[3])
-		end
-	end
-
-	function preview:PostDrawModel(ent)
-		if accessoryData.bSetColor then
-			render.SetColorModulation(1, 1, 1)
-		end
-	end
-
-	function preview:LayoutEntity(ent)
-		if not IsValid(ent) then return end
-		ent:SetAngles(viewAng)
-		if not ent.__AccessoryPreviewReady then
-			SetupAccessoryPreviewEntity(ent, accessoryData)
-			ent.__AccessoryPreviewReady = true
-		end
-	end
-
-	function preview:DragMousePress()
-		self.Dragging = true
-		self.LastMX, self.LastMY = gui.MouseX(), gui.MouseY()
-	end
-
-	function preview:DragMouseRelease()
-		self.Dragging = false
-	end
-
-	function preview:Think()
-		if not self.Dragging then return end
-		local mx, my = gui.MouseX(), gui.MouseY()
-		viewAng.y = viewAng.y - (mx - self.LastMX) * 0.4
-		viewAng.p = math.Clamp(viewAng.p + (my - self.LastMY) * 0.3, -60, 60)
-		self.LastMX, self.LastMY = mx, my
-	end
-
-	function preview:OnMouseWheeled(delta)
-		self:SetFOV(math.Clamp(self:GetFOV() - delta * 2, 5, 45))
-	end
-
-	function frame:OnKeyCodePressed(key)
-		if key == KEY_ESCAPE then self:Close() end
-	end
-
-	function frame:OnRemove()
-		if accessoryPreviewPanel == self then accessoryPreviewPanel = nil end
-	end
-
-	RegisterOpenMenu(frame)
-end
-
-hg.Appearance.OpenAccessoryPreviewPanel = OpenAccessoryPreviewPanel
 
 local function CreateStyledAccessoryMenu(parent, title)
 	local menu = vgui.Create("DPanel")
@@ -943,7 +757,7 @@ local function CreateStyledAccessoryMenu(parent, title)
 		spawnIcon:Dock(FILL)
 		spawnIcon:DockMargin(1, 1, 1, 1)
 		spawnIcon:SetModel(model or "models/error.mdl")
-		spawnIcon:SetTooltip(string.NiceName(accessoryData and accessoryData.name or accessorKey) .. "\nПКМ — превью")
+		spawnIcon:SetTooltip(string.NiceName(accessoryData and accessoryData.name or accessorKey))
 		spawnIcon:SetFOV(15)
 		spawnIcon:SetLookAt(accessoryData.vpos or Vector(0, 0, 0))
 
@@ -972,16 +786,11 @@ local function CreateStyledAccessoryMenu(parent, title)
 
 		function spawnIcon:DoClick()
 			if onSelect then onSelect(accessorKey) end
-			surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
-			menu:Remove()
+			PlayTryOnSound()
 		end
 
 		function ico:OnMousePressed(mc)
-			if mc == MOUSE_LEFT then
-				spawnIcon:DoClick()
-			elseif mc == MOUSE_RIGHT then
-				OpenAccessoryPreviewPanel(accessorKey, accessoryData)
-			end
+			if mc == MOUSE_LEFT then spawnIcon:DoClick() end
 		end
 
 		function ico:OnCursorEntered()
@@ -1039,8 +848,7 @@ local function CreateStyledAccessoryMenu(parent, title)
 		function ico:OnMousePressed(mc)
 			if mc == MOUSE_LEFT then
 				if onSelect then onSelect("none") end
-				surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
-				menu:Remove()
+				PlayTryOnSound()
 			end
 		end
 
@@ -1581,6 +1389,7 @@ function PANEL:PostInit()
 		CreateSlideSidePanel(main, anchor, ScreenScale(155), ScreenScale(220), function(pnl, scroll)
 			AddDropdownOption(pnl, scroll, "Нет", function()
 				main.AppearanceTable.AAttachments[slot] = "none"
+				PlayTryOnSound()
 			end)
 
 			for k, v in SortedPairs(hg.Accessories) do
@@ -1589,9 +1398,7 @@ function PANEL:PostInit()
 				if not HasAccessToAccessory(k, v) then continue end
 				AddDropdownOption(pnl, scroll, v.name or string.NiceName(k), function()
 					main.AppearanceTable.AAttachments[slot] = k
-					surface.PlaySound("player/clothes_generic_foley_0" .. math.random(5) .. ".wav")
-				end, nil, function()
-					OpenAccessoryPreviewPanel(k, v)
+					PlayTryOnSound()
 				end)
 			end
 		end, function()
@@ -1628,6 +1435,7 @@ function PANEL:PostInit()
 						AddDropdownOption(pnl, scroll, clothName, function()
 							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 							main.AppearanceTable.AClothes.main = k
+							PlayTryOnSound()
 						end, clothes[k])
 					end
 				end
@@ -1639,6 +1447,7 @@ function PANEL:PostInit()
 					AddDropdownOption(pnl, scroll, name, function()
 						main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
 						main.AppearanceTable.ABodygroups.TORSO = name
+						PlayTryOnSound()
 					end)
 				end
 			end
@@ -1679,6 +1488,7 @@ function PANEL:PostInit()
 			for k in SortedPairs(facemaps) do
 				AddDropdownOption(pnl, scroll, k, function()
 					main.AppearanceTable.AFacemap = k
+					PlayTryOnSound()
 				end, FirstTexturePath(facemaps[k]))
 			end
 		end)
@@ -1702,6 +1512,7 @@ function PANEL:PostInit()
 				AddDropdownOption(pnl, scroll, name, function()
 					main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
 					main.AppearanceTable.ABodygroups[bgKey] = name
+					PlayTryOnSound()
 				end)
 			end
 		end)
@@ -1718,6 +1529,7 @@ function PANEL:PostInit()
 						AddDropdownOption(pnl, scroll, clothName, function()
 							main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 							main.AppearanceTable.AClothes.pants = k
+							PlayTryOnSound()
 						end, clothes[k])
 					end
 				end
@@ -1729,6 +1541,7 @@ function PANEL:PostInit()
 					AddDropdownOption(pnl, scroll, name, function()
 						main.AppearanceTable.ABodygroups = main.AppearanceTable.ABodygroups or {}
 						main.AppearanceTable.ABodygroups.LEGS = name
+						PlayTryOnSound()
 					end)
 				end
 			end
@@ -1754,6 +1567,7 @@ function PANEL:PostInit()
 				AddDropdownOption(pnl, scroll, clothName, function()
 					main.AppearanceTable.AClothes = main.AppearanceTable.AClothes or {}
 					main.AppearanceTable.AClothes[slot] = k
+					PlayTryOnSound()
 				end, clothes[k])
 			end
 		end)
