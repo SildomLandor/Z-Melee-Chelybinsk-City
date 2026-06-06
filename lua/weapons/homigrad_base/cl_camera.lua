@@ -343,7 +343,7 @@ function SWEP:Camera(eyePos, eyeAng, view, vellen, ply)
 
 	ply:SetLOD(0);
 
-	outputPos:Add(-(angle_difference_localvec * 150))
+	outputPos:Add(-(angle_difference_localvec * 30))
 	local ang = -(angle_difference * 5)
 	ang[3] = ang[3] / 2
 	outputAng:Add(ang)
