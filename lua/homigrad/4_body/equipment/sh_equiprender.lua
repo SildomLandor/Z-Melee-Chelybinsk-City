@@ -133,9 +133,8 @@ if CLIENT then
 		
 		for placement, armor in pairs(armors) do
 			if placement == "torso" and blVestmodels[ply:GetModel()] then continue end
-			local armorData = hg.armor[placement][armor]
-
-			if armorData["model"] == "" then continue end
+			local armorData = hg.armor[placement] and hg.armor[placement][armor]
+			if not armorData or armorData.model == "" then continue end
 
 			ply.modelArmor = ply.modelArmor or {}
 			local fem = ThatPlyIsFemale(ent)
@@ -179,10 +178,10 @@ if CLIENT then
 	
 			local model = ply.modelArmor[armor]
 			
-			if not IsValid(model) then return end
+			if not IsValid(model) then continue end
 			
 			if ent.NotSeen or not ent.shouldTransmit then
-				return
+				continue
 			end
 
 			local mdl = string.Split(string.sub(ent:GetModel(),1,-5),"/")[#string.Split(string.sub(ent:GetModel(),1,-5),"/")]
@@ -190,10 +189,11 @@ if CLIENT then
 				model:SetFlexWeight(model:GetFlexIDByName(mdl),1)
 			end
 			
-			local matrix = ent:GetBoneMatrix(ent:LookupBone(armorData["bone"]))
-			if not matrix then
-				return
-			end
+			local bone = armorData.bone and ent:LookupBone(armorData.bone)
+			if not bone then continue end
+
+			local matrix = ent:GetBoneMatrix(bone)
+			if not matrix then continue end
 			
 			local bonePos, boneAng = matrix:GetTranslation(), matrix:GetAngles()
 			bonePos:Add(boneAng:Forward() * (fem and armorData.femPos[1] or 0) + boneAng:Up() * (fem and armorData.femPos[2] or 0) + boneAng:Right() * (fem and armorData.femPos[3] or 0))
@@ -201,7 +201,7 @@ if CLIENT then
 			model:SetRenderOrigin(pos)
 			model:SetRenderAngles(ang)
 
-			model:SetParent(ent,ent:LookupBone(armorData["bone"]))
+			model:SetParent(ent, bone)
 			
 			--model:SetupBones()
 			

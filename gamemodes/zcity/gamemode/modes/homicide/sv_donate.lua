@@ -2,8 +2,8 @@ local MODE = MODE
 
 MODE.Donaters = {
 	["STEAM_0:0:791306214"] = {surgeon = true},
-	["STEAM_0:0:162799155"] = {surgeon = true, ment = true},
-	--["steam"] = {ment = true}
+	--["STEAM_0:0:162799155"] = {surgeon = true, ment = true},
+	["STEAM_0:1:628835900"] = {ment = true}
 	--["steam"] = {surgeon = true}
 }
 
