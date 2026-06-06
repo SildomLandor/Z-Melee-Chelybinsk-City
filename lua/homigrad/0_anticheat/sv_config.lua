@@ -1,9 +1,9 @@
 mAC.db = {
 	module = "sqlite",
-	host = "localhost",
-	username = "root",
-	password = "",
-	database = "mcity",
+	host = "epyc1-db.worldhosts.fun",
+	username = "u18700_o71ttLfESA",
+	password = "^pj9^gxg5ZSe@POLN!r@KE0V",
+	database = "s18700_seks",
 	port = 3306,
 }
 
