@@ -10,7 +10,7 @@ local string_match = string.match
 local table_sort = table.sort
 local table_remove = table.remove
 local table_insert = table.insert
-
+--тест
 local AddCSLuaFile = AddCSLuaFile
 local file = file
 local hook = hook
