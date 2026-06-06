@@ -236,18 +236,48 @@ function mAC.SetBanned(s64, reason, ip)
 	end
 end
 
+function mAC.ULibBanned(s64)
+	if not s64 or not ULib or not ULib.bans then return false end
+	local sid = util.SteamIDFrom64(s64)
+	return sid and ULib.bans[sid] ~= nil or false
+end
+
+function mAC.Unban(s64)
+	if not s64 then return end
+
+	if mAC.dbReady then
+		local u = mysql:Update("mac_players")
+			u:Update("banned", 0)
+			u:Update("ban_reason", "")
+			u:Where("steamid64", s64)
+		u:Execute()
+	else
+		mAC.fileDB.bans[s64] = nil
+		saveFileDB()
+	end
+end
+
 function mAC.IsBanned(s64, ip, cookie, cb)
 	if not cb then return end
 
+	local function finish(hit, why, own)
+		if hit and own and not mAC.ULibBanned(s64) then
+			mAC.Unban(s64)
+			cb(false)
+			return
+		end
+		cb(hit, why, own)
+	end
+
 	if not mAC.dbReady then
 		if s64 and mAC.fileDB.bans[s64] then
-			cb(true, mAC.fileDB.bans[s64].reason or "ban")
+			finish(true, mAC.fileDB.bans[s64].reason or "ban", true)
 			return
 		end
 		if cookie and cookie ~= "" and mAC.fileDB.cookies[cookie] then
 			for sid in pairs(mAC.fileDB.cookies[cookie]) do
 				if sid ~= s64 and mAC.fileDB.bans[sid] then
-					cb(true, "cookie")
+					finish(true, "cookie", false)
 					return
 				end
 			end
@@ -255,7 +285,7 @@ function mAC.IsBanned(s64, ip, cookie, cb)
 		if ip and ip ~= "" and mAC.fileDB.ips[ip] then
 			for sid in pairs(mAC.fileDB.ips[ip]) do
 				if sid ~= s64 and mAC.fileDB.bans[sid] then
-					cb(true, "ip")
+					finish(true, "ip", false)
 					return
 				end
 			end
@@ -279,7 +309,7 @@ function mAC.IsBanned(s64, ip, cookie, cb)
 	end
 
 	playerBanned(s64, function(hit, why)
-		if hit then cb(true, why) return end
+		if hit then finish(true, why, true) return end
 
 		if cookie and cookie ~= "" then
 			local q = mysql:Select("mac_cookies")
@@ -290,41 +320,41 @@ function mAC.IsBanned(s64, ip, cookie, cb)
 							local q2 = mysql:Select("mac_ips")
 								q2:Where("ip", ip)
 								q2:Callback(function(r2)
-									if not istable(r2) then cb(false) return end
+									if not istable(r2) then finish(false) return end
 									local left = #r2
-									if left <= 0 then cb(false) return end
+									if left <= 0 then finish(false) return end
 									for i = 1, #r2 do
 										local sid = r2[i].steamid64
 										if sid == s64 then
 											left = left - 1
-											if left <= 0 then cb(false) end
+											if left <= 0 then finish(false) end
 											continue
 										end
 										playerBanned(sid, function(h, w)
 											left = left - 1
-											if h then cb(true, "ip:" .. w) return end
-											if left <= 0 then cb(false) end
+											if h then finish(true, "ip:" .. w, false) return end
+											if left <= 0 then finish(false) end
 										end)
 									end
 								end)
 							q2:Execute()
 						else
-							cb(false)
+							finish(false)
 						end
 						return
 					end
 
 					local left = 0
 					for i = 1, #res do if res[i].steamid64 ~= s64 then left = left + 1 end end
-					if left <= 0 then cb(false) return end
+					if left <= 0 then finish(false) return end
 
 					for i = 1, #res do
 						local sid = res[i].steamid64
 						if sid == s64 then continue end
 						playerBanned(sid, function(h, w)
 							left = left - 1
-							if h then cb(true, "cookie:" .. w) return end
-							if left <= 0 then cb(false) end
+							if h then finish(true, "cookie:" .. w, false) return end
+							if left <= 0 then finish(false) end
 						end)
 					end
 				end)
@@ -336,17 +366,17 @@ function mAC.IsBanned(s64, ip, cookie, cb)
 			local q = mysql:Select("mac_ips")
 				q:Where("ip", ip)
 				q:Callback(function(res)
-					if not istable(res) or #res <= 0 then cb(false) return end
+					if not istable(res) or #res <= 0 then finish(false) return end
 					local left = 0
 					for i = 1, #res do if res[i].steamid64 ~= s64 then left = left + 1 end end
-					if left <= 0 then cb(false) return end
+					if left <= 0 then finish(false) return end
 					for i = 1, #res do
 						local sid = res[i].steamid64
 						if sid == s64 then continue end
 						playerBanned(sid, function(h, w)
 							left = left - 1
-							if h then cb(true, "ip:" .. w) return end
-							if left <= 0 then cb(false) end
+							if h then finish(true, "ip:" .. w, false) return end
+							if left <= 0 then finish(false) end
 						end)
 					end
 				end)
@@ -354,7 +384,7 @@ function mAC.IsBanned(s64, ip, cookie, cb)
 			return
 		end
 
-		cb(false)
+		finish(false)
 	end)
 end
 

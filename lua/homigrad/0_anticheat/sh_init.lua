@@ -63,12 +63,15 @@ function mAC.BanCode(reason)
 	local cfg = mAC.cfg and mAC.cfg.banCodes or {}
 	reason = tostring(reason or "")
 
+	local stored = reason:match("^#(%d+)")
+	if stored then return tonumber(stored) end
+
 	if cfg[reason] then return cfg[reason] end
+	if reason == "ban" or reason == "banned" then return cfg.banned or 4 end
 	if reason == "cookie_alt" then return cfg.cookie_alt or 6 end
 	if reason:sub(1, 7) == "cookie:" then return cfg.cookie or 5 end
 	if reason:sub(1, 3) == "ip:" then return cfg.ip or 7 end
 	if reason == "bypass" then return cfg.bypass or 3 end
-	if reason == "banned" then return cfg.banned or 4 end
 
 	return cfg.default or 9
 end

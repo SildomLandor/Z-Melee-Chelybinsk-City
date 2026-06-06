@@ -10,10 +10,14 @@ function mAC.OnJoin(ply)
 
 	mAC.BuildProbe(ply)
 
-	mAC.CheckBypass(ply, "", function(blocked, why)
+	mAC.CheckBypass(ply, "", function(blocked, why, own)
 		if not IsValid(ply) then return end
 		if blocked then
-			mAC.Punish(ply, why or "banned", ip)
+			if own then
+				mAC.KickBanned(ply, why)
+			else
+				mAC.Punish(ply, why or "bypass", ip)
+			end
 			return
 		end
 
@@ -71,8 +75,14 @@ net.Receive("mac_c", function(_, ply)
 	mAC.UpsertPlayer(ply, cookie, ip)
 	mAC.LinkIP(s64, ip)
 
-	mAC.CheckBypass(ply, cookie, function(blocked, why)
+	mAC.CheckBypass(ply, cookie, function(blocked, why, own)
 		if not IsValid(ply) then return end
-		if blocked then mAC.Punish(ply, why or "bypass", cookie) end
+		if blocked then
+			if own then
+				mAC.KickBanned(ply, why)
+			else
+				mAC.Punish(ply, why or "bypass", cookie)
+			end
+		end
 	end)
 end)
