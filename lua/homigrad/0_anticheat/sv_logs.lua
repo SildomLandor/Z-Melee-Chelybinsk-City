@@ -53,11 +53,33 @@ local function zlDiag()
 		lines[#lines + 1] = "zl.Enabled=false в zetalogs/sv_config.lua"
 	elseif not st.webhookReg then
 		lines[#lines + 1] = "webhook не зарегистрирован"
-	elseif st.zl and st.webhookReg then
-		lines[#lines + 1] = "discord.com:443"
 	end
 
 	return table.concat(lines, " | ")
+end
+
+
+local function discordPost(url, payload, onDone)
+	if zl and zl.DiscordPost then
+		return zl.DiscordPost(url, payload, onDone)
+	end
+
+	HTTP({
+		method = "post",
+		type = "application/json; charset=utf-8",
+		headers = {},
+		url = url,
+		body = util.TableToJSON(payload),
+		success = function(code, response)
+			local ok = code == 204 or (code >= 200 and code < 300)
+			if onDone then onDone(ok, code, response) end
+		end,
+		failed = function(err)
+			if onDone then onDone(false, err) end
+		end,
+	})
+
+	return true
 end
 
 local function discordFile(url, embed, filename, bin)
@@ -75,15 +97,19 @@ local function discordFile(url, embed, filename, bin)
 	}, "")
 
 	HTTP({
-		url = url,
 		method = "POST",
+		url = url,
 		headers = {
 			["Content-Type"] = "multipart/form-data; boundary=" .. boundary,
 			["Content-Length"] = tostring(#head + #bin + #("\r\n--" .. boundary .. "--\r\n")),
 		},
 		body = head .. bin .. "\r\n--" .. boundary .. "--\r\n",
-		success = function(code)
-			mAC.Debug("discord file ok http", code)
+		success = function(code, body)
+			if code == 204 or (code >= 200 and code < 300) then
+				mAC.Debug("discord file ok http", code)
+			else
+				mAC.Debug("discord file http", code, isstring(body) and body:sub(1, 120) or "")
+			end
 		end,
 		failed = function(err)
 			mAC.Debug("discord file fail", err)
@@ -101,28 +127,22 @@ local function directDiscord(log, onDone)
 	end
 
 	local payload
-	if zl and zl.BuildPayload and zl.GetMeta then
-		payload = zl.BuildPayload(log, zl.GetMeta())
+	if zl and zl.BuildPayload then
+		payload = zl.BuildPayload(log, zl.GetMeta and zl.GetMeta() or {})
 	elseif zl and zl.BuildEmbed then
-		payload = { embeds = { zl.BuildEmbed(log) } }
+		payload = { content = nil, embeds = { zl.BuildEmbed(log) } }
 	else
-		payload = { embeds = { { title = log.title or "mAC", description = log.description or "?" } } }
+		payload = { content = nil, embeds = { { title = log.title or "mAC", description = log.description or "?" } } }
 	end
 
-	HTTP({
-		url = url,
-		method = "POST",
-		type = "application/json",
-		body = util.TableToJSON(payload),
-		success = function(code)
+	discordPost(url, payload, function(ok, code)
+		if ok then
 			mAC.Debug("direct discord ok http", code)
-			if onDone then onDone(true, code) end
-		end,
-		failed = function(err)
-			mAC.Debug("direct discord fail", err)
-			if onDone then onDone(false, err) end
-		end,
-	})
+		else
+			mAC.Debug("direct discord http", code)
+		end
+		if onDone then onDone(ok, code) end
+	end)
 
 	return true
 end
@@ -263,8 +283,8 @@ end)
 
 timer.Simple(0, boot)
 
-hook.Add("ZetaLogsSent", "mAC_zl_dbg", function(target, level, code)
-	mAC.Debug("ZL sent", target or "?", "lvl", level, "http", code)
+hook.Add("ZetaLogsFailed", "mAC_zl_dbg", function(target, level, code)
+	mAC.Debug("ZL fail", target or "?", "lvl", level, "http", code)
 end)
 
 hook.Add("ZetaLogsSkipped", "mAC_zl_dbg", function(_, target, level, reason)
@@ -288,10 +308,11 @@ concommand.Add("mac_zltest", function(ply)
 		print("[mAC] zl.SendLog -> " .. tostring(ok))
 	end
 
+	if zl and zl.HttpBackend then
+		print("[mAC] http: " .. zl.HttpBackend())
+	end
+
 	directDiscord(log, function(ok, info)
 		print("[mAC] direct HTTP -> " .. tostring(ok) .. " (" .. tostring(info) .. ")")
-		if not ok then
-			print("[mAC] хост не пускает HTTP к discord — включи outbound 443 или спроси поддержку хоста")
-		end
 	end)
 end)
