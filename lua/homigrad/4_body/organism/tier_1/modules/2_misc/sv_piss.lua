@@ -144,3 +144,7 @@ end)
 hook.Add("PlayerSpawn", "hg_piss", function(ply)
     stopPiss(ply)
 end)
+
+hook.Add("PlayerDisconnected", "hg_piss", function(ply)
+    stopPiss(ply)
+end)

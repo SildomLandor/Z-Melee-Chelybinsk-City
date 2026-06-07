@@ -1,4 +1,4 @@
-local holding = false
+local keyHeld = false
 local emitter
 local nextPissPart = 0
 
@@ -75,27 +75,18 @@ end
 
 hook.Add("Think", "hg_piss_fx", function()
     local ply = LocalPlayer()
-    
-    if not IsValid(ply) or not ply:GetNWBool("peeing") then
+    if not IsValid(ply) then return end
+
+    if not ply:GetNWBool("peeing") then
         if emitter then
             emitter:Finish()
             emitter = nil
         end
-        if IsValid(ply) then
-            bladder = math.min(maxBladder, bladder + regenRate * FrameTime())
-        end
+        bladder = math.min(maxBladder, bladder + regenRate * FrameTime())
         return
     end
 
     bladder = math.max(0, bladder - depletionRate * FrameTime())
-
-    if bladder <= 0 and holding then
-        holding = false
-        net.Start("hg_piss")
-        net.WriteBool(false)
-        net.SendToServer()
-        return
-    end
 
     if CurTime() >= nextPissPart then
         localPissFx(ply)
@@ -106,8 +97,8 @@ end)
 hook.Add("CreateMove", "hg_piss_key", function()
     local ply = LocalPlayer()
     if not IsValid(ply) or not ply:Alive() then
-        if holding then
-            holding = false
+        if keyHeld then
+            keyHeld = false
             net.Start("hg_piss")
             net.WriteBool(false)
             net.SendToServer()
@@ -118,14 +109,10 @@ hook.Add("CreateMove", "hg_piss_key", function()
     if gui.IsGameUIVisible() or IsValid(vgui.GetKeyboardFocus()) then return end
 
     local down = input.IsKeyDown(KEY_P)
+    if down and bladder < 15 then down = false end
+    if down == keyHeld then return end
 
-    if down and not holding and bladder < 15 then
-        down = false
-    end
-
-    if down == holding then return end
-    holding = down
-
+    keyHeld = down
     net.Start("hg_piss")
     net.WriteBool(down)
     net.SendToServer()
