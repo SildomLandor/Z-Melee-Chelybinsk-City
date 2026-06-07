@@ -539,10 +539,10 @@ hook.Add("Think", "ItHurtsThink", function()
 		or fx.drawPain or fx.drawO2 or fx.drawBrainBlur or fx.drawBrainImg
 
 	if PainLerp > 20 then
-		local chromIntensity = math.Clamp((PainLerp - 20) / 1, 0, 100)
-		RunConsoleCommand("pp_scaf_intensity", tostring(chromIntensity))
+		local chromIntensity = math.Clamp((PainLerp - 20) / 1, 0, 200)
+		GetConVar("pp_scaf_intensity"):SetValue(chromIntensity)
 	else
-		RunConsoleCommand("pp_scaf_intensity", "0")
+		GetConVar("pp_scaf_intensity"):SetValue(0)
 	end
 end)
 
