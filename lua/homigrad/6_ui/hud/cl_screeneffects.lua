@@ -188,6 +188,8 @@ local coldMat = Material("effects/shaders/zb_colda")
 local grainMat = Material("effects/shaders/zb_grain2")
 local heatMat = Material("effects/shaders/zb_heat")
 local blindMat = Material("effects/shaders/zb_blind")
+local chromMat = Material("effects/shaders/merc_chromaticaberration")
+local scafIntensity
 
 local PainLerp = 0
 local O2Lerp = 0
@@ -539,10 +541,17 @@ hook.Add("Think", "ItHurtsThink", function()
 		or fx.drawPain or fx.drawO2 or fx.drawBrainBlur or fx.drawBrainImg
 
 	if PainLerp > 20 then
-		local chromIntensity = math.Clamp((PainLerp - 20) / 1, 0, 200)
-		GetConVar("pp_scaf_intensity"):SetValue(chromIntensity)
+		fx.scafIntensity = math.Clamp((PainLerp - 20) / 1, 0, 200)
 	else
-		GetConVar("pp_scaf_intensity"):SetValue(0)
+		fx.scafIntensity = 0
+	end
+
+	if !scafIntensity then
+		scafIntensity = GetConVar("pp_scaf_intensity")
+	end
+
+	if scafIntensity then
+		scafIntensity:SetValue(fx.scafIntensity)
 	end
 end)
 
@@ -641,6 +650,14 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		painMat:SetFloat("$c1_y", math.Clamp(pain / 90, 0, 0.75))
 		render.SetMaterial(painMat)
 		render.DrawScreenQuad()
+
+		if !scafIntensity and (fx.scafIntensity or 0) > 0 then
+			local chrom = math.Clamp(fx.scafIntensity / 60, 0, 3.5)
+			chromMat:SetFloat("$c0_x", 3.5 - chrom)
+			chromMat:SetInt("$c0_y", 1)
+			render.SetMaterial(chromMat)
+			render.DrawScreenQuad()
+		end
 
 		if fx.drawOtrubBlur then
 			DrawMotionBlur(0.1, 1., 0.01)
