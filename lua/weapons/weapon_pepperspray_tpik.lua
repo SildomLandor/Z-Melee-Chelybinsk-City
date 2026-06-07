@@ -63,8 +63,18 @@ local function StopSpraying(self)
     if self.IsSpraying then
         self:PlayAnim("stop_spray")
     end
-    self:SetNWBool("IsSpraying", false)
+    if SERVER then
+        self:SetNWBool("IsSpraying", false)
+    end
     self.IsSpraying = false
+    if CLIENT then
+        if self.SpraySoundPatch then
+            self.SpraySoundPatch:Stop()
+            self.SpraySoundPatch = nil
+        end
+        self.SpraySoundOwner = nil
+        self.WasSprayingCL = false
+    end
 end
 
 function SWEP:PrimaryAttack()
@@ -78,7 +88,9 @@ function SWEP:PrimaryAttack()
             return
         end
         self:SetNextPrimaryFire(CurTime() + 0.05)
-        self:SetNWBool("IsSpraying", true)
+        if SERVER then
+            self:SetNWBool("IsSpraying", true)
+        end
         if not self.IsSpraying then
             self:PlayAnim("start_spray")
             self.IsSpraying = true
@@ -127,30 +139,82 @@ function SWEP:PrimaryAttack()
     end
 end
 if CLIENT then
-    local emitter = nil
+    local emitter
     local offX = CreateClientConVar("pepperspray_offset_x", "17", true, false, "Spray offset Forward")
     local offY = CreateClientConVar("pepperspray_offset_y", "3", true, false, "Spray offset Right")
     local offZ = CreateClientConVar("pepperspray_offset_z", "-6", true, false, "Spray offset Up")
-    local sndDelay = CreateClientConVar("pepperspray_sound_delay", "0.04", true, false, "Delay between spray sound loops")
+
+    local function stopSpraySound(swep)
+        if swep.SpraySoundPatch then
+            swep.SpraySoundPatch:Stop()
+            swep.SpraySoundPatch = nil
+        end
+        swep.SpraySoundOwner = nil
+        swep.WasSprayingCL = false
+    end
+
+    local function shouldSpraySound(swep)
+        local owner = swep:GetOwner()
+        if not IsValid(owner) then return false end
+        if owner == LocalPlayer() then
+            return swep.IsSpraying and owner:KeyDown(IN_ATTACK)
+        end
+        return swep:GetNWBool("IsSpraying", false)
+    end
+
+    local function updateSpraySound(swep)
+        if not shouldSpraySound(swep) then
+            if swep.WasSprayingCL then stopSpraySound(swep) end
+            return
+        end
+
+        local owner = swep:GetOwner()
+        if not swep.SpraySoundPatch or swep.SpraySoundOwner ~= owner then
+            stopSpraySound(swep)
+            swep.SpraySoundPatch = CreateSound(owner, "PepperSpray.Loop")
+            swep.SpraySoundOwner = owner
+            if swep.SpraySoundPatch then
+                swep.SpraySoundPatch:SetSoundLevel(65)
+            end
+        end
+
+        if swep.SpraySoundPatch and not swep.SpraySoundPatch:IsPlaying() then
+            swep.SpraySoundPatch:PlayEx(1, 100)
+        end
+
+        swep.WasSprayingCL = true
+    end
+
     hook.Add("Think", "PepperSprayParticles", function()
+        local anySpraying = false
+
         for _, swep in ipairs(ents.FindByClass("weapon_pepperspray_tpik")) do
-            if swep:GetNWBool("IsSpraying", false) then
+            local spraying = swep:GetNWBool("IsSpraying", false)
+            updateSpraySound(swep)
+
+            if spraying then
+                anySpraying = true
+
                 local owner = swep:GetOwner()
                 if not IsValid(owner) then continue end
-                if not emitter then 
-                    emitter = ParticleEmitter(owner:GetPos()) 
+
+                if not emitter then
+                    emitter = ParticleEmitter(owner:GetPos())
                 else
                     emitter:SetPos(owner:GetPos())
                 end
+
                 local aimang = owner:EyeAngles()
-                local muzzle = owner:GetShootPos() 
-                             + aimang:Forward() * offX:GetFloat() 
-                             + aimang:Right() * offY:GetFloat() 
-                             + aimang:Up() * offZ:GetFloat()
+                local muzzle = owner:GetShootPos()
+                    + aimang:Forward() * offX:GetFloat()
+                    + aimang:Right() * offY:GetFloat()
+                    + aimang:Up() * offZ:GetFloat()
                 local dir = aimang:Forward()
+
                 swep.NextParticle = swep.NextParticle or 0
                 if swep.NextParticle < CurTime() then
                     swep.NextParticle = CurTime() + 0.03
+
                     local p = emitter:Add("effects/splash2", muzzle)
                     if p then
                         p:SetVelocity(dir * math.Rand(400, 600) + VectorRand() * 30)
@@ -166,32 +230,33 @@ if CLIENT then
                         p:SetGravity(Vector(0, 0, -100))
                         p:SetLighting(false)
                     end
+
                     local trImpact = util.TraceLine({
                         start = muzzle,
                         endpos = muzzle + dir * sprayRange:GetFloat(),
                         filter = owner
                     })
                     if trImpact.Hit then
-                        local p = emitter:Add("effects/splash2", trImpact.HitPos + trImpact.HitNormal * 2)
-                        if p then
-                            p:SetVelocity(trImpact.HitNormal * math.Rand(1, 3))
-                            p:SetDieTime(math.Rand(15, 25))
-                            p:SetStartAlpha(220)
-                            p:SetEndAlpha(0)
-                            p:SetStartSize(math.Rand(3, 5))
-                            p:SetEndSize(math.Rand(5, 7))
-                            p:SetRoll(math.Rand(0, 360))
-                            p:SetColor(255, 130, 0)
-                            p:SetGravity(Vector(0, 0, -5))
+                        local hitP = emitter:Add("effects/splash2", trImpact.HitPos + trImpact.HitNormal * 2)
+                        if hitP then
+                            hitP:SetVelocity(trImpact.HitNormal * math.Rand(1, 3))
+                            hitP:SetDieTime(math.Rand(0.6, 1))
+                            hitP:SetStartAlpha(220)
+                            hitP:SetEndAlpha(0)
+                            hitP:SetStartSize(math.Rand(3, 5))
+                            hitP:SetEndSize(math.Rand(5, 7))
+                            hitP:SetRoll(math.Rand(0, 360))
+                            hitP:SetColor(255, 130, 0)
+                            hitP:SetGravity(Vector(0, 0, -5))
                         end
                     end
                 end
-                swep.NextSoundPlayCL = swep.NextSoundPlayCL or 0
-                if swep.NextSoundPlayCL < CurTime() then
-                    swep:EmitSound("PepperSpray.Loop", 65, 100, 1, CHAN_WEAPON)
-                    swep.NextSoundPlayCL = CurTime() + sndDelay:GetFloat()
-                end
             end
+        end
+
+        if not anySpraying and emitter then
+            emitter:Finish()
+            emitter = nil
         end
     end)
 end
@@ -208,6 +273,14 @@ function SWEP:PreDrawViewModel(vm, wep, ply)
     end
 end
 function SWEP:OnRemove()
+    if CLIENT then
+        if self.SpraySoundPatch then
+            self.SpraySoundPatch:Stop()
+            self.SpraySoundPatch = nil
+        end
+        self.SpraySoundOwner = nil
+        self.WasSprayingCL = false
+    end
 end
 function SWEP:SecondaryAttack()
 end
