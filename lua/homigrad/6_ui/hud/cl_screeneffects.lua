@@ -190,6 +190,7 @@ local heatMat = Material("effects/shaders/zb_heat")
 local blindMat = Material("effects/shaders/zb_blind")
 local chromMat = Material("effects/shaders/merc_chromaticaberration")
 local scafIntensity
+local scafLastSent
 
 local PainLerp = 0
 local O2Lerp = 0
@@ -551,7 +552,11 @@ hook.Add("Think", "ItHurtsThink", function()
 	end
 
 	if scafIntensity then
-		scafIntensity:SetValue(fx.scafIntensity)
+		local val = math.floor(fx.scafIntensity)
+		if scafLastSent != val then
+			scafLastSent = val
+			RunConsoleCommand("pp_scaf_intensity", tostring(val))
+		end
 	end
 end)
 
