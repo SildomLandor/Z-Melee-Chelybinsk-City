@@ -19,20 +19,20 @@ local ranks = {
     {name = "Ефр", chance = 20, bg = 1},
     {name = "М.С", chance = 18, bg = 2},
     {name = "Сер", chance = 12, bg = 3},
-    {name = "С.С", chance = 8,  bg = 4},
-    {name = "Ста", chance = 7,  bg = 5},
-    {name = "Пра", chance = 4,  bg = 6},
-    {name = "С.П", chance = 2.5,bg = 7},
-    {name = "Лей", chance = 1.2,bg = 8},
-    {name = "С.Л", chance = 0.8,bg = 9},
-    {name = "Кап", chance = 0.5,bg = 10},
-    {name = "Май", chance = 0.3,bg = 11},
-    {name = "П.П", chance = 0.1,bg = 12},
-    {name = "Пол", chance = 0.3,bg = 13},
-    {name = "Г.М", chance = 0.2,bg = 14},
-    {name = "Г.Л", chance = 0.08,bg = 15},
-    {name = "Г.П", chance = 0.02,bg = 16},
-    {name = "Г.А", chance = 0.01,bg = 17},
+    {name = "С.С", chance = 8, bg = 4},
+    {name = "Ста", chance = 7, bg = 5},
+    {name = "Пра", chance = 4, bg = 6},
+    {name = "С.П", chance = 2.5, bg = 7},
+    {name = "Лей", chance = 1.2, bg = 8},
+    {name = "С.Л", chance = 0.8, bg = 9},
+    {name = "Кап", chance = 0.5, bg = 10},
+    {name = "Май", chance = 0.3, bg = 11},
+    {name = "П.П", chance = 0.1, bg = 12},
+    {name = "Пол", chance = 0.3, bg = 13},
+    {name = "Г.М", chance = 0.2, bg = 14},
+    {name = "Г.Л", chance = 0.08, bg = 15},
+    {name = "Г.П", chance = 0.02, bg = 16},
+    {name = "Г.А", chance = 0.01, bg = 17},
 }
 
 local clr = Color(5, 65, 0):ToVector()
@@ -63,8 +63,7 @@ function CLASS.On(self)
     local selectedModelTable = models[math.random(#models)]
     self:SetModel(selectedModelTable[1])
     
-    local top = math.random(0, 1)
-    self:SetBodygroup(2, top)
+    self:SetBodygroup(2, math.random(0, 1))
     self:SetBodygroup(3, rankBg)
     self:SetBodygroup(8, math.random(0, 1))
     self.CurAppearance = Appearance

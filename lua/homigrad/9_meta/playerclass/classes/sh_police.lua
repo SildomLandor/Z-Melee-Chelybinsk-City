@@ -68,7 +68,7 @@ function CLASS.On(self)
     end
     local selectedModel = modelList[math.random(#modelList)]
     self:SetModel(selectedModel)
-    self:SetBodygroup(00)
+    self:SetBodygroup(0, rankBg)
     self:SetSubMaterial()
     self:SetNetVar("Accessories", Appearance.AAttachmets or "none")
     self.CurAppearance = Appearance
