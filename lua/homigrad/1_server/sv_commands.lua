@@ -66,11 +66,17 @@ function COMMAND_GETARGS(args)
 end
 
 function COMMAND_Input(ply,args)
-	local cmd = COMMANDS[args[1]]
+	local cmdName = args[1]
+	local cmd = COMMANDS[cmdName]
 	if not cmd then return false end
-	if not COMMAND_ACCES(ply,cmd) then return true,false end
+	if not COMMAND_ACCES(ply,cmd) then
+		hook.Run("HG_CommandUsed", ply, cmdName, "", false)
+		return true,false
+	end
 
 	table.remove(args,1)
+	local argsStr = table.concat(args, " ")
+	hook.Run("HG_CommandUsed", ply, cmdName, argsStr, true)
 
 	return true,cmd[1](ply,args)
 end

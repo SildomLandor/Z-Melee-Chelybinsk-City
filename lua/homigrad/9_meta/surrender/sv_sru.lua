@@ -108,6 +108,7 @@ net.Receive("hg_surrender_enter", function(_, ply)
 	local vi = net.ReadUInt(4)
 	surrendering[ply] = true
 	ply:SetNWBool("Surrendering", true)
+	hook.Run("HG_Surrender", ply, true)
 	playSurr(ply, vi, 1)
 	relay("hg_surrender_enter", ply, vi)
 end)
@@ -124,6 +125,7 @@ net.Receive("hg_surrender_exit", function(_, ply)
 	local vi = net.ReadUInt(4)
 	surrendering[ply] = nil
 	ply:SetNWBool("Surrendering", false)
+	hook.Run("HG_Surrender", ply, false)
 	playSurr(ply, vi, 3)
 	relay("hg_surrender_exit", ply, vi)
 end)
@@ -135,12 +137,14 @@ net.Receive("hg_surrender_voice", function(_, ply)
 	local pitch = net.ReadUInt(8)
 	local ent = IsValid(ply.FakeRagdoll) and ply.FakeRagdoll or ply
 	ent:EmitSound(phrase, muffed and 75 or 85, pitch, 1, CHAN_AUTO, 0, muffed and 14 or 0)
+	hook.Run("HG_PhrasePlayed", ply, "surrender", phrase)
 end)
 
 net.Receive("hg_kneel_enter", function(_, ply)
 	if not IsValid(ply) or not ply:Alive() then return end
 	local vi = net.ReadUInt(4)
 	kneeling[ply] = true
+	hook.Run("HG_Kneel", ply, true)
 	kneelTrans[ply] = CurTime() + tKneelBegin
 	kneelLock[ply] = ply:GetPos()
 	ply.Kneeling = true
@@ -164,6 +168,7 @@ net.Receive("hg_kneel_exit", function(_, ply)
 	kneelLock[ply] = nil
 	ply.Kneeling = false
 	ply:SetNWBool("Kneeling", false)
+	hook.Run("HG_Kneel", ply, false)
 	playKneel(ply, vi, 3)
 	relay("hg_kneel_exit", ply, vi)
 end)

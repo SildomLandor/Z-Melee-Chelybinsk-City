@@ -278,6 +278,7 @@ local function PlayClassPhrase(ply, phraseType)
 	end
 
 	ply.lastPhr = randomPhrase
+	hook.Run("HG_PhrasePlayed", ply, phraseType, randomPhrase)
 end
 
 hook.Add("PlayerSpawn","GiveRandomPitch",function(ply)
@@ -360,6 +361,7 @@ net.Receive("hg_phrase", function(len, ply)
 		end)
 		ply.phrCld = CurTime() + (hg.precachedsounds[phrase] or 0)
 		ply.lastPhr = phrase
+		hook.Run("HG_PhrasePlayed", ply, "ghetto", phrase)
 		return
 	end
 
@@ -379,6 +381,7 @@ net.Receive("hg_phrase", function(len, ply)
 		ply.phrCld = CurTime() + (SoundDuration(phrase) or 0)
 	end
 	ply.lastPhr = phrase
+	hook.Run("HG_PhrasePlayed", ply, "voice", phrase)
 end)
 
 hook.Add("PlayerDeath", "StopPhrOnDeath",function(ply)
@@ -463,6 +466,7 @@ concommand.Add("hg_phrase_context",function(ply, cmd, args)
 	ply:EmitSound(phrase, nil, ply.VoicePitch or 100)
 	ply.phrCld = CurTime() + (SoundDuration(phrase) or 0)
 	ply.lastPhr = phrase
+	hook.Run("HG_PhrasePlayed", ply, "context:" .. tostring(args[1]), phrase)
 end)
 
 hook.Add("HG_CanDoPhrase", "Pharse_Check", function(ply, cmd, args)

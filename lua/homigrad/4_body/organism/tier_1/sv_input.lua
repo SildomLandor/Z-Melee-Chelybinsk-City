@@ -435,9 +435,9 @@ function hg.ExplodeHead(ent)
 	timer.Simple(0, function()
 		local ent = ent:IsRagdoll() and ent or ent:GetNWEntity("RagdollDeath")
 		if not IsValid(ent) then return end
-		--[[if not isbool(ent) then
+		if IsValid(ply) then
 			hook.Run("OnHeadExplode", ply, ent)
-		end]]
+		end
 
 		Gib_Input(ent, ent:LookupBone("ValveBiped.Bip01_Head1"))
 		

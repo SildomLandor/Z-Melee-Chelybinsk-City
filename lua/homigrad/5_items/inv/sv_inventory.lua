@@ -616,6 +616,7 @@ net.Receive("ply_take_item", function(len, ply)
 
     local func = functions[tblIndex]
     if func then func(ply, ent, thing, unpack(tbl)) end
+    hook.Run("HG_LootTaken", ply, ent, tblIndex, thing)
     ply:SetNetVar("Inventory", ply.inventory)
     invEnt:SetNetVar("Inventory", inv)
     ply:SyncArmor()

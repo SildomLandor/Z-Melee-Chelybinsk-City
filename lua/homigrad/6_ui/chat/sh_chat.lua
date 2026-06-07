@@ -333,6 +333,7 @@ else
 
 		MsgC(unpack(textConsole))
 
+		hook.Run("HG_ChatSent", ply, text, ply.ChatWhisper)
 		hook.Run("PostPlayerSay", client, chatType, text)
 		return ""
 	end)
