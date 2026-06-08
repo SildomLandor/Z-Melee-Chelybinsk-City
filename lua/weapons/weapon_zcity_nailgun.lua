@@ -11,6 +11,9 @@ SWEP.ViewModel = ""
 SWEP.WorldModel = "models/weapons/w_pist_glock18.mdl"
 SWEP.WorldModelFake = "models/weapons/nail_gun/c_smg1.mdl"
 
+-- НАСТРОЙКА МОДЕЛИ ГВОЗДЯ
+SWEP.NailModel = "models/crossbow_bolt.mdl"
+
 SWEP.FakePos = Vector(-11, 4.5, 8.0)
 SWEP.FakeAng = Angle(0, 0, 0)
 SWEP.AttachmentPos = Vector(0.5,-1.2,-6.5)
@@ -85,11 +88,11 @@ SWEP.ShellEject = ""
 SWEP.Primary.ClipSize = 15
 SWEP.Primary.DefaultClip = 15
 SWEP.Primary.Automatic = false
-SWEP.Primary.Ammo = "Nails" -- Тратит гвозди из инвентаря Meleecity
-SWEP.Primary.Cone = 0.03
-SWEP.Primary.Damage = 15
-SWEP.Primary.Force = 12
-SWEP.Primary.Wait = 0.15
+SWEP.Primary.Ammo = "Nails" 
+SWEP.Primary.Cone = 0.02
+SWEP.Primary.Damage = 50 
+SWEP.Primary.Force = 15  
+SWEP.Primary.Wait = 0.20 
 
 SWEP.Primary.Sound = "Weapon_Pistol.Single" 
 
@@ -166,25 +169,139 @@ function SWEP:Shoot(override)
         local bullet = {}
         bullet.Pos = point
         bullet.Dir = ang:Forward()
-        bullet.Speed = 350 -- Скорость полета гвоздя
+        bullet.Speed = 450 
         bullet.Damage = self.Primary.Damage
         bullet.Force = self.Primary.Force
-        
-        -- Используем "9x19", чтобы обмануть проверку в sh_plugin.lua:497 и избежать nil-ошибки
         bullet.AmmoType = "9x19" 
-        
         bullet.Attacker = owner.suiciding and Entity(0) or owner
         bullet.IgnoreEntity = not owner.suiciding and (owner.InVehicle and owner:InVehicle() and owner:GetVehicle() or hg.GetCurrentCharacter(owner)) or nil
-        
-        bullet.Size = 1 
-        bullet.TracerName = "Tracer" -- Включает видимый след пули
+        bullet.Size = 0.1 
+        bullet.TracerName = "Tracer"
         bullet.Penetration = 0
 
         hg.PhysBullet.CreateBullet(bullet)
+
+        local traceRes = util.TraceLine({
+            start = point,
+            endpos = point + ang:Forward() * 400,
+            filter = {owner, self}
+        })
+
+        if traceRes.Hit and not traceRes.HitSky then
+            local hitEnt = traceRes.Entity
+            local hitPos = traceRes.HitPos
+
+            -- СПАВН ГВОЗДЕЙ
+            if IsValid(hitEnt) and (hitEnt:IsPlayer() or hitEnt:IsNPC()) and hitEnt:Health() > 0 and hitEnt:GetPhysicsObjectCount() <= 1 then
+                local nail = ents.Create("prop_dynamic")
+                if IsValid(nail) then
+                    nail:SetModel(self.NailModel)
+                    nail:SetPos(hitPos - ang:Forward() * 1) 
+                    nail:SetAngles(ang:Forward():Angle())
+                    nail:SetModelScale(0.4, 0)
+                    
+                    local boneName = "__invalid__"
+                    if hitEnt.TranslatePhysBoneToBone then
+                        local physBoneIdx = hitEnt:TranslatePhysBoneToBone(traceRes.PhysicsBone or 0)
+                        boneName = hitEnt:GetBoneName(physBoneIdx)
+                    end
+                    
+                    local boneIdx = hitEnt:LookupBone(boneName) or -1
+                    if boneIdx ~= -1 then
+                        nail:SetParent(hitEnt, boneIdx)
+                    else
+                        nail:SetParent(hitEnt)
+                    end
+                    
+                    nail:Spawn()
+                    SafeRemoveEntityDelayed(nail, 60)
+
+                    -- ИСПРАВЛЕНО: Полное удаление гвоздя при переходе игрока в регдолл
+                    if hitEnt:IsPlayer() then
+                        local ply = hitEnt
+                        local hookID = "NailTrack_" .. nail:EntIndex()
+                        
+                        hook.Add("Think", hookID, function()
+                            if not IsValid(nail) then 
+                                hook.Remove("Think", hookID)
+                                return 
+                            end
+                            if not IsValid(ply) then 
+                                hook.Remove("Think", hookID)
+                                return 
+                            end
+                            
+                            -- Ищем регдолл в любых вариациях сборок Homigrad
+                            local ragdoll = ply.ragdoll or ply.fakeRagdoll or (ply.GetNWEntity and ply:GetNWEntity("Ragdoll"))
+                            if IsValid(ragdoll) then
+                                nail:Remove()
+                                hook.Remove("Think", hookID)
+                            end
+                        end)
+                    end
+                end
+            elseif IsValid(hitEnt) and (hitEnt:GetPhysicsObjectCount() > 1 or hitEnt:GetClass() == "prop_ragdoll") then
+                local nail = ents.Create("prop_physics")
+                if IsValid(nail) then
+                    nail:SetModel(self.NailModel)
+                    nail:SetPos(hitPos - ang:Forward() * 1)
+                    nail:SetAngles(ang:Forward():Angle())
+                    nail:SetModelScale(0.4, 0)
+                    nail:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE) 
+                    nail:Spawn()
+                    
+                    local nailPhys = nail:GetPhysicsObject()
+                    if IsValid(nailPhys) then
+                        nailPhys:Wake()
+                    end
+                    
+                    constraint.Weld(nail, hitEnt, 0, traceRes.PhysicsBone or 0, 0, true, false)
+                    SafeRemoveEntityDelayed(nail, 60)
+                end
+            else
+                local nail = ents.Create("prop_dynamic")
+                if IsValid(nail) then
+                    nail:SetModel(self.NailModel)
+                    nail:SetPos(hitPos - ang:Forward() * 1)
+                    nail:SetAngles(ang:Forward():Angle())
+                    nail:SetModelScale(0.4, 0)
+                    
+                    if IsValid(hitEnt) and hitEnt ~= game.GetWorld() then
+                        nail:SetParent(hitEnt)
+                    else
+                        nail:SetParent(game.GetWorld())
+                    end
+                    
+                    nail:Spawn()
+                    SafeRemoveEntityDelayed(nail, 60)
+                end
+            end
+
+            -- СИСТЕМА ПРИБИВАНИЯ КОСТЕЙ К ОКРУЖЕНИЮ
+            if IsValid(hitEnt) and hitEnt ~= game.GetWorld() and not (hitEnt:IsPlayer() and hitEnt:Health() > 0 and hitEnt:GetPhysicsObjectCount() <= 1) then
+                local wallTrace = util.TraceLine({
+                    start = hitPos,
+                    endpos = hitPos + ang:Forward() * 55, 
+                    filter = {owner, self, hitEnt}
+                })
+
+                if wallTrace.Hit and not wallTrace.HitSky then
+                    local wallEnt = wallTrace.Entity
+                    if not IsValid(wallEnt) then wallEnt = game.GetWorld() end
+
+                    if wallEnt ~= hitEnt then
+                        local bone1 = traceRes.PhysicsBone or 0
+                        local bone2 = wallTrace.PhysicsBone or 0
+                        
+                        constraint.Weld(hitEnt, wallEnt, bone1, bone2, 9000, false, false)
+                        sound.Play("snd_jack_hmcd_hammerhit.wav", hitPos, 65, math.random(120, 140))
+                    end
+                end
+            end
+        end
     end
 
-    -- Стандартный HL2 звук пистолета с высоким питчем (145-155) создает идеальный звук строительного пистолета
-    self:EmitSound("Weapon_Pistol.Single", 75, math.random(145, 155), 0.9, CHAN_WEAPON)
+    self:EmitSound("Weapon_Pistol.Single", 75, math.random(135, 145), 1.0, CHAN_WEAPON)
 
     self:PrimarySpread()
     self:TakePrimaryAmmo(1)
@@ -210,17 +327,15 @@ SWEP.WeaponEyeAngles = Angle(-2,0,0)
 
 SWEP.CanSuicide = true
 
---local to head
 SWEP.RHPos = Vector(5.5,-7.5,4)
 SWEP.RHAng = Angle(0,-5,90)
---local to rh
+
 SWEP.LHPos = Vector(14,-1,-5)
 SWEP.LHAng = Angle(-90,-90,-90)
 
 local finger1 = Angle(-15,0,5)
 local finger2 = Angle(-15,45,-5)
 
---RELOAD ANIMS PISTOL
 SWEP.ReloadAnimLH = {
     Vector(0,0,0),
     Vector(-7,10,-10),
@@ -259,7 +374,6 @@ SWEP.ReloadAnimWepAng = {
     Angle(0,0,0),
 }
 
--- Inspect Assault
 SWEP.InspectAnimWepAng = {
     Angle(0,0,0),
     Angle(4,4,15),
