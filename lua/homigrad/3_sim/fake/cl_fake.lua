@@ -359,6 +359,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		end
 	else
 		view.origin = pos
+		view.angles = angEye
 	end
 	
 	view.angles:Add(ply:GetViewPunchAngles())
