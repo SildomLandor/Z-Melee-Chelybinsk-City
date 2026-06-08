@@ -1,27 +1,3 @@
-local scaf_intensity = 0
-local scaf_redX, scaf_greenX, scaf_blueX = 0, 0, 0
-local scaf_redY, scaf_greenY, scaf_blueY = 0, 0, 0
-
-local function scaf_SetIntensity( intensity, redx, greenx, bluex, redy, greeny, bluey )
-	scaf_intensity = intensity
-	scaf_redX = redx or 0
-	scaf_greenX = greenx or 0
-	scaf_blueX = bluex or 0
-	scaf_redY = redy or 0
-	scaf_greenY = greeny or 0
-	scaf_blueY = bluey or 0
-end
-
-local scaf = {
-	SetIntensity = scaf_SetIntensity
-}
-
-hook.Add( "OnScreenSizeChanged", "scaf", function()
-	scaf_width, scaf_height = ScrW(), ScrH()
-end )
-
-local scaf_width, scaf_height = ScrW(), ScrH()
-
 local ScrW, ScrH = ScrW(), ScrH()
 hook.Add("OnScreenSizeChanged", "hg_screeneffects_scr", function()
 	ScrW, ScrH = ScrW(), ScrH()
@@ -212,6 +188,9 @@ local coldMat = Material("effects/shaders/zb_colda")
 local grainMat = Material("effects/shaders/zb_grain2")
 local heatMat = Material("effects/shaders/zb_heat")
 local blindMat = Material("effects/shaders/zb_blind")
+local chromMat = Material("effects/shaders/merc_chromaticaberration")
+local scafIntensity
+local scafLastSent
 
 local PainLerp = 0
 local O2Lerp = 0
@@ -562,11 +541,22 @@ hook.Add("Think", "ItHurtsThink", function()
 	fx.active = fx.drawBlind or fx.drawHurt or fx.drawHeat or fx.drawAssim or fx.drawGrain or fx.drawCold
 		or fx.drawPain or fx.drawO2 or fx.drawBrainBlur or fx.drawBrainImg
 
-    local intensityVal = math.Clamp((PainLerp - 20) / 1, 0, 200)
-	if intensityVal > 0 then
-		scaf_SetIntensity(intensityVal, intensityVal * 0.5, intensityVal * 0.25, 0, intensityVal * 0.5, intensityVal * 0.1, 0)
-	else
-		scaf_SetIntensity(0)
+    if PainLerp > 20 then
+		fx.scafIntensity = math.Clamp((PainLerp - 20) / 1, 0, 200)	else
+    else
+		fx.scafIntensity = 0
+	end
+
+	if !scafIntensity then
+		scafIntensity = GetConVar("pp_scaf_intensity")
+	end
+
+	if scafIntensity then
+		local val = math.floor(fx.scafIntensity)
+		if scafLastSent != val then
+			scafLastSent = val
+			RunConsoleCommand("pp_scaf_intensity", tostring(val))
+		end
 	end
 end)
 
@@ -666,6 +656,14 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		render.SetMaterial(painMat)
 		render.DrawScreenQuad()
 
+		if !scafIntensity and (fx.scafIntensity or 0) > 0 then
+			local chrom = math.Clamp(fx.scafIntensity / 60, 0, 3.5)
+			chromMat:SetFloat("$c0_x", 3.5 - chrom)
+			chromMat:SetInt("$c0_y", 1)
+			render.SetMaterial(chromMat)
+			render.DrawScreenQuad()
+		end
+
 		if fx.drawOtrubBlur then
 			DrawMotionBlur(0.1, 1., 0.01)
 			lply:ScreenFade(SCREENFADE.IN, Color(0, 0, 0), 2, 0.5)
@@ -696,35 +694,6 @@ hook.Add("Post Post Processing", "ItHurts", function()
 		noiseMat:SetFloat("$c2_x", ct + 10000)
 		render.SetMaterial(noiseMat)
 		render.DrawScreenQuad()
-	end
-
-	-- Chromatic Aberration
-	if scaf_intensity > 0 then
-		updScreen()
-
-		local red = Material( "color/red" )
-		local green = Material( "color/green" )
-		local blue = Material( "color/blue" )
-		local black = Material( "vgui/black" )
-		local screenEffectTexture = render.GetScreenEffectTexture( 0 )
-
-		red:SetTexture( "$basetexture", screenEffectTexture )
-		green:SetTexture( "$basetexture", screenEffectTexture )
-		blue:SetTexture( "$basetexture", screenEffectTexture )
-
-		render.SetMaterial( black )
-		render.DrawScreenQuad()
-
-		render.SetMaterial( red )
-		render.DrawScreenQuadEx( -scaf_redX / 2, -scaf_redY / 2, scaf_width + scaf_redX, scaf_height + scaf_redY )
-
-		render.SetMaterial( green )
-		render.DrawScreenQuadEx( -scaf_greenX / 2, -scaf_greenY / 2, scaf_width + scaf_greenX, scaf_height + scaf_greenY )
-
-		render.SetMaterial( blue )
-		render.DrawScreenQuadEx( -scaf_blueX / 2, -scaf_blueY / 2, scaf_width + scaf_blueX, scaf_height + scaf_blueY )
-
-		render.SetColorModulation( 1, 1, 1 )
 	end
 end)
 
