@@ -7,10 +7,6 @@ local function HasAccessToAccessory(accessoryKey, accessoryData)
 	if not IsValid(ply) or not ply:IsPlayer() then return true end
 
 	if accessoryData.allowedSteamIDs then
-		if not (ply.PS_HasItem and ply:PS_HasItem(accessoryKey)) then
-			return false
-		end
-
 		local steamID = ply:SteamID()
 		for _, allowedID in ipairs(accessoryData.allowedSteamIDs) do
 			if steamID == allowedID then return true end

@@ -29,23 +29,17 @@ local function CheckAttachments(ply,tbl)
         end
 
         if hg.Accessories[uid] and hg.Accessories[uid].allowedSteamIDs then
-            -- Проверяем, что игрок имеет право использовать аксессуар (PS_HasItem + SteamID)
-            if not (ply.PS_HasItem and ply:PS_HasItem(uid)) then
+            local steamID = ply:SteamID()
+            local hasAccess = false
+            for _, allowedID in ipairs(hg.Accessories[uid].allowedSteamIDs) do
+                if steamID == allowedID then
+                    hasAccess = true
+                    break
+                end
+            end
+            if not hasAccess then
                 tbl.AAttachments[i] = ""
-                if ply.ChatPrint then ply:ChatPrint(uid .. " - item not purchased, removed") end
-            else
-                local steamID = ply:SteamID()
-                local hasAccess = false
-                for _, allowedID in ipairs(hg.Accessories[uid].allowedSteamIDs) do
-                    if steamID == allowedID then
-                        hasAccess = true
-                        break
-                    end
-                end
-                if not hasAccess then
-                    tbl.AAttachments[i] = ""
-                    if ply.ChatPrint then ply:ChatPrint(uid .. " - SteamID not allowed, removed") end
-                end
+                if ply.ChatPrint then ply:ChatPrint(uid .. " - SteamID not allowed, removed") end
             end
         end
     end
