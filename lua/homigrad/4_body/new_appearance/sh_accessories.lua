@@ -20,7 +20,6 @@ hg.Accessories = {
          price = 0,
          allowedSteamIDs = {
              "STEAM_0:1:448923998",
-             -- Add more Steam IDs as needed
          }
      },
 
