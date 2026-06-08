@@ -1,3 +1,4 @@
+
 local math                  = math
 local math_deg              = math.deg
 local math_atan2            = math.atan2
@@ -58,10 +59,11 @@ local hg_divejump                 = false
 local hg_movement_speed_gain_mul  = 1
 local hg_movement_speed_lose_mul  = 1
 
+
 local function InputToWorldDir(fm, sm, yaw_deg)
 	if fm == 0 and sm == 0 then return vecZero end
 	local rad_yaw        = math_rad(yaw_deg)
-	local rad_yaw_right  = rad_yaw + math_rad(90)
+	local rad_yaw_right  = rad_yaw + 1.5707963267949  -- math_rad(90) — константа
 	local x = fm * math_cos(rad_yaw) - sm * math_cos(rad_yaw_right)
 	local y = fm * math_sin(rad_yaw) - sm * math_sin(rad_yaw_right)
 	local len = math_sqrt(x * x + y * y)
@@ -79,6 +81,14 @@ local function Vec2DLen(v)
 	return math_sqrt(v.x * v.x + v.y * v.y)
 end
 
+
+-- slowCache[ply] = { nextUpdate, weightmul, class_mul, ... }
+local slowCache = {}
+
+hook_Add("PlayerDisconnected", "HG_InertiaCleanupCache", function(ply)
+	slowCache[ply] = nil
+end)
+
 hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 
 	local ct         = SysTime()
@@ -91,6 +101,7 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	if not org or not org.brain then return end
 
 	local isFakeRagdoll = IsValid(ply.FakeRagdoll)
+
 	if not hg.RagdollCombatInUse(ply) and
 	   (isFakeRagdoll or IsValid(ply:GetNWEntity("FakeRagdollOld"))) then
 
@@ -127,13 +138,17 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 
 	local isCrouching = ply:Crouching()
 
-	local runnin = ply:KeyDown(IN_SPEED) and not isCrouching and ply:KeyDown(IN_FORWARD)
-	if not isFakeRagdoll and ply:KeyDown(IN_SPEED) and not isCrouching and ply:KeyDown(IN_BACK) then
+	local key_speed   = ply:KeyDown(IN_SPEED)
+	local key_forward = ply:KeyDown(IN_FORWARD)
+	local key_back    = ply:KeyDown(IN_BACK)
+
+	local runnin = key_speed and not isCrouching and key_forward
+	if not isFakeRagdoll and key_speed and not isCrouching and key_back then
 		cmd:RemoveKey(IN_SPEED)
 	end
 
 	local brain_level = org.brain or 0
-	local brain_mul = 1
+	local brain_mul   = 1
 	if brain_level > 0.1 then
 		brain_mul = math_abs(math_sin(CurTime() * 0.5))
 	end
@@ -142,22 +157,53 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	local sm = NormaliseAxis(cmd:GetSideMove())    * brain_mul
 
 	local slow_walking = ply:KeyDown(IN_WALK)
-	local aiming       = ply:KeyDown(IN_ATTACK2) and
-	                     IsValid(ply:GetActiveWeapon()) and
-	                     ishgweapon and ishgweapon(ply:GetActiveWeapon())
+	local key_attack2 = ply:KeyDown(IN_ATTACK2)
+	local aiming = false
+	if key_attack2 then
+		local wep = ply:GetActiveWeapon()
+		aiming = IsValid(wep) and ishgweapon and ishgweapon(wep)
+	end
 
-	local walk_speed       = ply:GetWalkSpeed()
-	local slow_walk_speed  = ply:GetSlowWalkSpeed()
+	local walk_speed        = ply:GetWalkSpeed()
+	local slow_walk_speed   = ply:GetSlowWalkSpeed()
 	local crouch_walk_speed = ply:GetCrouchedWalkSpeed()
 
-	local weightmul_raw = hg.CalculateWeight(ply, 140)
-	ply.weightmul       = weightmul_raw
-	local weightmul     = math_max(
-		weightmul_raw > 0.9 and 1 or weightmul_raw * 1.111,
-		0.1
-	)
+	local sc = slowCache[ply]
+	if not sc then
+		sc = {}
+		slowCache[ply] = sc
+	end
 
-	if ply:GetNWBool("TauntHolsterWeapons", false) then
+	local weightmul, weightmul_raw, class_mul
+	if not sc.nextUpdate or ct > sc.nextUpdate then
+		sc.nextUpdate = ct + 0.1
+
+		weightmul_raw    = hg.CalculateWeight(ply, 140)
+		sc.weightmul_raw = weightmul_raw
+		local wm = weightmul_raw > 0.9 and 1 or weightmul_raw * 1.111
+		weightmul = wm < 0.1 and 0.1 or wm
+		sc.weightmul = weightmul
+
+		class_mul     = ply:GetNWInt("SpeedGainClassMul", 1)
+		sc.class_mul  = class_mul
+
+		local c1 = ply:GetNetVar("carryent")
+		local c2 = ply:GetNetVar("carryent2")
+		sc.carry1      = c1
+		sc.carry2      = c2
+		sc.carry1valid = IsValid(c1)
+		sc.carry2valid = IsValid(c2)
+	else
+		weightmul_raw = sc.weightmul_raw
+		weightmul     = sc.weightmul
+		class_mul     = sc.class_mul
+	end
+
+	ply.weightmul = weightmul_raw
+
+
+	local tauntHolster = ply:GetNWBool("TauntHolsterWeapons", false)
+	if tauntHolster then
 		local hands = ply:GetWeapon("weapon_hands_sh")
 		if IsValid(hands) then
 			cmd:SelectWeapon(hands)
@@ -177,27 +223,28 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 		end
 	end
 
-	if ply:GetNetVar("vomiting", 0) > CurTime() then
+	local vomitTime = ply:GetNetVar("vomiting", 0)
+	local curTime   = CurTime()
+	if vomitTime > curTime then
 		cmd:AddKey(IN_DUCK) ; mv:AddKey(IN_DUCK)
 		if CLIENT and ply == LocalPlayer() then
 			ViewPunch(vomitVPAng)
 		end
 	end
 
-	local curSpeed    = ply.CurrentSpeed or walk_speed
-	local curFricMul  = ply.CurrentFrictionMul or 1
+	local curSpeed   = ply.CurrentSpeed or walk_speed
+	local curFricMul = ply.CurrentFrictionMul or 1
 
 	ply.FrictionGainMul = 0.01
 	ply.FrictionLoseMul = 0.2
 
-	local sf_mul    = org.superfighter and 5 or 1
-	local class_mul = ply:GetNWInt("SpeedGainClassMul", 1)
+	local sf_mul = org.superfighter and 5 or 1
 
-	ply.SpeedGainMul       = (runnin and 175 or 65) * weightmul * sf_mul * class_mul * hg_movement_speed_gain_mul
-	ply.SpeedLoseMul       = 10000 * hg_movement_speed_lose_mul
-	ply.SpeedSharpLoseMul  = runnin and 0.008 or 0.015
+	ply.SpeedGainMul      = (runnin and 175 or 65) * weightmul * sf_mul * class_mul * hg_movement_speed_gain_mul
+	ply.SpeedLoseMul      = 10000 * hg_movement_speed_lose_mul
+	ply.SpeedSharpLoseMul = runnin and 0.008 or 0.015
 
-	local blend_base    = runnin and 1200 or 780
+	local blend_base = runnin and 1200 or 780
 	ply.InertiaBlend    = blend_base * weightmul * (org.superfighter and 100 or 1)
 	ply.DuckingSlowdown = ply.DuckingSlowdown or 0
 
@@ -205,12 +252,13 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	local velLen = vel:Length()
 	hook_Run("HG_MovementCalc", vel, velLen, weightmul, ply, cmd, mv)
 
-	local run_speed  = ply:GetRunSpeed()
-	local move_val   = ply.move or curSpeed
-	local mul_tbl    = { move_val / run_speed }
+	local run_speed = ply:GetRunSpeed()
+	local move_val  = ply.move or curSpeed
+	local mul_tbl   = { move_val / run_speed }
 	hook_Run("HG_MovementCalc_2", mul_tbl, ply, cmd, mv)
 
-	local mul = math_max(mul_tbl[1], 0.01)
+	local mul = mul_tbl[1]
+	if mul < 0.01 then mul = 0.01 end
 	if ply:GetNWBool("TauntStopMoving", false) then mul = mul * 0.01 end
 
 	if runnin and velLen >= 10 then
@@ -229,6 +277,7 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 
 	local lastVel    = ply.LastVelocity or vel
 	local lastVelLen = ply.LastVelocityLen or velLen
+
 
 	local direction_change
 	if lastVel == vel and ply.LastChangeVelocity then
@@ -251,8 +300,9 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	ply.LastVelocity    = vel
 	ply.LastVelocityLen = velLen
 
-	local ply_angles   = cmd:GetViewAngles()
-	local moveInertia  = ply.MovementInertia or vel
+	local ply_angles  = cmd:GetViewAngles()
+	local ply_yaw     = ply_angles.y
+	local moveInertia = ply.MovementInertia or vel
 
 	local movement_penalty = 1
 	if fm < 0 then
@@ -260,11 +310,13 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	end
 	local penalised_speed = curSpeed / movement_penalty
 
-	local inertia_to_norm = InputToWorldDir(fm, sm, ply_angles.y)
+	local inertia_to_norm = InputToWorldDir(fm, sm, ply_yaw)
 	local inertia_to      = inertia_to_norm * penalised_speed
 
-	local water_level = ply:WaterLevel()
-	if not ply:OnGround() and water_level < 1 and (fm ~= 0 or sm ~= 0) then
+	local onGround   = ply:OnGround()
+	local waterLevel = ply:WaterLevel()
+
+	if not onGround and waterLevel < 1 and (fm ~= 0 or sm ~= 0) then
 		local start_pos = ply:GetPos()
 		local tr_hit = util_TraceLine({
 			start  = start_pos,
@@ -281,15 +333,15 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	consciousness       = consciousness * math_Clamp((org.blood or 5000) / 4000, 0.5, 1)
 	local consmul       = math_Clamp((consciousness - 1) * 4 + 1, 0.1, 1)
 
-	curFricMul          = (runnin and 0.55 or 0.32) / hg_inertiamul
+	curFricMul             = (runnin and 0.55 or 0.32) / hg_inertiamul
 	ply.CurrentFrictionMul = curFricMul
-	ply.InertiaBlend    = ply.InertiaBlend * curFricMul
+	ply.InertiaBlend       = ply.InertiaBlend * curFricMul
 
-	if not ply:OnGround() then
+	if not onGround then
 		moveInertia = lastVel
 	end
 
-	local ib_dt      = delta_time * ply.InertiaBlend
+	local ib_dt       = delta_time * ply.InertiaBlend
 	local new_inertia = Vector(
 		math_Approach(moveInertia.x, inertia_to.x, ib_dt),
 		math_Approach(moveInertia.y, inertia_to.y, ib_dt),
@@ -298,7 +350,8 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	ply.MovementInertia = new_inertia
 
 	local inertia_len = Vec2DLen(new_inertia)
-	local angdiff     = math_deg(math_atan2(new_inertia.y, new_inertia.x)) - ply_angles.y
+
+	local angdiff     = math_deg(math_atan2(new_inertia.y, new_inertia.x)) - ply_yaw
 	angdiff           = (angdiff + 180) % 360 - 180
 	local rad_angdiff = math_rad(angdiff)
 
@@ -329,11 +382,8 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 	end
 
 	k = k * math_Clamp(5  / ((org.immobilization or 0) + 1), 0.25, 1)
-
 	k = k * math_Clamp((org.blood or 0) / 5000, 0, 1)
-
 	k = k * math_Clamp(10 / ((org.shock or 0) + 1), 0.25, 1)
-
 	k = k * (math_min(math_Round(org.adrenaline or 0, 1) / 24, 0.3) + 1)
 
 	local lleg_val = org.lleg or 1
@@ -344,28 +394,34 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 
 	if org.llegdislocation then k = k * 0.75 end
 	if org.rlegdislocation then k = k * 0.75 end
+	if org.pelvis == 1     then k = k * 0.4  end
 
-	if org.pelvis == 1 then k = k * 0.4 end
+	local carry1       = sc.carry1
+	local carry2       = sc.carry2
+	local carry1valid  = sc.carry1valid
+	local carry2valid  = sc.carry2valid
 
-	local carry1 = ply:GetNetVar("carryent")
-	local carry2 = ply:GetNetVar("carryent2")
-	if IsValid(carry1) or IsValid(carry2) then
+	if carry1valid or carry2valid then
+
 		local cmass = ply:GetNetVar("carrymass", 0) + ply:GetNetVar("carrymass2", 0)
 		k = k * math_Clamp(50 / math_max(cmass, 1), 0.5, 1)
 	end
+
 	k = k * math_Clamp(20 / ((org.pain or 0) + 1), 0.01, 1)
+
 	local slwdwn = ply:GetNetVar("slowDown", 0)
 	if slwdwn > 0 then
 		k = k * math_Clamp((250 - slwdwn) / 250, 0.75, 1)
 	end
 
-	k = math_max(k, 0.1)
+	if k < 0.1 then k = 0.1 end
 
-	if ply:GetNetVar("vomiting", 0) > (CurTime() - 3) then
+
+	if vomitTime > (curTime - 3) then
 		k = k * 0.25
 	end
 
-	local carry_ent = (IsValid(carry1) and carry1) or (IsValid(carry2) and carry2)
+	local carry_ent = (carry1valid and carry1) or (carry2valid and carry2)
 	local rag       = hg.GetCurrentCharacter(ply)
 
 	if carry_ent then
@@ -390,13 +446,13 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 		local reachdist = (wep_hands and wep_hands.ReachDistance or 100) + 30
 
 		if distSqr > reachdist * reachdist then
-			local moving_to = InputToWorldDir(fm, sm, ply_angles.y)
+			local moving_to = InputToWorldDir(fm, sm, ply_yaw)
 			local dir       = (pos - eyetr.StartPos):GetNormalized()
 			k = k * math_max(moving_to:Dot(dir), 0)
 		end
 	end
 
-	local move = ply:GetRunSpeed() * k
+	local move = run_speed * k  
 	ply.move   = move
 
 	if SERVER and not isFakeRagdoll then
@@ -409,7 +465,7 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 		end
 
 		local currentEyeAng = ply:EyeAngles()
-		ply.eyeAnglesOld = ply.eyeAnglesOld or currentEyeAng
+		ply.eyeAnglesOld    = ply.eyeAnglesOld or currentEyeAng
 		local cosine = currentEyeAng:Forward():Dot(ply.eyeAnglesOld:Forward())
 		ply.eyeAnglesOld = currentEyeAng
 
@@ -456,16 +512,15 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 			local last_duck = ply.lastInDuck or 0
 			local last_jump = ply.lastInJump or 0
 			if (last_jump + 0.1 > t) and (last_duck + 0.1 > t) then
-				local torso    = ply:TranslateBoneToPhysBone(ply:LookupBone("ValveBiped.Bip01_Spine2"))
-				local m_spine  = hg.IdealMassPlayer["ValveBiped.Bip01_Spine2"]
+				local torso   = ply:TranslateBoneToPhysBone(ply:LookupBone("ValveBiped.Bip01_Spine2"))
+				local m_spine = hg.IdealMassPlayer["ValveBiped.Bip01_Spine2"]
 				local dive_dir = ply:GetAimVector()
-				dive_dir.z     = 0
+				dive_dir.z    = 0
 				hg.AddForceRag(ply, torso, dive_dir * 400 * m_spine, 0.5)
 				hg.Fake(ply)
 			end
 		end
 	end
-
 	if moveType == MOVETYPE_LADDER or moveType == MOVETYPE_NONE then
 		inertia_len = 100
 	end
@@ -475,7 +530,7 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 
 	mv:SetMaxSpeed(inertia_len)
 	mv:SetMaxClientSpeed(inertia_len)
-	ply:SetMaxSpeed(math_max(100, inertia_len))
+	ply:SetMaxSpeed(inertia_len < 100 and 100 or inertia_len)  
 
 	local jump_k = math_min(k, 1.1)
 	if ply:GetNWBool("TauntStopMoving", false) then jump_k = 0 end
@@ -493,16 +548,14 @@ hook_Add("SetupMove", "HG(StartCommand)", function(ply, mv, cmd)
 		local s_fw   = math_sin(fwangs)
 
 		local calc_fw = forward_move * c_fw + side_move * s_fw
-		local calc_sd = side_move   * c_fw + forward_move * s_fw
+		local calc_sd = side_move    * c_fw + forward_move * s_fw
 
 		cmd:SetForwardMove(calc_fw * inertia_len)
 		cmd:SetSideMove(calc_sd   * inertia_len)
 	end
 
-	if hg_inertiaenabled then
-		mv:SetForwardSpeed(forward_move * inertia_len)
-		mv:SetSideSpeed(side_move       * inertia_len)
-	end
+	mv:SetForwardSpeed(forward_move * inertia_len)
+	mv:SetSideSpeed(side_move       * inertia_len)
 end)
 
 hook_Add("PlayerSpawn", "RemoveSandboxJumpBoost", function(ply)
@@ -524,8 +577,8 @@ hook_Add("PlayerSpawn", "RemoveSandboxJumpBoost", function(ply)
 end)
 
 hook_Add("StartCommand", "HG_AntiGmodPVP", function(ply, cmd)
-	local ducking      = cmd:KeyDown(IN_DUCK)
-	ply.NowCrouched    = ducking
+	local ducking   = cmd:KeyDown(IN_DUCK)
+	ply.NowCrouched = ducking
 
 	if ply.OldCrouched == nil then
 		ply.OldCrouched = ducking
