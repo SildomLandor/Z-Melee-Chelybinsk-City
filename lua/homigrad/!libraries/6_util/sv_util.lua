@@ -1250,6 +1250,8 @@ local TrackedModelsa = {
 	["models/props/cs_office/coffee_mug.mdl"] = "weapon_hg_mug",
 	["models/props/cs_office/coffee_mug2.mdl"] = "weapon_hg_mug",
 	["models/props/cs_office/coffee_mug3.mdl"] = "weapon_hg_mug",
+	["models/props_lab/citizenradio.mdl"] = "ent_hg_hmcd_radio",
+	["models/props/cs_office/radio.mdl"] = "ent_hg_hmcd_radio"
 }
 
 local TrackedModels = {}
