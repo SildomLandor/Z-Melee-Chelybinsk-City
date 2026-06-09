@@ -4,7 +4,7 @@ SWEP.PrintName = "Баллистический щит"
 SWEP.Instructions = "Баллистический щит"
 SWEP.Category = "ZCity Other"
 SWEP.Instructions = ""
-SWEP.Spawnable = false
+SWEP.Spawnable = true
 SWEP.AdminOnly = false
 SWEP.Slot = 1
 
