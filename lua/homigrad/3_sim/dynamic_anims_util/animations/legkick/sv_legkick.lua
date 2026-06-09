@@ -42,8 +42,97 @@ hook.Add("FinishMove", "HG-LegKickStop", function(ply, mv)
     mv:SetVelocity(Vector(0, 0, vel.z))
 end)
 
+-- Функция физического пинка, когда игрок лежит в регдолле
+function PLAYER:RagdollKick(rag)
+    if self:GetNWFloat("InLegKick", 0) > CurTime() then return end
+    
+    local org = self.organism
+    if org and org.stamina then
+        -- Если стамины слишком мало, не даем ударить лежа
+        if org.stamina[1] < 15 then 
+            self:Notify("Недостаточно сил для удара!", 1, "УСТАЛОСТЬ", 0)
+            return 
+        end
+        -- Тратим стамину (25 единиц, с учетом супербойца меньше)
+        local staminaCost = 25
+        org.stamina.subadd = org.stamina.subadd + staminaCost / (org.superfighter and 2 or 1)
+    end
+
+    -- Ставим задержку (кулдаун) на следующий удар (0.9 секунды)
+    local kickEnd = CurTime() + 0.9
+    self.InLegKick = kickEnd
+    self:SetNWFloat("InLegKick", kickEnd)
+    
+    local boneIdx = rag:LookupBone("ValveBiped.Bip01_R_Foot")
+    if not boneIdx then return end
+    local phys = rag:GetPhysicsObjectNum(rag:TranslatePhysBoneToBone(boneIdx))
+    
+    if IsValid(phys) then
+        local dir = self:EyeAngles():Forward()
+        
+        -- Звук замаха одежды перед ударом
+        self:EmitSound("player/clothes_generic_foley_0" .. math.random(1,5) .. ".wav", 65)
+
+        -- Эффект группировки: сначала подтягиваем таз, а через микро-таймер толкаем ногу
+        local pelvis = rag:GetPhysicsObjectNum(rag:TranslatePhysBoneToBone(rag:LookupBone("ValveBiped.Bip01_Pelvis")))
+        if IsValid(pelvis) then
+            pelvis:ApplyForceOffset(-dir * 8000, rag:GetBonePosition(rag:LookupBone("ValveBiped.Bip01_Pelvis")))
+        end
+
+        timer.Simple(0.1, function()
+            if not IsValid(rag) or not IsValid(phys) then return end
+            
+            -- Выбрасываем ногу вперед
+            phys:ApplyForceOffset(dir * 25000, rag:GetBonePosition(boneIdx))
+            rag:EmitSound("player/shove_0" .. math.random(1,5) .. ".wav", 65)
+
+            -- Трассировка урона от самой ноги регдолла
+            local tr = util.TraceHull({
+                start = rag:GetBonePosition(boneIdx),
+                endpos = rag:GetBonePosition(boneIdx) + dir * 65,
+                mins = Vector(-8, -8, -8),
+                maxs = Vector(8, 8, 8),
+                filter = {rag, self}
+            })
+            
+            if tr.Hit and IsValid(tr.Entity) then
+                local dmg = 12
+                if org and org.stamina and org.stamina.max then
+                    local speedmul = (2 - (org.stamina[1] / org.stamina.max))
+                    dmg = dmg * (2 - speedmul)
+                end
+                dmg = dmg * (self:IsBerserk() and org.berserk * 5 or 1)
+                dmg = dmg * (org and org.legstrength or 1)
+
+                local dmginfo = DamageInfo()
+                dmginfo:SetAttacker(self)
+                dmginfo:SetDamage(dmg)
+                dmginfo:SetDamageType(DMG_CLUB)
+                dmginfo:SetDamageForce(dir * 4000)
+                tr.Entity:TakeDamageInfo(dmginfo)
+                
+                if tr.Entity:IsPlayer() or tr.Entity:GetClass() == "prop_ragdoll" then
+                    tr.Entity:EmitSound("physics/body/body_medium_impact_hard"..math.random(6)..".wav", 70, math.random(90, 100))
+                    if tr.Entity:IsPlayer() then
+                        hg.Fake(tr.Entity)
+                        tr.Entity:SetVelocity(dir * 400)
+                    end
+                end
+            end
+        end)
+    end
+end
+
 local vpang = Angle(2, -1, 1)
 function PLAYER:LegAttack()
+    -- ПРОВЕРКА НА РЕГДОЛЛ: если у игрока активен FakeRagdoll, пинаем физикой лежа
+    local rag = self.FakeRagdoll
+    if IsValid(rag) then
+        self:RagdollKick(rag)
+        return
+    end
+
+    -- Стандартная проверка живого игрока (твой код)
     if not self:Alive() or hg.GetCurrentCharacter(self):IsRagdoll() or self:GetNWFloat("InLegKick",0) > CurTime() then return end
     if self.InLegKick and self.InLegKick > CurTime() then return end
     if self:GetNWBool("TauntStopMoving", false) then return end
@@ -245,7 +334,7 @@ function PLAYER:LegAttack()
                         local pushForce = (isAirKick or isSprintKick) and (150 * velocityDmgBonus) or 150
                         ent:SetVelocity(normal * pushForce)
                     end
-                    if hgIsDoor(ent) and !ent:GetNoDraw() then
+                    if hgIsDoor and hgIsDoor(ent) and !ent:GetNoDraw() then
                         ent.HP = ent.HP or 200
                         local doorDmgMul = (isAirKick or isSprintKick) and 3 or 2
                         ent.HP = ent.HP - dmg * (tr.MatType == MAT_METAL and 1 or doorDmgMul)
@@ -306,6 +395,6 @@ function PLAYER:LegAttack()
     })
 end
 
-concommand.Add("hg_kick",function(ply)
-    ply:LegAttack()
+concommand.Add("hg_kick", function(ply)
+    if IsValid(ply) then ply:LegAttack() end
 end)
