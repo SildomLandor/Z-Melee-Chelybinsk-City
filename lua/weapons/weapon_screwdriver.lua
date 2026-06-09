@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Screwdriver"
-SWEP.Instructions = "A Screwdriver that is used to dismantle almost anything with a bolt, Which you repurposed to attack people. Can Disarm IED's."
+SWEP.PrintName = "Отвертка"
+SWEP.Instructions = "Отвертка, используемая для демонтажа практически всего с болтом. Я перепроектировал её для атаки людей. Может обезвредить СВУ."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false

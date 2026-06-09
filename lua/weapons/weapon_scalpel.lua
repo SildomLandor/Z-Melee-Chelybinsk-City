@@ -1,7 +1,7 @@
 if SERVER then AddCSLuaFile() end
 SWEP.Base = "weapon_melee"
-SWEP.PrintName = "Scalpel"
-SWEP.Instructions = "A scalpel thats used in surgeries. R+LMB to change mode to slash/stab. RMB to block."
+SWEP.PrintName = "Скальпель"
+SWEP.Instructions = "Обычный скальпель. Очень острый надо быть осторожней с ним. R+ЛКМ Смена режима на рубящий/колющий. ПКМ для блока."
 SWEP.Category = "Weapons - Melee"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
