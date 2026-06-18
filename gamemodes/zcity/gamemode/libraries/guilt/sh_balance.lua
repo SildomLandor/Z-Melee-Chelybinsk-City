@@ -1,5 +1,5 @@
 zb = zb or {}
--- сюда можете не смотреть это баланс...
+
 zb.DefaultKarma = 190
 zb.MaximumHarm = 45
 zb.MaxGuiltPair = 200
@@ -10,6 +10,10 @@ zb.KarmaLossScale = 50
 zb.GuiltPerHarmAmt = 60
 zb.RetaliatonGuilt = 100
 zb.GuiltBanThreshold = 100
+
+function zb.GuiltActive(ply)
+	return IsValid(ply) and ply:IsPlayer() and ply:Alive() and ply:Team() ~= TEAM_SPECTATOR
+end
 
 function zb.GuiltRetal(guilt)
 	return math.min((guilt or 0) / zb.RetaliatonGuilt, 1)
@@ -34,4 +38,10 @@ end
 function zb.GuiltKarmaMul(victim)
 	if not victim:IsPlayer() then return 1 end
 	return math.Clamp((victim.Karma or zb.DefaultKarma) / zb.DefaultKarma, 1, 1.2)
+end
+
+function zb.GuiltKarmaGainAllowed(ply)
+	if not IsValid(ply) or ply:Team() == TEAM_SPECTATOR then return false end
+	if ply:Alive() then return true end
+	return zb.ROUND_STATE ~= 1
 end

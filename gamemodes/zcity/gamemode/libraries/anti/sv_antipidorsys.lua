@@ -34,8 +34,8 @@ local function alive(p)
 end
 
 local function karma(ply, n)
-	if not IsValid(ply) or n < 1 then return end
-	ply.Karma = math.Clamp((ply.Karma or 100) - n, -60, zb.MaxKarma or 210)
+	if not IsValid(ply) or n < 1 or not zb.GuiltActive(ply) then return end
+	ply.Karma = math.Clamp((ply.Karma or 100) - n, zb.MinKarma or -60, zb.MaxKarma or 200)
 	if ply.guilt_SetValue then ply:guilt_SetValue(ply.Karma) end
 	if zb.KarmaSync then zb.KarmaSync(ply, true) end
 end
@@ -118,6 +118,6 @@ end)
 hook.Add("ZB_EndRound", "zb_AP", function()
 	if not rnd() or rnd().name ~= "hmcd" then return end
 	for _, p in player.Iterator() do
-		if (p._apScore or 0) >= 24 then karma(p, 12) end
+		if zb.GuiltActive(p) and (p._apScore or 0) >= 24 then karma(p, 12) end
 	end
 end)
