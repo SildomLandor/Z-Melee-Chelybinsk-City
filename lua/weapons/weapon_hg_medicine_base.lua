@@ -1030,8 +1030,9 @@ else
 				if bg >= 0 then model:SetBodygroup(bg, 1) end
 			end
 
-			for bone in pairs(hg.amputatedlimbs2) do
+			for bone in pairs(hg.amputatedlimbs2 or {}) do
 				local children = hg.get_children(ent, bone)
+				if not children then continue end
 				children[#children + 1] = bone
 
 				for i = 1, #children do

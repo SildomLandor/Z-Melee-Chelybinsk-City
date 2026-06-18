@@ -1384,6 +1384,7 @@ else
 
 		for bone in pairs(hg.amputatedlimbs2 or {}) do
 			local children = hg.get_children(ent, bone)
+			if not children then continue end
 			children[#children + 1] = bone
 
 			for i = 1, #children do
