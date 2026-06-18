@@ -3,7 +3,7 @@ local att, ent, oldEntView
 follow = follow or nil
 local vecZero, vecFull, angZero = Vector(0, 0, 0), Vector(1, 1, 1), Angle(0, 0, 0)
 local vecPochtiZero = Vector(0.1, 0.1, 0.1)
-local view = {}
+local a = {}
 local math_Clamp = math.Clamp
 local ang
 local att_Ang, ot
@@ -359,6 +359,7 @@ CalcView = function(ply, origin, angles, fov, znear, zfar)
 		end
 	else
 		view.origin = pos
+		view.angles = angEye
 	end
 	
 	view.angles:Add(ply:GetViewPunchAngles())

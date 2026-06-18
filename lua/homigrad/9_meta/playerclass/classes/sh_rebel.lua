@@ -100,7 +100,6 @@ local primary_weapons = {
     "weapon_akm",
     "weapon_asval",
     "weapon_mp7",
-    "weapon_spas12",
     "weapon_xm1014",
     "weapon_svd",
     "weapon_osipr"
@@ -209,7 +208,7 @@ local rebel_subclasses = {
 
     grenadier = {
         give_fn = function(ply)
-            ply:Give(math.random(0, 1) == 1 and "weapon_hg_rebelrpg" or "weapon_hg_rpg")
+            ply:Give("weapon_hg_rpg")
             ply:Give("weapon_claymore")
             ply:Give("weapon_traitor_ied")
             ply:Give("weapon_hg_slam")

@@ -14,13 +14,12 @@ hg.Accessories = {
          skin = 0,
          norender = true,
          placement = "face",
-         name = "AAA",
+         name = "Балаклава для пупса",
          bSetColor = true,
          bPointShop = true,
          price = 0,
          allowedSteamIDs = {
              "STEAM_0:1:448923998",
-             -- Add more Steam IDs as needed
          }
      },
 
