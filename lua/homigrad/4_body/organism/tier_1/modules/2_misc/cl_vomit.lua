@@ -45,9 +45,14 @@ net.Receive("vomit_squirt", function()
 	timer.Create(name, 0.01 * game.GetTimeScale(), i + 10, function()
 		if not IsValid(ent) then
 			timer.Remove(name)
-			if emitter then emitter:Finish() end
+			if emitter then 
+				emitter:Finish() 
+				emitter = nil
+			end
 			return
 		end
+
+		if not emitter then return end
 
 		local drawEnt = IsValid(ent.FakeRagdoll) and ent.FakeRagdoll or ent
 		local amt = math.max(i / maxI, 0.2)
@@ -56,7 +61,10 @@ net.Receive("vomit_squirt", function()
 		local bmat = drawEnt:GetBoneMatrix(bone)
 		if not bmat then
 			timer.Remove(name)
-			if emitter then emitter:Finish() end
+			if emitter then 
+				emitter:Finish() 
+				emitter = nil
+			end
 			return
 		end
 
