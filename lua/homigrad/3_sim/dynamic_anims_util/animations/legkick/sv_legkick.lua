@@ -50,7 +50,7 @@ function PLAYER:RagdollKick(rag)
     if org and org.stamina then
         -- Если стамины слишком мало, не даем ударить лежа
         if org.stamina[1] < 15 then 
-            self:Notify("Недостаточно сил для удара!", 1, "УСТАЛОСТЬ", 0)
+            --self:Notify("Недостаточно сил для удара!", 1, "УСТАЛОСТЬ", 0) -- НАХУЯ?
             return 
         end
         -- Тратим стамину (25 единиц, с учетом супербойца меньше)
