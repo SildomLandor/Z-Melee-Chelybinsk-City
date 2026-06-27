@@ -1,6 +1,7 @@
  
 local att, ent, oldEntView
 follow = follow or nil
+view = {}
 local vecZero, vecFull, angZero = Vector(0, 0, 0), Vector(1, 1, 1), Angle(0, 0, 0)
 local vecPochtiZero = Vector(0.1, 0.1, 0.1)
 local a = {}
