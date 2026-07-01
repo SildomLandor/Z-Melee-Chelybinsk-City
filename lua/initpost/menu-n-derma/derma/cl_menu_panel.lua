@@ -8,8 +8,8 @@ local Selects = {
     {Title = "Настройки", Func = function(luaMenu) luaMenu:SwitchToSettings() end},
     {Title = "Внешний Вид", Func = function(luaMenu) luaMenu:SwitchToAppearance() end},
     {Title = "Меню Предателя", GamemodeOnly = true, Func = function(luaMenu) luaMenu:SwitchToTraitorMenu() end},
- {Title = "Скины", ShouldShow = function() return hg and hg.skins and hg.skins.HasAnySkins and hg.skins.HasAnySkins() end, Func = function(luaMenu) luaMenu:OpenSkinsPanel() end},
-    {Title = "Дискорд", Func = function(luaMenu) gui.OpenURL("https://discord.gg/FeHJjs5JZ9") end},
+    {Title = "Скины", ShouldShow = function() return hg and hg.skins and hg.skins.HasAnySkins and hg.skins.HasAnySkins() end, Func = function(luaMenu) luaMenu:OpenSkinsPanel() end},
+    {Title = "Дискорд", Func = function(luaMenu) gui.OpenURL("https://discord.gg/KGYMypuvpu") end},
     {Title = "Главное Меню", Func = function(luaMenu) gui.ActivateGameUI() luaMenu:Close() end},
     {Title = "Отключиться", Func = function(luaMenu)
         if IsValid(ZCityMainMenuMusic) then ZCityMainMenuMusic:SetVolume(0) end
