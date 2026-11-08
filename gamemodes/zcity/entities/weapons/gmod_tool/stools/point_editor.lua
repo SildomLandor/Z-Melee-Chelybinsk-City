@@ -6,7 +6,7 @@ TOOL.ClientConVar["point"] = ""
 function TOOL:LeftClick(trace, attach)
 	local ply = self:GetOwner()
 	if not ply:IsAdmin() then
-		ply:ChatPrint("You are a furry")
+		ply:ChatPrint("You are a gay")
 		return false
 	end
 
